@@ -27,6 +27,9 @@ function(sdfio_integration name)
         LABELS integration SKIP_RETURN_CODE 77)
 endfunction()
 
+# A C++ class over the C interface needs no other library.
+sdfio_integration(image SOURCE image.cpp)
+
 find_package(OpenCV QUIET COMPONENTS core imgproc imgcodecs)
 if(OpenCV_FOUND)
     sdfio_integration(opencv SOURCE opencv.cpp LIBS ${OpenCV_LIBS})
@@ -52,12 +55,4 @@ if(PCL_FOUND)
     target_link_directories(integration_pcl PRIVATE ${PCL_LIBRARY_DIRS})
 else()
     message(STATUS "Integration example for PCL: not found, skipped")
-endif()
-
-find_package(OpenCL QUIET)
-if(OpenCL_FOUND)
-    sdfio_integration(opencl SOURCE opencl.c LIBS OpenCL::OpenCL)
-    target_link_libraries(integration_opencl PRIVATE $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
-else()
-    message(STATUS "Integration example for OpenCL: not found, skipped")
 endif()

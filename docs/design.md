@@ -73,6 +73,15 @@ turns an image the right way up, and both together take a column-major matrix.
 The library accepts rows that lie beside each other or columns that do, and
 refuses strides that make elements overlap.
 
+The same strides serve memory that another library hands out: a device buffer
+whose rows are padded to a pitch, mapped into the address space, or rows aligned
+for vector loads. The call is made on the mapped pointer with the pitch as the
+row stride, so the heights go straight into the buffer that the device reads,
+and a result is written straight from a mapped buffer, with no array in
+between. Most programs read into an image class of their own or into an OpenCV
+`Mat` first and upload from there, which is as it should be; these calls are for
+the ones that cannot spend the copy.
+
 ## Z-scale
 
 An integer data type needs a z-scale. `sdfio_write_heights` chooses the best for

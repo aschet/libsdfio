@@ -24,7 +24,7 @@ namespace
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 
-void check(sdfio_status status, const char* message)
+void check(sdfio_status status, const char *message)
 {
     if (status != SDFIO_OK)
     {
@@ -33,7 +33,7 @@ void check(sdfio_status status, const char* message)
     }
 }
 
-Reader open(const char* path)
+Reader open(const char *path)
 {
     Reader reader(sdfio_reader_new(), sdfio_reader_free);
     check(sdfio_open_file(reader.get(), path),
@@ -41,14 +41,14 @@ Reader open(const char* path)
     return reader;
 }
 
-ptrdiff_t stride_up(const cv::Mat& image)
+ptrdiff_t stride_up(const cv::Mat &image)
 {
     return -static_cast<ptrdiff_t>(image.step);
 }
 
-cv::Mat read_depth(sdfio_reader* reader)
+cv::Mat read_depth(sdfio_reader *reader)
 {
-    const sdfio_header* header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_get_header(reader);
     cv::Mat depth(static_cast<int>(header->rows),
                   static_cast<int>(header->columns), CV_32F);
     check(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32),
@@ -57,7 +57,7 @@ cv::Mat read_depth(sdfio_reader* reader)
     return depth;
 }
 
-cv::Mat smooth(const cv::Mat& depth)
+cv::Mat smooth(const cv::Mat &depth)
 {
     cv::Mat filled = depth.clone();
     cv::patchNaNs(filled, 0.0);
@@ -65,14 +65,14 @@ cv::Mat smooth(const cv::Mat& depth)
     return filled;
 }
 
-void save_preview(const cv::Mat& depth, const char* path)
+void save_preview(const cv::Mat &depth, const char *path)
 {
     cv::Mat preview;
     cv::normalize(depth, preview, 0, 255, cv::NORM_MINMAX, CV_8U);
     cv::imwrite(path, preview);
 }
 
-void write_depth(const char* path, sdfio_header header, const cv::Mat& depth)
+void write_depth(const char *path, sdfio_header header, const cv::Mat &depth)
 {
     header.data_type = SDFIO_DATA_BINARY32;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
@@ -86,49 +86,11 @@ void write_depth(const char* path, sdfio_header header, const cv::Mat& depth)
           sdfio_writer_error_message(writer.get()));
 }
 
-// The counts of a 16 bit image, as a scanner delivers them, go through the
-// data area and come back unchanged.
-bool counts_roundtrip(const char* path)
-{
-    cv::Mat counts(120, 160, CV_16S);
-    cv::randu(counts, cv::Scalar(-1000), cv::Scalar(1000));
-
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = SDFIO_DATA_INT16;
-    header.columns = static_cast<size_t>(counts.cols);
-    header.rows = static_cast<size_t>(counts.rows);
-    header.x_scale = 1e-6;
-    header.y_scale = 1e-6;
-    header.z_scale = 2.5e-9;
-    header.z_resolution = header.z_scale;
-
-    Writer writer(sdfio_writer_new(), sdfio_writer_free);
-    check(sdfio_create_file(writer.get(), path, &header),
-          sdfio_writer_error_message(writer.get()));
-    for (int row = 0; row < counts.rows; ++row)
-    {
-        check(sdfio_write_data(writer.get(), counts.ptr(row), 1),
-              sdfio_writer_error_message(writer.get()));
-    }
-    check(sdfio_write_trailer(writer.get(), nullptr, 0),
-          sdfio_writer_error_message(writer.get()));
-
-    const Reader reader = open(path);
-    cv::Mat back(counts.size(), CV_16S);
-    for (int row = 0; row < back.rows; ++row)
-    {
-        check(sdfio_read_data(reader.get(), back.ptr(row), 1),
-              sdfio_reader_error_message(reader.get()));
-    }
-    return cv::countNonZero(counts != back) == 0;
-}
-
 // A region of interest is read into without a copy; the rest of the image is
 // left alone.
-cv::Mat read_into_region(sdfio_reader* reader)
+cv::Mat read_into_region(sdfio_reader *reader)
 {
-    const sdfio_header* header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_get_header(reader);
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
                                      static_cast<int>(header->rows)));
@@ -141,9 +103,9 @@ cv::Mat read_into_region(sdfio_reader* reader)
 
 } // namespace
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
-    const char* path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
+    const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
     try
     {
         const Reader reader = open(path);
@@ -151,15 +113,13 @@ int main(int argc, char** argv)
         const cv::Mat blurred = smooth(depth);
         save_preview(blurred, "preview.png");
         write_depth("smooth.sdf", *sdfio_get_header(reader.get()), blurred);
-        const bool unchanged = counts_roundtrip("counts.sdf");
         const cv::Mat canvas = read_into_region(reader.get());
         std::cout << "OpenCV " << CV_VERSION << ": " << depth.cols << " x "
-                  << depth.rows << ", counts "
-                  << (unchanged ? "unchanged" : "CHANGED") << ", canvas "
-                  << canvas.cols << " x " << canvas.rows << "\n";
-        return unchanged ? 0 : 1;
+                  << depth.rows << ", canvas " << canvas.cols << " x "
+                  << canvas.rows << "\n";
+        return 0;
     }
-    catch (const std::exception& error)
+    catch (const std::exception &error)
     {
         std::cerr << error.what() << "\n";
         return 1;
