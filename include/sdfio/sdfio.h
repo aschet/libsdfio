@@ -471,8 +471,8 @@ typedef struct sdfio_writer sdfio_writer;
 SDFIO_API sdfio_writer *sdfio_writer_new(const sdfio_config *config);
 
 /**
- * Frees a writer. One that was not ended is abandoned: a file it created with
- * sdfio_create_file() is removed.
+ * Frees a writer. A file that it created with sdfio_create_file() and that was
+ * not ended is closed as it is, incomplete.
  */
 SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
 
@@ -525,7 +525,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * null for none. It is not looked at: what the text is, in ISO-2.0 lines of the
  * form `field name = value`, is for the program, which is helped by
  * sdfio_trailer_add_field(). All rows of the data area must
- * have been written. A file is moved to its place.
+ * have been written. A file of sdfio_create_file() is closed.
  *
  * Every line end of the text, LF, CR or CRLF, is written as CRLF, as the
  * standard has it, in a text file and in a binary file, and the last line is

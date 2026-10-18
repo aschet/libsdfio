@@ -24,8 +24,7 @@ version.
 Bytes come from and go to callbacks (`sdfio_stream`), as libtiff's
 `TIFFClientOpen` has them. A stream without `seek` is read once from the front.
 Files and memory are streams too. The reader holds a 16 KiB buffer; the heights
-are never held. A file that is written goes to a name beside its place and is
-renamed when it is whole.
+are never held.
 
 ## The records first
 
@@ -78,8 +77,7 @@ its own, and is freed with `sdfio_free`.
 Files are in `<sdfio/file.h>`. They are a layer over the stream callbacks that a
 program with a file system wants and one without it does not: the core header
 does not include `<stdio.h>`. A reader or a writer can own something that is
-closed with it, which is how a file is closed and a created file is moved to its
-place.
+closed with it, which is how a file is closed.
 
 ## Trailer
 

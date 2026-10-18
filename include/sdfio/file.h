@@ -39,9 +39,9 @@ SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
 SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
 
 /**
- * Starts a file at `path` as sdfio_create_stream() does. It is written beside
- * its place and moved there by sdfio_write_trailer(), so an error never leaves
- * a half-written file, and the old file stays as it was.
+ * Starts a file at `path` as sdfio_create_stream() does, and writes it there.
+ * sdfio_write_trailer() closes it. If the writing fails, what was written
+ * stays. A header that cannot be written creates no file.
  */
 SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
                                          const sdfio_header *header);

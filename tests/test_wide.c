@@ -26,9 +26,8 @@ static bool file_exists(const wchar_t *path)
 int main(void)
 {
     /* u-umlaut, and two characters outside of every Western code page. */
-    static const wchar_t path[] = L"test_wide_ü測定.sdf";
-    static const wchar_t partial[] = L"test_wide_ü測定.sdf.sdftmp";
-    static const wchar_t missing[] = L"no_such_測定_folder\\out.sdf";
+    static const wchar_t path[] = L"test_wide_\u00fc\u6e2c\u5b9a.sdf";
+    static const wchar_t missing[] = L"no_such_\u6e2c\u5b9a_folder\\out.sdf";
     _wremove(path);
 
     sdfio_header header;
@@ -41,18 +40,11 @@ int main(void)
 
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file_w(writer, path, &header));
-    CHECK(file_exists(partial) && !file_exists(path));
+    CHECK(file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, format, heights, row_stride));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
-    CHECK(file_exists(path) && !file_exists(partial));
-
-    /* An error leaves the old file as it was. */
-    writer = sdfio_writer_new(NULL);
-    CHECK_OK(sdfio_create_file_w(writer, path, &header));
-    CHECK_OK(sdfio_write_data(writer, heights, 1));
-    sdfio_writer_free(writer);
-    CHECK(file_exists(path) && !file_exists(partial));
+    CHECK(file_exists(path));
 
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_file_w(reader, path));

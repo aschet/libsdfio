@@ -399,9 +399,8 @@ bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size);
 bool sdfio_append_crlf_lines(sdfio_string *out, const char *text, size_t size);
 
 /* What a file adds to a reader or a writer, made by sdfio_open_file and
- * sdfio_create_file: `close` ends a reader, or abandons the file of a writer
- * that was not ended, and `finish` of a writer ends the file and moves it to
- * its place. */
+ * sdfio_create_file: `close` ends a reader, or closes the file of a writer
+ * that was not ended, and `finish` of a writer ends the file. */
 typedef struct sdfio_owner
 {
     sdfio_status (*finish)(void *user, sdfio_message *message);

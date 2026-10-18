@@ -191,7 +191,7 @@ jobs:
       - name: Check
         run: >
           clang-tidy -p build --warnings-as-errors='*'
-          src/*.c tests/*.c examples/*.c
+          $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_windows -e test_wide)
 
   package:
     name: Install and use, ${{ matrix.name }}

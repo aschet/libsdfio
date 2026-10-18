@@ -323,11 +323,11 @@ static bool file_exists(const char *path)
     return file != NULL;
 }
 
-/* A file is replaced whole or not at all. */
-static void check_atomic_file(void)
+/* A file is written in place, and a header that cannot be written makes none.
+ */
+static void check_file(void)
 {
     const char *path = "test_streams_output.sdf";
-    const char *partial = "test_streams_output.sdf.sdftmp";
     remove(path);
     sdfio_header header;
     sdfio_header_init(&header);
@@ -337,19 +337,12 @@ static void check_atomic_file(void)
 
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file(writer, path, &header));
-    CHECK(file_exists(partial) && !file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
                                  2 * sizeof(double)));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
-    CHECK(file_exists(path) && !file_exists(partial));
+    CHECK(file_exists(path));
 
-    /* An error leaves the old file as it was. */
-    writer = sdfio_writer_new(NULL);
-    CHECK_OK(sdfio_create_file(writer, path, &header));
-    CHECK_OK(sdfio_write_data(writer, heights, 1));
-    sdfio_writer_free(writer);
-    CHECK(file_exists(path) && !file_exists(partial));
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     double back[4] = {0};
@@ -359,6 +352,13 @@ static void check_atomic_file(void)
     sdfio_reader_free(reader);
     remove(path);
 
+    header.z_scale = -1.0;
+    writer = sdfio_writer_new(NULL);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file(writer, path, &header));
+    CHECK(!file_exists(path));
+    sdfio_writer_free(writer);
+
+    header.z_scale = 1.0;
     writer = sdfio_writer_new(NULL);
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_create_file(writer, "no_such_folder/out.sdf", &header));
@@ -407,7 +407,7 @@ int main(void)
     check_damage(SAMPLES "iso1_surface_ascii.sdf");
     check_damage(BCR_SAMPLES "bcr1_surface_ascii.sdf");
     check_damage(BCR_SAMPLES "bcr1_surface_binary.sdf");
-    check_atomic_file();
+    check_file();
     check_failing_sink();
     return finish_tests();
 }
