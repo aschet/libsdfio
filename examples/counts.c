@@ -41,7 +41,7 @@ static int write_counts(const char *path, sdfio_revision revision)
     header.z_resolution = header.z_scale;
 
     const int16_t not_measured =
-        (int16_t)sdfio_sentinel(header.data_type, header.revision);
+        (int16_t)sdfio_bad_value(header.data_type, header.revision);
     sdfio_writer *writer = sdfio_writer_new();
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
@@ -76,7 +76,7 @@ static int read_counts(const char *path)
     int16_t *row = sdfio_alloc_data(header, 1);
     int16_t *expected = sdfio_alloc_data(header, 1);
     const int16_t not_measured =
-        (int16_t)sdfio_sentinel(header->data_type, header->revision);
+        (int16_t)sdfio_bad_value(header->data_type, header->revision);
     size_t unmeasured = 0;
     size_t measured = 0;
     size_t out_of_place = 0;
@@ -89,7 +89,7 @@ static int read_counts(const char *path)
             memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;
         for (size_t x = 0; status == SDFIO_OK && x < header->columns; ++x)
         {
-            if (sdfio_is_sentinel(header->data_type, header->revision, row[x]))
+            if (sdfio_is_bad_value(header->data_type, header->revision, row[x]))
             {
                 ++unmeasured;
             }

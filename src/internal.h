@@ -152,7 +152,7 @@ static inline bool sdfi_requires_tagged_trailer(sdfio_revision revision)
     return revision == SDFIO_ISO_2_0;
 }
 
-static inline bool sdfi_uses_max_sentinel(sdfio_revision revision)
+static inline bool sdfi_bad_is_maximum(sdfio_revision revision)
 {
     return revision == SDFIO_BCR_1_0;
 }
@@ -180,17 +180,16 @@ size_t sdfi_binary_header_size(sdfio_revision revision);
 
 /* A test for the number that marks a point as not measured. BCR-1.0 treats
  * every floating point number from a threshold up as one. */
-typedef struct sdfi_sentinel_test
+typedef struct sdfi_bad_test
 {
     bool at_least;
     double value;
-} sdfi_sentinel_test;
+} sdfi_bad_test;
 
-sdfi_sentinel_test sdfi_sentinel_test_for(sdfio_data_type type,
-                                          sdfio_revision revision);
-bool sdfi_matches(sdfi_sentinel_test test, double coded);
+sdfi_bad_test sdfi_bad_test_for(sdfio_data_type type, sdfio_revision revision);
+bool sdfi_matches(sdfi_bad_test test, double coded);
 /* The number a text file writes for a point not measured, in BCR-1.0. */
-double sdfi_ascii_sentinel(sdfio_data_type type, sdfio_revision revision);
+double sdfi_ascii_bad_value(sdfio_data_type type, sdfio_revision revision);
 
 bool sdfi_host_is_little_endian(void);
 /* Puts the values of `bytes` in file order (little endian) or back, in

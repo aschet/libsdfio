@@ -90,7 +90,7 @@ int main(void)
     CHECK_OK(sdfio_rewind(reader));
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));
-    CHECK(sdfio_is_sentinel(read->data_type, read->revision, counts[2]));
+    CHECK(sdfio_is_bad_value(read->data_type, read->revision, counts[2]));
     CHECK_STATUS(SDFIO_OK,
                  sdfio_decode_heights(read, sdfio_metres(SDFIO_FLOAT32), counts,
                                       6, back));

@@ -90,7 +90,7 @@ static void check_encode(void)
                  sdfio_encode_heights(&header, sdfio_metres(SDFIO_FLOAT64),
                                       too_high, 1, coded));
     const double marker[] = {-32768e-9};
-    CHECK_STATUS(SDFIO_ERR_SENTINEL,
+    CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
                  sdfio_encode_heights(&header, sdfio_metres(SDFIO_FLOAT64),
                                       marker, 1, coded));
 
@@ -99,7 +99,7 @@ static void check_encode(void)
     const double top[] = {32767e-9};
     const double bottom[] = {-32768e-9};
     CHECK_STATUS(
-        SDFIO_ERR_SENTINEL,
+        SDFIO_ERR_BAD_VALUE,
         sdfio_encode_heights(&bcr, sdfio_metres(SDFIO_FLOAT64), top, 1, coded));
     CHECK_OK(sdfio_encode_heights(&bcr, sdfio_metres(SDFIO_FLOAT64), bottom, 1,
                                   coded));
@@ -212,11 +212,11 @@ static void check_float_marker(void)
 
 static void check_tables(void)
 {
-    CHECK(sdfio_sentinel(SDFIO_DATA_INT16, SDFIO_ISO_2_0) == INT16_MIN);
-    CHECK(sdfio_sentinel(SDFIO_DATA_INT16, SDFIO_BCR_1_0) == INT16_MAX);
-    CHECK(sdfio_sentinel(SDFIO_DATA_BINARY64, SDFIO_ISO_1_0) == -DBL_MAX);
-    CHECK(sdfio_is_sentinel(SDFIO_DATA_BINARY64, SDFIO_BCR_1_0, 1.7e308));
-    CHECK(!sdfio_is_sentinel(SDFIO_DATA_BINARY64, SDFIO_ISO_2_0, 1.7e308));
+    CHECK(sdfio_bad_value(SDFIO_DATA_INT16, SDFIO_ISO_2_0) == INT16_MIN);
+    CHECK(sdfio_bad_value(SDFIO_DATA_INT16, SDFIO_BCR_1_0) == INT16_MAX);
+    CHECK(sdfio_bad_value(SDFIO_DATA_BINARY64, SDFIO_ISO_1_0) == -DBL_MAX);
+    CHECK(sdfio_is_bad_value(SDFIO_DATA_BINARY64, SDFIO_BCR_1_0, 1.7e308));
+    CHECK(!sdfio_is_bad_value(SDFIO_DATA_BINARY64, SDFIO_ISO_2_0, 1.7e308));
     CHECK(sdfio_data_type_size(SDFIO_DATA_UINT8) == 1);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY32) == 4);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY64) == 8);

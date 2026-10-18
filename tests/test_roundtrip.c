@@ -218,7 +218,7 @@ static void check_rows(sdfio_revision revision, sdfio_storage storage)
         for (size_t column = 5; column < COLUMNS; ++column)
         {
             const int16_t count = counts[file_row * COLUMNS + column];
-            if (!sdfio_is_sentinel(SDFIO_DATA_INT16, revision, count))
+            if (!sdfio_is_bad_value(SDFIO_DATA_INT16, revision, count))
             {
                 CHECK(near_relative(heights[y * COLUMNS + column], count * 1e-9,
                                     1e-12));
@@ -263,7 +263,7 @@ static void check_errors(void)
     header.rows = 1;
     writer = sdfio_writer_new();
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_STATUS(SDFIO_ERR_SENTINEL,
+    CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
                  sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
                                      marker, sizeof(double)));
     sdfio_writer_free(writer);

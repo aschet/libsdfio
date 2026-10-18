@@ -31,7 +31,7 @@ const char *sdfio_status_string(sdfio_status status)
         return "a feature of the file is not supported";
     case SDFIO_ERR_RANGE:
         return "a number does not fit its type";
-    case SDFIO_ERR_SENTINEL:
+    case SDFIO_ERR_BAD_VALUE:
         return "a height equals the marker of a point that is not measured";
     case SDFIO_ERR_MEMORY:
         return "out of memory";

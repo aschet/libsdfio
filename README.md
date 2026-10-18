@@ -69,10 +69,10 @@ on data from any other source.
   program does not have to widen its memory to `double`.
 - **Missing points** are NaN, or the marker of your choice, which is taken in
   the precision of the sample type. In the coded values of the data area, as
-  `sdfio_read_data` returns them, a point that was not measured has the number
-  that `sdfio_sentinel(type, revision)` gives: test a value with
-  `sdfio_is_sentinel(type, revision, value)`, and write that number for a
-  point that was not measured.
+  `sdfio_read_data` returns them, a point that was not measured has the bad
+  value that `sdfio_bad_value(type, revision)` gives: test a value with
+  `sdfio_is_bad_value(type, revision, value)`, and write that value for a point
+  that was not measured.
 - **Row order**: `sdfio_read_heights` and `sdfio_write_heights` always put
   `y = 0` first. `sdfio_read_data` and `sdfio_write_data` keep the order of the
   file, which BCR-1.0 stores from the largest y down, so a program that handles

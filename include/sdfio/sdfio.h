@@ -73,8 +73,8 @@ typedef enum sdfio_status
     SDFIO_ERR_UNSUPPORTED,
     /** A number does not fit the type that has to hold it. */
     SDFIO_ERR_RANGE,
-    /** A height is the number that marks a point as not measured. */
-    SDFIO_ERR_SENTINEL,
+    /** A height equals the bad value, which labels a point as not measured. */
+    SDFIO_ERR_BAD_VALUE,
     SDFIO_ERR_MEMORY
 } sdfio_status;
 
@@ -234,12 +234,20 @@ SDFIO_API bool sdfio_rows_reversed(sdfio_revision revision);
  */
 SDFIO_API size_t sdfio_row_y(const sdfio_header *header, size_t file_row);
 
-/** Whether a value of the data area marks a point that was not measured. */
-SDFIO_API bool sdfio_is_sentinel(sdfio_data_type type, sdfio_revision revision,
-                                 double value);
+/**
+ * Whether a value of the data area is the bad value, which labels a point that
+ * was not measured or is spurious.
+ */
+SDFIO_API bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
+                                  double value);
 
-/** The value of the data area that marks a point that was not measured. */
-SDFIO_API double sdfio_sentinel(sdfio_data_type type, sdfio_revision revision);
+/**
+ * The bad value of a data type in a revision: the number that labels a point
+ * as not measured or spurious. It is the minimum of the type in ISO-1.0 and
+ * ISO-2.0, which the standard does not permit for a valid height, and the
+ * maximum in BCR-1.0. A text file writes the string BAD.
+ */
+SDFIO_API double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision);
 
 /* ---- Streams ------------------------------------------------------------ */
 
@@ -464,7 +472,7 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
  * not measured. Write the trailer with sdfio_write_trailer() after it.
  *
  * @return SDFIO_ERR_RANGE if a height does not fit the data type with the
- * z-scale, SDFIO_ERR_SENTINEL if one would be read as a point not measured.
+ * z-scale, SDFIO_ERR_BAD_VALUE if one would be read as a point not measured.
  */
 SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
                                            sdfio_format format, const void *src,
@@ -503,7 +511,7 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * Integers are rounded.
  *
  * @return SDFIO_ERR_ARGUMENT if the z-scale is not set, SDFIO_ERR_RANGE if a
- * height does not fit the data type, SDFIO_ERR_SENTINEL if one would be read
+ * height does not fit the data type, SDFIO_ERR_BAD_VALUE if one would be read
  * as a point not measured.
  */
 SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,

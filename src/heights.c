@@ -116,8 +116,7 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const sdfio_data_type type = header->data_type;
-    const sdfi_sentinel_test is_missing =
-        sdfi_sentinel_test_for(type, header->revision);
+    const sdfi_bad_test is_missing = sdfi_bad_test_for(type, header->revision);
     const size_t coded_size = sdfio_data_type_size(type);
     const ptrdiff_t element = sdfi_element_stride(format);
     const double marker = marker_of(format);
@@ -179,9 +178,9 @@ static sdfio_status checked_coded(sdfio_data_type type, sdfio_revision revision,
             return SDFIO_ERR_RANGE;
         }
     }
-    if (sdfio_is_sentinel(type, revision, candidate))
+    if (sdfio_is_bad_value(type, revision, candidate))
     {
-        return SDFIO_ERR_SENTINEL;
+        return SDFIO_ERR_BAD_VALUE;
     }
     *out = sdfi_is_floating(type) ? value : candidate;
     return SDFIO_OK;
@@ -199,7 +198,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const sdfio_data_type type = header->data_type;
-    const double marker = sdfio_sentinel(type, header->revision);
+    const double marker = sdfio_bad_value(type, header->revision);
     const size_t coded_size = sdfio_data_type_size(type);
     const ptrdiff_t element = sdfi_element_stride(format);
     const double marker_height = marker_of(format);
@@ -238,7 +237,8 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     return SDFIO_OK;
 }
 
-/* The step from the extreme of a type that a sentinel takes away: one count. */
+/* The step from the extreme of a type that the bad value takes away: one
+ * count. */
 static const double one_count = 1.0;
 
 double sdfio_z_scale_for_range(sdfio_data_type type, sdfio_revision revision,
@@ -249,13 +249,13 @@ double sdfio_z_scale_for_range(sdfio_data_type type, sdfio_revision revision,
     {
         return 1.0;
     }
-    /* The bound that the revision keeps for the sentinel is one step towards
+    /* The bound that the revision keeps for the bad value is one step towards
      * zero, as that exact value is not usable for a height. */
-    const bool max_sentinel = sdfi_uses_max_sentinel(revision);
+    const bool bad_is_maximum = sdfi_bad_is_maximum(revision);
     const double usable_max =
-        sdfi_highest(type) - (max_sentinel ? one_count : 0.0);
+        sdfi_highest(type) - (bad_is_maximum ? one_count : 0.0);
     const double usable_min =
-        sdfi_lowest(type) + (max_sentinel ? 0.0 : one_count);
+        sdfi_lowest(type) + (bad_is_maximum ? 0.0 : one_count);
     double z_scale = 0.0;
     if (highest > 0.0)
     {

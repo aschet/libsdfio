@@ -387,14 +387,14 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
             status = sdfio_encode_heights(header, format,
                                           row + (ptrdiff_t)first * element,
                                           count, writer->coded);
-            if (status == SDFIO_ERR_RANGE || status == SDFIO_ERR_SENTINEL)
+            if (status == SDFIO_ERR_RANGE || status == SDFIO_ERR_BAD_VALUE)
             {
                 sdfi_fail(&writer->message, status,
                           status == SDFIO_ERR_RANGE
                               ? "Data value out of range for SDF data type %s "
                                 "at row %zu"
                               : "A data value collides with the %s "
-                                "invalid-point sentinel at row %zu; rescale "
+                                "bad value at row %zu; rescale "
                                 "the data to avoid this value",
                           sdfio_data_type_name(header->data_type),
                           sdfio_row_y(header, file_row));

@@ -623,7 +623,7 @@ sdfio_status sdfi_ascii_value(sdfi_source *source, const sdfio_header *header,
     {
         return sdfi_put_real(
             header->data_type, dst, index,
-            sdfio_sentinel(header->data_type, header->revision));
+            sdfio_bad_value(header->data_type, header->revision));
     }
     sdfio_status status = SDFIO_ERR_FORMAT;
     if (sdfi_is_floating(header->data_type))
@@ -863,13 +863,13 @@ size_t sdfi_ascii_format(const sdfio_header *header, const sdfi_point *point,
 {
     const sdfio_data_type type = header->data_type;
     double value = sdfi_get_real(type, coded, index);
-    if (sdfi_matches(sdfi_sentinel_test_for(type, header->revision), value))
+    if (sdfi_matches(sdfi_bad_test_for(type, header->revision), value))
     {
         if (sdfi_has_bad_token(header->revision))
         {
             return (size_t)snprintf(out, capacity, "BAD");
         }
-        value = sdfi_ascii_sentinel(type, header->revision);
+        value = sdfi_ascii_bad_value(type, header->revision);
     }
     if (!sdfi_is_floating(type))
     {

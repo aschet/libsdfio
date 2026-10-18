@@ -172,29 +172,28 @@ size_t sdfio_row_y(const sdfio_header *header, size_t file_row)
 static const double bcr_bad_binary32 = 3.4e38;
 static const double bcr_bad_binary64 = 1.7e308;
 
-double sdfio_sentinel(sdfio_data_type type, sdfio_revision revision)
+double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision)
 {
-    return sdfi_uses_max_sentinel(revision) ? sdfi_highest(type)
-                                            : sdfi_lowest(type);
+    return sdfi_bad_is_maximum(revision) ? sdfi_highest(type)
+                                         : sdfi_lowest(type);
 }
 
-double sdfi_ascii_sentinel(sdfio_data_type type, sdfio_revision revision)
+double sdfi_ascii_bad_value(sdfio_data_type type, sdfio_revision revision)
 {
-    if (sdfi_uses_max_sentinel(revision) && sdfi_is_floating(type))
+    if (sdfi_bad_is_maximum(revision) && sdfi_is_floating(type))
     {
         return type == SDFIO_DATA_BINARY32 ? bcr_bad_binary32
                                            : bcr_bad_binary64;
     }
-    return sdfio_sentinel(type, revision);
+    return sdfio_bad_value(type, revision);
 }
 
-sdfi_sentinel_test sdfi_sentinel_test_for(sdfio_data_type type,
-                                          sdfio_revision revision)
+sdfi_bad_test sdfi_bad_test_for(sdfio_data_type type, sdfio_revision revision)
 {
-    sdfi_sentinel_test test;
-    test.at_least = sdfi_uses_max_sentinel(revision) && sdfi_is_floating(type);
-    test.value = test.at_least ? sdfi_ascii_sentinel(type, revision)
-                               : sdfio_sentinel(type, revision);
+    sdfi_bad_test test;
+    test.at_least = sdfi_bad_is_maximum(revision) && sdfi_is_floating(type);
+    test.value = test.at_least ? sdfi_ascii_bad_value(type, revision)
+                               : sdfio_bad_value(type, revision);
     if (test.at_least && type == SDFIO_DATA_BINARY32)
     {
         /* The threshold in the precision of the type, so that a number
@@ -204,15 +203,15 @@ sdfi_sentinel_test sdfi_sentinel_test_for(sdfio_data_type type,
     return test;
 }
 
-bool sdfi_matches(sdfi_sentinel_test test, double coded)
+bool sdfi_matches(sdfi_bad_test test, double coded)
 {
     return test.at_least ? coded >= test.value : coded == test.value;
 }
 
-bool sdfio_is_sentinel(sdfio_data_type type, sdfio_revision revision,
-                       double value)
+bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
+                        double value)
 {
-    return sdfi_matches(sdfi_sentinel_test_for(type, revision), value);
+    return sdfi_matches(sdfi_bad_test_for(type, revision), value);
 }
 
 void sdfio_header_init(sdfio_header *header)
