@@ -24,7 +24,14 @@ extern "C"
 {
 #endif
 
-/** A stream over a C file, which stays yours and is not closed. */
+/**
+ * A stream over a C file, which stays yours and is not closed. The file has to
+ * be open in binary mode. On Windows `stdin` and `stdout` are in text mode,
+ * which changes the line ends of what passes and ends the input at a byte
+ * 0x1A: switch them before the first use with
+ * `_setmode(_fileno(stdin), _O_BINARY)`. The files of sdfio_open_file() and
+ * sdfio_create_file() are always binary.
+ */
 SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
 
 /**

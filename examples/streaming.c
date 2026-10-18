@@ -5,9 +5,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 /* The statistics of a file from a pipe, a row at a time: no matrix is held. */
 int main(void)
 {
+#if defined(_WIN32)
+    /* Windows opens stdin in text mode, which would change the bytes of a
+     * binary file. */
+    _setmode(_fileno(stdin), _O_BINARY);
+#endif
     const sdfio_stream stream = sdfio_stdio_stream(stdin);
     sdfio_reader *reader = sdfio_reader_new(NULL);
     sdfio_status status = sdfio_open_stream(reader, &stream);
