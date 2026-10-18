@@ -1,7 +1,7 @@
 version = 1
 
 [[annotations]]
-path = ["README.md", "docs/**", "tests/data/README.md", "tests/data/expected.txt", ".clang-format", ".gitattributes", ".gitignore", "LICENSE"]
+path = ["README.md", "docs/**", "examples/integrations/README.md", "tests/data/README.md", "tests/data/expected.txt", ".clang-format", ".gitattributes", ".gitignore", "LICENSE"]
 SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "MIT"
 
@@ -16,6 +16,6 @@ SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = ["examples/*.c", "examples/integrations/*.cpp"]
+path = ["examples/*.c", "examples/integrations/*.cpp", "examples/integrations/*.c"]
 SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "0BSD"
