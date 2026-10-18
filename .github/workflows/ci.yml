@@ -26,6 +26,12 @@ jobs:
           - name: clang
             cc: clang
             options: -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          - name: C99, gcc
+            cc: gcc
+            options: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_STANDARD=99 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          - name: C99, clang
+            cc: clang
+            options: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_STANDARD=99 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           - name: shared library
             cc: gcc
             options: -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON

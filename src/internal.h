@@ -17,13 +17,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* A check at compile time that C99 has: a type with a negative size does not
+ * compile. The name says what failed. */
+#define SDFIO_REQUIRE(name, condition)                                         \
+    typedef char sdfio_requirement_##name[(condition) ? 1 : -1]
+
 /* What the format needs of the platform, checked here and nowhere else: bytes
  * of 8 bits, and IEEE 754 binary32 and binary64 for float and double. */
-_Static_assert(CHAR_BIT == 8, "the format counts in 8-bit bytes");
-_Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
-               "float has to be IEEE 754 binary32");
-_Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
-               "double has to be IEEE 754 binary64");
+SDFIO_REQUIRE(bytes_of_8_bits, CHAR_BIT == 8);
+SDFIO_REQUIRE(float_is_binary32,
+              sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24);
+SDFIO_REQUIRE(double_is_binary64, sizeof(double) == 8 && DBL_MANT_DIG == 53);
 
 enum
 {
