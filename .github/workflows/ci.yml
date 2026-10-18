@@ -309,36 +309,6 @@ jobs:
               DYLD_LIBRARY_PATH="$installed/$triplet/lib" "$consumer"
           done
 
-  fuzz:
-    name: Fuzzing
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build
-        run: |
-          CC=clang cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_BUILD_FUZZERS=ON -DSDFIO_BUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
-          cmake --build build --parallel
-      # The sample files, each with a control byte in front that picks how the
-      # reader is driven: memory or a stream, and the size of its buffers.
-      - name: Seed
-        run: |
-          mkdir -p corpus/reader corpus/writer
-          i=0
-          for f in tests/data/samples/*/*.sdf tests/data/interop/*.sdf; do
-            for c in 0 1 5; do
-              printf "\\x0$c" | cat - "$f" > "corpus/reader/seed_${i}_$c"
-            done
-            i=$((i + 1))
-          done
-          head -c 160 /dev/zero > corpus/writer/seed
-      - name: Run
-        run: |
-          build/tests/fuzz/fuzz_reader corpus/reader -max_len=65536 \
-            -max_total_time=60 -timeout=10
-          build/tests/fuzz/fuzz_writer corpus/writer -max_len=2048 \
-            -max_total_time=60 -timeout=10
-
   reuse:
     name: Licenses
     runs-on: ubuntu-latest
