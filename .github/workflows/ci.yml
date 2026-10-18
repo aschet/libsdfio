@@ -103,6 +103,26 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  arm-32-bit:
+    name: 32-bit ARM (armhf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the compiler and the emulator
+        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm
+          -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc
+          "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf"
+          -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DSDFIO_BUILD_EXAMPLES=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
   cortex-m:
     name: Cortex-M4 firmware
     runs-on: ubuntu-latest
