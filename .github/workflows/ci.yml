@@ -119,8 +119,7 @@ jobs:
           -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32
           -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
           -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc
-          "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections"
-          "-DCMAKE_EXE_LINKER_FLAGS=--specs=picolibc.specs"
+          "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 --specs=picolibc.specs -ffunction-sections -fdata-sections"
           -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_BUILD_FIRMWARE=ON
           -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
