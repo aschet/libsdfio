@@ -581,8 +581,47 @@ static void check_resolution(void)
     }
 }
 
+/* What a header starts as: a binary ISO-2.0 file of single precision floats,
+ * which holds a float surface without loss and needs no z-scale. */
+static void check_defaults(void)
+{
+    sdfio_header header;
+    sdfio_header_init(&header);
+    CHECK(header.revision == SDFIO_ISO_2_0);
+    CHECK(header.storage == SDFIO_BINARY);
+    CHECK(header.data_type == SDFIO_DATA_BINARY32);
+    CHECK(header.z_scale == SDFIO_AUTO_Z_SCALE);
+    CHECK(header.columns == 0 && header.rows == 0);
+
+    /* A float surface written with the defaults comes back as it was. */
+    header.columns = 3;
+    header.rows = 2;
+    const float heights[6] = {1e-6F, -2.5e-7F, NAN, 3e-7F, 0.0F, 7.5e-6F};
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
+                                 3 * sizeof(float)));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
+    float back[6];
+    sdfio_reader *reader = sdfio_reader_new();
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), back,
+                                3 * sizeof(float)));
+    for (size_t i = 0; i < 6; ++i)
+    {
+        CHECK(isnan(heights[i]) ? isnan(back[i]) : back[i] == heights[i]);
+    }
+    CHECK(sdfio_get_header(reader)->z_scale == 1.0);
+    sdfio_reader_free(reader);
+    free(file.data);
+}
+
 int main(void)
 {
+    check_defaults();
     check_resolution();
     check_element_stride();
     check_stride();

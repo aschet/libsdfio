@@ -201,7 +201,7 @@ typedef struct sdfio_header
 } sdfio_header;
 
 /**
- * Sets the header of a binary ISO-2.0 file of binary64 values with sampling
+ * Sets the header of a binary ISO-2.0 file of binary32 values with sampling
  * intervals of 1 m, both dates now and the manufacturer "libsdfio". Set the
  * fields you need, and the number of columns and rows, afterwards.
  */

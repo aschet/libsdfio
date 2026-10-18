@@ -122,6 +122,7 @@ static void check_locale(void)
     sdfio_header header;
     sdfio_header_init(&header);
     header.storage = SDFIO_ASCII;
+    header.data_type = SDFIO_DATA_BINARY64;
     header.columns = 3;
     header.rows = 1;
     header.x_scale = 1.5e-6;
