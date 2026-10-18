@@ -18,12 +18,12 @@ include(GNUInstallDirs)
 
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
+option(SDFIO_BUILD_FIRMWARE "Build the firmware that links the library for a target without an operating system" OFF)
 option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 # For a small program: a build can leave out what it does not use. Each option
 # swaps one file for a stub with the same functions, so that nothing is
 # conditional in the code.
 option(SDFIO_TEXT "Read and write text files" ON)
-option(SDFIO_MESSAGES "Keep the text that tells what went wrong" ON)
 option(SDFIO_LOCAL_TIME "Convert the dates of ISO-1.0 and BCR-1.0 to the local clock" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 
@@ -67,14 +67,9 @@ set(SDFIO_SOURCES
 )
 
 if(SDFIO_TEXT)
-    list(APPEND SDFIO_SOURCES src/ascii.c)
+    list(APPEND SDFIO_SOURCES src/ascii.c src/decimal.c)
 else()
     list(APPEND SDFIO_SOURCES src/ascii_stub.c)
-endif()
-if(SDFIO_MESSAGES)
-    list(APPEND SDFIO_SOURCES src/messages.c)
-else()
-    list(APPEND SDFIO_SOURCES src/messages_stub.c)
 endif()
 if(SDFIO_LOCAL_TIME)
     list(APPEND SDFIO_SOURCES src/localtime.c)
@@ -150,6 +145,10 @@ endif()
 if(SDFIO_BUILD_INTEGRATIONS)
     enable_language(CXX)
     add_subdirectory(examples/integrations)
+endif()
+
+if(SDFIO_BUILD_FIRMWARE)
+    add_subdirectory(tests/embedded)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)

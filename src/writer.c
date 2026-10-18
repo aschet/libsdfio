@@ -95,7 +95,8 @@ bool sdfio_writer_is_new(const sdfio_writer *writer)
 
 const char *sdfio_writer_error_message(const sdfio_writer *writer)
 {
-    return writer != NULL ? writer->message.text : "";
+    return writer != NULL && writer->message.text != NULL ? writer->message.text
+                                                          : "";
 }
 
 static sdfio_status fail_writing(sdfio_writer *writer, sdfio_status status)
@@ -304,8 +305,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     if (rows > header->rows - writer->next_row)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "%zu rows were given, %zu are left to write", rows,
-                          header->rows - writer->next_row);
+                          "More rows were given than are left to write");
     }
     if (rows > 0 && header->columns > 0 && src == NULL)
     {
@@ -393,13 +393,9 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
             {
                 sdfio_fail(&writer->message, status,
                            status == SDFIO_ERR_RANGE
-                               ? "Data value out of range for SDF data type %s "
-                                 "at row %zu"
-                               : "A data value collides with the %s "
-                                 "bad value at row %zu; rescale "
-                                 "the data to avoid this value",
-                           sdfio_data_type_name(header->data_type),
-                           sdfio_row_y(header, file_row));
+                               ? "A height is out of range for the data type"
+                               : "A height equals the bad value of the data "
+                                 "type: rescale the data");
             }
             if (status == SDFIO_OK)
             {
@@ -427,13 +423,12 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     if (writer->next_row != header->rows)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "%zu of %zu rows were written", writer->next_row,
-                          header->rows);
+                          "Not all rows of the data area were written");
     }
     if (trailer == NULL && size > 0)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "A trailer of %zu bytes needs its text", size);
+                          "A trailer with a size needs its text");
     }
     status = start_data(writer);
     if (status != SDFIO_OK)

@@ -82,7 +82,7 @@ sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path)
     if (file == NULL)
     {
         return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_IO,
-                          "The file cannot be opened: %s", path);
+                          "The file cannot be opened");
     }
     reading_file *state = malloc(sizeof *state);
     if (state == NULL)
@@ -196,7 +196,7 @@ sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
     {
         abandon_writing(state);
         return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_IO,
-                          "The file cannot be written: %s", path);
+                          "The file cannot be written");
     }
     const sdfio_stream stream = sdfio_stdio_stream(state->file);
     const sdfio_status status = sdfio_create_stream(writer, &stream, header);

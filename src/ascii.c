@@ -72,6 +72,24 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
     }
 }
 
+/* Why a line or a token could not be read: the memory, the stream, or what
+ * the text is, which is `format_text`. */
+static sdfio_status read_failure(const sdfio_source *source,
+                                 sdfio_message *message,
+                                 const char *format_text)
+{
+    if (source->no_memory)
+    {
+        return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
+    }
+    if (source->failed)
+    {
+        return sdfio_fail(message, SDFIO_ERR_IO,
+                          "The stream could not be read");
+    }
+    return sdfio_fail(message, SDFIO_ERR_FORMAT, format_text);
+}
+
 static void skip_line(sdfio_source *source)
 {
     source->skip_lf = false;
@@ -198,17 +216,15 @@ static sdfio_status field(const sdfio_string *header_text, const char *name,
                            header_text->size, name, &out->text, &out->size))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Missing required SDF header field '%s'", name);
+                          "A required field of the SDF header is missing");
     }
     return SDFIO_OK;
 }
 
-static sdfio_status invalid_value(sdfio_message *message, const char *kind,
-                                  const char *name, field_text value)
+static sdfio_status invalid_value(sdfio_message *message)
 {
     return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                      "Invalid %s value for SDF header field '%s': '%.*s'",
-                      kind, name, (int)value.size, value.text);
+                      "A field of the SDF header has an invalid value");
 }
 
 static sdfio_status header_real(const sdfio_string *header_text,
@@ -223,7 +239,7 @@ static sdfio_status header_real(const sdfio_string *header_text,
     }
     if (!sdfio_parse_number(point, value.text, value.size, out))
     {
-        return invalid_value(message, "float", name, value);
+        return invalid_value(message);
     }
     return SDFIO_OK;
 }
@@ -241,13 +257,12 @@ static sdfio_status header_count(const sdfio_string *header_text,
     long long number = 0;
     if (!sdfio_parse_integer(value.text, value.size, &number))
     {
-        return invalid_value(message, "integer", name, value);
+        return invalid_value(message);
     }
     if (number < 0 || (unsigned long long)number > SIZE_MAX)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "SDF header field '%s' is out of range: %lld", name,
-                          number);
+                          "A count in the SDF header is out of range");
     }
     *out = (size_t)number;
     return SDFIO_OK;
@@ -309,7 +324,7 @@ static sdfio_status header_coded(const sdfio_string *header_text,
             }
         }
     }
-    return invalid_value(message, "integer", name, value);
+    return invalid_value(message);
 }
 
 static void copy_identifier(sdfio_header *header, const char *text, size_t size)
@@ -423,13 +438,8 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
         next_line(source, &line, &ended, &done, SDFIO_MAX_HEADER_TEXT);
     if (got == GOT_ERROR)
     {
-        status = source->no_memory
-                     ? sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory")
-                 : source->failed
-                     ? sdfio_fail(message, SDFIO_ERR_IO,
-                                  "The stream could not be read")
-                     : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                  "The first line of the file is not a magic");
+        status = read_failure(source, message,
+                              "The first line of the file is not a magic");
         goto done;
     }
     if (got != GOT_ONE || !ended)
@@ -449,8 +459,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     if (!matches_magic(magic, magic_size))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Not an ASCII SDF file, unexpected magic: '%.*s'",
-                            (int)magic_line_size, magic_line);
+                            "Not an ASCII SDF file: unexpected magic");
         goto done;
     }
     if (sdfio_lower(magic[0]) != 'a')
@@ -464,9 +473,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     if (!sdfio_revision_from_text(magic + 1, magic_size - 1, &revision))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Unknown or unsupported SDF revision in magic "
-                            "'%.*s'",
-                            (int)magic_line_size, magic_line);
+                            "Unknown or unsupported SDF revision in magic");
         goto done;
     }
     const bool comments = sdfio_allows_comments(revision);
@@ -474,8 +481,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
         && !comments)
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Not an ASCII SDF file, unexpected magic: '%.*s'",
-                            (int)magic_line_size, magic_line);
+                            "Not an ASCII SDF file: unexpected magic");
         goto done;
     }
 
@@ -514,14 +520,9 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     }
     if (!header_ended)
     {
-        status = source->no_memory
-                     ? sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory")
-                 : source->failed
-                     ? sdfio_fail(message, SDFIO_ERR_IO,
-                                  "The stream could not be read")
-                     : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                  "SDF file must contain the header, the data "
-                                  "area and the trailer");
+        status = read_failure(source, message,
+                              "SDF file must contain the header, the data "
+                              "area and the trailer");
         goto done;
     }
     if (!sdfio_tagged_valid(sdfio_string_text(&header_text), header_text.size))
@@ -542,17 +543,15 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     const long long check_type = parsed_codes.check_type;
     if (type_code < 0 || type_code > SDFIO_DATA_BINARY64)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Unknown SDF data type code %lld", type_code);
+        status =
+            sdfio_fail(message, SDFIO_ERR_FORMAT, "Unknown SDF data type code");
         goto done;
     }
     const sdfio_data_type type = (sdfio_data_type)type_code;
     if (!sdfio_revision_allows(revision, type))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Data type %s is not valid for SDF revision %s",
-                            sdfio_data_type_name(type),
-                            sdfio_revision_name(revision));
+                            "The data type is not valid for the SDF revision");
         goto done;
     }
     if (compression != SDFIO_NONE)
@@ -610,8 +609,7 @@ static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 
 sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
-                               size_t index, size_t position,
-                               sdfio_message *message)
+                               size_t index, sdfio_message *message)
 {
     const bool comments = sdfio_allows_comments(header->revision);
     char token[SDFIO_TOKEN_CAPACITY];
@@ -623,20 +621,16 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
     }
     if (got == GOT_ERROR)
     {
-        return source->failed
-                   ? sdfio_fail(message, SDFIO_ERR_IO,
-                                "The stream could not be read")
-                   : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                "A data value is too long at position %zu",
-                                position);
+        return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
+                                           "The stream could not be read")
+                              : sdfio_fail(message, SDFIO_ERR_FORMAT,
+                                           "A data value is too long");
     }
-    size_t count = 0;
-    sdfio_count(header, &count);
     if (size == 1 && token[0] == terminator)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Expected %zu data values, found %zu", count,
-                          position);
+                          "The data area has fewer values than the header "
+                          "says");
     }
     if (sdfio_equals_nocase(token, size, bad_token)
         || sdfio_equals_nocase(token, size, nan_token))
@@ -667,8 +661,7 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
     if (status != SDFIO_OK)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Invalid data value at position %zu: '%s'", position,
-                          token);
+                          "A data value is not a number of the data type");
     }
     return SDFIO_OK;
 }
@@ -687,17 +680,9 @@ sdfio_status sdfio_ascii_finish(sdfio_source *source,
     if (size != 1 || token[0] != terminator)
     {
         /* Count what is there, for the message. */
-        size_t count = 0;
-        sdfio_count(header, &count);
-        size_t found = count + 1;
-        while (next_token(source, comments, token, sizeof token, &size)
-                   == GOT_ONE
-               && !(size == 1 && token[0] == terminator))
-        {
-            ++found;
-        }
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Expected %zu data values, found %zu", count, found);
+                          "The data area has more values than the header "
+                          "says");
     }
     skip_line(source);
     return SDFIO_OK;
@@ -784,12 +769,7 @@ sdfio_status sdfio_ascii_trailer(sdfio_source *source,
     }
     if (got == GOT_ERROR)
     {
-        status = source->no_memory
-                     ? sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory")
-                 : source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
-                                               "The stream could not be read")
-                                  : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                               "The SDF trailer is too long");
+        status = read_failure(source, message, "The SDF trailer is too long");
         goto done;
     }
     /* The trailer is itself ended by its own "*": the empty part that follows

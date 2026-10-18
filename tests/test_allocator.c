@@ -13,8 +13,7 @@
 /* What the build has, as 0 or 1. */
 enum
 {
-    WITH_TEXT = SDFIO_TEST_TEXT,
-    WITH_MESSAGES = SDFIO_TEST_MESSAGES
+    WITH_TEXT = SDFIO_TEST_TEXT
 };
 
 enum
@@ -293,9 +292,7 @@ static void check_arguments(void)
     const sdfio_stream stream = {&sink, NULL, sink_write, NULL};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
-    CHECK(WITH_MESSAGES
-          == (strstr(sdfio_writer_error_message(writer), "SDFIO_NO_TIME")
-              != NULL));
+    CHECK(strstr(sdfio_writer_error_message(writer), "SDFIO_NO_TIME") != NULL);
     header.creation_date = 0;
     header.modification_date = SDFIO_NO_TIME;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,

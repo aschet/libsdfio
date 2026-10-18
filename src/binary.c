@@ -52,16 +52,14 @@ sdfio_status sdfio_binary_revision(const unsigned char *magic,
     if ((prefix != 'a' && prefix != 'b') || text[SDFIO_MAGIC_DASH_AT] != '-')
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Not an SDF file, unexpected magic: '%.*s'",
-                          SDFIO_MAGIC_SIZE, text);
+                          "Not an SDF file: unexpected magic");
     }
     if (!sdfio_revision_from_text(text + SDFIO_MAGIC_NAME_AT,
                                   SDFIO_MAGIC_SIZE - SDFIO_MAGIC_NAME_AT,
                                   revision))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown or unsupported SDF revision in magic '%.*s'",
-                          SDFIO_MAGIC_SIZE, text);
+                          "Unknown or unsupported SDF revision in magic");
     }
     if (prefix != 'b')
     {
@@ -137,15 +135,13 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
     if (code > (unsigned)SDFIO_DATA_BINARY64)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown SDF data type code %u", code);
+                          "Unknown SDF data type code");
     }
     const sdfio_data_type type = (sdfio_data_type)code;
     if (!sdfio_revision_allows(revision, type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Data type %s is not valid for SDF revision %s",
-                          sdfio_data_type_name(type),
-                          sdfio_revision_name(revision));
+                          "The data type is not valid for the SDF revision");
     }
     header->revision = revision;
     header->representation = SDFIO_BINARY;
@@ -176,8 +172,12 @@ sdfio_status sdfio_binary_header(const sdfio_header *header, unsigned char *out,
 {
     (void)message;
     unsigned char *at = out;
-    char magic[SDFIO_MAGIC_SIZE + 1];
-    snprintf(magic, sizeof magic, "b%s", sdfio_revision_name(header->revision));
+    char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
+    const char *revision_name = sdfio_revision_name(header->revision);
+    const size_t revision_size = strlen(revision_name);
+    memcpy(magic + 1, revision_name,
+           revision_size < SDFIO_MAGIC_SIZE ? revision_size
+                                            : SDFIO_MAGIC_SIZE - 1);
     at = put_text(at, magic, SDFIO_MAGIC_SIZE);
     at = put_text(at, header->manufacturer_id, SDFIO_ID_SIZE);
     char date[SDFIO_DATE_SIZE + 1] = {0};

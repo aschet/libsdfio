@@ -226,8 +226,8 @@ void sdfio_header_init(sdfio_header *header)
     header->z_resolution = SDFIO_NO_RESOLUTION;
     header->creation_date = sdfio_now();
     header->modification_date = header->creation_date;
-    snprintf(header->manufacturer_id, sizeof header->manufacturer_id,
-             "libsdfio");
+    static const char producer[] = "libsdfio";
+    memcpy(header->manufacturer_id, producer, sizeof producer);
 }
 
 bool sdfio_count(const sdfio_header *header, size_t *count)

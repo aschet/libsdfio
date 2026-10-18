@@ -13,7 +13,6 @@
 
 #include <float.h>
 #include <limits.h>
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,7 +58,6 @@ enum
     SDFIO_TEXT_PER_VALUE = 32,
     /* The longest number or word of an ASCII data area. */
     SDFIO_TOKEN_CAPACITY = 64,
-    SDFIO_MESSAGE_CAPACITY = 256,
     SDFIO_NUMBER_CAPACITY = 64,
     SDFIO_POINT_CAPACITY = 8,
     /* A header of text that is longer than this is not one. */
@@ -83,21 +81,22 @@ enum
     SDFIO_DOUBLE_EXPONENT = 3
 };
 
-#if defined(__GNUC__)
-#define SDFIO_PRINTF(text_index, first_index)                                  \
-    __attribute__((format(printf, text_index, first_index)))
-#else
-#define SDFIO_PRINTF(text_index, first_index)
-#endif
-
-/* The text of the last failure of a handle. */
+/* The text of the last failure of a handle: a string of the library, which
+ * stays valid, so a handle holds no memory for it. */
 typedef struct sdfio_message
 {
-    char text[SDFIO_MESSAGE_CAPACITY];
+    const char *text;
 } sdfio_message;
 
-sdfio_status sdfio_fail(sdfio_message *message, sdfio_status code,
-                        const char *format, ...) SDFIO_PRINTF(3, 4);
+static inline sdfio_status sdfio_fail(sdfio_message *message, sdfio_status code,
+                                      const char *text)
+{
+    if (message != NULL)
+    {
+        message->text = text;
+    }
+    return code;
+}
 
 /* A growable text, always 0-terminated once something is in it. */
 typedef struct sdfio_string
@@ -403,12 +402,10 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                       sdfio_header *header,
                                       const sdfio_point *point,
                                       sdfio_message *message);
-/* One value of the data type is parsed into `dst` at `index`; `position` is
- * its number in the data area, for messages. */
+/* One value of the data type is parsed into `dst` at `index`. */
 sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
-                               size_t index, size_t position,
-                               sdfio_message *message);
+                               size_t index, sdfio_message *message);
 /* Reads the closing "*" of a data area that all its values were read from. */
 sdfio_status sdfio_ascii_finish(sdfio_source *source,
                                 const sdfio_header *header,

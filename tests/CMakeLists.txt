@@ -21,9 +21,9 @@ function(sdfio_add_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-# The tests of the whole library need all of it. A build without text, messages
+# The tests of the whole library need all of it. A build without text
 # or the local clock runs the tests of what is left.
-if(SDFIO_TEXT AND SDFIO_MESSAGES AND SDFIO_LOCAL_TIME)
+if(SDFIO_TEXT AND SDFIO_LOCAL_TIME)
     sdfio_add_test(test_samples)
     sdfio_add_test(test_roundtrip)
     sdfio_add_test(test_streams)
@@ -35,7 +35,6 @@ endif()
 sdfio_add_test(test_allocator)
 target_compile_definitions(test_allocator PRIVATE
     SDFIO_TEST_TEXT=$<BOOL:${SDFIO_TEXT}>
-    SDFIO_TEST_MESSAGES=$<BOOL:${SDFIO_MESSAGES}>
 )
 
 if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT AND SDFIO_TEXT)

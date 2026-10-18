@@ -138,7 +138,8 @@ bool sdfio_reader_is_open(const sdfio_reader *reader)
 
 const char *sdfio_reader_error_message(const sdfio_reader *reader)
 {
-    return reader != NULL ? reader->message.text : "";
+    return reader != NULL && reader->message.text != NULL ? reader->message.text
+                                                          : "";
 }
 
 const sdfio_header *sdfio_get_header(const sdfio_reader *reader)
@@ -178,8 +179,8 @@ static sdfio_status check_size(sdfio_reader *reader)
     else if (reader->value_count > room)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
-                          "Expected %zu data values, found fewer",
-                          reader->value_count);
+                          "The data area has fewer values than the header "
+                          "says");
     }
     return SDFIO_OK;
 }
@@ -288,7 +289,7 @@ static sdfio_status read_values(sdfio_reader *reader, void *dst, size_t count)
         {
             const sdfio_status status =
                 sdfio_ascii_value(&reader->source, header, &reader->point, dst,
-                                  i, reader->next_value + i, &reader->message);
+                                  i, &reader->message);
             if (status != SDFIO_OK)
             {
                 return status;
@@ -374,8 +375,7 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
     if (rows > header->rows - reader->next_row)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "%zu rows were asked for, %zu are left", rows,
-                          header->rows - reader->next_row);
+                          "More rows were asked for than are left");
     }
     if (rows > 0 && header->columns > 0 && dst == NULL)
     {

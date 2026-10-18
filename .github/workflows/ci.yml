@@ -22,10 +22,10 @@ jobs:
         include:
           - name: gcc
             cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Release
+            options: -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           - name: clang
             cc: clang
-            options: -DCMAKE_BUILD_TYPE=Release
+            options: -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           - name: shared library
             cc: gcc
             options: -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
@@ -35,9 +35,9 @@ jobs:
           - name: thread sanitizer
             cc: gcc
             options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE_THREAD=ON
-          - name: without text, messages and local time
+          - name: without text and local time
             cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_MESSAGES=OFF -DSDFIO_LOCAL_TIME=OFF
+            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
     steps:
       - uses: actions/checkout@v4
       - name: Let the sanitizers map their memory
@@ -83,8 +83,8 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
 
-  embedded:
-    name: Cortex-M4
+  cortex-m:
+    name: Cortex-M4 firmware
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -96,13 +96,57 @@ jobs:
           -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm
           -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
           -DCMAKE_C_COMPILER=arm-none-eabi-gcc
-          "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs"
-          -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
-          -DSDFIO_TEXT=OFF -DSDFIO_MESSAGES=OFF -DSDFIO_LOCAL_TIME=OFF
+          "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections"
+          "-DCMAKE_EXE_LINKER_FLAGS=--specs=nano.specs --specs=nosys.specs"
+          -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_BUILD_FIRMWARE=ON
+          -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
       - name: Build
         run: cmake --build build --parallel
       - name: Size
-        run: arm-none-eabi-size --totals build/libsdfio.a
+        run: arm-none-eabi-size build/tests/embedded/firmware
+
+  riscv:
+    name: RISC-V firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32
+          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
+          -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc
+          "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections"
+          "-DCMAKE_EXE_LINKER_FLAGS=--specs=picolibc.specs"
+          -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_BUILD_FIRMWARE=ON
+          -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Size
+        run: riscv64-unknown-elf-size build/tests/embedded/firmware
+
+  tidy:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-tidy
+        run: |
+          pipx install "clang-tidy==21.1.6"
+          pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DSDFIO_BUILD_EXAMPLES=ON
+      - name: Check
+        run: >
+          clang-tidy -p build --warnings-as-errors='*'
+          src/*.c tests/*.c examples/*.c
 
   reuse:
     name: Licenses

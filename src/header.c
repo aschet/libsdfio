@@ -99,22 +99,18 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
     if (!sdfio_revision_allows(header->revision, header->data_type))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "Data type %s is not valid for SDF revision %s",
-                          sdfio_data_type_name(header->data_type),
-                          sdfio_revision_name(header->revision));
+                          "The data type is not valid for the SDF revision");
     }
     if (header->z_scale != SDFIO_AUTO_Z_SCALE && !positive(header->z_scale))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "z_scale must be a positive number, got %g",
-                          header->z_scale);
+                          "z_scale must be a positive number");
     }
     /* A resolution that is not positive is not known. */
     if (!isfinite(header->z_resolution))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "z_resolution must be a finite number, got %g",
-                          header->z_resolution);
+                          "z_resolution must be a finite number");
     }
     if (!positive(header->x_scale) || !positive(header->y_scale))
     {
@@ -145,8 +141,8 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
         || !sdfio_date_representable(header->modification_date))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The year of a date must be one of %d to %d",
-                          SDFIO_FIRST_YEAR, SDFIO_LAST_YEAR);
+                          "The year of a date is out of the range of the "
+                          "SDF files");
     }
     size_t count = 0;
     if (!sdfio_count(header, &count))
@@ -159,10 +155,8 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
             || header->rows > sdfio_max_binary_count(header->revision)))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The columns and the rows must be between 0 and %zu "
-                          "for SDF revision %s (binary format)",
-                          sdfio_max_binary_count(header->revision),
-                          sdfio_revision_name(header->revision));
+                          "The columns or the rows do not fit the binary "
+                          "header of the SDF revision");
     }
     return SDFIO_OK;
 }
