@@ -3,7 +3,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 enum
 {
@@ -38,9 +37,24 @@ static int write_surface(const char *path, sdfio_data_type type)
     header.x_scale = 1e-6;
     header.y_scale = 1e-6;
 
-    const char trailer[] = "OperatorName = Jane Doe";
+    char memory[256];
+    sdfio_trailer trailer;
+    sdfio_trailer_init(&trailer, memory, sizeof memory);
+    sdfio_status status =
+        sdfio_trailer_add_text(&trailer, "OperatorName", "Jane Doe");
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_trailer_add_integer(&trailer, "Averages", 16);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_trailer_add_real(&trailer, "Magnification", 20.5);
+    }
     sdfio_writer *writer = sdfio_writer_new();
-    sdfio_status status = sdfio_create_file(writer, path, &header);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_file(writer, path, &header);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32),
@@ -48,7 +62,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_trailer(writer, trailer, strlen(trailer));
+        status = sdfio_write_trailer(writer, trailer.text, trailer.size);
     }
     if (status != SDFIO_OK)
     {

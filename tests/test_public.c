@@ -66,13 +66,11 @@ int main(void)
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
                                  3 * sizeof(float)));
     char composed[128];
-    size_t composed_size = 0;
-    CHECK_OK(sdfio_trailer_put_text(composed, sizeof composed, &composed_size,
-                                    "Note", "public"));
-    CHECK_OK(sdfio_trailer_put_real(composed, sizeof composed, &composed_size,
-                                    "Averages", 16.0));
-    CHECK_OK(sdfio_check_trailer(header.revision, composed, composed_size));
-    CHECK_OK(sdfio_write_trailer(writer, composed, composed_size));
+    sdfio_trailer assembled;
+    sdfio_trailer_init(&assembled, composed, sizeof composed);
+    CHECK_OK(sdfio_trailer_add_text(&assembled, "Note", "public"));
+    CHECK_OK(sdfio_trailer_add_real(&assembled, "Averages", 16.0));
+    CHECK_OK(sdfio_write_trailer(writer, assembled.text, assembled.size));
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 
@@ -91,23 +89,8 @@ int main(void)
     const char *trailer = NULL;
     size_t size = 0;
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
-    const char *value = NULL;
-    size_t value_size = 0;
-    CHECK(sdfio_trailer_find(trailer, size, "Note", &value, &value_size));
-    double averages = 0.0;
-    CHECK_OK(sdfio_trailer_get_real(trailer, size, "Averages", &averages));
-    CHECK(averages == 16.0);
-    long long missing = 0;
-    CHECK_STATUS(SDFIO_ERR_NOT_FOUND,
-                 sdfio_trailer_get_integer(trailer, size, "Absent", &missing));
-    size_t position = 0;
-    sdfio_field field;
-    size_t fields = 0;
-    while (sdfio_trailer_next(trailer, size, &position, &field))
-    {
-        ++fields;
-    }
-    CHECK(fields == 2);
+    CHECK(size == strlen("Note = public\nAverages = 16")
+          && memcmp(trailer, "Note = public\nAverages = 16", size) == 0);
     CHECK_OK(sdfio_rewind(reader));
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));

@@ -135,7 +135,7 @@ static void check_roundtrip(sdfio_revision revision,
           && memcmp(trailer, tagged_trailer, size) == 0);
     const char *value = NULL;
     size_t value_size = 0;
-    CHECK(sdfio_trailer_find(trailer, size, "partname", &value, &value_size)
+    CHECK(sdfi_tagged_find(trailer, size, "partname", &value, &value_size)
           && value_size == strlen("Sample")
           && memcmp(value, "Sample", value_size) == 0);
 
@@ -291,11 +291,9 @@ static void check_errors(void)
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
                                  stride));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_write_trailer(writer, "free text", 9));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_write_trailer(writer, "caf\xC3\xA9 = 1", 8));
-    CHECK_OK(sdfio_write_trailer(writer, "Note = a", 8));
+    /* The text of a trailer is not looked at; only a missing one is refused. */
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
+    CHECK_OK(sdfio_write_trailer(writer, "free text", 9));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     free(file.data);

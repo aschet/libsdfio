@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The trailer as fields: reading them, composing them and checking them. */
+/* Assembling a trailer: the lines `field name = value` in memory of the caller.
+ */
 
 #include "internal.h"
 
@@ -12,82 +13,26 @@
 
 enum
 {
-    /* A number as text, with its sign and exponent. */
-    INTEGER_CAPACITY = 32,
-    /* The digits after the point that read a binary64 back exactly: 17
-     * significant digits. */
-    EXACT_DIGITS = 16
+    /* A number as text, with its sign. */
+    INTEGER_CAPACITY = 32
 };
 
-/* " = " between the name and the value, and the end of the line. */
+/* " = " between the name and the value. */
 static const char separator[] = " = ";
 
-bool sdfio_trailer_find(const char *trailer, size_t size, const char *name,
-                        const char **value, size_t *value_size)
+void sdfio_trailer_init(sdfio_trailer *trailer, char *memory, size_t capacity)
 {
-    if (trailer == NULL || name == NULL || value == NULL || value_size == NULL)
+    if (trailer == NULL)
     {
-        return false;
+        return;
     }
-    return sdfi_tagged_find(trailer, size, name, value, value_size);
-}
-
-bool sdfio_trailer_next(const char *trailer, size_t size, size_t *position,
-                        sdfio_field *field)
-{
-    if (trailer == NULL || position == NULL || field == NULL)
+    trailer->text = memory;
+    trailer->size = 0;
+    trailer->capacity = memory != NULL ? capacity : 0;
+    if (trailer->capacity > 0)
     {
-        return false;
+        memory[0] = '\0';
     }
-    return sdfi_tagged_next(trailer, size, position, &field->name,
-                            &field->name_size, &field->value,
-                            &field->value_size);
-}
-
-static sdfio_status find_field(const char *trailer, size_t size,
-                               const char *field, const char **value,
-                               size_t *value_size)
-{
-    if (trailer == NULL || field == NULL)
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    return sdfi_tagged_find(trailer, size, field, value, value_size)
-               ? SDFIO_OK
-               : SDFIO_ERR_NOT_FOUND;
-}
-
-sdfio_status sdfio_trailer_get_integer(const char *trailer, size_t size,
-                                       const char *field, long long *value)
-{
-    const char *text = NULL;
-    size_t text_size = 0;
-    const sdfio_status status =
-        value == NULL ? SDFIO_ERR_ARGUMENT
-                      : find_field(trailer, size, field, &text, &text_size);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    return sdfi_parse_integer(text, text_size, value) ? SDFIO_OK
-                                                      : SDFIO_ERR_FORMAT;
-}
-
-sdfio_status sdfio_trailer_get_real(const char *trailer, size_t size,
-                                    const char *field, double *value)
-{
-    const char *text = NULL;
-    size_t text_size = 0;
-    const sdfio_status status =
-        value == NULL ? SDFIO_ERR_ARGUMENT
-                      : find_field(trailer, size, field, &text, &text_size);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    const sdfi_point point = sdfi_point_now();
-    return sdfi_parse_number(&point, text, text_size, value) ? SDFIO_OK
-                                                             : SDFIO_ERR_FORMAT;
 }
 
 static bool valid_field_name(const char *name)
@@ -121,23 +66,25 @@ static bool valid_value(const char *value)
     return true;
 }
 
-sdfio_status sdfio_trailer_put_text(char *buffer, size_t capacity, size_t *size,
-                                    const char *field, const char *value)
+sdfio_status sdfio_trailer_add_text(sdfio_trailer *trailer, const char *field,
+                                    const char *value)
 {
-    if (size == NULL || field == NULL || value == NULL
-        || (buffer == NULL && capacity > 0) || *size > capacity
-        || !valid_field_name(field) || !valid_value(value))
+    if (trailer == NULL || field == NULL || value == NULL
+        || (trailer->text == NULL && trailer->capacity > 0)
+        || trailer->size > trailer->capacity || !valid_field_name(field)
+        || !valid_value(value))
     {
         return SDFIO_ERR_ARGUMENT;
     }
     /* The line and the 0 after it. */
     const size_t line =
         strlen(field) + sizeof separator - 1 + strlen(value) + 1;
-    if (line > capacity - *size || capacity - *size - line < 1)
+    const size_t room = trailer->capacity - trailer->size;
+    if (line > room || room - line < 1)
     {
         return SDFIO_ERR_RANGE;
     }
-    char *at = buffer + *size;
+    char *at = trailer->text + trailer->size;
     memcpy(at, field, strlen(field));
     at += strlen(field);
     memcpy(at, separator, sizeof separator - 1);
@@ -146,21 +93,20 @@ sdfio_status sdfio_trailer_put_text(char *buffer, size_t capacity, size_t *size,
     at += strlen(value);
     *at++ = '\n';
     *at = '\0';
-    *size += line;
+    trailer->size += line;
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_trailer_put_integer(char *buffer, size_t capacity,
-                                       size_t *size, const char *field,
-                                       long long value)
+sdfio_status sdfio_trailer_add_integer(sdfio_trailer *trailer,
+                                       const char *field, long long value)
 {
     char text[INTEGER_CAPACITY];
     snprintf(text, sizeof text, "%lld", value);
-    return sdfio_trailer_put_text(buffer, capacity, size, field, text);
+    return sdfio_trailer_add_text(trailer, field, text);
 }
 
-sdfio_status sdfio_trailer_put_real(char *buffer, size_t capacity, size_t *size,
-                                    const char *field, double value)
+sdfio_status sdfio_trailer_add_real(sdfio_trailer *trailer, const char *field,
+                                    double value)
 {
     if (!isfinite(value))
     {
@@ -168,44 +114,6 @@ sdfio_status sdfio_trailer_put_real(char *buffer, size_t capacity, size_t *size,
     }
     const sdfi_point point = sdfi_point_now();
     char text[SDFI_NUMBER_CAPACITY];
-    sdfi_format_scientific(&point, text, sizeof text, value, EXACT_DIGITS,
-                           SDFI_DOUBLE_EXPONENT);
-    return sdfio_trailer_put_text(buffer, capacity, size, field, text);
-}
-
-sdfio_status sdfi_check_trailer(sdfio_revision revision, const char *trailer,
-                                size_t size, sdfi_message *message)
-{
-    if (trailer == NULL && size > 0)
-    {
-        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
-                         "A trailer of %zu bytes needs its text", size);
-    }
-    for (size_t i = 0; i < size; ++i)
-    {
-        if ((unsigned char)trailer[i] >= SDFI_FIRST_NON_ASCII)
-        {
-            return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
-                             "The SDF trailer must be 7-bit ASCII");
-        }
-    }
-    if (size > 0 && sdfi_requires_tagged_trailer(revision)
-        && !sdfi_tagged_valid(trailer, size))
-    {
-        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
-                         "The trailer of SDF %s must use the tagged "
-                         "'field name = value' form",
-                         sdfio_revision_name(revision));
-    }
-    return SDFIO_OK;
-}
-
-sdfio_status sdfio_check_trailer(sdfio_revision revision, const char *trailer,
-                                 size_t size)
-{
-    if ((int)revision < SDFIO_ISO_1_0 || (int)revision > SDFIO_BCR_1_0)
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    return sdfi_check_trailer(revision, trailer, size, NULL);
+    sdfi_format_shortest(&point, text, sizeof text, value);
+    return sdfio_trailer_add_text(trailer, field, text);
 }

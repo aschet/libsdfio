@@ -67,29 +67,31 @@ runtime that allocated.
 
 The trailer, record 3, is free text that belongs to the measurement. ISO-2.0
 asks for the tagged form of the header in it: lines of `field name = value`.
-The library does not interpret a trailer, but a program that handles one is
-helped with the three things that go wrong by hand:
+The library neither parses nor checks a trailer. Reading gives the application
+the text, and writing puts down the text it gives; what the lines mean, and
+whether they have the form, is the application's business. What the library
+does is help to assemble the lines:
 
-- **Values.** `sdfio_trailer_put_integer` and `_put_real` write numbers, and
-  `sdfio_trailer_get_integer` and `_get_real` read them. A real is written with
-  enough digits to be read back to the last bit, always with a dot, whatever the
-  locale says. The functions compose into a buffer of the caller, so nothing is
-  allocated and a small device can use them; a line that does not fit is an
-  error and leaves the buffer as it was.
-- **Line ends.** In memory the lines of a trailer end with LF. Writing turns
-  every line end, LF, CR or CRLF, into CRLF, as Annex A has it, in text and
-  binary files alike, and closes the last line. Reading accepts all three,
-  as the BCR text allows, and gives LF with the end of the last line dropped,
-  so a trailer written is a trailer read, whatever the representation.
-- **Early failure.** The trailer is the last thing written, after the whole data
-  area. `sdfio_check_trailer` is a function without a handle that a program calls
-  before the first row, so that a trailer that cannot be written (not 7-bit
-  ASCII, or in ISO-2.0 a line that is not a field) fails at once and not after
-  a long scan.
+- **Assembly.** `sdfio_trailer` is a small struct over memory of the caller, and
+  `sdfio_trailer_add_text`, `_add_integer` and `_add_real` append a line to it.
+  Nothing is allocated, so a small device can use it. Every call returns its own
+  status; a name that is not a letter, a digit or `_`, a value that is not one
+  line of 7-bit ASCII, or a line that does not fit is refused and the text is
+  left as it was. This is the one place where the form is guaranteed, and it
+  fails at once, before a scan has begun, not at the end of the file.
+- **Numbers.** An integer is decimal. A real is the shortest text that reads
+  back as the same number, `20.5` or `1.5e-06`, always with a dot, whatever the
+  locale says.
+- **Line ends.** In memory the lines end with LF. Writing turns every line end,
+  LF, CR or CRLF, into CRLF, as Annex A has it, in text and binary files alike,
+  and closes the last line. Reading accepts all three, as the BCR text allows,
+  and gives LF with the end of the last line dropped, so the trailer that is
+  written is the trailer that is read, whatever the representation.
 
-A field name is a letter, a digit or `_`, compared without regard to the case
-as in the header, and the last field of a name wins. Lines that are not fields
-are not seen by the field functions and stay in the text.
+Because a trailer is not looked at, free text for ISO-1.0 and BCR-1.0 is written
+as it is, and so is text in ISO-2.0 that is not in the tagged form. One thing
+the application has to know: in a text file a line of only `*` ends the record,
+so a trailer of its own must not have one. The assembled lines never do.
 
 ## Row order
 

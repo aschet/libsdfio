@@ -457,11 +457,10 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
                          "%zu of %zu rows were written", writer->next_row,
                          header->rows);
     }
-    status =
-        sdfi_check_trailer(header->revision, trailer, size, &writer->message);
-    if (status != SDFIO_OK)
+    if (trailer == NULL && size > 0)
     {
-        return status;
+        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                         "A trailer of %zu bytes needs its text", size);
     }
     status = start_data(writer);
     if (status != SDFIO_OK)

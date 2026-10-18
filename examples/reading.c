@@ -42,14 +42,10 @@ int main(int argc, char **argv)
                 ++measured;
             }
         }
-        const char *operator_name = NULL;
-        size_t operator_size = 0;
-        sdfio_trailer_find(trailer, trailer_size, "OperatorName",
-                           &operator_name, &operator_size);
-        printf("%s %zu x %zu, mean %g m, operator %.*s\n",
+        printf("%s %zu x %zu, mean %g m\ntrailer:\n%.*s\n",
                sdfio_revision_name(header->revision), header->columns,
                header->rows, measured > 0 ? sum / (double)measured : 0.0,
-               (int)operator_size, operator_name != NULL ? operator_name : "");
+               (int)trailer_size, trailer != NULL ? trailer : "");
     }
     sdfio_free(heights);
     sdfio_reader_free(reader);

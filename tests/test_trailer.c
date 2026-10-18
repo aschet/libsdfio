@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The trailer as fields: composing, reading, listing and checking them. */
+/* Assembling a trailer: the lines, the numbers, the buffer, and what a file
+ * does with the text it is given. */
 
 #include "check.h"
 
@@ -22,55 +23,49 @@ static bool same(const char *text, size_t size, const char *expected)
     return size == strlen(expected) && memcmp(text, expected, size) == 0;
 }
 
-static void check_put_and_get(void)
+/* The value of a field of the assembled text, read with the parsers inside. */
+static bool find(const sdfio_trailer *trailer, const char *name,
+                 const char **value, size_t *size)
 {
-    char buffer[CAPACITY];
-    size_t size = 0;
-    CHECK_OK(sdfio_trailer_put_text(buffer, sizeof buffer, &size,
-                                    "OperatorName", "Jane Doe"));
-    CHECK_OK(
-        sdfio_trailer_put_integer(buffer, sizeof buffer, &size, "Scans", -42));
-    CHECK_OK(sdfio_trailer_put_real(buffer, sizeof buffer, &size, "FieldOfView",
-                                    1.5e-3));
-    CHECK_OK(sdfio_trailer_put_text(buffer, sizeof buffer, &size, "Empty", ""));
-    CHECK(size == strlen(buffer));
-    CHECK(
-        strncmp(buffer, "OperatorName = Jane Doe\nScans = -42\nFieldOfView = ",
-                strlen("OperatorName = Jane Doe\nScans = -42\nFieldOfView = "))
-        == 0);
-
-    const char *value = NULL;
-    size_t value_size = 0;
-    CHECK(sdfio_trailer_find(buffer, size, "operatorname", &value, &value_size)
-          && same(value, value_size, "Jane Doe"));
-    CHECK(sdfio_trailer_find(buffer, size, "Empty", &value, &value_size)
-          && value_size == 0);
-
-    long long scans = 0;
-    CHECK_OK(sdfio_trailer_get_integer(buffer, size, "SCANS", &scans));
-    CHECK(scans == -42);
-    double view = 0.0;
-    CHECK_OK(sdfio_trailer_get_real(buffer, size, "FieldOfView", &view));
-    CHECK(view == 1.5e-3);
-    /* An integer is a number too. */
-    CHECK_OK(sdfio_trailer_get_real(buffer, size, "Scans", &view));
-    CHECK(view == -42.0);
+    return sdfi_tagged_find(trailer->text, trailer->size, name, value, size);
 }
 
-static void check_integers_and_reals_exactly(void)
+static void check_lines(void)
 {
+    char memory[CAPACITY];
+    sdfio_trailer trailer;
+    sdfio_trailer_init(&trailer, memory, sizeof memory);
+    CHECK(trailer.size == 0 && trailer.capacity == sizeof memory
+          && trailer.text == memory && memory[0] == '\0');
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "OperatorName", "Jane Doe"));
+    CHECK_OK(sdfio_trailer_add_integer(&trailer, "Scans", -42));
+    CHECK_OK(sdfio_trailer_add_real(&trailer, "FieldOfView", 1.5e-3));
+    CHECK_OK(sdfio_trailer_add_real(&trailer, "Magnification", 20.5));
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "Empty", ""));
+    CHECK(trailer.size == strlen(trailer.text));
+    /* One line each, LF in memory, readable numbers. */
+    CHECK(strcmp(trailer.text,
+                 "OperatorName = Jane Doe\nScans = -42\n"
+                 "FieldOfView = 0.0015\nMagnification = 20.5\nEmpty = \n")
+          == 0);
+}
+
+static void check_numbers_read_back_exactly(void)
+{
+    const sdfi_point point = sdfi_point_now();
     const long long integers[] = {0, 1, -1, LLONG_MAX, LLONG_MIN};
     for (size_t i = 0; i < sizeof integers / sizeof integers[0]; ++i)
     {
-        char buffer[CAPACITY];
+        char memory[CAPACITY];
+        sdfio_trailer trailer;
+        sdfio_trailer_init(&trailer, memory, sizeof memory);
+        CHECK_OK(sdfio_trailer_add_integer(&trailer, "N", integers[i]));
+        const char *text = NULL;
         size_t size = 0;
         long long back = 7;
-        CHECK_OK(sdfio_trailer_put_integer(buffer, sizeof buffer, &size, "N",
-                                           integers[i]));
-        CHECK_OK(sdfio_trailer_get_integer(buffer, size, "N", &back));
-        CHECK(back == integers[i]);
+        CHECK(find(&trailer, "N", &text, &size)
+              && sdfi_parse_integer(text, size, &back) && back == integers[i]);
     }
-    /* What is written is read back to the last bit. */
     uint32_t state = 777u;
     for (int round = 0; round < 3000; ++round)
     {
@@ -78,216 +73,193 @@ static void check_integers_and_reals_exactly(void)
         const double value =
             ((double)state / 4294967296.0 - 0.5)
             * pow(10.0, (double)((int)(state >> 24) % 600 - 300));
-        char buffer[CAPACITY];
+        char memory[CAPACITY];
+        sdfio_trailer trailer;
+        sdfio_trailer_init(&trailer, memory, sizeof memory);
+        CHECK_OK(sdfio_trailer_add_real(&trailer, "X", value));
+        const char *text = NULL;
         size_t size = 0;
         double back = 0.0;
-        CHECK_OK(
-            sdfio_trailer_put_real(buffer, sizeof buffer, &size, "X", value));
-        CHECK_OK(sdfio_trailer_get_real(buffer, size, "X", &back));
-        CHECK(back == value);
+        CHECK(find(&trailer, "X", &text, &size)
+              && sdfi_parse_number(&point, text, size, &back) && back == value);
     }
-    const double extremes[] = {DBL_MAX, -DBL_MAX, DBL_MIN, 4.9e-324,
-                               0.0,     1.0,      0.1};
+    /* The text is the shortest that reads back: no run of digits. */
+    const struct
+    {
+        double value;
+        const char *text;
+    } shortest[] = {
+        {0.1, "0.1"},       {20.5, "20.5"},
+        {-3.0, "-3"},       {1e-6, "1e-06"},
+        {1.5e-3, "0.0015"}, {16.0, "16"},
+        {0.0, "0"},         {-0.0, "0"},
+        {1e21, "1e+21"},    {0.30000000000000004, "0.30000000000000004"}};
+    for (size_t i = 0; i < sizeof shortest / sizeof shortest[0]; ++i)
+    {
+        char memory[CAPACITY];
+        sdfio_trailer trailer;
+        sdfio_trailer_init(&trailer, memory, sizeof memory);
+        CHECK_OK(sdfio_trailer_add_real(&trailer, "X", shortest[i].value));
+        const char *text = NULL;
+        size_t size = 0;
+        CHECK(find(&trailer, "X", &text, &size)
+              && same(text, size, shortest[i].text));
+    }
+    const double extremes[] = {DBL_MAX, -DBL_MAX, DBL_MIN, 4.9e-324};
     for (size_t i = 0; i < sizeof extremes / sizeof extremes[0]; ++i)
     {
-        char buffer[CAPACITY];
+        char memory[CAPACITY];
+        sdfio_trailer trailer;
+        sdfio_trailer_init(&trailer, memory, sizeof memory);
+        CHECK_OK(sdfio_trailer_add_real(&trailer, "X", extremes[i]));
+        const char *text = NULL;
         size_t size = 0;
-        double back = -1.0;
-        CHECK_OK(sdfio_trailer_put_real(buffer, sizeof buffer, &size, "X",
-                                        extremes[i]));
-        CHECK_OK(sdfio_trailer_get_real(buffer, size, "X", &back));
-        CHECK(back == extremes[i]);
+        double back = 0.0;
+        CHECK(find(&trailer, "X", &text, &size)
+              && sdfi_parse_number(&point, text, size, &back)
+              && back == extremes[i]);
     }
 }
 
 static void check_the_buffer(void)
 {
-    char buffer[CAPACITY];
-    size_t size = 0;
-    /* The line, its LF and the 0 after it have to fit: "A = b\n" is 6. */
-    char small[7];
-    CHECK_OK(sdfio_trailer_put_text(small, sizeof small, &size, "A", "b"));
-    CHECK(size == 6 && strcmp(small, "A = b\n") == 0);
+    sdfio_trailer trailer;
+    /* "A = b\n" is 6 bytes and the 0 after it makes 7. */
+    char exact[7];
+    sdfio_trailer_init(&trailer, exact, sizeof exact);
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "A", "b"));
+    CHECK(trailer.size == 6 && strcmp(exact, "A = b\n") == 0);
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_trailer_add_text(&trailer, "C", ""));
 
     char tight[6];
-    size = 0;
-    CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_trailer_put_text(tight, sizeof tight, &size, "A", "b"));
-    CHECK(size == 0);
+    sdfio_trailer_init(&trailer, tight, sizeof tight);
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_trailer_add_text(&trailer, "A", "b"));
+    CHECK(trailer.size == 0 && tight[0] == '\0');
 
     /* A line that does not fit leaves what is there as it was. */
     char room[20];
-    size = 0;
-    CHECK_OK(sdfio_trailer_put_text(room, sizeof room, &size, "A", "b"));
-    const size_t before = size;
+    sdfio_trailer_init(&trailer, room, sizeof room);
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "A", "b"));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_trailer_put_text(room, sizeof room, &size, "Long",
+                 sdfio_trailer_add_text(&trailer, "Long",
                                         "a value that is too long to fit"));
-    CHECK(size == before && strcmp(room, "A = b\n") == 0);
+    CHECK(trailer.size == 6 && strcmp(room, "A = b\n") == 0);
 
-    size = 0;
-    CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_trailer_put_text(NULL, 0, &size, "A", "b"));
-    /* A size beyond the capacity is not a size of this buffer. */
-    size = sizeof buffer + 1;
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_trailer_put_text(buffer, sizeof buffer, &size, "A", "b"));
+    /* No memory, no room. */
+    sdfio_trailer_init(&trailer, NULL, 100);
+    CHECK(trailer.capacity == 0);
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_trailer_add_text(&trailer, "A", "b"));
+    sdfio_trailer_init(&trailer, room, 0);
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_trailer_add_text(&trailer, "A", "b"));
+
+    sdfio_trailer_init(NULL, room, sizeof room);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_trailer_add_text(NULL, "A", "b"));
+    sdfio_trailer_init(&trailer, room, sizeof room);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_trailer_put_text(buffer, sizeof buffer, NULL, "A", "b"));
-    size = 0;
+                 sdfio_trailer_add_text(&trailer, NULL, "b"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_trailer_put_text(NULL, 10, &size, "A", "b"));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_trailer_put_text(buffer, sizeof buffer, &size, NULL, "b"));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_trailer_put_text(buffer, sizeof buffer, &size, "A", NULL));
+                 sdfio_trailer_add_text(&trailer, "A", NULL));
+    /* A size beyond the capacity is not a state of this trailer. */
+    trailer.size = sizeof room + 1;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_trailer_add_text(&trailer, "A", "b"));
 }
 
 static void check_what_a_line_may_be(void)
 {
-    char buffer[CAPACITY];
-    size_t size = 0;
+    char memory[CAPACITY];
+    sdfio_trailer trailer;
+    sdfio_trailer_init(&trailer, memory, sizeof memory);
     const char *refused_names[] = {
         "", "two words", "a=b", "A;", "Caf\xC3\xA9", "tab\t", "line\n"};
     for (size_t i = 0; i < sizeof refused_names / sizeof refused_names[0]; ++i)
     {
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_trailer_put_text(buffer, sizeof buffer, &size,
-                                            refused_names[i], "v"));
+                     sdfio_trailer_add_text(&trailer, refused_names[i], "v"));
     }
     const char *refused_values[] = {"two\nlines", "one\rtwo", "Caf\xC3\xA9"};
     for (size_t i = 0; i < sizeof refused_values / sizeof refused_values[0];
          ++i)
     {
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_trailer_put_text(buffer, sizeof buffer, &size, "A",
-                                            refused_values[i]));
+                     sdfio_trailer_add_text(&trailer, "A", refused_values[i]));
     }
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_trailer_put_real(buffer, sizeof buffer, &size, "A", NAN));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_trailer_put_real(buffer, sizeof buffer, &size, "A", INFINITY));
-    CHECK(size == 0);
-    /* Digits, letters and the underscore make a name. */
-    CHECK_OK(
-        sdfio_trailer_put_text(buffer, sizeof buffer, &size, "Part_2b", "x"));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_trailer_add_real(&trailer, "A", NAN));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_trailer_add_real(&trailer, "A", INFINITY));
+    CHECK(trailer.size == 0);
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "Part_2b", "x"));
 }
 
-static void check_get_errors(void)
+/* A file writes the text it is given: nothing about it is checked, so a
+ * program that does not assemble its trailer is not stopped. */
+static void check_the_text_is_written_as_given(void)
 {
-    const char trailer[] = "Name = Jane\nCount = twelve\nHalf = 1.5\nBig = "
-                           "99999999999999999999\nPad =   17  \nAgain = 1\n"
-                           "again = 2\n";
-    const size_t size = strlen(trailer);
-    long long integer = 0;
-    double real = 0.0;
-    CHECK_STATUS(SDFIO_ERR_NOT_FOUND,
-                 sdfio_trailer_get_integer(trailer, size, "Missing", &integer));
-    CHECK_STATUS(SDFIO_ERR_NOT_FOUND,
-                 sdfio_trailer_get_real(trailer, size, "Missing", &real));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_integer(trailer, size, "Name", &integer));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_integer(trailer, size, "Count", &integer));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_integer(trailer, size, "Half", &integer));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_integer(trailer, size, "Big", &integer));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_real(trailer, size, "Name", &real));
-    CHECK_OK(sdfio_trailer_get_real(trailer, size, "Half", &real));
-    CHECK(real == 1.5);
-    /* White space around a value is not part of it, and the last field wins. */
-    CHECK_OK(sdfio_trailer_get_integer(trailer, size, "Pad", &integer));
-    CHECK(integer == 17);
-    CHECK_OK(sdfio_trailer_get_integer(trailer, size, "Again", &integer));
-    CHECK(integer == 2);
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_trailer_get_integer(NULL, size, "Pad", &integer));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_trailer_get_integer(trailer, size, NULL, &integer));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_trailer_get_integer(trailer, size, "Pad", NULL));
-    CHECK_STATUS(SDFIO_ERR_NOT_FOUND,
-                 sdfio_trailer_get_integer("", 0, "Pad", &integer));
-}
-
-static void check_listing(void)
-{
-    /* All three line ends, blank lines and a line that is not a field. */
-    const char trailer[] = "A = 1\r\nB=two\n\nnot a field\rC = 3 \n  D  =  4";
-    const char *const names[] = {"A", "B", "C", "D"};
-    const char *const values[] = {"1", "two", "3", "4"};
-    size_t position = 0;
-    size_t count = 0;
-    sdfio_field field;
-    while (sdfio_trailer_next(trailer, strlen(trailer), &position, &field))
+    const char *const trailers[] = {"free text, not a field",
+                                    "Caf\xC3\xA9 = 1\xFF", "A = 1\n\n\nB",
+                                    "no = field = twice"};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
+                                        SDFIO_BCR_1_0};
+    for (size_t t = 0; t < sizeof trailers / sizeof trailers[0]; ++t)
     {
-        CHECK(count < 4);
-        if (count < 4)
+        for (size_t r = 0; r < 3; ++r)
         {
-            CHECK(same(field.name, field.name_size, names[count]));
-            CHECK(same(field.value, field.value_size, values[count]));
+            sdfio_header header;
+            sdfio_header_init(&header);
+            header.revision = revisions[r];
+            header.data_type = SDFIO_DATA_INT16;
+            header.z_scale = 1e-9;
+            header.columns = 1;
+            header.rows = 1;
+            const double height = 1e-6;
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = sdfio_writer_new();
+            CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+            CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                         &height, sizeof height));
+            CHECK_OK(
+                sdfio_write_trailer(writer, trailers[t], strlen(trailers[t])));
+            sdfio_writer_free(writer);
+
+            sdfio_reader *reader = sdfio_reader_new();
+            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+            const char *read = NULL;
+            size_t size = 0;
+            CHECK_OK(sdfio_read_trailer(reader, &read, &size));
+            CHECK(read != NULL && same(read, size, trailers[t]));
+            sdfio_reader_free(reader);
+            free(file.data);
         }
-        ++count;
     }
-    CHECK(count == 4);
-    CHECK(position == strlen(trailer));
-    /* At the end it stays at the end. */
-    CHECK(!sdfio_trailer_next(trailer, strlen(trailer), &position, &field));
-
-    position = 0;
-    CHECK(!sdfio_trailer_next("", 0, &position, &field));
-    CHECK(!sdfio_trailer_next("only text", 9, &position, &field));
-    CHECK(!sdfio_trailer_next(NULL, 0, &position, &field));
-    CHECK(!sdfio_trailer_next(trailer, strlen(trailer), NULL, &field));
-    CHECK(!sdfio_trailer_next(trailer, strlen(trailer), &position, NULL));
+    /* Only a missing text is refused. */
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.columns = 1;
+    header.rows = 1;
+    const float height = 1e-6F;
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), &height,
+                                 sizeof height));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
+    free(file.data);
 }
 
-static void check_the_check(void)
-{
-    const char tagged[] = "A = 1\n\nB = two\r\n";
-    const char free_text[] = "A free text that is not a field";
-    const char not_ascii[] = "A = caf\xC3\xA9";
-    CHECK_OK(sdfio_check_trailer(SDFIO_ISO_2_0, tagged, strlen(tagged)));
-    CHECK_OK(sdfio_check_trailer(SDFIO_ISO_2_0, NULL, 0));
-    CHECK_OK(sdfio_check_trailer(SDFIO_ISO_2_0, "", 0));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_check_trailer(SDFIO_ISO_2_0, free_text, strlen(free_text)));
-    /* ISO-1.0 and BCR-1.0 take any 7-bit text. */
-    CHECK_OK(sdfio_check_trailer(SDFIO_ISO_1_0, free_text, strlen(free_text)));
-    CHECK_OK(sdfio_check_trailer(SDFIO_BCR_1_0, free_text, strlen(free_text)));
-    for (int r = SDFIO_ISO_1_0; r <= SDFIO_BCR_1_0; ++r)
-    {
-        CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_check_trailer((sdfio_revision)r, not_ascii,
-                                         strlen(not_ascii)));
-    }
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_check_trailer(SDFIO_ISO_2_0, NULL, 5));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_check_trailer((sdfio_revision)99, tagged, strlen(tagged)));
-}
-
-/* A trailer composed with the helpers is a trailer that can be written, and
- * what a file gives back is read as typed fields. */
+/* An assembled trailer is a trailer of the file, in both representations. */
 static void check_through_a_file(void)
 {
-    char trailer[CAPACITY];
-    size_t trailer_size = 0;
-    CHECK_OK(sdfio_trailer_put_text(trailer, sizeof trailer, &trailer_size,
-                                    "OperatorName", "Jane Doe"));
-    CHECK_OK(sdfio_trailer_put_integer(trailer, sizeof trailer, &trailer_size,
-                                       "Averages", 16));
-    CHECK_OK(sdfio_trailer_put_real(trailer, sizeof trailer, &trailer_size,
-                                    "Magnification", 20.5));
+    char memory[CAPACITY];
+    sdfio_trailer trailer;
+    sdfio_trailer_init(&trailer, memory, sizeof memory);
+    CHECK_OK(sdfio_trailer_add_text(&trailer, "OperatorName", "Jane Doe"));
+    CHECK_OK(sdfio_trailer_add_integer(&trailer, "Averages", 16));
+    CHECK_OK(sdfio_trailer_add_real(&trailer, "Magnification", 20.5));
 
     const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t i = 0; i < 2; ++i)
@@ -298,15 +270,13 @@ static void check_through_a_file(void)
         header.columns = 2;
         header.rows = 2;
         const float heights[4] = {1e-6F, 2e-6F, 3e-6F, 4e-6F};
-        /* Checked before the first row. */
-        CHECK_OK(sdfio_check_trailer(header.revision, trailer, trailer_size));
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new();
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
         CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32),
                                      heights, 2 * sizeof(float)));
-        CHECK_OK(sdfio_write_trailer(writer, trailer, trailer_size));
+        CHECK_OK(sdfio_write_trailer(writer, trailer.text, trailer.size));
         sdfio_writer_free(writer);
 
         sdfio_reader *reader = sdfio_reader_new();
@@ -314,21 +284,10 @@ static void check_through_a_file(void)
         const char *read = NULL;
         size_t read_size = 0;
         CHECK_OK(sdfio_read_trailer(reader, &read, &read_size));
-        long long averages = 0;
-        double magnification = 0.0;
-        const char *name = NULL;
-        size_t name_size = 0;
-        CHECK_OK(
-            sdfio_trailer_get_integer(read, read_size, "Averages", &averages));
-        CHECK_OK(sdfio_trailer_get_real(read, read_size, "Magnification",
-                                        &magnification));
-        CHECK(sdfio_trailer_find(read, read_size, "OperatorName", &name,
-                                 &name_size)
-              && same(name, name_size, "Jane Doe"));
-        CHECK(averages == 16 && magnification == 20.5);
-        /* The three lines, in order, as LF lines. */
-        CHECK(read_size == trailer_size - 1
-              && memcmp(read, trailer, read_size) == 0);
+        /* The three lines, in order, with LF and without the last one. */
+        CHECK(same(read, read_size,
+                   "OperatorName = Jane Doe\nAverages = 16\n"
+                   "Magnification = 20.5"));
         sdfio_reader_free(reader);
         free(file.data);
     }
@@ -349,29 +308,22 @@ static void check_the_locale(void)
         printf("no locale with a decimal comma: skipped\n");
         return;
     }
-    char buffer[CAPACITY];
-    size_t size = 0;
-    CHECK_OK(sdfio_trailer_put_real(buffer, sizeof buffer, &size, "X", 0.25));
-    CHECK(strchr(buffer, ',') == NULL && strchr(buffer, '.') != NULL);
-    double back = 0.0;
-    CHECK_OK(sdfio_trailer_get_real(buffer, size, "X", &back));
-    CHECK(back == 0.25);
-    CHECK_OK(sdfio_trailer_get_real("X = 1.75", 8, "X", &back));
-    CHECK(back == 1.75);
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_trailer_get_real("X = 1,75", 8, "X", &back));
+    char memory[CAPACITY];
+    sdfio_trailer trailer;
+    sdfio_trailer_init(&trailer, memory, sizeof memory);
+    CHECK_OK(sdfio_trailer_add_real(&trailer, "X", 0.25));
+    CHECK_OK(sdfio_trailer_add_real(&trailer, "Y", 1.5e-6));
+    CHECK(strcmp(trailer.text, "X = 0.25\nY = 1.5e-06\n") == 0);
     setlocale(LC_NUMERIC, "C");
 }
 
 int main(void)
 {
-    check_put_and_get();
-    check_integers_and_reals_exactly();
+    check_lines();
+    check_numbers_read_back_exactly();
     check_the_buffer();
     check_what_a_line_may_be();
-    check_get_errors();
-    check_listing();
-    check_the_check();
+    check_the_text_is_written_as_given();
     check_through_a_file();
     check_the_locale();
     return finish_tests();

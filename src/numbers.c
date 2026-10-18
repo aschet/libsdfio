@@ -280,3 +280,42 @@ size_t sdfi_format_scientific(const sdfi_point *point, char *out,
     return (size_t)snprintf(out, capacity, "%se%c%.*s%s", mantissa, sign,
                             (int)padding, "0000000000", exponent);
 }
+
+size_t sdfi_format_shortest(const sdfi_point *point, char *out, size_t capacity,
+                            double value)
+{
+    /* A negative zero is a zero. */
+    if (value == 0.0)
+    {
+        value = 0.0;
+    }
+    const size_t point_size = strlen(point->text);
+    char text[SDFI_NUMBER_CAPACITY];
+    /* The fewest digits that read back as the same number; 17 always do. */
+    for (int digits = 1; digits <= SDFI_SHORTEST_MAXIMUM; ++digits)
+    {
+        char raw[SDFI_NUMBER_CAPACITY];
+        snprintf(raw, sizeof raw, "%.*g", digits, value);
+        size_t used = 0;
+        for (const char *p = raw; *p != '\0';)
+        {
+            if (point_size > 0 && strncmp(p, point->text, point_size) == 0)
+            {
+                text[used++] = '.';
+                p += point_size;
+            }
+            else
+            {
+                text[used++] = *p++;
+            }
+        }
+        text[used] = '\0';
+        double back = 0.0;
+        if ((sdfi_parse_number(point, text, used, &back) && back == value)
+            || digits == SDFI_SHORTEST_MAXIMUM)
+        {
+            return (size_t)snprintf(out, capacity, "%s", text);
+        }
+    }
+    return 0;
+}

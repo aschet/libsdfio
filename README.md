@@ -77,13 +77,13 @@ on data from any other source.
   rows one at a time asks `sdfio_row_y(header, n)` for the y of the n-th row,
   and is then right for every revision (see [docs/design.md](docs/design.md)
   and `examples/counts.c`).
-- **Trailer**: free text, and in ISO-2.0 lines of the form `field name = value`.
-  `sdfio_trailer_put_text`, `_put_integer` and `_put_real` compose the lines in
-  a buffer of yours without allocating; `sdfio_trailer_get_integer`, `_get_real`,
-  `sdfio_trailer_find` and `sdfio_trailer_next` read them;
-  `sdfio_check_trailer` tells before the first row whether a trailer can be
-  written. In memory the lines end with LF. The file has CRLF, as the standard
-  has it, and is read back with LF, in text and binary files alike.
+- **Trailer**: free text that the library writes as it is given and returns as
+  it reads it; the application interprets it. For the lines `field name = value`
+  that ISO-2.0 asks for, `sdfio_trailer_add_text`, `_add_integer` and
+  `_add_real` assemble them in a buffer of yours without allocating, with
+  numbers as the shortest text that reads back exactly, always with a dot. In
+  memory the lines end with LF. The file has CRLF, as the standard has it, and
+  is read back with LF, in text and binary files alike.
 - **Dates** are UTC `time_t` in the program and the clock that the revision
   requires in the file.
 - **Threads**: there is no global state. Handles of different threads are
