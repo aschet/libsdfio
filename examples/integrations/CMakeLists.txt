@@ -35,6 +35,15 @@ else()
     message(STATUS "Integration example for OpenCV: not found, skipped")
 endif()
 
+find_package(VTK QUIET COMPONENTS CommonCore CommonDataModel FiltersCore
+    FiltersGeneral FiltersGeometry IOXML)
+if(VTK_FOUND)
+    sdfio_integration(vtk SOURCE vtk.cpp LIBS ${VTK_LIBRARIES})
+    vtk_module_autoinit(TARGETS integration_vtk MODULES ${VTK_LIBRARIES})
+else()
+    message(STATUS "Integration example for VTK: not found, skipped")
+endif()
+
 find_package(OpenCL QUIET)
 if(OpenCL_FOUND)
     sdfio_integration(opencl SOURCE opencl.c LIBS OpenCL::OpenCL)
