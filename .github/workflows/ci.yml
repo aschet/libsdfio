@@ -8,310 +8,186 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
+  # One machine for all of Linux: the steps share the checkout and the tools,
+  # and every step runs, so that a failure does not hide the next.
   linux:
-    name: ${{ matrix.name }}
+    name: Linux
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: gcc
-            cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          - name: clang
-            cc: clang
-            options: -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          - name: C99, gcc
-            cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_STANDARD=99 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          - name: C99, clang
-            cc: clang
-            options: -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_STANDARD=99 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          - name: shared library
-            cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
-          - name: address and undefined behavior sanitizers
-            cc: clang
-            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON
-          - name: thread sanitizer
-            cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE_THREAD=ON
-          - name: without text and local time
-            cc: gcc
-            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
     steps:
       - uses: actions/checkout@v7
-      - name: Let the sanitizers map their memory
-        run: sudo sysctl vm.mmap_rnd_bits=28 || true
-      - name: Configure
-        run: cmake -S . -B build ${{ matrix.options }}
+
+      - name: Install the tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build qemu-user \
+            gcc-s390x-linux-gnu libc6-dev-s390x-cross \
+            gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
+            gcc-arm-none-eabi libnewlib-arm-none-eabi \
+            gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+          pipx install "clang-tidy==21.1.6"
+          pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
+          # The sanitizers map their memory
+          sudo sysctl vm.mmap_rnd_bits=28 || true
+
+      - name: GCC in strict C99, installed and used
         env:
-          CC: ${{ matrix.cc }}
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+          CC: gcc
+          GENERATOR: Ninja
+          CONFIGURE_OPTIONS: >-
+            -DCMAKE_C_STANDARD=99 -DCMAKE_C_STANDARD_REQUIRED=ON
+            -DCMAKE_C_FLAGS=-pedantic-errors -DSDFIO_BUILD_EXAMPLES=ON
+        run: .github/ci/install-and-use.sh
+
+      - name: Clang with the address and undefined behavior sanitizers
+        if: ${{ !cancelled() }}
+        run: |
+          CC=clang cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDFIO_SANITIZE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DSDFIO_BUILD_EXAMPLES=ON
+          cmake --build build/asan
+          ctest --test-dir build/asan --output-on-failure --no-tests=error
+
+      - name: GCC with the thread sanitizer
+        if: ${{ !cancelled() }}
+        run: |
+          CC=gcc cmake -S . -B build/tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDFIO_SANITIZE_THREAD=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build build/tsan
+          ctest --test-dir build/tsan --output-on-failure --no-tests=error
+
+      - name: Without text and local time
+        if: ${{ !cancelled() }}
+        run: |
+          CC=gcc cmake -S . -B build/minimal -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
+          cmake --build build/minimal
+          ctest --test-dir build/minimal --output-on-failure --no-tests=error
+
+      - name: Big endian, s390x
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build/s390x -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x \
+            -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc \
+            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu" \
+            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DSDFIO_BUILD_EXAMPLES=ON
+          cmake --build build/s390x
+          ctest --test-dir build/s390x --output-on-failure --no-tests=error
+
+      - name: 32-bit ARM, armhf
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build/armhf -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
+            -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
+            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf" \
+            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DSDFIO_BUILD_EXAMPLES=ON
+          cmake --build build/armhf
+          ctest --test-dir build/armhf --output-on-failure --no-tests=error
+
+      - name: Cortex-M4 firmware
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build/cortex-m -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_C_COMPILER=arm-none-eabi-gcc \
+            "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections" \
+            "-DCMAKE_EXE_LINKER_FLAGS=--specs=nano.specs --specs=nosys.specs" \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
+            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
+          cmake --build build/cortex-m
+          arm-none-eabi-size build/cortex-m/tests/embedded/firmware
+
+      - name: RISC-V firmware
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build/riscv -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32 \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc \
+            "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 --specs=picolibc.specs -ffunction-sections -fdata-sections" \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
+            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
+          cmake --build build/riscv
+          riscv64-unknown-elf-size build/riscv/tests/embedded/firmware
+
+      - name: Static analysis
+        if: ${{ !cancelled() }}
+        run: |
+          cmake -S . -B build/tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
+          # The files for Windows cannot be analyzed here
+          clang-tidy -p build/tidy --warnings-as-errors='*' \
+            $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_windows -e test_wide)
+
+      - name: Format
+        if: ${{ !cancelled() }}
+        run: |
+          clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
+            tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
+            examples/*.c examples/integrations/*.cpp
+
+      - name: Conan
+        if: ${{ !cancelled() }}
+        run: |
+          pipx install conan
+          conan profile detect --force
+          for shared in True False; do
+            conan create . -o "sdfio/*:shared=$shared"
+          done
+
+      - name: vcpkg
+        if: ${{ !cancelled() }}
+        run: |
+          for triplet in x64-linux x64-linux-dynamic; do
+            installed="$PWD/vcpkg_installed-$triplet"
+            "$VCPKG_INSTALLATION_ROOT/vcpkg" install sdfio \
+              --overlay-ports=ports --triplet="$triplet" \
+              --x-install-root="$installed" --binarysource=clear
+            cmake -S test_package -B "build/vcpkg-$triplet" \
+              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
+              -DVCPKG_TARGET_TRIPLET="$triplet" \
+              -DVCPKG_INSTALLED_DIR="$installed" -DCMAKE_BUILD_TYPE=Release
+            cmake --build "build/vcpkg-$triplet"
+            LD_LIBRARY_PATH="$installed/$triplet/lib" \
+              "build/vcpkg-$triplet/test_package"
+          done
+
+      - name: Licenses
+        if: ${{ !cancelled() }}
+        uses: fsfe/reuse-action@v5
 
   macos:
     name: macOS
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
+      - name: Build, test, install and use
+        env:
+          GENERATOR: Ninja
+        run: .github/ci/install-and-use.sh
 
   windows:
-    name: Windows, ${{ matrix.name }}
+    name: Windows
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: static library
-            shared: "OFF"
-          - name: DLL
-            shared: "ON"
     steps:
       - uses: actions/checkout@v7
-      - name: Configure
-        run: cmake -S . -B build -DBUILD_SHARED_LIBS=${{ matrix.shared }}
-      - name: Build
-        run: cmake --build build --config Release --parallel
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error
-
-  big-endian:
-    name: Big endian (s390x)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler and the emulator
-        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross
-      - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x
-          -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc
-          "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu"
-          -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          -DSDFIO_BUILD_EXAMPLES=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
-
-  arm-32-bit:
-    name: 32-bit ARM (armhf)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler and the emulator
-        run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
-      - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm
-          -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc
-          "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf"
-          -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          -DSDFIO_BUILD_EXAMPLES=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure --no-tests=error
-
-  cortex-m:
-    name: Cortex-M4 firmware
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
-      - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm
-          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
-          -DCMAKE_C_COMPILER=arm-none-eabi-gcc
-          "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections"
-          "-DCMAKE_EXE_LINKER_FLAGS=--specs=nano.specs --specs=nosys.specs"
-          -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_BUILD_FIRMWARE=ON
-          -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Size
-        run: arm-none-eabi-size build/tests/embedded/firmware
-
-  riscv:
-    name: RISC-V firmware
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler
-        run: sudo apt-get update && sudo apt-get install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
-      - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32
-          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
-          -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc
-          "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 --specs=picolibc.specs -ffunction-sections -fdata-sections"
-          -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_BUILD_FIRMWARE=ON
-          -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Size
-        run: riscv64-unknown-elf-size build/tests/embedded/firmware
-
-  tidy:
-    name: Static analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install clang-tidy
-        run: |
-          pipx install "clang-tidy==21.1.6"
-          pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
-      - name: Configure
-        run: >
-          cmake -S . -B build
-          -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-          -DSDFIO_BUILD_EXAMPLES=ON
-      - name: Check
-        run: >
-          clang-tidy -p build --warnings-as-errors='*'
-          $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_windows -e test_wide)
-
-  package:
-    name: Install and use, ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-            generator: Ninja
-          - name: macOS
-            os: macos-latest
-            generator: Ninja
-          - name: Windows
-            os: windows-latest
-            generator: ""
-    steps:
-      - uses: actions/checkout@v7
-      # The library is installed, and a project of its own finds it with
-      # find_package and links it, as a user's project does.
-      - name: Install and use
+      - name: Build, test, install and use
         env:
-          GENERATOR: ${{ matrix.generator }}
-        run: |
-          if [ -n "$GENERATOR" ]; then
-            configure=(-G "$GENERATOR" -DCMAKE_BUILD_TYPE=Release)
-          else
-            configure=()
-          fi
-          for linkage in ON OFF; do
-            echo "== BUILD_SHARED_LIBS=$linkage"
-            build="build-$linkage"
-            stage="$PWD/stage-$linkage"
-            cmake -S . -B "$build" "${configure[@]}" \
-              -DBUILD_SHARED_LIBS=$linkage \
-              -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-              -DCMAKE_INSTALL_PREFIX="$stage"
-            cmake --build "$build" --config Release
-            cmake --install "$build" --config Release
-            cmake -S test_package -B "$build/consumer" "${configure[@]}" \
-              -DCMAKE_PREFIX_PATH="$stage"
-            cmake --build "$build/consumer" --config Release
-            consumer=$(find "$build/consumer" \
-              \( -name test_package -o -name test_package.exe \) -type f | head -1)
-            PATH="$stage/bin:$PATH" LD_LIBRARY_PATH="$stage/lib" \
-              DYLD_LIBRARY_PATH="$stage/lib" "$consumer"
-          done
-
-  conan:
-    name: Conan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install Conan
-        run: |
-          pipx install conan
-          bin_dir=$(pipx environment --value PIPX_BIN_DIR)
-          echo "$bin_dir" >> "$GITHUB_PATH"
-          "$bin_dir/conan" profile detect --force
-      - name: Create the package
-        run: |
-          for shared in True False; do
-            echo "== shared=$shared"
-            conan create . -o "sdfio/*:shared=$shared"
-          done
-
-  vcpkg:
-    name: vcpkg, ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux
-            os: ubuntu-latest
-            triplets: x64-linux x64-linux-dynamic
-          - name: macOS
-            os: macos-latest
-            triplets: arm64-osx arm64-osx-dynamic
-          - name: Windows
-            os: windows-latest
-            triplets: x64-windows-static x64-windows
-    steps:
-      - uses: actions/checkout@v7
-      # The port of this repository is an overlay port: it builds the library
-      # from the checkout, and a project of its own finds the result with the
-      # toolchain file of vcpkg.
-      - name: Install and use
-        env:
-          TRIPLETS: ${{ matrix.triplets }}
-        run: |
-          for triplet in $TRIPLETS; do
-            echo "== $triplet"
-            installed="$PWD/vcpkg_installed-$triplet"
-            "$VCPKG_INSTALLATION_ROOT/vcpkg" install sdfio \
-              --overlay-ports=ports --triplet="$triplet" \
-              --x-install-root="$installed" --binarysource=clear
-            cmake -S test_package -B "build-$triplet" \
-              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
-              -DVCPKG_TARGET_TRIPLET="$triplet" \
-              -DVCPKG_INSTALLED_DIR="$installed" \
-              -DCMAKE_BUILD_TYPE=Release
-            cmake --build "build-$triplet" --config Release
-            consumer=$(find "build-$triplet" \
-              \( -name test_package -o -name test_package.exe \) -type f | head -1)
-            PATH="$installed/$triplet/bin:$PATH" \
-              LD_LIBRARY_PATH="$installed/$triplet/lib" \
-              DYLD_LIBRARY_PATH="$installed/$triplet/lib" "$consumer"
-          done
-
-  reuse:
-    name: Licenses
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: fsfe/reuse-action@v5
+          GENERATOR: ""
+        run: .github/ci/install-and-use.sh
