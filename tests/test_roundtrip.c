@@ -486,8 +486,104 @@ static void check_element_stride(void)
     free(from_points.data);
 }
 
+/* An unknown z-resolution is -1, as the standard has it: whatever a program
+ * gives that is not positive is written as -1, and whatever a file holds that
+ * is not positive is read as -1. */
+static void write_with_resolution(membuf *file, sdfio_storage storage,
+                                  double resolution)
+{
+    sdfio_header header;
+    describe(&header, SDFIO_ISO_2_0, storage, SDFIO_DATA_BINARY64);
+    header.z_resolution = resolution;
+    double heights[ROWS * COLUMNS];
+    make_heights(heights);
+    const sdfio_stream stream = membuf_stream(file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
+                                 COLUMNS * sizeof(double)));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
+}
+
+static double resolution_read(const membuf *file)
+{
+    sdfio_reader *reader = sdfio_reader_new();
+    double resolution = 0.0;
+    CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
+    if (sdfio_get_header(reader) != NULL)
+    {
+        resolution = sdfio_get_header(reader)->z_resolution;
+    }
+    sdfio_reader_free(reader);
+    return resolution;
+}
+
+static void check_resolution(void)
+{
+    sdfio_header initial;
+    sdfio_header_init(&initial);
+    CHECK(SDFIO_NO_RESOLUTION == -1.0);
+    CHECK(initial.z_resolution == SDFIO_NO_RESOLUTION);
+
+    const double given[] = {SDFIO_NO_RESOLUTION, 0.0, -5.0, 1e-9};
+    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t s = 0; s < 2; ++s)
+    {
+        for (size_t g = 0; g < sizeof given / sizeof given[0]; ++g)
+        {
+            membuf file = {0};
+            write_with_resolution(&file, storages[s], given[g]);
+            const double expected =
+                given[g] > 0.0 ? given[g] : SDFIO_NO_RESOLUTION;
+            CHECK(resolution_read(&file) == expected);
+            if (storages[s] == SDFIO_BINARY)
+            {
+                /* Four doubles and three bytes end the header. */
+                double stored = 0.0;
+                memcpy(&stored,
+                       file.data + sdfi_binary_header_size(SDFIO_ISO_2_0) - 3
+                           - sizeof stored,
+                       sizeof stored);
+                CHECK(stored == expected);
+            }
+            free(file.data);
+        }
+    }
+
+    /* A file that holds another number that is not positive. */
+    const double stored_values[] = {-2.0, 0.0, -1e-9};
+    for (size_t i = 0; i < sizeof stored_values / sizeof stored_values[0]; ++i)
+    {
+        membuf file = {0};
+        write_with_resolution(&file, SDFIO_BINARY, 1e-9);
+        memcpy(file.data + sdfi_binary_header_size(SDFIO_ISO_2_0) - 3
+                   - sizeof(double),
+               &stored_values[i], sizeof(double));
+        CHECK(resolution_read(&file) == SDFIO_NO_RESOLUTION);
+        free(file.data);
+    }
+
+    /* A number that is no number is refused. */
+    const double refused[] = {NAN, INFINITY, -INFINITY};
+    for (size_t i = 0; i < sizeof refused / sizeof refused[0]; ++i)
+    {
+        sdfio_header header;
+        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY64);
+        header.z_resolution = refused[i];
+        membuf file = {0};
+        const sdfio_stream stream = membuf_stream(&file);
+        sdfio_writer *writer = sdfio_writer_new();
+        CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                     sdfio_create_stream(writer, &stream, &header));
+        sdfio_writer_free(writer);
+        free(file.data);
+    }
+}
+
 int main(void)
 {
+    check_resolution();
     check_element_stride();
     check_stride();
     check_all_types();

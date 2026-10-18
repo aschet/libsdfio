@@ -841,7 +841,7 @@ sdfio_status sdfi_ascii_header(const sdfio_header *header,
          && append_scale(out, point, "Zscale", header->z_scale)
          && append_scale(out, point, "Zresolution",
                          header->z_resolution > 0.0 ? header->z_resolution
-                                                    : SDFI_FILE_NO_RESOLUTION);
+                                                    : SDFIO_NO_RESOLUTION);
     snprintf(text, sizeof text, "%d", SDFI_NONE);
     ok = ok && append_field(out, "Compression", text);
     snprintf(text, sizeof text, "%d", (int)header->data_type);

@@ -70,9 +70,6 @@ enum
     SDFI_STRING_MINIMUM = 64
 };
 
-/* What a file holds for a resolution that is not known. */
-#define SDFI_FILE_NO_RESOLUTION (-1.0)
-
 /* The digits that numbers are written with: after the point, and in the
  * exponent. */
 enum

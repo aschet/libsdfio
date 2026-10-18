@@ -101,11 +101,11 @@ sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message)
                          "z_scale must be a positive number, got %g",
                          header->z_scale);
     }
-    if (header->z_resolution != SDFIO_NO_RESOLUTION
-        && !positive(header->z_resolution))
+    /* A resolution that is not positive is not known. */
+    if (!isfinite(header->z_resolution))
     {
         return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
-                         "z_resolution must be a positive number, got %g",
+                         "z_resolution must be a finite number, got %g",
                          header->z_resolution);
     }
     if (!positive(header->x_scale) || !positive(header->y_scale))

@@ -198,7 +198,7 @@ sdfio_status sdfi_binary_header(const sdfio_header *header, unsigned char *out,
     put_double(at, header->z_scale);
     at += sizeof(double);
     put_double(at, header->z_resolution > 0.0 ? header->z_resolution
-                                              : SDFI_FILE_NO_RESOLUTION);
+                                              : SDFIO_NO_RESOLUTION);
     at += sizeof(double);
     *at++ = SDFI_NONE;
     *at++ = (unsigned char)header->data_type;

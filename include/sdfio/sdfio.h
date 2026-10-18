@@ -146,9 +146,16 @@ enum
 /** A date and time that is not recorded. */
 #define SDFIO_NO_TIME ((time_t)-1)
 
-/** A z-scale that the writer chooses, and a resolution that is not known. */
+/** A z-scale that the writer chooses. */
 #define SDFIO_AUTO_Z_SCALE 0.0
-#define SDFIO_NO_RESOLUTION 0.0
+
+/**
+ * A z-resolution that is not known, as the standard has it: a negative number,
+ * -1 by default. A reader reports it for every resolution that is not
+ * positive. A writer takes any value that is not positive, such as 0 or a
+ * negative number, as not known and writes -1.
+ */
+#define SDFIO_NO_RESOLUTION (-1.0)
 
 /**
  * The header of a file, record 1, with the names of the standard. It is a plain
