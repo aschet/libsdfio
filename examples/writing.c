@@ -11,22 +11,10 @@ enum
     ROWS = 192
 };
 
-int main(int argc, char **argv)
-{
-    const char *path = argc > 1 ? argv[1] : "surface.sdf";
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = SDFIO_DATA_INT16;
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 1e-6;
-    header.y_scale = 1e-6;
+static float heights[ROWS * COLUMNS];
 
-    float *heights = sdfio_alloc_heights(&header, SDFIO_FLOAT32, header.rows);
-    if (heights == NULL)
-    {
-        return EXIT_FAILURE;
-    }
+static void fill(void)
+{
     for (size_t row = 0; row < ROWS; ++row)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
@@ -38,6 +26,17 @@ int main(int argc, char **argv)
                                * cos(0.07 * (double)column));
         }
     }
+}
+
+static int write_surface(const char *path, sdfio_data_type type)
+{
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.data_type = type;
+    header.columns = COLUMNS;
+    header.rows = ROWS;
+    header.x_scale = 1e-6;
+    header.y_scale = 1e-6;
 
     const char trailer[] = "OperatorName = Jane Doe";
     sdfio_writer *writer = sdfio_writer_new();
@@ -56,6 +55,13 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
     }
     sdfio_writer_free(writer);
-    sdfio_free(heights);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+int main(void)
+{
+    fill();
+    const int floats = write_surface("float.sdf", SDFIO_DATA_BINARY32);
+    const int integers = write_surface("integer.sdf", SDFIO_DATA_INT16);
+    return floats == EXIT_SUCCESS ? integers : floats;
 }

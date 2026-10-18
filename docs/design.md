@@ -63,6 +63,31 @@ description of the file, return zeroed memory, and refuse a size that cannot be
 counted. `sdfio_free` pairs with them, so a shared library on Windows frees in the
 runtime that allocated.
 
+## Row order
+
+BCR-1.0 stores the rows of the data area from the largest y down; ISO-1.0 and
+ISO-2.0 store y = 0 first. The two kinds of calls treat this differently, on
+purpose:
+
+| Calls | Order | Who reverses |
+| --- | --- | --- |
+| `sdfio_read_heights`, `sdfio_write_heights` | y = 0 is the first row of your matrix, always | the library, by taking each file row from or to `dst + y * row_stride` |
+| `sdfio_read_data`, `sdfio_write_data` | the order of the file | the caller, with `sdfio_row_y(header, n)` |
+
+A whole-matrix call can reverse because the matrix is in memory and the stream
+is still read or written in order. A call that moves rows cannot hide it, since
+a device that holds one row at a time has to know which row to produce next.
+The answer is `sdfio_row_y`, which is the index for the ISO revisions and
+`rows - 1 - n` for BCR-1.0. A scanner that asks it for every row writes any
+revision from one loop and holds one row of memory; the alternative, a whole
+matrix in memory, is not available on a small device. Reading is the same:
+the first row received is the largest y in a BCR file.
+
+A consumer that needs the rows streamed with y ascending cannot get them from
+a BCR file without seeking to the end and reading backwards, which is not done.
+The orientation of the caller's own matrix, such as the rows of an image from
+the top, is a separate matter that the row stride takes care of.
+
 ## Strides
 
 The matrix of heights of the caller is described by a row stride and an

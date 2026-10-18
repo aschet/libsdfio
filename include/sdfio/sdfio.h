@@ -209,12 +209,29 @@ SDFIO_API void sdfio_header_init(sdfio_header *header);
 
 /**
  * Whether the first row in a file of the revision is the one with the
- * largest y (BCR-1.0). The row functions work in the order of the file; the
- * image functions always put y = 0 first.
+ * largest y, which is so in BCR-1.0 and not in ISO-1.0 and ISO-2.0.
+ *
+ * The functions that move a whole matrix of heights, sdfio_read_heights() and
+ * sdfio_write_heights(), always have y = 0 first and reverse as needed. The
+ * functions that move rows of the data area, sdfio_read_data() and
+ * sdfio_write_data(), work in the order of the file and leave the reversal to
+ * the caller, with sdfio_row_y().
  */
 SDFIO_API bool sdfio_rows_reversed(sdfio_revision revision);
 
-/** The y of the n-th row of the file, counting from 0. */
+/**
+ * The y of the n-th row of the file, counting from 0: n for ISO-1.0 and
+ * ISO-2.0, and rows - 1 - n for BCR-1.0. A program that handles rows one at a
+ * time asks it for every row, and is then right for every revision:
+ *
+ * ~~~
+ * for (size_t n = 0; n < header.rows; ++n)
+ * {
+ *     scan_row(sdfio_row_y(&header, n), row);
+ *     sdfio_write_data(writer, row, 1);
+ * }
+ * ~~~
+ */
 SDFIO_API size_t sdfio_row_y(const sdfio_header *header, size_t file_row);
 
 /** Whether a value of the data area marks a point that was not measured. */
@@ -320,6 +337,10 @@ SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
  * data type of the file, so a binary32 text file is rounded to single
  * precision. To get heights, decode the values, see sdfio_decode_heights().
  *
+ * The first row that is read is the first row of the file. In BCR-1.0 that is
+ * the row with the largest y: sdfio_row_y() gives the y of every row that is
+ * read, in every revision.
+ *
  * After an error the reader cannot go on; rewind it if it can seek.
  */
 SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst,
@@ -423,6 +444,10 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * rows * columns values of header.data_type in the byte order of the machine,
  * in the order of the file. The number that marks a point as not measured is
  * written as it is.
+ *
+ * The first row that is written is the first row of the file. In BCR-1.0 that
+ * is the row with the largest y: ask sdfio_row_y() which y belongs to the next
+ * row, and a program that scans a row at a time is right for every revision.
  *
  * @return SDFIO_ERR_ARGUMENT if the data type is an integer type and the
  * z-scale is not set: the writer cannot know what a count means.

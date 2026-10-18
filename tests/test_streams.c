@@ -87,6 +87,22 @@ static void check_pipe(const char *path, size_t piece)
         CHECK_OK(
             sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
                                (ptrdiff_t)(header->columns * sizeof(double))));
+        /* The same heights, in the same places, as from memory: also for
+         * BCR-1.0, whose rows are reversed in the file. */
+        sdfio_reader *seekable = sdfio_reader_new();
+        CHECK_OK(sdfio_open_memory(seekable, data, size));
+        double *expected =
+            malloc(header->rows * header->columns * sizeof(double));
+        CHECK_OK(
+            sdfio_read_heights(seekable, sdfio_metres(SDFIO_FLOAT64), expected,
+                               (ptrdiff_t)(header->columns * sizeof(double))));
+        for (size_t i = 0; i < header->rows * header->columns; ++i)
+        {
+            CHECK(isnan(expected[i]) ? isnan(heights[i])
+                                     : heights[i] == expected[i]);
+        }
+        free(expected);
+        sdfio_reader_free(seekable);
         const char *trailer = NULL;
         size_t trailer_size = 0;
         CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
