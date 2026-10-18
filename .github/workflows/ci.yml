@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            cc: gcc
+            options: -DCMAKE_BUILD_TYPE=Release
+          - name: clang
+            cc: clang
+            options: -DCMAKE_BUILD_TYPE=Release
+          - name: shared library
+            cc: gcc
+            options: -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+          - name: address and undefined behavior sanitizers
+            cc: clang
+            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON
+          - name: thread sanitizer
+            cc: gcc
+            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE_THREAD=ON
+    steps:
+      - uses: actions/checkout@v4
+      - name: Let the sanitizers map their memory
+        run: sudo sysctl vm.mmap_rnd_bits=28 || true
+      - name: Configure
+        run: cmake -S . -B build ${{ matrix.options }}
+        env:
+          CC: ${{ matrix.cc }}
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  windows:
+    name: Windows, ${{ matrix.name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: static library
+            shared: "OFF"
+          - name: DLL
+            shared: "ON"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  reuse:
+    name: Licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5
