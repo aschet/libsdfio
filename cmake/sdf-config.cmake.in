@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/sdf-targets.cmake")
+
+check_required_components(sdf)

@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+find_package(Threads)
+
+# A test links the objects of the library when it needs the functions that the
+# library hides, and the library when it checks what a user can call.
+function(sdf_add_test name)
+    add_executable(${name} ${name}.c)
+    target_link_libraries(${name} PRIVATE sdf_objects $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
+    target_include_directories(${name} PRIVATE "${PROJECT_SOURCE_DIR}/src")
+    target_compile_options(${name} PRIVATE ${SDF_WARNINGS} ${SDF_SANITIZER_FLAGS})
+    target_link_options(${name} PRIVATE ${SDF_SANITIZER_FLAGS})
+    target_compile_definitions(${name} PRIVATE
+        SDF_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
+    )
+    add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+sdf_add_test(test_samples)
+sdf_add_test(test_roundtrip)
+sdf_add_test(test_streams)
+sdf_add_test(test_numbers)
+sdf_add_test(test_heights)
+sdf_add_test(test_dates)
+
+if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT)
+    sdf_add_test(test_threads)
+    target_link_libraries(test_threads PRIVATE Threads::Threads)
+endif()
+
+# The public interface only, through the library that is installed.
+add_executable(test_public test_public.c)
+target_link_libraries(test_public PRIVATE sdf)
+target_compile_options(test_public PRIVATE ${SDF_WARNINGS} ${SDF_SANITIZER_FLAGS})
+add_test(NAME test_public COMMAND test_public)
