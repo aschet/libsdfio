@@ -6,6 +6,7 @@
 // and no copy is made. A Mat that is not continuous, such as a region of
 // interest, is read into as it is: its step is the stride.
 
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <opencv2/core.hpp>
@@ -35,7 +36,7 @@ void check(sdfio_status status, const char *message)
 
 Reader open(const char *path)
 {
-    Reader reader(sdfio_reader_new(), sdfio_reader_free);
+    Reader reader(sdfio_reader_new(NULL), sdfio_reader_free);
     check(sdfio_open_file(reader.get(), path),
           sdfio_reader_error_message(reader.get()));
     return reader;
@@ -76,7 +77,7 @@ void write_depth(const char *path, sdfio_header header, const cv::Mat &depth)
 {
     header.data_type = SDFIO_DATA_BINARY32;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
-    Writer writer(sdfio_writer_new(), sdfio_writer_free);
+    Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), sdfio_metres(SDFIO_FLOAT32),

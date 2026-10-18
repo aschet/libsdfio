@@ -16,44 +16,48 @@ typedef enum writer_state
 
 struct sdfio_writer
 {
-    sdfi_message message;
+    sdfio_message message;
     sdfio_header header;
-    sdfi_sink sink;
-    sdfi_point point;
+    sdfio_sink sink;
+    sdfio_point point;
     writer_state state;
     bool header_written;
     size_t next_row;
     /* The column of the next value in a text file. */
     size_t column;
-    FILE *file;
-    char *path;
-    char *temporary_path;
-    unsigned char coded[SDFI_CHUNK * SDFI_LARGEST_SAMPLE];
-    unsigned char swapped[SDFI_CHUNK * SDFI_LARGEST_SAMPLE];
-    char text[SDFI_CHUNK * SDFI_TEXT_PER_VALUE];
+    sdfio_allocator allocator;
+    sdfio_owner owner;
+    size_t chunk_values;
+    /* Made when the file is created, for what its representation needs. */
+    unsigned char *coded;
+    unsigned char *swapped;
+    char *text;
 };
 
-sdfio_writer *sdfio_writer_new(void)
+sdfio_writer *sdfio_writer_new(const sdfio_config *config)
 {
-    return calloc(1, sizeof(sdfio_writer));
-}
-
-const char *sdfio_writer_error_message(const sdfio_writer *writer)
-{
-    return writer != NULL ? writer->message.text : "";
-}
-
-static void abandon(sdfio_writer *writer)
-{
-    if (writer->file != NULL)
+    sdfio_allocator allocator;
+    size_t buffer = 0;
+    size_t chunk = 0;
+    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk))
     {
-        fclose(writer->file);
-        writer->file = NULL;
-        if (writer->state != STATE_ENDED && writer->temporary_path != NULL)
-        {
-            remove(writer->temporary_path);
-        }
+        return NULL;
     }
+    sdfio_writer *writer = sdfio_allocate(&allocator, sizeof *writer);
+    if (writer == NULL)
+    {
+        return NULL;
+    }
+    *writer = (sdfio_writer){.allocator = allocator, .chunk_values = chunk};
+    writer->coded =
+        sdfio_allocate(&writer->allocator, chunk * SDFIO_LARGEST_SAMPLE);
+    if (writer->coded == NULL
+        || !sdfio_sink_create(&writer->sink, buffer, &writer->allocator))
+    {
+        sdfio_writer_free(writer);
+        return NULL;
+    }
+    return writer;
 }
 
 void sdfio_writer_free(sdfio_writer *writer)
@@ -62,10 +66,36 @@ void sdfio_writer_free(sdfio_writer *writer)
     {
         return;
     }
-    abandon(writer);
-    free(writer->path);
-    free(writer->temporary_path);
-    free(writer);
+    if (writer->owner.close != NULL)
+    {
+        writer->owner.close(writer->owner.user);
+    }
+    sdfio_sink_destroy(&writer->sink);
+    const sdfio_allocator allocator = writer->allocator;
+    sdfio_release(&allocator, writer->coded);
+    sdfio_release(&allocator, writer->swapped);
+    sdfio_release(&allocator, writer->text);
+    sdfio_release(&allocator, writer);
+}
+
+void sdfio_writer_own(sdfio_writer *writer, sdfio_owner owner)
+{
+    writer->owner = owner;
+}
+
+sdfio_message *sdfio_writer_message(sdfio_writer *writer)
+{
+    return &writer->message;
+}
+
+bool sdfio_writer_is_new(const sdfio_writer *writer)
+{
+    return writer->state == STATE_NEW;
+}
+
+const char *sdfio_writer_error_message(const sdfio_writer *writer)
+{
+    return writer != NULL ? writer->message.text : "";
 }
 
 static sdfio_status fail_writing(sdfio_writer *writer, sdfio_status status)
@@ -80,17 +110,33 @@ static sdfio_status start_stream(sdfio_writer *writer,
 {
     if (writer->state != STATE_NEW)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "The writer has created a file already");
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "The writer has created a file already");
     }
-    const sdfio_status status = sdfi_validate(header, &writer->message);
+    const sdfio_status status = sdfio_validate(header, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
+    if (header->representation == SDFIO_ASCII)
+    {
+        writer->text = sdfio_allocate(
+            &writer->allocator, writer->chunk_values * SDFIO_TEXT_PER_VALUE);
+    }
+    else if (!sdfio_host_is_little_endian())
+    {
+        writer->swapped = sdfio_allocate(
+            &writer->allocator, writer->chunk_values * SDFIO_LARGEST_SAMPLE);
+    }
+    if ((header->representation == SDFIO_ASCII && writer->text == NULL)
+        || (header->representation == SDFIO_BINARY
+            && !sdfio_host_is_little_endian() && writer->swapped == NULL))
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY, "Out of memory");
+    }
     writer->header = *header;
-    writer->point = sdfi_point_now();
-    sdfi_sink_init(&writer->sink, stream);
+    writer->point = sdfio_point_now();
+    sdfio_sink_init(&writer->sink, stream);
     writer->state = STATE_CREATED;
     return SDFIO_OK;
 }
@@ -107,57 +153,10 @@ sdfio_status sdfio_create_stream(sdfio_writer *writer,
     return start_stream(writer, stream, header);
 }
 
-static char *copy_text(const char *text, const char *suffix)
-{
-    const size_t size = strlen(text);
-    const size_t suffix_size = strlen(suffix);
-    char *copy = malloc(size + suffix_size + 1);
-    if (copy != NULL)
-    {
-        snprintf(copy, size + suffix_size + 1, "%s%s", text, suffix);
-    }
-    return copy;
-}
-
-sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
-                               const sdfio_header *header)
-{
-    if (writer == NULL || path == NULL || header == NULL)
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    if (writer->state != STATE_NEW)
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "The writer has created a file already");
-    }
-    /* The file is written beside its place and moved there when it is whole,
-     * so that an error leaves the old file as it was. */
-    writer->path = copy_text(path, "");
-    writer->temporary_path = copy_text(path, ".sdftmp");
-    if (writer->path == NULL || writer->temporary_path == NULL)
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_MEMORY, "Out of memory");
-    }
-    writer->file = fopen(writer->temporary_path, "wb");
-    if (writer->file == NULL)
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_IO,
-                         "The file cannot be written: %s", path);
-    }
-    const sdfio_stream stream = sdfio_stdio_stream(writer->file);
-    const sdfio_status status = start_stream(writer, &stream, header);
-    if (status != SDFIO_OK)
-    {
-        abandon(writer);
-    }
-    return status;
-}
-
 static sdfio_status write_failed(sdfio_writer *writer)
 {
-    return fail_writing(writer, sdfi_fail(&writer->message, SDFIO_ERR_IO,
-                                          "The stream could not be written"));
+    return fail_writing(writer, sdfio_fail(&writer->message, SDFIO_ERR_IO,
+                                           "The stream could not be written"));
 }
 
 /* The header goes out with the first values, when the z-scale is known. */
@@ -171,43 +170,43 @@ static sdfio_status start_data(sdfio_writer *writer)
     if (header->z_scale == SDFIO_AUTO_Z_SCALE)
     {
         size_t count = 0;
-        sdfi_count(header, &count);
-        if (sdfi_is_floating(header->data_type) || count == 0)
+        sdfio_count(header, &count);
+        if (sdfio_is_floating(header->data_type) || count == 0)
         {
             header->z_scale = 1.0;
         }
         else
         {
-            return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                             "Stored integer values need a z-scale, the "
-                             "height of one count: use sdfio_write_heights() "
-                             "to have one chosen");
+            return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                              "Stored integer values need a z-scale, the "
+                              "height of one count: use sdfio_write_heights() "
+                              "to have one chosen");
         }
     }
     sdfio_status status = SDFIO_OK;
     if (header->representation == SDFIO_BINARY)
     {
-        unsigned char bytes[SDFI_BINARY_HEADER_MAX];
+        unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
         size_t size = 0;
-        status = sdfi_binary_header(header, bytes, &size, &writer->message);
-        if (status == SDFIO_OK && !sdfi_sink_write(&writer->sink, bytes, size))
+        status = sdfio_binary_header(header, bytes, &size, &writer->message);
+        if (status == SDFIO_OK && !sdfio_sink_write(&writer->sink, bytes, size))
         {
             return write_failed(writer);
         }
     }
     else
     {
-        sdfi_string text = {0};
+        sdfio_string text = {.allocator = &writer->allocator};
         status =
-            sdfi_ascii_header(header, &writer->point, &text, &writer->message);
+            sdfio_ascii_header(header, &writer->point, &text, &writer->message);
         if (status == SDFIO_OK
-            && !sdfi_sink_write(&writer->sink, sdfi_string_text(&text),
-                                text.size))
+            && !sdfio_sink_write(&writer->sink, sdfio_string_text(&text),
+                                 text.size))
         {
-            sdfi_string_free(&text);
+            sdfio_string_free(&text);
             return write_failed(writer);
         }
-        sdfi_string_free(&text);
+        sdfio_string_free(&text);
     }
     writer->header_written = true;
     return status;
@@ -221,20 +220,21 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
     const size_t size = sdfio_data_type_size(header->data_type);
     if (header->representation == SDFIO_BINARY)
     {
-        if (sdfi_host_is_little_endian())
+        if (sdfio_host_is_little_endian())
         {
-            return sdfi_sink_write(&writer->sink, values, count * size)
+            return sdfio_sink_write(&writer->sink, values, count * size)
                        ? SDFIO_OK
                        : write_failed(writer);
         }
-        for (size_t first = 0; first < count; first += SDFI_CHUNK)
+        for (size_t first = 0; first < count; first += writer->chunk_values)
         {
-            const size_t n =
-                count - first < SDFI_CHUNK ? count - first : SDFI_CHUNK;
+            const size_t n = count - first < writer->chunk_values
+                                 ? count - first
+                                 : writer->chunk_values;
             memcpy(writer->swapped,
                    (const unsigned char *)values + first * size, n * size);
-            sdfi_fix_endianness(writer->swapped, n, size);
-            if (!sdfi_sink_write(&writer->sink, writer->swapped, n * size))
+            sdfio_fix_endianness(writer->swapped, n, size);
+            if (!sdfio_sink_write(&writer->sink, writer->swapped, n * size))
             {
                 return write_failed(writer);
             }
@@ -242,10 +242,11 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
         return SDFIO_OK;
     }
     static const char crlf[] = "\r\n";
-    for (size_t first = 0; first < count; first += SDFI_CHUNK)
+    for (size_t first = 0; first < count; first += writer->chunk_values)
     {
-        const size_t n =
-            count - first < SDFI_CHUNK ? count - first : SDFI_CHUNK;
+        const size_t n = count - first < writer->chunk_values
+                             ? count - first
+                             : writer->chunk_values;
         size_t used = 0;
         for (size_t i = 0; i < n; ++i)
         {
@@ -253,10 +254,10 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
             {
                 writer->text[used++] = ' ';
             }
-            used +=
-                sdfi_ascii_format(header, &writer->point,
-                                  (const unsigned char *)values + first * size,
-                                  i, writer->text + used, SDFI_TEXT_PER_VALUE);
+            used += sdfio_ascii_format(
+                header, &writer->point,
+                (const unsigned char *)values + first * size, i,
+                writer->text + used, SDFIO_TEXT_PER_VALUE);
             if (++writer->column == header->columns)
             {
                 memcpy(writer->text + used, crlf, sizeof crlf - 1);
@@ -264,7 +265,7 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
                 writer->column = 0;
             }
         }
-        if (!sdfi_sink_write(&writer->sink, writer->text, used))
+        if (!sdfio_sink_write(&writer->sink, writer->text, used))
         {
             return write_failed(writer);
         }
@@ -280,13 +281,13 @@ static sdfio_status require_writable(sdfio_writer *writer)
     }
     if (writer->state == STATE_NEW)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "Create a file first");
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "Create a file first");
     }
     if (writer->state != STATE_CREATED)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "The file is ended, or an error ended the writing");
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "The file is ended, or an error ended the writing");
     }
     return SDFIO_OK;
 }
@@ -302,14 +303,14 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     const sdfio_header *header = &writer->header;
     if (rows > header->rows - writer->next_row)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "%zu rows were given, %zu are left to write", rows,
-                         header->rows - writer->next_row);
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "%zu rows were given, %zu are left to write", rows,
+                          header->rows - writer->next_row);
     }
     if (rows > 0 && header->columns > 0 && src == NULL)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "Give the rows to write");
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "Give the rows to write");
     }
     status = start_data(writer);
     if (status != SDFIO_OK)
@@ -343,23 +344,23 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
     sdfio_header *header = &writer->header;
     if (writer->next_row != 0 || writer->header_written)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "Rows were written already");
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "Rows were written already");
     }
-    status = sdfi_check_layout(format, header->rows, header->columns,
-                               row_stride, &writer->message);
+    status = sdfio_check_layout(format, header->rows, header->columns,
+                                row_stride, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    const ptrdiff_t element = sdfi_element_stride(format);
+    const ptrdiff_t element = sdfio_element_stride(format);
     if (header->rows > 0 && header->columns > 0 && src == NULL)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "Give the heights to write");
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "Give the heights to write");
     }
     if (header->z_scale == SDFIO_AUTO_Z_SCALE
-        && !sdfi_is_floating(header->data_type))
+        && !sdfio_is_floating(header->data_type))
     {
         status = sdfio_suggest_z_scale(
             header->data_type, header->revision, format, src, header->rows,
@@ -379,25 +380,26 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
         const unsigned char *row =
             (const unsigned char *)src
             + (ptrdiff_t)sdfio_row_y(header, file_row) * row_stride;
-        for (size_t first = 0; first < header->columns; first += SDFI_CHUNK)
+        for (size_t first = 0; first < header->columns;
+             first += writer->chunk_values)
         {
-            const size_t count = header->columns - first < SDFI_CHUNK
+            const size_t count = header->columns - first < writer->chunk_values
                                      ? header->columns - first
-                                     : SDFI_CHUNK;
+                                     : writer->chunk_values;
             status = sdfio_encode_heights(header, format,
                                           row + (ptrdiff_t)first * element,
                                           count, writer->coded);
             if (status == SDFIO_ERR_RANGE || status == SDFIO_ERR_BAD_VALUE)
             {
-                sdfi_fail(&writer->message, status,
-                          status == SDFIO_ERR_RANGE
-                              ? "Data value out of range for SDF data type %s "
-                                "at row %zu"
-                              : "A data value collides with the %s "
-                                "bad value at row %zu; rescale "
-                                "the data to avoid this value",
-                          sdfio_data_type_name(header->data_type),
-                          sdfio_row_y(header, file_row));
+                sdfio_fail(&writer->message, status,
+                           status == SDFIO_ERR_RANGE
+                               ? "Data value out of range for SDF data type %s "
+                                 "at row %zu"
+                               : "A data value collides with the %s "
+                                 "bad value at row %zu; rescale "
+                                 "the data to avoid this value",
+                           sdfio_data_type_name(header->data_type),
+                           sdfio_row_y(header, file_row));
             }
             if (status == SDFIO_OK)
             {
@@ -413,35 +415,6 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
     return SDFIO_OK;
 }
 
-static sdfio_status finish_file(sdfio_writer *writer)
-{
-    if (writer->file == NULL)
-    {
-        return SDFIO_OK;
-    }
-    const bool flushed = fflush(writer->file) == 0;
-    const bool closed = fclose(writer->file) == 0;
-    writer->file = NULL;
-    if (!flushed || !closed)
-    {
-        remove(writer->temporary_path);
-        return sdfi_fail(&writer->message, SDFIO_ERR_IO,
-                         "The file could not be written");
-    }
-    if (rename(writer->temporary_path, writer->path) != 0)
-    {
-        /* Some systems do not replace a file that exists. */
-        remove(writer->path);
-        if (rename(writer->temporary_path, writer->path) != 0)
-        {
-            remove(writer->temporary_path);
-            return sdfi_fail(&writer->message, SDFIO_ERR_IO,
-                             "The file could not be moved to its place");
-        }
-    }
-    return SDFIO_OK;
-}
-
 sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
                                  size_t size)
 {
@@ -453,14 +426,14 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     const sdfio_header *header = &writer->header;
     if (writer->next_row != header->rows)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
-                         "%zu of %zu rows were written", writer->next_row,
-                         header->rows);
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "%zu of %zu rows were written", writer->next_row,
+                          header->rows);
     }
     if (trailer == NULL && size > 0)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "A trailer of %zu bytes needs its text", size);
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "A trailer of %zu bytes needs its text", size);
     }
     status = start_data(writer);
     if (status != SDFIO_OK)
@@ -469,33 +442,35 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     }
     if (header->representation == SDFIO_BINARY)
     {
-        if (size > 0 && !sdfi_write_crlf_lines(&writer->sink, trailer, size))
+        if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, trailer, size))
         {
             return write_failed(writer);
         }
     }
     else
     {
-        sdfi_string tail = {0};
-        status = sdfi_ascii_tail(trailer != NULL ? trailer : "", size, &tail,
-                                 &writer->message);
+        sdfio_string tail = {.allocator = &writer->allocator};
+        status = sdfio_ascii_tail(trailer != NULL ? trailer : "", size, &tail,
+                                  &writer->message);
         if (status == SDFIO_OK
-            && !sdfi_sink_write(&writer->sink, sdfi_string_text(&tail),
-                                tail.size))
+            && !sdfio_sink_write(&writer->sink, sdfio_string_text(&tail),
+                                 tail.size))
         {
             status = write_failed(writer);
         }
-        sdfi_string_free(&tail);
+        sdfio_string_free(&tail);
         if (status != SDFIO_OK)
         {
             return fail_writing(writer, status);
         }
     }
-    if (!sdfi_sink_flush(&writer->sink))
+    if (!sdfio_sink_flush(&writer->sink))
     {
         return write_failed(writer);
     }
-    status = finish_file(writer);
+    status = writer->owner.finish != NULL
+                 ? writer->owner.finish(writer->owner.user, &writer->message)
+                 : SDFIO_OK;
     if (status != SDFIO_OK)
     {
         return fail_writing(writer, status);

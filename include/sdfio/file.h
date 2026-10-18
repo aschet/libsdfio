@@ -1,0 +1,52 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * Files of the C library. They are apart from <sdfio/sdfio.h> so that a
+ * program without a file system, a scanner that sends its data over a
+ * link, does not need <stdio.h>.
+ */
+
+#ifndef SDFIO_FILE_H
+#define SDFIO_FILE_H
+
+#include <stdio.h>
+
+#include "sdfio/sdfio.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/** A stream over a C file, which stays yours and is not closed. */
+SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
+
+/**
+ * Opens the file at `path` and reads its header, as sdfio_open_stream() does
+ * for a stream. The reader closes the file when it is freed or when the open
+ * fails.
+ *
+ * @return SDFIO_ERR_IO if the file cannot be opened, and what
+ * sdfio_open_stream() returns. On Windows the path is in the code page of the
+ * C library.
+ */
+SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
+
+/**
+ * Starts a file at `path` as sdfio_create_stream() does. It is written beside
+ * its place and moved there by sdfio_write_trailer(), so an error never leaves
+ * a half-written file, and the old file stays as it was.
+ */
+SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
+                                         const sdfio_header *header);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

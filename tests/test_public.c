@@ -61,7 +61,7 @@ int main(void)
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
                                  3 * sizeof(float)));
@@ -74,7 +74,7 @@ int main(void)
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     const sdfio_header *read = sdfio_get_header(reader);
     CHECK(read != NULL && read->columns == 3 && read->rows == 2);

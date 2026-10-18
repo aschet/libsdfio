@@ -43,7 +43,7 @@ typedef struct scalar_info
     [data] = {name,           sizeof(type), (double)(low),                     \
               (double)(high), sample,       floating},
 
-static const scalar_info scalars[] = {SDFI_SCALARS(SCALAR_ROW)};
+static const scalar_info scalars[] = {SDFIO_SCALARS(SCALAR_ROW)};
 enum
 {
     SCALAR_COUNT = sizeof scalars / sizeof scalars[0]
@@ -62,19 +62,19 @@ static const sdfio_data_type data_of[SCALAR_COUNT] = {
     [SDFIO_FLOAT64] = SDFIO_DATA_BINARY64,
 };
 
-bool sdfi_valid_sample(sdfio_sample sample)
+bool sdfio_valid_sample(sdfio_sample sample)
 {
-    return (int)sample >= 0 && (size_t)sample < SCALAR_COUNT;
+    return (size_t)sample < SCALAR_COUNT;
 }
 
-bool sdfi_valid_data_type(sdfio_data_type type)
+bool sdfio_valid_data_type(sdfio_data_type type)
 {
-    return (int)type >= 0 && (size_t)type < SCALAR_COUNT;
+    return (size_t)type < SCALAR_COUNT;
 }
 
 static bool valid_revision(sdfio_revision revision)
 {
-    return (int)revision >= 0 && (size_t)revision < REVISION_COUNT;
+    return (size_t)revision < REVISION_COUNT;
 }
 
 const char *sdfio_revision_name(sdfio_revision revision)
@@ -84,47 +84,47 @@ const char *sdfio_revision_name(sdfio_revision revision)
 
 const char *sdfio_data_type_name(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) ? scalars[type].name : "";
+    return sdfio_valid_data_type(type) ? scalars[type].name : "";
 }
 
 size_t sdfio_data_type_size(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) ? scalars[type].size : 0;
+    return sdfio_valid_data_type(type) ? scalars[type].size : 0;
 }
 
 size_t sdfio_sample_size(sdfio_sample sample)
 {
-    return sdfi_valid_sample(sample) ? scalars[data_of[sample]].size : 0;
+    return sdfio_valid_sample(sample) ? scalars[data_of[sample]].size : 0;
 }
 
 sdfio_sample sdfio_sample_of(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) ? scalars[type].sample : SDFIO_FLOAT64;
+    return sdfio_valid_data_type(type) ? scalars[type].sample : SDFIO_FLOAT64;
 }
 
 bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
 {
-    return valid_revision(revision) && sdfi_valid_data_type(type)
+    return valid_revision(revision) && sdfio_valid_data_type(type)
            && allowed[revision][type];
 }
 
-bool sdfi_is_floating(sdfio_data_type type)
+bool sdfio_is_floating(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) && scalars[type].floating;
+    return sdfio_valid_data_type(type) && scalars[type].floating;
 }
 
-double sdfi_lowest(sdfio_data_type type)
+double sdfio_lowest(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) ? scalars[type].lowest : 0.0;
+    return sdfio_valid_data_type(type) ? scalars[type].lowest : 0.0;
 }
 
-double sdfi_highest(sdfio_data_type type)
+double sdfio_highest(sdfio_data_type type)
 {
-    return sdfi_valid_data_type(type) ? scalars[type].highest : 0.0;
+    return sdfio_valid_data_type(type) ? scalars[type].highest : 0.0;
 }
 
-bool sdfi_revision_from_text(const char *text, size_t size,
-                             sdfio_revision *revision)
+bool sdfio_revision_from_text(const char *text, size_t size,
+                              sdfio_revision *revision)
 {
     for (size_t i = 0; i < REVISION_COUNT; ++i)
     {
@@ -138,22 +138,22 @@ bool sdfi_revision_from_text(const char *text, size_t size,
     return false;
 }
 
-size_t sdfi_max_binary_count(sdfio_revision revision)
+size_t sdfio_max_binary_count(sdfio_revision revision)
 {
     return revision == SDFIO_ISO_2_0 ? UINT32_MAX : UINT16_MAX;
 }
 
-size_t sdfi_binary_header_size(sdfio_revision revision)
+size_t sdfio_binary_header_size(sdfio_revision revision)
 {
     /* The magic, the identifier and the two dates, the counts, four binary64
      * numbers and the bytes of the compression, the data type and the
      * checksum. */
     const size_t fixed =
-        SDFI_MAGIC_SIZE + SDFI_ID_SIZE + SDFI_HEADER_DATES * SDFI_DATE_SIZE
-        + SDFI_HEADER_DOUBLES * sizeof(double) + SDFI_HEADER_CODES;
+        SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
+        + SDFIO_HEADER_DOUBLES * sizeof(double) + SDFIO_HEADER_CODES;
     const size_t count_size =
         revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    return fixed + SDFI_HEADER_COUNTS * count_size;
+    return fixed + SDFIO_HEADER_COUNTS * count_size;
 }
 
 bool sdfio_rows_reversed(sdfio_revision revision)
@@ -174,13 +174,13 @@ static const double bcr_bad_binary64 = 1.7e308;
 
 double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision)
 {
-    return sdfi_bad_is_maximum(revision) ? sdfi_highest(type)
-                                         : sdfi_lowest(type);
+    return sdfio_bad_is_maximum(revision) ? sdfio_highest(type)
+                                          : sdfio_lowest(type);
 }
 
-double sdfi_ascii_bad_value(sdfio_data_type type, sdfio_revision revision)
+double sdfio_ascii_bad_value(sdfio_data_type type, sdfio_revision revision)
 {
-    if (sdfi_bad_is_maximum(revision) && sdfi_is_floating(type))
+    if (sdfio_bad_is_maximum(revision) && sdfio_is_floating(type))
     {
         return type == SDFIO_DATA_BINARY32 ? bcr_bad_binary32
                                            : bcr_bad_binary64;
@@ -188,11 +188,11 @@ double sdfi_ascii_bad_value(sdfio_data_type type, sdfio_revision revision)
     return sdfio_bad_value(type, revision);
 }
 
-sdfi_bad_test sdfi_bad_test_for(sdfio_data_type type, sdfio_revision revision)
+sdfio_bad_test sdfio_bad_test_for(sdfio_data_type type, sdfio_revision revision)
 {
-    sdfi_bad_test test;
-    test.at_least = sdfi_bad_is_maximum(revision) && sdfi_is_floating(type);
-    test.value = test.at_least ? sdfi_ascii_bad_value(type, revision)
+    sdfio_bad_test test;
+    test.at_least = sdfio_bad_is_maximum(revision) && sdfio_is_floating(type);
+    test.value = test.at_least ? sdfio_ascii_bad_value(type, revision)
                                : sdfio_bad_value(type, revision);
     if (test.at_least && type == SDFIO_DATA_BINARY32)
     {
@@ -203,7 +203,7 @@ sdfi_bad_test sdfi_bad_test_for(sdfio_data_type type, sdfio_revision revision)
     return test;
 }
 
-bool sdfi_matches(sdfi_bad_test test, double coded)
+bool sdfio_matches(sdfio_bad_test test, double coded)
 {
     return test.at_least ? coded >= test.value : coded == test.value;
 }
@@ -211,7 +211,7 @@ bool sdfi_matches(sdfi_bad_test test, double coded)
 bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
                         double value)
 {
-    return sdfi_matches(sdfi_bad_test_for(type, revision), value);
+    return sdfio_matches(sdfio_bad_test_for(type, revision), value);
 }
 
 void sdfio_header_init(sdfio_header *header)
@@ -224,13 +224,13 @@ void sdfio_header_init(sdfio_header *header)
     header->y_scale = 1.0;
     header->z_scale = SDFIO_AUTO_Z_SCALE;
     header->z_resolution = SDFIO_NO_RESOLUTION;
-    header->creation_date = sdfi_now();
+    header->creation_date = sdfio_now();
     header->modification_date = header->creation_date;
     snprintf(header->manufacturer_id, sizeof header->manufacturer_id,
              "libsdfio");
 }
 
-bool sdfi_count(const sdfio_header *header, size_t *count)
+bool sdfio_count(const sdfio_header *header, size_t *count)
 {
     if (header->columns != 0 && header->rows > SIZE_MAX / header->columns)
     {

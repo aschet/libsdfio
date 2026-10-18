@@ -12,28 +12,28 @@
 
 #include <locale.h>
 
-static bool parses(const sdfi_point *point, const char *text, double expected)
+static bool parses(const sdfio_point *point, const char *text, double expected)
 {
     double value = 0.0;
-    return sdfi_parse_number(point, text, strlen(text), &value)
+    return sdfio_parse_number(point, text, strlen(text), &value)
            && (value == expected || (isnan(value) && isnan(expected)));
 }
 
-static bool refuses(const sdfi_point *point, const char *text)
+static bool refuses(const sdfio_point *point, const char *text)
 {
     double value = 0.0;
-    return !sdfi_parse_number(point, text, strlen(text), &value);
+    return !sdfio_parse_number(point, text, strlen(text), &value);
 }
 
-static bool formats(const sdfi_point *point, double value, int digits,
+static bool formats(const sdfio_point *point, double value, int digits,
                     int exponent, const char *expected)
 {
-    char text[SDFI_NUMBER_CAPACITY];
-    sdfi_format_scientific(point, text, sizeof text, value, digits, exponent);
+    char text[SDFIO_NUMBER_CAPACITY];
+    sdfio_format_scientific(point, text, sizeof text, value, digits, exponent);
     return strcmp(text, expected) == 0;
 }
 
-static void check_numbers(const sdfi_point *point)
+static void check_numbers(const sdfio_point *point)
 {
     CHECK(parses(point, "1.5", 1.5));
     CHECK(parses(point, "-1.5e-3", -1.5e-3));
@@ -58,17 +58,17 @@ static void check_numbers(const sdfi_point *point)
     CHECK(refuses(point, "12abc"));
 
     long long integer = 0;
-    CHECK(sdfi_parse_integer("123", 3, &integer) && integer == 123);
-    CHECK(sdfi_parse_integer("-123", 4, &integer) && integer == -123);
-    CHECK(sdfi_parse_integer("+5", 2, &integer) && integer == 5);
-    CHECK(sdfi_parse_integer("9223372036854775807", 19, &integer)
+    CHECK(sdfio_parse_integer("123", 3, &integer) && integer == 123);
+    CHECK(sdfio_parse_integer("-123", 4, &integer) && integer == -123);
+    CHECK(sdfio_parse_integer("+5", 2, &integer) && integer == 5);
+    CHECK(sdfio_parse_integer("9223372036854775807", 19, &integer)
           && integer == LLONG_MAX);
-    CHECK(sdfi_parse_integer("-9223372036854775808", 20, &integer)
+    CHECK(sdfio_parse_integer("-9223372036854775808", 20, &integer)
           && integer == LLONG_MIN);
-    CHECK(!sdfi_parse_integer("9223372036854775808", 19, &integer));
-    CHECK(!sdfi_parse_integer("1.0", 3, &integer));
-    CHECK(!sdfi_parse_integer("", 0, &integer));
-    CHECK(!sdfi_parse_integer("-", 1, &integer));
+    CHECK(!sdfio_parse_integer("9223372036854775808", 19, &integer));
+    CHECK(!sdfio_parse_integer("1.0", 3, &integer));
+    CHECK(!sdfio_parse_integer("", 0, &integer));
+    CHECK(!sdfio_parse_integer("-", 1, &integer));
 
     CHECK(formats(point, 1.5, 14, 3, "1.50000000000000e+000"));
     CHECK(formats(point, 1.5, 6, 2, "1.500000e+00"));
@@ -86,12 +86,12 @@ static void check_numbers(const sdfi_point *point)
         const double value =
             ((double)state / 4294967296.0 - 0.5)
             * pow(10.0, (double)((int)(state >> 24) % 40 - 20));
-        char text[SDFI_NUMBER_CAPACITY];
+        char text[SDFIO_NUMBER_CAPACITY];
         const size_t length =
-            sdfi_format_scientific(point, text, sizeof text, value,
-                                   SDFI_DOUBLE_DIGITS, SDFI_DOUBLE_EXPONENT);
+            sdfio_format_scientific(point, text, sizeof text, value,
+                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
         double back = 0.0;
-        CHECK(sdfi_parse_number(point, text, length, &back)
+        CHECK(sdfio_parse_number(point, text, length, &back)
               && near_relative(back, value, 1e-13));
     }
 }
@@ -114,7 +114,7 @@ static void check_locale(void)
     snprintf(probe, sizeof probe, "%.1f", 1.5);
     CHECK(strchr(probe, ',') != NULL);
 
-    const sdfi_point point = sdfi_point_now();
+    const sdfio_point point = sdfio_point_now();
     CHECK(strcmp(point.text, ",") == 0);
     check_numbers(&point);
 
@@ -130,7 +130,7 @@ static void check_locale(void)
     const double heights[3] = {1.25e-6, NAN, -3.5e-7};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
                                  sizeof heights));
@@ -138,7 +138,7 @@ static void check_locale(void)
     sdfio_writer_free(writer);
     CHECK(memchr(file.data, ',', file.size) == NULL);
 
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     double back[3];
     CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), back,
@@ -153,7 +153,7 @@ static void check_locale(void)
 
 int main(void)
 {
-    const sdfi_point point = sdfi_point_now();
+    const sdfio_point point = sdfio_point_now();
     CHECK(strcmp(point.text, ".") == 0);
     check_numbers(&point);
     check_locale();

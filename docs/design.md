@@ -36,7 +36,7 @@ type of the file, so a binary32 text file is rounded to single precision.
 
 Metres are a separate step: `sdfio_decode_heights` turns the coded height
 information into heights of any sample type, `sdfio_encode_heights` does the reverse, and both
-work on a chunk of 1024 values at a time. They need no handle, so they apply to
+work on a chunk of 128 values at a time. They need no handle, so they apply to
 data from any source. With the layers split there is no `raw`/`metres` switch,
 and so no combination of options that is an error
 (a marker for missing points in the raw space).
@@ -62,6 +62,24 @@ that of the data type in one place and of the sample type in another.
 description of the file, return zeroed memory, and refuse a size that cannot be
 counted. `sdfio_free` pairs with them, so a shared library on Windows frees in the
 runtime that allocated.
+
+## Allocator and configuration
+
+`sdfio_reader_new` and `sdfio_writer_new` take an `sdfio_config`, null for all
+defaults. Its allocator is a pair of callbacks with a user pointer, as in libpng
+and OpenEXR, and covers every allocation of a handle: the handle, the buffer
+between it and its stream, the chunk in which values are converted, and the
+strings of a text header and a trailer. The sizes of buffer and chunk are in
+the configuration too, because they are the RAM of a small program. The
+functions without a handle, `sdfio_decode_heights` and the others, use a small
+chunk on the stack. Memory that the program asks for with `sdfio_alloc_data` is
+its own, and is freed with `sdfio_free`.
+
+Files are in `<sdfio/file.h>`. They are a layer over the stream callbacks that a
+program with a file system wants and one without it does not: the core header
+does not include `<stdio.h>`. A reader or a writer can own something that is
+closed with it, which is how a file is closed and a created file is moved to its
+place.
 
 ## Trailer
 
@@ -153,7 +171,6 @@ the same time; the tests run that under ThreadSanitizer.
 
 ## Not done
 
-- A hook for the allocator, as libpng and OpenEXR have.
 - Random access to a row of a binary file.
 - Compression and checksums of the data area, which the standard describes and
   the library does not support.

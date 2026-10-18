@@ -11,6 +11,7 @@
 // file holds is a matter of its own: the file here is binary32, and the
 // heights are converted on the way in and out.
 
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <Eigen/Dense>
@@ -119,7 +120,7 @@ void write_matrix(const char *path, sdfio_header header,
 {
     header.data_type = SDFIO_DATA_BINARY32;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
-    Writer writer(sdfio_writer_new(), sdfio_writer_free);
+    Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data(),
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
     const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
     try
     {
-        Reader reader(sdfio_reader_new(), sdfio_reader_free);
+        Reader reader(sdfio_reader_new(NULL), sdfio_reader_free);
         check(sdfio_open_file(reader.get(), path),
               sdfio_reader_error_message(reader.get()));
         Eigen::MatrixXd heights = read_matrix(reader.get());

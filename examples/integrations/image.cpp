@@ -5,6 +5,7 @@
 // std::vector where it is. Everything else a program does with a surface works
 // on this class and never sees the C interface again.
 
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <cmath>
@@ -42,7 +43,7 @@ class Image
 
     static Image read(const std::filesystem::path &path)
     {
-        Reader reader(sdfio_reader_new(), sdfio_reader_free);
+        Reader reader(sdfio_reader_new(NULL), sdfio_reader_free);
         check(sdfio_open_file(reader.get(), path.string().c_str()),
               sdfio_reader_error_message(reader.get()));
         const sdfio_header *header = sdfio_get_header(reader.get());
@@ -65,7 +66,7 @@ class Image
         header.rows = rows_;
         header.x_scale = x_scale_;
         header.y_scale = y_scale_;
-        Writer writer(sdfio_writer_new(), sdfio_writer_free);
+        Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
         check(sdfio_create_file(writer.get(), path.string().c_str(), &header),
               sdfio_writer_error_message(writer.get()));
         check(sdfio_write_heights(

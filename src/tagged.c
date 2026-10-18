@@ -9,8 +9,8 @@
 
 #include "internal.h"
 
-bool sdfi_next_line(const char *text, size_t size, size_t *position,
-                    const char **line, size_t *line_size)
+bool sdfio_next_line(const char *text, size_t size, size_t *position,
+                     const char **line, size_t *line_size)
 {
     if (*position >= size)
     {
@@ -35,15 +35,15 @@ bool sdfi_next_line(const char *text, size_t size, size_t *position,
 
 static const char line_end[] = "\r\n";
 
-bool sdfi_write_crlf_lines(sdfi_sink *sink, const char *text, size_t size)
+bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size)
 {
     size_t position = 0;
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    while (sdfio_next_line(text, size, &position, &line, &line_size))
     {
-        if (!sdfi_sink_write(sink, line, line_size)
-            || !sdfi_sink_write(sink, line_end, sizeof line_end - 1))
+        if (!sdfio_sink_write(sink, line, line_size)
+            || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
         {
             return false;
         }
@@ -51,15 +51,15 @@ bool sdfi_write_crlf_lines(sdfi_sink *sink, const char *text, size_t size)
     return true;
 }
 
-bool sdfi_append_crlf_lines(sdfi_string *out, const char *text, size_t size)
+bool sdfio_append_crlf_lines(sdfio_string *out, const char *text, size_t size)
 {
     size_t position = 0;
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    while (sdfio_next_line(text, size, &position, &line, &line_size))
     {
-        if (!sdfi_string_append(out, line, line_size)
-            || !sdfi_string_append(out, line_end, sizeof line_end - 1))
+        if (!sdfio_string_append(out, line, line_size)
+            || !sdfio_string_append(out, line_end, sizeof line_end - 1))
         {
             return false;
         }
@@ -67,7 +67,7 @@ bool sdfi_append_crlf_lines(sdfi_string *out, const char *text, size_t size)
     return true;
 }
 
-void sdfi_lines_to_lf(sdfi_string *text)
+void sdfio_lines_to_lf(sdfio_string *text)
 {
     size_t used = 0;
     for (size_t i = 0; i < text->size; ++i)
@@ -97,7 +97,7 @@ void sdfi_lines_to_lf(sdfi_string *text)
 
 static bool is_name_character(char c)
 {
-    return sdfi_is_digit(c) || (sdfi_lower(c) >= 'a' && sdfi_lower(c) <= 'z')
+    return sdfio_is_digit(c) || (sdfio_lower(c) >= 'a' && sdfio_lower(c) <= 'z')
            || c == '_';
 }
 
@@ -106,7 +106,7 @@ static bool split_line(const char *line, size_t size, const char **name,
                        size_t *name_size, const char **value,
                        size_t *value_size)
 {
-    sdfi_trim(&line, &size);
+    sdfio_trim(&line, &size);
     size_t end = 0;
     while (end < size && is_name_character(line[end]))
     {
@@ -117,7 +117,7 @@ static bool split_line(const char *line, size_t size, const char **name,
         return false;
     }
     size_t at = end;
-    while (at < size && sdfi_is_space(line[at]))
+    while (at < size && sdfio_is_space(line[at]))
     {
         ++at;
     }
@@ -129,20 +129,20 @@ static bool split_line(const char *line, size_t size, const char **name,
     *name_size = end;
     *value = line + at + 1;
     *value_size = size - at - 1;
-    sdfi_trim(value, value_size);
+    sdfio_trim(value, value_size);
     return true;
 }
 
-bool sdfi_tagged_valid(const char *text, size_t size)
+bool sdfio_tagged_valid(const char *text, size_t size)
 {
     size_t position = 0;
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    while (sdfio_next_line(text, size, &position, &line, &line_size))
     {
         const char *blank = line;
         size_t blank_size = line_size;
-        sdfi_trim(&blank, &blank_size);
+        sdfio_trim(&blank, &blank_size);
         const char *name = NULL;
         const char *value = NULL;
         size_t name_size = 0;
@@ -157,13 +157,13 @@ bool sdfi_tagged_valid(const char *text, size_t size)
     return true;
 }
 
-bool sdfi_tagged_next(const char *text, size_t size, size_t *position,
-                      const char **name, size_t *name_size, const char **value,
-                      size_t *value_size)
+bool sdfio_tagged_next(const char *text, size_t size, size_t *position,
+                       const char **name, size_t *name_size, const char **value,
+                       size_t *value_size)
 {
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfi_next_line(text, size, position, &line, &line_size))
+    while (sdfio_next_line(text, size, position, &line, &line_size))
     {
         if (split_line(line, line_size, name, name_size, value, value_size))
         {
@@ -173,8 +173,8 @@ bool sdfi_tagged_next(const char *text, size_t size, size_t *position,
     return false;
 }
 
-bool sdfi_tagged_find(const char *text, size_t size, const char *name,
-                      const char **value, size_t *value_size)
+bool sdfio_tagged_find(const char *text, size_t size, const char *name,
+                       const char **value, size_t *value_size)
 {
     const size_t wanted = strlen(name);
     bool found = false;
@@ -183,13 +183,13 @@ bool sdfi_tagged_find(const char *text, size_t size, const char *name,
     const char *content = NULL;
     size_t field_size = 0;
     size_t content_size = 0;
-    while (sdfi_tagged_next(text, size, &position, &field, &field_size,
-                            &content, &content_size))
+    while (sdfio_tagged_next(text, size, &position, &field, &field_size,
+                             &content, &content_size))
     {
         bool same = field_size == wanted;
         for (size_t i = 0; i < wanted && same; ++i)
         {
-            same = sdfi_lower(field[i]) == sdfi_lower(name[i]);
+            same = sdfio_lower(field[i]) == sdfio_lower(name[i]);
         }
         if (same)
         {

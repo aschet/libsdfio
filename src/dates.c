@@ -115,7 +115,7 @@ static int64_t minutes_of(time_t time)
     return floor_div((int64_t)time, SECONDS_PER_MINUTE);
 }
 
-time_t sdfi_now(void)
+time_t sdfio_now(void)
 {
     const time_t now = time(NULL);
     if (now == (time_t)-1)
@@ -125,20 +125,11 @@ time_t sdfi_now(void)
     return (time_t)(minutes_of(now) * SECONDS_PER_MINUTE);
 }
 
-static bool local_time(time_t time, struct tm *out)
-{
-#if defined(_WIN32)
-    return localtime_s(out, &time) == 0;
-#else
-    return localtime_r(&time, out) != NULL;
-#endif
-}
-
 /* The minutes of the local clock at a UTC time, counted as if it were UTC. */
 static bool local_clock_of(int64_t utc_minutes, int64_t *clock)
 {
     struct tm local;
-    if (!local_time((time_t)(utc_minutes * SECONDS_PER_MINUTE), &local))
+    if (!sdfio_local_time((time_t)(utc_minutes * SECONDS_PER_MINUTE), &local))
     {
         return false;
     }
@@ -170,14 +161,14 @@ static int64_t utc_of_local_clock(int64_t clock)
     return second_offset == first_offset ? guess : clock - second_offset;
 }
 
-bool sdfi_date_representable(time_t time)
+bool sdfio_date_representable(time_t time)
 {
     int64_t year = 0;
     unsigned month = 0;
     unsigned day = 0;
     civil_from_days(floor_div(minutes_of(time), MINUTES_PER_DAY), &year, &month,
                     &day);
-    return year >= SDFI_FIRST_YEAR && year <= SDFI_LAST_YEAR;
+    return year >= SDFIO_FIRST_YEAR && year <= SDFIO_LAST_YEAR;
 }
 
 /* A non-negative number as decimal digits, filled with zeros. */
@@ -190,16 +181,16 @@ static void put_digits(char *out, int value, size_t width)
     }
 }
 
-void sdfi_date_format(time_t time, sdfio_revision revision,
-                      char out[SDFI_DATE_SIZE])
+void sdfio_date_format(time_t time, sdfio_revision revision,
+                       char out[SDFIO_DATE_SIZE])
 {
     if (time == SDFIO_NO_TIME)
     {
-        memset(out, '0', SDFI_DATE_SIZE);
+        memset(out, '0', SDFIO_DATE_SIZE);
         return;
     }
     int64_t clock = minutes_of(time);
-    if (!sdfi_requires_utc(revision))
+    if (!sdfio_requires_utc(revision))
     {
         int64_t local = 0;
         if (local_clock_of(clock, &local))
@@ -232,17 +223,17 @@ static int digits_at(const char *text, size_t at, size_t count)
     return number;
 }
 
-time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision)
+time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision)
 {
-    sdfi_trim(&text, &size);
-    if (size != SDFI_DATE_SIZE)
+    sdfio_trim(&text, &size);
+    if (size != SDFIO_DATE_SIZE)
     {
         return SDFIO_NO_TIME;
     }
     bool all_zero = true;
     for (size_t i = 0; i < size; ++i)
     {
-        if (!sdfi_is_digit(text[i]))
+        if (!sdfio_is_digit(text[i]))
         {
             return SDFIO_NO_TIME;
         }
@@ -257,7 +248,7 @@ time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision)
     const int year = digits_at(text, YEAR_AT, YEAR_DIGITS);
     const int hour = digits_at(text, HOUR_AT, TWO_DIGITS);
     const int minute = digits_at(text, MINUTE_AT, TWO_DIGITS);
-    if (year < SDFI_FIRST_YEAR || month < 1 || month > MONTHS_PER_YEAR
+    if (year < SDFIO_FIRST_YEAR || month < 1 || month > MONTHS_PER_YEAR
         || day < 1 || hour >= HOURS_PER_DAY || minute >= MINUTES_PER_HOUR)
     {
         return SDFIO_NO_TIME;
@@ -275,7 +266,7 @@ time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision)
     }
     int64_t clock =
         days * MINUTES_PER_DAY + (int64_t)hour * MINUTES_PER_HOUR + minute;
-    if (!sdfi_requires_utc(revision))
+    if (!sdfio_requires_utc(revision))
     {
         clock = utc_of_local_clock(clock);
     }

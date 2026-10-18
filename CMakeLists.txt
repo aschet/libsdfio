@@ -19,6 +19,12 @@ include(GNUInstallDirs)
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
 option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+# For a small program: a build can leave out what it does not use. Each option
+# swaps one file for a stub with the same functions, so that nothing is
+# conditional in the code.
+option(SDFIO_TEXT "Read and write text files" ON)
+option(SDFIO_MESSAGES "Keep the text that tells what went wrong" ON)
+option(SDFIO_LOCAL_TIME "Convert the dates of ISO-1.0 and BCR-1.0 to the local clock" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 
 set(SDFIO_WARNINGS
@@ -43,10 +49,10 @@ endif()
 set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 set(SDFIO_SOURCES
-    src/ascii.c
     src/binary.c
     src/common.c
     src/dates.c
+    src/file.c
     src/header.c
     src/heights.c
     src/memory.c
@@ -59,6 +65,22 @@ set(SDFIO_SOURCES
     src/values.c
     src/writer.c
 )
+
+if(SDFIO_TEXT)
+    list(APPEND SDFIO_SOURCES src/ascii.c)
+else()
+    list(APPEND SDFIO_SOURCES src/ascii_stub.c)
+endif()
+if(SDFIO_MESSAGES)
+    list(APPEND SDFIO_SOURCES src/messages.c)
+else()
+    list(APPEND SDFIO_SOURCES src/messages_stub.c)
+endif()
+if(SDFIO_LOCAL_TIME)
+    list(APPEND SDFIO_SOURCES src/localtime.c)
+else()
+    list(APPEND SDFIO_SOURCES src/localtime_stub.c)
+endif()
 
 # The code is compiled once. The tests link the objects, which have the
 # internal functions that the library hides.

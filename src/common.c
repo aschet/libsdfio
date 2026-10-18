@@ -39,23 +39,66 @@ const char *sdfio_status_string(sdfio_status status)
     return "unknown status";
 }
 
-sdfio_status sdfi_fail(sdfi_message *message, sdfio_status code,
-                       const char *format, ...)
+void *sdfio_allocate(const sdfio_allocator *allocator, size_t size)
 {
-    /* The analyzer of clang-tidy 21 does not see that va_start initializes. */
-    // NOLINTBEGIN(clang-analyzer-valist.Uninitialized)
-    va_list arguments;
-    va_start(arguments, format);
-    if (message != NULL)
+    if (allocator != NULL && allocator->allocate != NULL)
     {
-        vsnprintf(message->text, sizeof message->text, format, arguments);
+        return allocator->allocate(allocator->user, size);
     }
-    va_end(arguments);
-    // NOLINTEND(clang-analyzer-valist.Uninitialized)
-    return code;
+    return malloc(size);
 }
 
-bool sdfi_string_append(sdfi_string *string, const char *text, size_t size)
+void sdfio_release(const sdfio_allocator *allocator, void *memory)
+{
+    if (memory == NULL)
+    {
+        return;
+    }
+    if (allocator != NULL && allocator->release != NULL)
+    {
+        allocator->release(allocator->user, memory);
+    }
+    else
+    {
+        free(memory);
+    }
+}
+
+bool sdfio_config_resolve(const sdfio_config *config,
+                          sdfio_allocator *allocator, size_t *buffer,
+                          size_t *chunk)
+{
+    *allocator = (sdfio_allocator){0};
+    *buffer = SDFIO_DEFAULT_BUFFER;
+    *chunk = SDFIO_DEFAULT_CHUNK;
+    if (config == NULL)
+    {
+        return true;
+    }
+    if (config->allocator != NULL)
+    {
+        if (config->allocator->allocate == NULL
+            || config->allocator->release == NULL)
+        {
+            return false;
+        }
+        *allocator = *config->allocator;
+    }
+    if (config->buffer_size != 0)
+    {
+        *buffer = config->buffer_size < SDFIO_MINIMUM_BUFFER
+                      ? SDFIO_MINIMUM_BUFFER
+                      : config->buffer_size;
+    }
+    if (config->chunk_values != 0)
+    {
+        *chunk = config->chunk_values;
+    }
+    return *chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
+           && *chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
+}
+
+bool sdfio_string_append(sdfio_string *string, const char *text, size_t size)
 {
     if (size > SIZE_MAX - string->size - 1)
     {
@@ -65,7 +108,7 @@ bool sdfi_string_append(sdfi_string *string, const char *text, size_t size)
     if (needed > string->capacity)
     {
         size_t capacity =
-            string->capacity == 0 ? SDFI_STRING_MINIMUM : string->capacity;
+            string->capacity == 0 ? SDFIO_STRING_MINIMUM : string->capacity;
         while (capacity < needed)
         {
             if (capacity > SIZE_MAX / 2)
@@ -75,11 +118,16 @@ bool sdfi_string_append(sdfi_string *string, const char *text, size_t size)
             }
             capacity *= 2;
         }
-        char *grown = realloc(string->data, capacity);
+        char *grown = sdfio_allocate(string->allocator, capacity);
         if (grown == NULL)
         {
             return false;
         }
+        if (string->size > 0)
+        {
+            memcpy(grown, string->data, string->size);
+        }
+        sdfio_release(string->allocator, string->data);
         string->data = grown;
         string->capacity = capacity;
     }
@@ -92,7 +140,7 @@ bool sdfi_string_append(sdfi_string *string, const char *text, size_t size)
     return true;
 }
 
-void sdfi_string_clear(sdfi_string *string)
+void sdfio_string_clear(sdfio_string *string)
 {
     string->size = 0;
     if (string->data != NULL)
@@ -101,13 +149,13 @@ void sdfi_string_clear(sdfi_string *string)
     }
 }
 
-void sdfi_string_free(sdfi_string *string)
+void sdfio_string_free(sdfio_string *string)
 {
-    free(string->data);
-    *string = (sdfi_string){0};
+    sdfio_release(string->allocator, string->data);
+    *string = (sdfio_string){.allocator = string->allocator};
 }
 
-const char *sdfi_string_text(const sdfi_string *string)
+const char *sdfio_string_text(const sdfio_string *string)
 {
     return string->data != NULL ? string->data : "";
 }

@@ -10,6 +10,8 @@
 
 #include "check.h"
 
+#include <sdfio/file.h>
+
 #include "internal.h"
 
 enum
@@ -118,7 +120,7 @@ static void check_against(const expectation *e)
     snprintf(path, sizeof path, "%s/%s", SDFIO_TEST_DATA_DIR, e->path);
     printf("%s\n", e->path);
 
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK(reader != NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     const sdfio_header *header = sdfio_get_header(reader);
@@ -139,10 +141,10 @@ static void check_against(const expectation *e)
     CHECK(header->y_scale == e->y_scale);
     CHECK(header->z_scale == e->z_scale);
     CHECK(strcmp(header->manufacturer_id, e->manufacturer_id) == 0);
-    char date[SDFI_DATE_SIZE + 1] = {0};
-    sdfi_date_format(header->creation_date, header->revision, date);
+    char date[SDFIO_DATE_SIZE + 1] = {0};
+    sdfio_date_format(header->creation_date, header->revision, date);
     CHECK(strcmp(date, e->creation_date) == 0);
-    sdfi_date_format(header->modification_date, header->revision, date);
+    sdfio_date_format(header->modification_date, header->revision, date);
     CHECK(strcmp(date, e->modification_date) == 0);
 
     const size_t count = header->rows * header->columns;

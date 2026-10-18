@@ -12,18 +12,18 @@
 
 #include <stdio.h>
 
-bool sdfi_is_space(char c)
+bool sdfio_is_space(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f'
            || c == '\r';
 }
 
-bool sdfi_is_digit(char c)
+bool sdfio_is_digit(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-char sdfi_lower(char c)
+char sdfio_lower(char c)
 {
     if (c >= 'A' && c <= 'Z')
     {
@@ -32,7 +32,7 @@ char sdfi_lower(char c)
     return c;
 }
 
-bool sdfi_equals_nocase(const char *text, size_t size, const char *lower)
+bool sdfio_equals_nocase(const char *text, size_t size, const char *lower)
 {
     if (strlen(lower) != size)
     {
@@ -40,7 +40,7 @@ bool sdfi_equals_nocase(const char *text, size_t size, const char *lower)
     }
     for (size_t i = 0; i < size; ++i)
     {
-        if (sdfi_lower(text[i]) != lower[i])
+        if (sdfio_lower(text[i]) != lower[i])
         {
             return false;
         }
@@ -48,26 +48,26 @@ bool sdfi_equals_nocase(const char *text, size_t size, const char *lower)
     return true;
 }
 
-void sdfi_trim(const char **text, size_t *size)
+void sdfio_trim(const char **text, size_t *size)
 {
-    while (*size > 0 && sdfi_is_space((*text)[0]))
+    while (*size > 0 && sdfio_is_space((*text)[0]))
     {
         ++*text;
         --*size;
     }
-    while (*size > 0 && sdfi_is_space((*text)[*size - 1]))
+    while (*size > 0 && sdfio_is_space((*text)[*size - 1]))
     {
         --*size;
     }
 }
 
-sdfi_point sdfi_point_now(void)
+sdfio_point sdfio_point_now(void)
 {
     /* 1.5 printed: the digit 1, the point, the digit 5. */
     const size_t digits_around = 2;
-    char probe[SDFI_NUMBER_CAPACITY];
+    char probe[SDFIO_NUMBER_CAPACITY];
     const int length = snprintf(probe, sizeof probe, "%.1f", 1.5);
-    sdfi_point point = {{'.', '\0'}};
+    sdfio_point point = {{'.', '\0'}};
     if (length > (int)digits_around && (size_t)length < sizeof probe)
     {
         const size_t size = (size_t)length - digits_around;
@@ -80,10 +80,10 @@ sdfi_point sdfi_point_now(void)
     return point;
 }
 
-bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
-                       double *out)
+bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
+                        double *out)
 {
-    sdfi_trim(&text, &size);
+    sdfio_trim(&text, &size);
     bool negative = false;
     if (size > 0 && (text[0] == '+' || text[0] == '-'))
     {
@@ -96,13 +96,13 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
         return false;
     }
     const double sign = negative ? -1.0 : 1.0;
-    if (sdfi_equals_nocase(text, size, "inf")
-        || sdfi_equals_nocase(text, size, "infinity"))
+    if (sdfio_equals_nocase(text, size, "inf")
+        || sdfio_equals_nocase(text, size, "infinity"))
     {
         *out = sign * INFINITY;
         return true;
     }
-    if (sdfi_equals_nocase(text, size, "nan"))
+    if (sdfio_equals_nocase(text, size, "nan"))
     {
         *out = NAN;
         return true;
@@ -112,7 +112,7 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
      * dot */
     size_t i = 0;
     size_t digits = 0;
-    while (i < size && sdfi_is_digit(text[i]))
+    while (i < size && sdfio_is_digit(text[i]))
     {
         ++i;
         ++digits;
@@ -122,7 +122,7 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
     {
         dot = i;
         ++i;
-        while (i < size && sdfi_is_digit(text[i]))
+        while (i < size && sdfio_is_digit(text[i]))
         {
             ++i;
             ++digits;
@@ -140,7 +140,7 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
             ++i;
         }
         size_t exponent = 0;
-        while (i < size && sdfi_is_digit(text[i]))
+        while (i < size && sdfio_is_digit(text[i]))
         {
             ++i;
             ++exponent;
@@ -157,7 +157,7 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
 
     /* strtod wants the point of the locale. */
     const size_t point_size = strlen(point->text);
-    char buffer[SDFI_NUMBER_CAPACITY];
+    char buffer[SDFIO_NUMBER_CAPACITY];
     if (size + point_size >= sizeof buffer)
     {
         return false;
@@ -186,9 +186,9 @@ bool sdfi_parse_number(const sdfi_point *point, const char *text, size_t size,
     return true;
 }
 
-bool sdfi_parse_integer(const char *text, size_t size, long long *out)
+bool sdfio_parse_integer(const char *text, size_t size, long long *out)
 {
-    sdfi_trim(&text, &size);
+    sdfio_trim(&text, &size);
     bool negative = false;
     if (size > 0 && (text[0] == '+' || text[0] == '-'))
     {
@@ -207,7 +207,7 @@ bool sdfi_parse_integer(const char *text, size_t size, long long *out)
     const unsigned long long base = 10;
     for (size_t i = 0; i < size; ++i)
     {
-        if (!sdfi_is_digit(text[i]))
+        if (!sdfio_is_digit(text[i]))
         {
             return false;
         }
@@ -222,9 +222,9 @@ bool sdfi_parse_integer(const char *text, size_t size, long long *out)
     return true;
 }
 
-size_t sdfi_format_scientific(const sdfi_point *point, char *out,
-                              size_t capacity, double value, int digits,
-                              int exponent_width)
+size_t sdfio_format_scientific(const sdfio_point *point, char *out,
+                               size_t capacity, double value, int digits,
+                               int exponent_width)
 {
     /* A negative zero is a zero: the format has no sign to keep for it. */
     if (value == 0.0)
@@ -235,7 +235,7 @@ size_t sdfi_format_scientific(const sdfi_point *point, char *out,
     {
         return (size_t)snprintf(out, capacity, "nan");
     }
-    char raw[SDFI_NUMBER_CAPACITY];
+    char raw[SDFIO_NUMBER_CAPACITY];
     const int length = snprintf(raw, sizeof raw, "%.*e", digits, value);
     if (length < 0 || (size_t)length >= sizeof raw)
     {
@@ -249,7 +249,7 @@ size_t sdfi_format_scientific(const sdfi_point *point, char *out,
     *marker = '\0';
 
     /* The mantissa with a dot. */
-    char mantissa[SDFI_NUMBER_CAPACITY];
+    char mantissa[SDFIO_NUMBER_CAPACITY];
     size_t used = 0;
     const size_t point_size = strlen(point->text);
     for (const char *p = raw; *p != '\0';)

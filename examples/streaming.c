@@ -1,3 +1,4 @@
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <math.h>
@@ -8,7 +9,7 @@
 int main(void)
 {
     const sdfio_stream stream = sdfio_stdio_stream(stdin);
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     sdfio_status status = sdfio_open_stream(reader, &stream);
     if (status != SDFIO_OK)
     {

@@ -1,3 +1,4 @@
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <stdio.h>
@@ -42,7 +43,7 @@ static int write_counts(const char *path, sdfio_revision revision)
 
     const int16_t not_measured =
         (int16_t)sdfio_bad_value(header.data_type, header.revision);
-    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_writer *writer = sdfio_writer_new(NULL);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
     for (size_t n = 0; n < header.rows && status == SDFIO_OK; ++n)
@@ -64,7 +65,7 @@ static int write_counts(const char *path, sdfio_revision revision)
 
 static int read_counts(const char *path)
 {
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     sdfio_status status = sdfio_open_file(reader, path);
     const sdfio_header *header = sdfio_get_header(reader);
     if (status == SDFIO_OK && header->data_type != SDFIO_DATA_INT16)

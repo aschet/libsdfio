@@ -127,8 +127,12 @@ static void check_chunks(void)
 {
     const sdfio_header header =
         description(SDFIO_ISO_2_0, SDFIO_DATA_INT32, 1e-6);
-    const size_t sizes[] = {
-        0, 1, SDFI_CHUNK - 1, SDFI_CHUNK, SDFI_CHUNK + 1, 3 * SDFI_CHUNK + 5};
+    const size_t sizes[] = {0,
+                            1,
+                            SDFIO_STACK_CHUNK - 1,
+                            SDFIO_STACK_CHUNK,
+                            SDFIO_STACK_CHUNK + 1,
+                            3 * SDFIO_STACK_CHUNK + 5};
     for (size_t s = 0; s < sizeof sizes / sizeof sizes[0]; ++s)
     {
         const size_t count = sizes[s];
@@ -303,35 +307,35 @@ static void check_layout(void)
     sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
     const ptrdiff_t size = sizeof(double);
     /* Row-major, with padding at the end of the rows. */
-    CHECK_OK(sdfi_check_layout(format, 3, 4, 5 * size, NULL));
+    CHECK_OK(sdfio_check_layout(format, 3, 4, 5 * size, NULL));
     /* Column-major: the columns lie beside each other. */
     format.element_stride = 3 * size;
-    CHECK_OK(sdfi_check_layout(format, 3, 4, size, NULL));
+    CHECK_OK(sdfio_check_layout(format, 3, 4, size, NULL));
     /* Interleaved: one of three channels. */
     format.element_stride = 3 * size;
-    CHECK_OK(sdfi_check_layout(format, 3, 4, 12 * size, NULL));
+    CHECK_OK(sdfio_check_layout(format, 3, 4, 12 * size, NULL));
     /* Mirrored. */
     format.element_stride = -size;
-    CHECK_OK(sdfi_check_layout(format, 3, 4, -4 * size, NULL));
+    CHECK_OK(sdfio_check_layout(format, 3, 4, -4 * size, NULL));
     /* Overlapping: both strides a sample. */
     format.element_stride = 0;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfi_check_layout(format, 3, 4, size, NULL));
+                 sdfio_check_layout(format, 3, 4, size, NULL));
     /* Rows that interleave but do not fit: a stride between. */
     format.element_stride = 2 * size;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfi_check_layout(format, 3, 4, 3 * size, NULL));
+                 sdfio_check_layout(format, 3, 4, 3 * size, NULL));
     /* A matrix of one row or column needs only one of the strides. */
     format.element_stride = 0;
-    CHECK_OK(sdfi_check_layout(format, 1, 4, 0, NULL));
+    CHECK_OK(sdfio_check_layout(format, 1, 4, 0, NULL));
     format = sdfio_metres(SDFIO_FLOAT64);
     format.element_stride = 0;
-    CHECK_OK(sdfi_check_layout(format, 4, 1, size, NULL));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfi_check_layout(format, 4, 1, 3, NULL));
+    CHECK_OK(sdfio_check_layout(format, 4, 1, size, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_check_layout(format, 4, 1, 3, NULL));
     /* Not countable. */
     format.element_stride = PTRDIFF_MAX;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfi_check_layout(format, 2, SIZE_MAX / 2, PTRDIFF_MAX, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_check_layout(format, 2, SIZE_MAX / 2,
+                                                        PTRDIFF_MAX, NULL));
 }
 
 int main(void)

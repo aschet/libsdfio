@@ -21,14 +21,24 @@ function(sdfio_add_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-sdfio_add_test(test_samples)
-sdfio_add_test(test_roundtrip)
-sdfio_add_test(test_streams)
-sdfio_add_test(test_numbers)
-sdfio_add_test(test_heights)
-sdfio_add_test(test_dates)
+# The tests of the whole library need all of it. A build without text, messages
+# or the local clock runs the tests of what is left.
+if(SDFIO_TEXT AND SDFIO_MESSAGES AND SDFIO_LOCAL_TIME)
+    sdfio_add_test(test_samples)
+    sdfio_add_test(test_roundtrip)
+    sdfio_add_test(test_streams)
+    sdfio_add_test(test_numbers)
+    sdfio_add_test(test_heights)
+    sdfio_add_test(test_dates)
+    sdfio_add_test(test_trailer)
+endif()
+sdfio_add_test(test_allocator)
+target_compile_definitions(test_allocator PRIVATE
+    SDFIO_TEST_TEXT=$<BOOL:${SDFIO_TEXT}>
+    SDFIO_TEST_MESSAGES=$<BOOL:${SDFIO_MESSAGES}>
+)
 
-if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT)
+if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT AND SDFIO_TEXT)
     sdfio_add_test(test_threads)
     target_link_libraries(test_threads PRIVATE Threads::Threads)
 endif()
@@ -43,7 +53,6 @@ add_test(NAME test_public COMMAND test_public)
 if(UNIX)
     add_test(NAME test_names COMMAND ${CMAKE_COMMAND}
         -DLIBRARY=$<TARGET_FILE:sdfio>
-        -DHEADER=${PROJECT_SOURCE_DIR}/include/sdfio/sdfio.h
+        "-DHEADERS=${PROJECT_SOURCE_DIR}/include/sdfio/sdfio.h;${PROJECT_SOURCE_DIR}/include/sdfio/file.h"
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_names.cmake)
 endif()
-sdfio_add_test(test_trailer)

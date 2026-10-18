@@ -35,8 +35,8 @@ static bool valid_field_name(const char *name)
     }
     for (size_t i = 0; name[i] != '\0'; ++i)
     {
-        const char c = sdfi_lower(name[i]);
-        if (!sdfi_is_digit(c) && !(c >= 'a' && c <= 'z') && c != '_')
+        const char c = sdfio_lower(name[i]);
+        if (!sdfio_is_digit(c) && !(c >= 'a' && c <= 'z') && c != '_')
         {
             return false;
         }
@@ -50,7 +50,7 @@ static bool valid_value(const char *value)
     for (size_t i = 0; value[i] != '\0'; ++i)
     {
         const unsigned char c = (unsigned char)value[i];
-        if (c == '\r' || c == '\n' || c >= SDFI_FIRST_NON_ASCII)
+        if (c == '\r' || c == '\n' || c >= SDFIO_FIRST_NON_ASCII)
         {
             return false;
         }

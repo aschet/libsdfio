@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 #
-# Run as: cmake -DLIBRARY=<file> -DHEADER=<sdfio.h> -P check_names.cmake
+# Run as: cmake -DLIBRARY=<file> -DHEADERS=<headers, a list> -P check_names.cmake
 # Fails if the library defines a symbol or the public header declares a name
 # that does not start with the name of the library.
 
@@ -15,13 +15,17 @@ string(REPLACE "\n" ";" lines "${symbols}")
 foreach(line IN LISTS lines)
     if(line MATCHES "^[0-9a-fA-F]+ [TDBRCSVW] (.+)$")
         set(name "${CMAKE_MATCH_1}")
-        if(NOT name MATCHES "^(sdfio_|sdfi_)" AND NOT name MATCHES "^_")
+        if(NOT name MATCHES "^sdfio_" AND NOT name MATCHES "^_")
             message(SEND_ERROR "the library defines ${name}")
         endif()
     endif()
 endforeach()
 
-file(READ "${HEADER}" header)
+set(header "")
+foreach(file IN LISTS HEADERS)
+    file(READ "${file}" text)
+    string(APPEND header "${text}")
+endforeach()
 # Lists of lines: the characters that CMake takes for list syntax are hidden.
 string(REPLACE ";" "<semicolon>" header "${header}")
 string(REPLACE "[" "<open>" header "${header}")

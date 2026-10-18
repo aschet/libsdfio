@@ -4,56 +4,27 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The bytes of a file: the stdio stream, a buffered source and a buffered
- * sink over the callbacks of sdfio_stream. */
+/* The bytes of a file: a buffered source and a buffered sink over the
+ * callbacks of sdfio_stream. */
 
 #include "internal.h"
 
-static size_t stdio_read(void *user, void *data, size_t size)
+bool sdfio_source_create(sdfio_source *source, size_t capacity,
+                         const sdfio_allocator *allocator)
 {
-    FILE *file = user;
-    const size_t count = fread(data, 1, size, file);
-    if (count < size && ferror(file) != 0)
-    {
-        return SDFIO_STREAM_ERROR;
-    }
-    return count;
+    source->buffer = sdfio_allocate(allocator, capacity);
+    source->capacity = capacity;
+    source->allocator = allocator;
+    return source->buffer != NULL;
 }
 
-static size_t stdio_write(void *user, const void *data, size_t size)
+void sdfio_source_destroy(sdfio_source *source)
 {
-    return fwrite(data, 1, size, (FILE *)user);
+    sdfio_release(source->allocator, source->buffer);
+    source->buffer = NULL;
 }
 
-static int64_t stdio_seek(void *user, int64_t offset, int whence)
-{
-    FILE *file = user;
-#if defined(_WIN32)
-    if (_fseeki64(file, offset, whence) != 0)
-    {
-        return -1;
-    }
-    return _ftelli64(file);
-#else
-    if (fseeko(file, (off_t)offset, whence) != 0)
-    {
-        return -1;
-    }
-    return (int64_t)ftello(file);
-#endif
-}
-
-sdfio_stream sdfio_stdio_stream(FILE *file)
-{
-    sdfio_stream stream = {0};
-    stream.user = file;
-    stream.read = stdio_read;
-    stream.write = stdio_write;
-    stream.seek = stdio_seek;
-    return stream;
-}
-
-void sdfi_source_init(sdfi_source *source, const sdfio_stream *io)
+void sdfio_source_init(sdfio_source *source, const sdfio_stream *io)
 {
     source->io = *io;
     source->position = 0;
@@ -61,6 +32,7 @@ void sdfi_source_init(sdfi_source *source, const sdfio_stream *io)
     source->base = 0;
     source->at_end = false;
     source->failed = false;
+    source->no_memory = false;
     source->skip_lf = false;
     source->seekable = false;
     if (io->seek != NULL)
@@ -75,11 +47,11 @@ void sdfi_source_init(sdfi_source *source, const sdfio_stream *io)
     }
 }
 
-size_t sdfi_source_fill(sdfi_source *source, size_t want)
+size_t sdfio_source_fill(sdfio_source *source, size_t want)
 {
-    if (want > SDFI_SOURCE_BUFFER)
+    if (want > source->capacity)
     {
-        want = SDFI_SOURCE_BUFFER;
+        want = source->capacity;
     }
     if (source->end - source->position >= want)
     {
@@ -98,7 +70,7 @@ size_t sdfi_source_fill(sdfi_source *source, size_t want)
     {
         const size_t count =
             source->io.read(source->io.user, source->buffer + source->end,
-                            SDFI_SOURCE_BUFFER - source->end);
+                            source->capacity - source->end);
         if (count == SDFIO_STREAM_ERROR)
         {
             source->failed = true;
@@ -115,18 +87,18 @@ size_t sdfi_source_fill(sdfi_source *source, size_t want)
     return source->end - source->position;
 }
 
-int sdfi_source_peek(sdfi_source *source)
+int sdfio_source_peek(sdfio_source *source)
 {
-    if (source->position == source->end && sdfi_source_fill(source, 1) == 0)
+    if (source->position == source->end && sdfio_source_fill(source, 1) == 0)
     {
         return -1;
     }
     return source->buffer[source->position];
 }
 
-int sdfi_source_getc(sdfi_source *source)
+int sdfio_source_getc(sdfio_source *source)
 {
-    const int c = sdfi_source_peek(source);
+    const int c = sdfio_source_peek(source);
     if (c >= 0)
     {
         ++source->position;
@@ -134,7 +106,7 @@ int sdfi_source_getc(sdfi_source *source)
     return c;
 }
 
-size_t sdfi_source_read(sdfi_source *source, void *dst, size_t size)
+size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
 {
     unsigned char *out = dst;
     size_t done = 0;
@@ -154,7 +126,7 @@ size_t sdfi_source_read(sdfi_source *source, void *dst, size_t size)
         {
             break;
         }
-        if (size - done >= SDFI_SOURCE_BUFFER)
+        if (size - done >= source->capacity)
         {
             /* A large piece goes straight to its place. */
             source->base += (int64_t)source->end;
@@ -176,7 +148,7 @@ size_t sdfi_source_read(sdfi_source *source, void *dst, size_t size)
             done += count;
             continue;
         }
-        if (sdfi_source_fill(source, 1) == 0)
+        if (sdfio_source_fill(source, 1) == 0)
         {
             break;
         }
@@ -184,12 +156,12 @@ size_t sdfi_source_read(sdfi_source *source, void *dst, size_t size)
     return done;
 }
 
-int64_t sdfi_source_tell(const sdfi_source *source)
+int64_t sdfio_source_tell(const sdfio_source *source)
 {
     return source->base + (int64_t)source->position;
 }
 
-bool sdfi_source_seek(sdfi_source *source, int64_t position)
+bool sdfio_source_seek(sdfio_source *source, int64_t position)
 {
     if (!source->seekable
         || source->io.seek(source->io.user, position, SEEK_SET) != position)
@@ -205,29 +177,44 @@ bool sdfi_source_seek(sdfi_source *source, int64_t position)
     return true;
 }
 
-int64_t sdfi_source_size(sdfi_source *source)
+int64_t sdfio_source_size(sdfio_source *source)
 {
     if (!source->seekable)
     {
         return -1;
     }
-    const int64_t here = sdfi_source_tell(source);
+    const int64_t here = sdfio_source_tell(source);
     const int64_t size = source->io.seek(source->io.user, 0, SEEK_END);
-    if (size < 0 || !sdfi_source_seek(source, here))
+    if (size < 0 || !sdfio_source_seek(source, here))
     {
         return -1;
     }
     return size;
 }
 
-void sdfi_sink_init(sdfi_sink *sink, const sdfio_stream *io)
+bool sdfio_sink_create(sdfio_sink *sink, size_t capacity,
+                       const sdfio_allocator *allocator)
+{
+    sink->buffer = sdfio_allocate(allocator, capacity);
+    sink->capacity = capacity;
+    sink->allocator = allocator;
+    return sink->buffer != NULL;
+}
+
+void sdfio_sink_destroy(sdfio_sink *sink)
+{
+    sdfio_release(sink->allocator, sink->buffer);
+    sink->buffer = NULL;
+}
+
+void sdfio_sink_init(sdfio_sink *sink, const sdfio_stream *io)
 {
     sink->io = *io;
     sink->used = 0;
     sink->failed = false;
 }
 
-bool sdfi_sink_flush(sdfi_sink *sink)
+bool sdfio_sink_flush(sdfio_sink *sink)
 {
     if (sink->used > 0 && !sink->failed)
     {
@@ -242,15 +229,15 @@ bool sdfi_sink_flush(sdfi_sink *sink)
     return !sink->failed;
 }
 
-bool sdfi_sink_write(sdfi_sink *sink, const void *data, size_t size)
+bool sdfio_sink_write(sdfio_sink *sink, const void *data, size_t size)
 {
     if (sink->failed)
     {
         return false;
     }
-    if (size >= SDFI_SINK_BUFFER)
+    if (size >= sink->capacity)
     {
-        if (!sdfi_sink_flush(sink))
+        if (!sdfio_sink_flush(sink))
         {
             return false;
         }
@@ -261,7 +248,7 @@ bool sdfi_sink_write(sdfi_sink *sink, const void *data, size_t size)
         }
         return !sink->failed;
     }
-    if (size > SDFI_SINK_BUFFER - sink->used && !sdfi_sink_flush(sink))
+    if (size > sink->capacity - sink->used && !sdfio_sink_flush(sink))
     {
         return false;
     }

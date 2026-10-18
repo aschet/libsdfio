@@ -35,6 +35,9 @@ jobs:
           - name: thread sanitizer
             cc: gcc
             options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE_THREAD=ON
+          - name: without text, messages and local time
+            cc: gcc
+            options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_MESSAGES=OFF -DSDFIO_LOCAL_TIME=OFF
     steps:
       - uses: actions/checkout@v4
       - name: Let the sanitizers map their memory
@@ -79,6 +82,27 @@ jobs:
         run: cmake --build build --config Release --parallel
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+
+  embedded:
+    name: Cortex-M4
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm
+          -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY
+          -DCMAKE_C_COMPILER=arm-none-eabi-gcc
+          "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs"
+          -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
+          -DSDFIO_TEXT=OFF -DSDFIO_MESSAGES=OFF -DSDFIO_LOCAL_TIME=OFF
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Size
+        run: arm-none-eabi-size --totals build/libsdfio.a
 
   reuse:
     name: Licenses

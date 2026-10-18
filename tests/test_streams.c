@@ -9,6 +9,8 @@
 
 #include "check.h"
 
+#include <sdfio/file.h>
+
 #include "internal.h"
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
@@ -76,7 +78,7 @@ static void check_pipe(const char *path, size_t piece)
     pipe_source pipe = {data, size, 0, piece, SIZE_MAX};
     const sdfio_stream stream = pipe_stream(&pipe);
 
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const sdfio_header *header = sdfio_get_header(reader);
     CHECK(header != NULL);
@@ -89,7 +91,7 @@ static void check_pipe(const char *path, size_t piece)
                                (ptrdiff_t)(header->columns * sizeof(double))));
         /* The same heights, in the same places, as from memory: also for
          * BCR-1.0, whose rows are reversed in the file. */
-        sdfio_reader *seekable = sdfio_reader_new();
+        sdfio_reader *seekable = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(seekable, data, size));
         double *expected =
             malloc(header->rows * header->columns * sizeof(double));
@@ -123,7 +125,7 @@ static void check_pipe(const char *path, size_t piece)
 
     /* The trailer can be asked for first: the data is passed over. */
     pipe = (pipe_source){data, size, 0, piece, SIZE_MAX};
-    reader = sdfio_reader_new();
+    reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
     size_t trailer_size = 0;
@@ -144,13 +146,13 @@ static void check_failing_stream(void)
     /* A failure in the header, and one in the data, which is a 32 by 48 matrix
      * of int16 after the header. */
     const size_t data_end =
-        sdfi_binary_header_size(SDFIO_ISO_2_0) + 32 * 48 * 2;
+        sdfio_binary_header_size(SDFIO_ISO_2_0) + 32 * 48 * 2;
     const size_t places[] = {10, 100, data_end - 50};
     for (size_t i = 0; i < sizeof places / sizeof places[0]; ++i)
     {
         pipe_source pipe = {data, size, 0, 7, places[i]};
         const sdfio_stream stream = pipe_stream(&pipe);
-        sdfio_reader *reader = sdfio_reader_new();
+        sdfio_reader *reader = sdfio_reader_new(NULL);
         sdfio_status status = sdfio_open_stream(reader, &stream);
         if (status == SDFIO_OK)
         {
@@ -188,7 +190,7 @@ static void check_damage(const char *path)
     }
     for (size_t length = 0; length < size; length += (length < 400 ? 1 : 7))
     {
-        sdfio_reader *reader = sdfio_reader_new();
+        sdfio_reader *reader = sdfio_reader_new(NULL);
         if (sdfio_open_memory(reader, data, length) == SDFIO_OK)
         {
             const sdfio_header *header = sdfio_get_header(reader);
@@ -221,7 +223,7 @@ static void check_damage(const char *path)
             const size_t at = state % (round % 2 == 0 ? 400 : size);
             copy[at < size ? at : 0] = (unsigned char)(state >> 8);
         }
-        sdfio_reader *reader = sdfio_reader_new();
+        sdfio_reader *reader = sdfio_reader_new(NULL);
         if (sdfio_open_memory(reader, copy, size) == SDFIO_OK)
         {
             const sdfio_header *header = sdfio_get_header(reader);
@@ -250,11 +252,11 @@ static void check_header_errors(void)
 {
     size_t size = 0;
     unsigned char *data = load(SAMPLES "iso2_surface_binary.sdf", &size);
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, "", 0));
     sdfio_reader_free(reader);
 
-    reader = sdfio_reader_new();
+    reader = sdfio_reader_new(NULL);
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, "not an sdf file at all", 22));
     CHECK(strlen(sdfio_reader_error_message(reader)) > 0);
@@ -264,23 +266,23 @@ static void check_header_errors(void)
     {
         /* The compression and the checksum bytes end the header, the data type
          * is before the checksum. */
-        const size_t header_size = sdfi_binary_header_size(SDFIO_ISO_2_0);
+        const size_t header_size = sdfio_binary_header_size(SDFIO_ISO_2_0);
         unsigned char *copy = malloc(size);
         memcpy(copy, data, size);
         copy[header_size - 3] = 1;
-        reader = sdfio_reader_new();
+        reader = sdfio_reader_new(NULL);
         CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                      sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 1] = 1;
-        reader = sdfio_reader_new();
+        reader = sdfio_reader_new(NULL);
         CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                      sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 2] = 99;
-        reader = sdfio_reader_new();
+        reader = sdfio_reader_new(NULL);
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         free(copy);
@@ -290,14 +292,14 @@ static void check_header_errors(void)
         const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
         memcpy(marked, mark, 3);
         memcpy(marked + 3, data, size);
-        reader = sdfio_reader_new();
+        reader = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(reader, marked, size + 3));
         sdfio_reader_free(reader);
         free(marked);
     }
     free(data);
 
-    reader = sdfio_reader_new();
+    reader = sdfio_reader_new(NULL);
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_open_file(reader, SDFIO_TEST_DATA_DIR "/missing.sdf"));
     CHECK(strstr(sdfio_reader_error_message(reader), "missing.sdf") != NULL);
@@ -332,7 +334,7 @@ static void check_atomic_file(void)
     header.rows = 2;
     const double heights[4] = {1, 2, 3, 4};
 
-    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file(writer, path, &header));
     CHECK(file_exists(partial) && !file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
@@ -342,12 +344,12 @@ static void check_atomic_file(void)
     CHECK(file_exists(path) && !file_exists(partial));
 
     /* An error leaves the old file as it was. */
-    writer = sdfio_writer_new();
+    writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file(writer, path, &header));
     CHECK_OK(sdfio_write_data(writer, heights, 1));
     sdfio_writer_free(writer);
     CHECK(file_exists(path) && !file_exists(partial));
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     double back[4] = {0};
     CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), back,
@@ -356,7 +358,7 @@ static void check_atomic_file(void)
     sdfio_reader_free(reader);
     remove(path);
 
-    writer = sdfio_writer_new();
+    writer = sdfio_writer_new(NULL);
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_create_file(writer, "no_such_folder/out.sdf", &header));
     sdfio_writer_free(writer);
@@ -377,7 +379,7 @@ static void check_failing_sink(void)
     header.columns = 4;
     header.rows = 4;
     const sdfio_stream stream = {NULL, NULL, refusing_write, NULL};
-    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */

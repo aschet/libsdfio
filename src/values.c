@@ -11,7 +11,7 @@
 
 #include <math.h>
 
-bool sdfi_host_is_little_endian(void)
+bool sdfio_host_is_little_endian(void)
 {
     const uint16_t one = 1;
     unsigned char first = 0;
@@ -19,9 +19,9 @@ bool sdfi_host_is_little_endian(void)
     return first == 1;
 }
 
-void sdfi_fix_endianness(void *values, size_t count, size_t size)
+void sdfio_fix_endianness(void *values, size_t count, size_t size)
 {
-    if (sdfi_host_is_little_endian() || size < 2)
+    if (sdfio_host_is_little_endian() || size < 2)
     {
         return;
     }
@@ -54,33 +54,33 @@ static bool in_range(double value, double low, double high)
         }                                                                      \
         break;
 
-void sdfi_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
-                       size_t count, double *out)
+void sdfio_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
+                        size_t count, double *out)
 {
     switch (sample)
     {
-        SDFI_SCALARS(LOAD_CASE)
+        SDFIO_SCALARS(LOAD_CASE)
     }
 }
 
-void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
-                       double *out)
+void sdfio_load_samples(sdfio_sample sample, const void *src, size_t count,
+                        double *out)
 {
-    sdfi_load_strided(sample, src, (ptrdiff_t)sdfio_sample_size(sample), count,
-                      out);
+    sdfio_load_strided(sample, src, (ptrdiff_t)sdfio_sample_size(sample), count,
+                       out);
 }
 
 #define LOAD_STORED_CASE(sample, data, name, type, bits, low, high, floating)  \
     case data:                                                                 \
-        sdfi_load_samples(sample, src, count, out);                            \
+        sdfio_load_samples(sample, src, count, out);                           \
         break;
 
-void sdfi_load_coded(sdfio_data_type type, const void *src, size_t count,
-                     double *out)
+void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
+                      double *out)
 {
     switch (type)
     {
-        SDFI_SCALARS(LOAD_STORED_CASE)
+        SDFIO_SCALARS(LOAD_STORED_CASE)
     }
 }
 
@@ -115,56 +115,57 @@ void sdfi_load_coded(sdfio_data_type type, const void *src, size_t count,
         }                                                                      \
         break;
 
-sdfio_status sdfi_store_strided(sdfio_sample sample, void *dst,
-                                ptrdiff_t stride, const double *values,
-                                size_t count)
+sdfio_status sdfio_store_strided(sdfio_sample sample, void *dst,
+                                 ptrdiff_t stride, const double *values,
+                                 size_t count)
 {
     switch (sample)
     {
-        SDFI_SCALARS(STORE_CASE)
+        SDFIO_SCALARS(STORE_CASE)
     }
     return SDFIO_OK;
 }
 
-sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
-                                const double *values, size_t count)
+sdfio_status sdfio_store_samples(sdfio_sample sample, void *dst,
+                                 const double *values, size_t count)
 {
-    return sdfi_store_strided(sample, dst, (ptrdiff_t)sdfio_sample_size(sample),
-                              values, count);
+    return sdfio_store_strided(
+        sample, dst, (ptrdiff_t)sdfio_sample_size(sample), values, count);
 }
 
 #define STORE_STORED_CASE(sample, data, name, type, bits, low, high, floating) \
     case data:                                                                 \
-        return sdfi_store_samples(sample, dst, values, count);
+        return sdfio_store_samples(sample, dst, values, count);
 
-sdfio_status sdfi_store_coded(sdfio_data_type type, void *dst,
-                              const double *values, size_t count)
+sdfio_status sdfio_store_coded(sdfio_data_type type, void *dst,
+                               const double *values, size_t count)
 {
     switch (type)
     {
-        SDFI_SCALARS(STORE_STORED_CASE)
+        SDFIO_SCALARS(STORE_STORED_CASE)
     }
     return SDFIO_ERR_ARGUMENT;
 }
 
-sdfio_status sdfi_put_real(sdfio_data_type type, void *dst, size_t index,
-                           double value)
+sdfio_status sdfio_put_real(sdfio_data_type type, void *dst, size_t index,
+                            double value)
 {
     const size_t size = sdfio_data_type_size(type);
-    return sdfi_store_coded(type, (unsigned char *)dst + index * size, &value,
-                            1);
+    return sdfio_store_coded(type, (unsigned char *)dst + index * size, &value,
+                             1);
 }
 
-sdfio_status sdfi_put_integer(sdfio_data_type type, void *dst, size_t index,
-                              long long value)
+sdfio_status sdfio_put_integer(sdfio_data_type type, void *dst, size_t index,
+                               long long value)
 {
-    return sdfi_put_real(type, dst, index, (double)value);
+    return sdfio_put_real(type, dst, index, (double)value);
 }
 
-double sdfi_get_real(sdfio_data_type type, const void *src, size_t index)
+double sdfio_get_real(sdfio_data_type type, const void *src, size_t index)
 {
     double value = 0.0;
     const size_t size = sdfio_data_type_size(type);
-    sdfi_load_coded(type, (const unsigned char *)src + index * size, 1, &value);
+    sdfio_load_coded(type, (const unsigned char *)src + index * size, 1,
+                     &value);
     return value;
 }

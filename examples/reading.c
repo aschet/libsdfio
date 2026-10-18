@@ -1,3 +1,4 @@
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
 #include <math.h>
@@ -7,7 +8,7 @@
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "integer.sdf";
-    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_reader *reader = sdfio_reader_new(NULL);
     sdfio_status status = sdfio_open_file(reader, path);
     if (status != SDFIO_OK)
     {

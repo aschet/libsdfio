@@ -41,7 +41,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <time.h>
 
 #ifdef __cplusplus
@@ -191,9 +190,11 @@ typedef struct sdfio_header
     double z_resolution;
     /**
      * Original creation date and time, and last modification date and time,
-     * in UTC to the minute, or SDFIO_NO_TIME. The files of ISO-1.0 and BCR-1.0
-     * hold the local clock of the writer, and the library converts, so a date
-     * that is read back equals the one that was written.
+     * in UTC to the minute. A file that is read can have none, SDFIO_NO_TIME;
+     * one that is written needs both, which sdfio_header_init() sets to now.
+     * The files of ISO-1.0 and BCR-1.0 hold the local clock of the writer, and
+     * the library converts, so a date that is read back equals the one that
+     * was written.
      */
     time_t creation_date;
     time_t modification_date;
@@ -278,8 +279,41 @@ typedef struct sdfio_stream
     int64_t (*seek)(void *user, int64_t offset, int whence);
 } sdfio_stream;
 
-/** A stream over a C file, which stays yours and is not closed. */
-SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
+/**
+ * How memory is got and given back, if not by malloc and free: a callback of
+ * your own, for a program that has a pool or a bump allocator. `user` is
+ * passed to both. `allocate` returns memory suitably aligned for any type, or
+ * null; `release` takes a pointer `allocate` returned. A handle calls them for
+ * all it needs, during its creation and when a file is created or read.
+ */
+typedef struct sdfio_allocator
+{
+    void *user;
+    void *(*allocate)(void *user, size_t size);
+    void (*release)(void *user, void *memory);
+} sdfio_allocator;
+
+/**
+ * What a reader or a writer is made with. Every field may be left zero for
+ * its default, and a null configuration is all defaults.
+ */
+typedef struct sdfio_config
+{
+    /** Copied, so it need not outlive the call. Null is malloc and free. */
+    const sdfio_allocator *allocator;
+    /**
+     * The size of the buffer between the handle and its stream, in bytes: 0
+     * is 16384, and less than 64 is 64. A smaller buffer means more calls of
+     * the stream.
+     */
+    size_t buffer_size;
+    /**
+     * How many values are converted at a time, which sets the memory of the
+     * handle apart from the buffer: 0 is 1024. A chunk of values costs up to
+     * 8 bytes for each of them, and in a writer of text some more.
+     */
+    size_t chunk_values;
+} sdfio_config;
 
 /* ---- Memory ------------------------------------------------------------- */
 
@@ -312,12 +346,14 @@ typedef struct sdfio_reader sdfio_reader;
 
 /**
  * Makes a reader, which reads nothing yet; open a source next. A reader is
- * made first so that a failed open can still tell what went wrong.
- * Returns null if memory is short.
+ * made first so that a failed open can still tell what went wrong. All the
+ * memory it needs, the buffer included, is got here and by reading a trailer.
+ * Returns null if memory is short, or if the allocator of the configuration
+ * lacks a callback.
  */
-SDFIO_API sdfio_reader *sdfio_reader_new(void);
+SDFIO_API sdfio_reader *sdfio_reader_new(const sdfio_config *config);
 
-/** Frees a reader and closes the file it opened. Null is ignored. */
+/** Frees a reader and closes the file it opened, if any. Null is ignored. */
 SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
 
 /**
@@ -325,11 +361,9 @@ SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
  * read once, from the front. The memory and the stream stay yours: keep
  * them alive and unchanged while the reader is used.
  *
- * @return SDFIO_ERR_IO if the file cannot be opened, SDFIO_ERR_FORMAT if it is
- * not an SDF file or is cut off, SDFIO_ERR_UNSUPPORTED for a compressed or
- * checksummed data area.
+ * @return SDFIO_ERR_FORMAT if it is not an SDF file or is cut off,
+ * SDFIO_ERR_UNSUPPORTED for a compressed or checksummed data area.
  */
-SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
 SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
                                          size_t size);
 SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
@@ -429,26 +463,28 @@ SDFIO_API const char *sdfio_reader_error_message(const sdfio_reader *reader);
 
 typedef struct sdfio_writer sdfio_writer;
 
-SDFIO_API sdfio_writer *sdfio_writer_new(void);
+/**
+ * Makes a writer, which writes nothing yet; create a file next. The buffer is
+ * got here, the rest when the file is created. Returns null as
+ * sdfio_reader_new(NULL) does.
+ */
+SDFIO_API sdfio_writer *sdfio_writer_new(const sdfio_config *config);
 
 /**
- * Frees a writer. One that was not ended is abandoned: a file it created is
- * removed.
+ * Frees a writer. One that was not ended is abandoned: a file it created with
+ * sdfio_create_file() is removed.
  */
 SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
 
 /**
  * Starts a file whose header is `header`, the number of columns and rows
- * included. The header is written with the first rows of the data area. A file
- * is written beside its place and moved there by sdfio_write_trailer(), so an
- * error never leaves a half-written file.
+ * included. The header is written with the first rows of the data area. The
+ * dates of the header must be set: SDFIO_NO_TIME cannot be written.
  *
  * @return SDFIO_ERR_ARGUMENT if the description cannot be written: a data
  * type the revision does not have, a scale that is not positive, a count
  * the binary header cannot hold.
  */
-SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
-                                         const sdfio_header *header);
 SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
                                            const sdfio_stream *stream,
                                            const sdfio_header *header);
