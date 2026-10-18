@@ -26,6 +26,7 @@ option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitize
 option(SDFIO_TEXT "Read and write text files" ON)
 option(SDFIO_LOCAL_TIME "Convert the dates of ISO-1.0 and BCR-1.0 to the local clock" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
+option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 
 set(SDFIO_WARNINGS
     $<$<C_COMPILER_ID:MSVC>:/W4;/permissive-;/utf-8>
@@ -35,6 +36,9 @@ set(SDFIO_WARNINGS
 set(SDFIO_SANITIZER_FLAGS "")
 if(SDFIO_SANITIZE)
     list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined -fno-omit-frame-pointer)
+endif()
+if(SDFIO_BUILD_FUZZERS)
+    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined,fuzzer-no-link -fno-omit-frame-pointer)
 endif()
 if(SDFIO_SANITIZE_THREAD)
     list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=thread -fno-omit-frame-pointer)
@@ -154,6 +158,10 @@ endif()
 
 if(SDFIO_BUILD_FIRMWARE)
     add_subdirectory(tests/embedded)
+endif()
+
+if(SDFIO_BUILD_FUZZERS)
+    add_subdirectory(tests/fuzz)
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)

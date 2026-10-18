@@ -604,6 +604,34 @@ static void check_resolution(void)
     }
 }
 
+/* Rows without a column hold nothing, and a file that declares billions of
+ * them is written and read in an instant. */
+static void check_rows_without_columns(void)
+{
+    sdfio_header header;
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY32);
+    header.columns = 0;
+    header.rows = sdfio_max_binary_count(SDFIO_ISO_2_0);
+
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new(NULL);
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_data(writer, NULL, header.rows));
+    CHECK_OK(sdfio_write_trailer(writer, "a = 1\n", 6));
+    sdfio_writer_free(writer);
+
+    sdfio_reader *reader = sdfio_reader_new(NULL);
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    CHECK_OK(sdfio_read_data(reader, NULL, header.rows));
+    const char *trailer = NULL;
+    size_t trailer_size = 0;
+    CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
+    CHECK(trailer_size == 5 && memcmp(trailer, "a = 1", 5) == 0);
+    sdfio_reader_free(reader);
+    free(file.data);
+}
+
 /* What a header starts as: a binary ISO-2.0 file of single precision floats,
  * which holds a float surface without loss and needs no z-scale. */
 static void check_defaults(void)
@@ -809,6 +837,7 @@ int main(void)
 {
     check_read_line_ends();
     check_trailer_line_ends();
+    check_rows_without_columns();
     check_defaults();
     check_resolution();
     check_element_stride();

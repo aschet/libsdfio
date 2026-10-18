@@ -320,7 +320,9 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     }
     const size_t row_bytes =
         header->columns * sdfio_data_type_size(header->data_type);
-    for (size_t i = 0; i < rows; ++i)
+    /* Rows without a column hold nothing, however many a file declares. */
+    const size_t valued_rows = header->columns > 0 ? rows : 0;
+    for (size_t i = 0; i < valued_rows; ++i)
     {
         status = put_values(writer, (const unsigned char *)src + i * row_bytes,
                             header->columns);
@@ -330,6 +332,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
         }
         ++writer->next_row;
     }
+    writer->next_row += rows - valued_rows;
     return SDFIO_OK;
 }
 
@@ -375,7 +378,8 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
     {
         return status;
     }
-    for (size_t file_row = 0; file_row < header->rows; ++file_row)
+    const size_t valued_rows = header->columns > 0 ? header->rows : 0;
+    for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
         const unsigned char *row =
             (const unsigned char *)src
@@ -408,6 +412,7 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
         }
         ++writer->next_row;
     }
+    writer->next_row = header->rows;
     return SDFIO_OK;
 }
 

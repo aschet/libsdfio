@@ -384,7 +384,9 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
     }
     const size_t row_bytes =
         header->columns * sdfio_data_type_size(header->data_type);
-    for (size_t i = 0; i < rows; ++i)
+    /* Rows without a column hold nothing, however many a file declares. */
+    const size_t valued_rows = header->columns > 0 ? rows : 0;
+    for (size_t i = 0; i < valued_rows; ++i)
     {
         status = read_values(reader, (unsigned char *)dst + i * row_bytes,
                              header->columns);
@@ -394,6 +396,7 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
         }
         ++reader->next_row;
     }
+    reader->next_row += rows - valued_rows;
     if (reader->next_row == header->rows)
     {
         status = finish_data(reader);
@@ -432,7 +435,8 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                           "Give the memory to read the heights into");
     }
-    for (size_t file_row = 0; file_row < header->rows; ++file_row)
+    const size_t valued_rows = header->columns > 0 ? header->rows : 0;
+    for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
         unsigned char *row =
             (unsigned char *)dst
@@ -462,6 +466,7 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
         }
         ++reader->next_row;
     }
+    reader->next_row = header->rows;
     status = finish_data(reader);
     return status == SDFIO_OK ? status : fail_reading(reader, status);
 }
