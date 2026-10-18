@@ -488,7 +488,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * Writes the trailer, record 3, and ends the file: the text as it is given, or
  * null for none. It is not looked at: what the text is, in ISO-2.0 lines of the
  * form `field name = value`, is for the program, which is helped by
- * sdfio_trailer_add_text() and its relatives. All rows of the data area must
+ * sdfio_trailer_add_field(). All rows of the data area must
  * have been written. A file is moved to its place.
  *
  * Every line end of the text, LF, CR or CRLF, is written as CRLF, as the
@@ -568,9 +568,8 @@ sdfio_suggest_z_scale(sdfio_data_type type, sdfio_revision revision,
  * char memory[512];
  * sdfio_trailer trailer;
  * sdfio_trailer_init(&trailer, memory, sizeof memory);
- * sdfio_trailer_add_text(&trailer, "OperatorName", "Jane Doe");
- * sdfio_trailer_add_integer(&trailer, "Averages", 16);
- * sdfio_trailer_add_real(&trailer, "Magnification", 20.5);
+ * sdfio_trailer_add_field(&trailer, "OperatorName", "Jane Doe");
+ * sdfio_trailer_add_field(&trailer, "Magnification", "20.5");
  * ...
  * sdfio_write_trailer(writer, trailer.text, trailer.size);
  * ~~~
@@ -590,24 +589,19 @@ SDFIO_API void sdfio_trailer_init(sdfio_trailer *trailer, char *memory,
                                   size_t capacity);
 
 /**
- * Appends one line `field = value`. An integer is written in decimal, and a
- * number as the shortest text that reads back as the same number, such as 20.5
- * or 1.5e-06, always with a dot, whatever the locale is. White space around a
- * text value is lost when the line is read.
+ * Appends one line `field = value`. The value is text: a number is written by
+ * the program, as it wants it, for instance with snprintf in the C locale, as a
+ * locale with a decimal comma would write `20,5`. White space around a value is
+ * lost when the line is read.
  *
  * @return SDFIO_ERR_ARGUMENT if the field name is empty or has a character
- * other than a letter, a digit or `_`, if the value is not one line of 7-bit
- * ASCII, or if a number is not finite. SDFIO_ERR_RANGE if the line and the 0
- * after the text do not fit. The trailer is left as it was.
+ * other than a letter, a digit or `_`, or if the value is not one line of 7-bit
+ * ASCII. SDFIO_ERR_RANGE if the line and the 0 after the text do not fit. The
+ * trailer is left as it was.
  */
-SDFIO_API sdfio_status sdfio_trailer_add_text(sdfio_trailer *trailer,
-                                              const char *field,
-                                              const char *value);
-SDFIO_API sdfio_status sdfio_trailer_add_integer(sdfio_trailer *trailer,
-                                                 const char *field,
-                                                 long long value);
-SDFIO_API sdfio_status sdfio_trailer_add_real(sdfio_trailer *trailer,
-                                              const char *field, double value);
+SDFIO_API sdfio_status sdfio_trailer_add_field(sdfio_trailer *trailer,
+                                               const char *field,
+                                               const char *value);
 
 #ifdef __cplusplus
 }

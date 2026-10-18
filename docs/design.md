@@ -73,15 +73,13 @@ whether they have the form, is the application's business. What the library
 does is help to assemble the lines:
 
 - **Assembly.** `sdfio_trailer` is a small struct over memory of the caller, and
-  `sdfio_trailer_add_text`, `_add_integer` and `_add_real` append a line to it.
-  Nothing is allocated, so a small device can use it. Every call returns its own
-  status; a name that is not a letter, a digit or `_`, a value that is not one
-  line of 7-bit ASCII, or a line that does not fit is refused and the text is
-  left as it was. This is the one place where the form is guaranteed, and it
-  fails at once, before a scan has begun, not at the end of the file.
-- **Numbers.** An integer is decimal. A real is the shortest text that reads
-  back as the same number, `20.5` or `1.5e-06`, always with a dot, whatever the
-  locale says.
+  `sdfio_trailer_add_field` appends a line to it. Nothing is allocated, so a
+  small device can use it. A name that is not a letter, a digit or `_`, a value
+  that is not one line of 7-bit ASCII, or a line that does not fit is refused
+  and the text is left as it was. This is the one place where the form is
+  guaranteed, and it fails at once, before a scan has begun, not at the end of
+  the file. The value is text: how a number is written is for the program, which
+  knows its precision and its locale.
 - **Line ends.** In memory the lines end with LF. Writing turns every line end,
   LF, CR or CRLF, into CRLF, as Annex A has it, in text and binary files alike,
   and closes the last line. Reading accepts all three, as the BCR text allows,

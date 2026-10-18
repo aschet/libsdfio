@@ -79,11 +79,10 @@ on data from any other source.
   and `examples/counts.c`).
 - **Trailer**: free text that the library writes as it is given and returns as
   it reads it; the application interprets it. For the lines `field name = value`
-  that ISO-2.0 asks for, `sdfio_trailer_add_text`, `_add_integer` and
-  `_add_real` assemble them in a buffer of yours without allocating, with
-  numbers as the shortest text that reads back exactly, always with a dot. In
-  memory the lines end with LF. The file has CRLF, as the standard has it, and
-  is read back with LF, in text and binary files alike.
+  that ISO-2.0 asks for, `sdfio_trailer_add_field` appends one to a buffer of
+  yours without allocating. In memory the lines end with LF. The file has CRLF,
+  as the standard has it, and is read back with LF, in text and binary files
+  alike.
 - **Dates** are UTC `time_t` in the program and the clock that the revision
   requires in the file.
 - **Threads**: there is no global state. Handles of different threads are

@@ -77,9 +77,7 @@ enum
     SDFI_FLOAT_DIGITS = 6,
     SDFI_FLOAT_EXPONENT = 2,
     SDFI_DOUBLE_DIGITS = 14,
-    SDFI_DOUBLE_EXPONENT = 3,
-    /* The significant digits that read any binary64 back exactly. */
-    SDFI_SHORTEST_MAXIMUM = 17
+    SDFI_DOUBLE_EXPONENT = 3
 };
 
 #if defined(__GNUC__)
@@ -254,11 +252,6 @@ bool sdfi_parse_integer(const char *text, size_t size, long long *out);
 size_t sdfi_format_scientific(const sdfi_point *point, char *out,
                               size_t capacity, double value, int digits,
                               int exponent_width);
-
-/* Writes the shortest text, with a dot, that reads back as the same number,
- * 20.5 and 1.5e-06 for instance. */
-size_t sdfi_format_shortest(const sdfi_point *point, char *out, size_t capacity,
-                            double value);
 
 /* ---- Dates ----------------------------------------------------------------
  */

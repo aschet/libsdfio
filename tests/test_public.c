@@ -68,8 +68,8 @@ int main(void)
     char composed[128];
     sdfio_trailer assembled;
     sdfio_trailer_init(&assembled, composed, sizeof composed);
-    CHECK_OK(sdfio_trailer_add_text(&assembled, "Note", "public"));
-    CHECK_OK(sdfio_trailer_add_real(&assembled, "Averages", 16.0));
+    CHECK_OK(sdfio_trailer_add_field(&assembled, "Note", "public"));
+    CHECK_OK(sdfio_trailer_add_field(&assembled, "Averages", "16"));
     CHECK_OK(sdfio_write_trailer(writer, assembled.text, assembled.size));
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);

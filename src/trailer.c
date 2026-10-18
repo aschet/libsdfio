@@ -9,14 +9,6 @@
 
 #include "internal.h"
 
-#include <stdio.h>
-
-enum
-{
-    /* A number as text, with its sign. */
-    INTEGER_CAPACITY = 32
-};
-
 /* " = " between the name and the value. */
 static const char separator[] = " = ";
 
@@ -66,8 +58,8 @@ static bool valid_value(const char *value)
     return true;
 }
 
-sdfio_status sdfio_trailer_add_text(sdfio_trailer *trailer, const char *field,
-                                    const char *value)
+sdfio_status sdfio_trailer_add_field(sdfio_trailer *trailer, const char *field,
+                                     const char *value)
 {
     if (trailer == NULL || field == NULL || value == NULL
         || (trailer->text == NULL && trailer->capacity > 0)
@@ -95,25 +87,4 @@ sdfio_status sdfio_trailer_add_text(sdfio_trailer *trailer, const char *field,
     *at = '\0';
     trailer->size += line;
     return SDFIO_OK;
-}
-
-sdfio_status sdfio_trailer_add_integer(sdfio_trailer *trailer,
-                                       const char *field, long long value)
-{
-    char text[INTEGER_CAPACITY];
-    snprintf(text, sizeof text, "%lld", value);
-    return sdfio_trailer_add_text(trailer, field, text);
-}
-
-sdfio_status sdfio_trailer_add_real(sdfio_trailer *trailer, const char *field,
-                                    double value)
-{
-    if (!isfinite(value))
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    const sdfi_point point = sdfi_point_now();
-    char text[SDFI_NUMBER_CAPACITY];
-    sdfi_format_shortest(&point, text, sizeof text, value);
-    return sdfio_trailer_add_text(trailer, field, text);
 }

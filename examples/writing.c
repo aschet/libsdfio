@@ -41,14 +41,10 @@ static int write_surface(const char *path, sdfio_data_type type)
     sdfio_trailer trailer;
     sdfio_trailer_init(&trailer, memory, sizeof memory);
     sdfio_status status =
-        sdfio_trailer_add_text(&trailer, "OperatorName", "Jane Doe");
+        sdfio_trailer_add_field(&trailer, "OperatorName", "Jane Doe");
     if (status == SDFIO_OK)
     {
-        status = sdfio_trailer_add_integer(&trailer, "Averages", 16);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_trailer_add_real(&trailer, "Magnification", 20.5);
+        status = sdfio_trailer_add_field(&trailer, "Magnification", "20.5");
     }
     sdfio_writer *writer = sdfio_writer_new();
     if (status == SDFIO_OK)
