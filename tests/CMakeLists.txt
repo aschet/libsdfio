@@ -33,6 +33,9 @@ if(SDFIO_TEXT AND SDFIO_LOCAL_TIME)
     sdfio_add_test(test_trailer)
 endif()
 sdfio_add_test(test_allocator)
+if(WIN32)
+    sdfio_add_test(test_wide)
+endif()
 target_compile_definitions(test_allocator PRIVATE
     SDFIO_TEST_TEXT=$<BOOL:${SDFIO_TEXT}>
 )

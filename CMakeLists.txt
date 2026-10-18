@@ -66,6 +66,9 @@ set(SDFIO_SOURCES
     src/writer.c
 )
 
+if(WIN32)
+    list(APPEND SDFIO_SOURCES src/file_windows.c)
+endif()
 if(SDFIO_TEXT)
     list(APPEND SDFIO_SOURCES src/ascii.c src/decimal.c)
 else()

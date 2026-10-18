@@ -15,6 +15,7 @@
 #define SDFIO_FILE_H
 
 #include <stdio.h>
+#include <wchar.h>
 
 #include "sdfio/sdfio.h"
 
@@ -44,6 +45,18 @@ SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
  */
 SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
                                          const sdfio_header *header);
+
+#if defined(_WIN32)
+/**
+ * The same with a path of wide characters, for the file names of Windows that
+ * the code page of the C library cannot hold. Only on Windows.
+ */
+SDFIO_API sdfio_status sdfio_open_file_w(sdfio_reader *reader,
+                                         const wchar_t *path);
+SDFIO_API sdfio_status sdfio_create_file_w(sdfio_writer *writer,
+                                           const wchar_t *path,
+                                           const sdfio_header *header);
+#endif
 
 #ifdef __cplusplus
 }
