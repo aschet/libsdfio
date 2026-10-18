@@ -494,7 +494,7 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     }
     if (header->storage == SDFIO_BINARY)
     {
-        if (size > 0 && !sdfi_sink_write(&writer->sink, trailer, size))
+        if (size > 0 && !sdfi_write_crlf_lines(&writer->sink, trailer, size))
         {
             return write_failed(writer);
         }

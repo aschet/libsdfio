@@ -33,6 +33,68 @@ bool sdfi_next_line(const char *text, size_t size, size_t *position,
     return true;
 }
 
+static const char line_end[] = "\r\n";
+
+bool sdfi_write_crlf_lines(sdfi_sink *sink, const char *text, size_t size)
+{
+    size_t position = 0;
+    const char *line = NULL;
+    size_t line_size = 0;
+    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    {
+        if (!sdfi_sink_write(sink, line, line_size)
+            || !sdfi_sink_write(sink, line_end, sizeof line_end - 1))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool sdfi_append_crlf_lines(sdfi_string *out, const char *text, size_t size)
+{
+    size_t position = 0;
+    const char *line = NULL;
+    size_t line_size = 0;
+    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    {
+        if (!sdfi_string_append(out, line, line_size)
+            || !sdfi_string_append(out, line_end, sizeof line_end - 1))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void sdfi_lines_to_lf(sdfi_string *text)
+{
+    size_t used = 0;
+    for (size_t i = 0; i < text->size; ++i)
+    {
+        char c = text->data[i];
+        if (c == '\r')
+        {
+            c = '\n';
+            if (i + 1 < text->size && text->data[i + 1] == '\n')
+            {
+                ++i;
+            }
+        }
+        text->data[used++] = c;
+    }
+    /* The end of the last line is not part of the text. */
+    if (used > 0 && text->data[used - 1] == '\n')
+    {
+        --used;
+    }
+    text->size = used;
+    if (text->data != NULL)
+    {
+        text->data[used] = '\0';
+    }
+}
+
 static bool is_name_character(char c)
 {
     return sdfi_is_digit(c) || (sdfi_lower(c) >= 'a' && sdfi_lower(c) <= 'z')

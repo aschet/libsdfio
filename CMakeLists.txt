@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 3.28...4.2)
 project(sdfio
     VERSION 0.1.0
     DESCRIPTION "Reader and writer for ISO 25178-71 SDF surface data files in C"
+    HOMEPAGE_URL "https://github.com/aschet/libsdfio"
     LANGUAGES C
 )
 
@@ -31,6 +32,12 @@ if(SDFIO_SANITIZE)
 endif()
 if(SDFIO_SANITIZE_THREAD)
     list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=thread -fno-omit-frame-pointer)
+endif()
+
+# A Windows program finds the DLL beside itself: the tests, the examples and the
+# library go to one folder.
+if(WIN32 AND NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 endif()
 
 set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")

@@ -408,6 +408,11 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * returns the same trailer. It has a 0 after its last byte, which the size
  * does not count.
  *
+ * In memory the lines of the trailer end with LF, whatever the file has: a
+ * line end of the file, CRLF, CR or LF, in a text file or a binary file, is
+ * read as LF, and the end of the last line is not part of the text. A text file
+ * also drops the white space around the trailer.
+ *
  * Text files give the line ends of the trailer as LF.
  */
 SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
@@ -480,8 +485,13 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
 
 /**
  * Writes the trailer, record 3, and ends the file: 7-bit ASCII text, or null
- * for none; in ISO-2.0 every line must be of the form `Name = Value`. All rows
- * of the data area must have been written. A file is moved to its place.
+ * for none; in ISO-2.0 every line must be of the form `field name = value`. All
+ * rows of the data area must have been written. A file is moved to its place.
+ *
+ * Every line end of the text, LF, CR or CRLF, is written as CRLF, as the
+ * standard has it, in a text file and in a binary file, and the last line is
+ * closed by one. Write the lines with LF in memory; \ref sdfio_read_trailer
+ * gives them back that way.
  */
 SDFIO_API sdfio_status sdfio_write_trailer(sdfio_writer *writer,
                                            const char *trailer, size_t size);

@@ -887,25 +887,11 @@ size_t sdfi_ascii_format(const sdfio_header *header, const sdfi_point *point,
 sdfio_status sdfi_ascii_tail(const char *trailer, size_t size, sdfi_string *out,
                              sdfi_message *message)
 {
-    /* A trailer that ends in its own line end must not get a second one, which
-     * would leave a blank line before the "*" that closes it. */
-    if (size >= 2 && trailer[size - 2] == '\r' && trailer[size - 1] == '\n')
-    {
-        size -= 2;
-    }
-    else if (size >= 1 && trailer[size - 1] == '\n')
-    {
-        size -= 1;
-    }
     /* The record is always closed, also if it is empty. */
-    bool ok = sdfi_string_append(out, &terminator, 1) && append_text(out, crlf);
-    if (size > 0)
-    {
-        ok = ok && sdfi_string_append(out, trailer, size)
-             && append_text(out, crlf);
-    }
-    ok =
-        ok && sdfi_string_append(out, &terminator, 1) && append_text(out, crlf);
+    const bool ok =
+        sdfi_string_append(out, &terminator, 1) && append_text(out, crlf)
+        && sdfi_append_crlf_lines(out, trailer, size)
+        && sdfi_string_append(out, &terminator, 1) && append_text(out, crlf);
     return ok ? SDFIO_OK
               : sdfi_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
 }

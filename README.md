@@ -1,10 +1,11 @@
-# sdfio for C
+# libsdfio
+
+[![CI](https://github.com/aschet/libsdfio/actions/workflows/ci.yml/badge.svg)](https://github.com/aschet/libsdfio/actions/workflows/ci.yml)
 
 A C library that reads and writes ISO 25178-71 SDF surface data files: the
-revisions ISO-1.0, ISO-2.0 and BCR-1.0, as text or binary. It is the C sibling
-of the C++ library [sdfio](../sdfkit), an experiment in what the same job looks
-like with the design of libpng and libtiff instead of C++ templates. The files
-are the same; the interface is not.
+revisions ISO-1.0, ISO-2.0 and BCR-1.0, as text or binary. Its design follows
+the image libraries libpng and libtiff: opaque handles, callbacks for the
+bytes, row by row access to the data and a status code from every call.
 
 ```c
 sdfio_reader *reader = sdfio_reader_new();
@@ -34,9 +35,6 @@ and a program that talks to a scanner may include both. The library `libsdf`
 on GitHub (signed distance functions) has the same file name as a `sdf`
 library would. The files themselves keep the extension `.sdf`. The
 internals use `sdfi_`, hidden in the shared library.
-
-The C++ library has the same name and the same CMake package, so install the two
-into different prefixes.
 
 ## Layers
 
@@ -79,6 +77,9 @@ on data from any other source.
   rows one at a time asks `sdfio_row_y(header, n)` for the y of the n-th row,
   and is then right for every revision (see [docs/design.md](docs/design.md)
   and `examples/counts.c`).
+- **Trailer line ends**: in memory a trailer has LF between its lines. It is
+  written with CRLF, as the standard has it, and read back with LF, in text and
+  binary files alike.
 - **Dates** are UTC `time_t` in the program and the clock that the revision
   requires in the file.
 - **Threads**: there is no global state. Handles of different threads are

@@ -2,7 +2,7 @@
 
 This is the C library for the SDF format. The design follows what C libraries
 for images and arrays do well, libpng, libtiff, libwebp and libheif, and
-leaves out what the C++ library needs templates for.
+and keeps the interface small.
 
 ## Handles
 
@@ -37,8 +37,8 @@ type of the file, so a binary32 text file is rounded to single precision.
 Metres are a separate step: `sdfio_decode_heights` turns the coded height
 information into heights of any sample type, `sdfio_encode_heights` does the reverse, and both
 work on a chunk of 1024 values at a time. They need no handle, so they apply to
-data from any source. Splitting the layers took out the `raw`/`metres` switch of
-the C++ library, and with it the combination of options that is an error
+data from any source. With the layers split there is no `raw`/`metres` switch,
+and so no combination of options that is an error
 (a marker for missing points in the raw space).
 
 The convenience calls `sdfio_read_heights` and `sdfio_write_heights` compose the two
@@ -128,5 +128,5 @@ the same time; the tests run that under ThreadSanitizer.
 - A hook for the allocator, as libpng and OpenEXR have.
 - Random access to a row of a binary file.
 - Compression and checksums of the data area, which the standard describes and
-  the C++ library does not support either.
+  the library does not support.
 - Comments of BCR-1.0 files are dropped when a file is read.

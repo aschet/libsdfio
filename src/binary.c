@@ -229,5 +229,6 @@ sdfio_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
         return sdfi_fail(message, SDFIO_ERR_IO, "The stream could not be read");
     }
     *present = out->size > 0; /* the file ends with the data */
+    sdfi_lines_to_lf(out);
     return SDFIO_OK;
 }

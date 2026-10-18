@@ -12,7 +12,10 @@ function(sdfio_add_test name)
     target_include_directories(${name} PRIVATE "${PROJECT_SOURCE_DIR}/src")
     target_compile_options(${name} PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
     target_link_options(${name} PRIVATE ${SDFIO_SANITIZER_FLAGS})
+    # The tests link the objects of the library, also when it is shared: its
+    # functions are not imported from the DLL.
     target_compile_definitions(${name} PRIVATE
+        SDFIO_STATIC_DEFINE
         SDFIO_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data"
     )
     add_test(NAME ${name} COMMAND ${name})

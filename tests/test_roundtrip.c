@@ -619,8 +619,172 @@ static void check_defaults(void)
     free(file.data);
 }
 
+/* Every line end that is written is CRLF, as the standard has it, whatever the
+ * program put in memory; what is read back has LF. */
+static bool only_crlf(const unsigned char *bytes, size_t size)
+{
+    for (size_t i = 0; i < size; ++i)
+    {
+        const bool lf_alone =
+            bytes[i] == '\n' && (i == 0 || bytes[i - 1] != '\r');
+        const bool cr_alone =
+            bytes[i] == '\r' && (i + 1 == size || bytes[i + 1] != '\n');
+        if (lf_alone || cr_alone)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static void check_trailer_line_ends(void)
+{
+    struct variant
+    {
+        const char *written;
+        const char *in_file; /* the bytes of a binary trailer */
+        const char *read;
+    };
+    const struct variant variants[] = {
+        {"A = 1\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
+        {"A = 1\rB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
+        {"A = 1\r\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
+        {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
+        {"A = 1\r\nB = 2\nC = 3", "A = 1\r\nB = 2\r\nC = 3\r\n",
+         "A = 1\nB = 2\nC = 3"},
+        {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2"},
+        {"A = 1", "A = 1\r\n", "A = 1"},
+    };
+    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t s = 0; s < 2; ++s)
+    {
+        for (size_t v = 0; v < sizeof variants / sizeof variants[0]; ++v)
+        {
+            sdfio_header header;
+            describe(&header, SDFIO_ISO_2_0, storages[s], SDFIO_DATA_BINARY64);
+            header.columns = 1;
+            header.rows = 1;
+            const double height = 1e-6;
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = sdfio_writer_new();
+            CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+            CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                         &height, sizeof height));
+            CHECK_OK(sdfio_write_trailer(writer, variants[v].written,
+                                         strlen(variants[v].written)));
+            sdfio_writer_free(writer);
+
+            const size_t data_at =
+                sdfi_binary_header_size(SDFIO_ISO_2_0) + sizeof(double);
+            if (storages[s] == SDFIO_BINARY)
+            {
+                CHECK(file.size == data_at + strlen(variants[v].in_file));
+                CHECK(memcmp(file.data + data_at, variants[v].in_file,
+                             strlen(variants[v].in_file))
+                      == 0);
+                CHECK(only_crlf(file.data + data_at, file.size - data_at));
+            }
+            else
+            {
+                CHECK(only_crlf(file.data, file.size));
+            }
+
+            sdfio_reader *reader = sdfio_reader_new();
+            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+            const char *trailer = NULL;
+            size_t size = 0;
+            CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+            CHECK(trailer != NULL && size == strlen(variants[v].read)
+                  && memcmp(trailer, variants[v].read, size) == 0);
+            sdfio_reader_free(reader);
+            free(file.data);
+        }
+    }
+}
+
+/* A text file is read whatever ends its lines: CR LF as ISO has it, LF of Unix,
+ * or the CR of old Macintosh files, which the BCR text allows. */
+static membuf with_line_ends(const membuf *file, const char *line_end)
+{
+    membuf out = {0};
+    for (size_t i = 0; i < file->size; ++i)
+    {
+        if (file->data[i] == '\r' && i + 1 < file->size
+            && file->data[i + 1] == '\n')
+        {
+            membuf_write(&out, line_end, strlen(line_end));
+            ++i;
+        }
+        else
+        {
+            membuf_write(&out, &file->data[i], 1);
+        }
+    }
+    return out;
+}
+
+static void check_read_line_ends(void)
+{
+    const sdfio_revision revisions[] = {SDFIO_ISO_2_0, SDFIO_BCR_1_0};
+    const char *const line_ends[] = {"\n", "\r"};
+    for (size_t r = 0; r < 2; ++r)
+    {
+        sdfio_header header;
+        describe(&header, revisions[r], SDFIO_ASCII, SDFIO_DATA_INT16);
+        double heights[ROWS * COLUMNS];
+        make_heights(heights);
+        membuf crlf = {0};
+        const sdfio_stream stream = membuf_stream(&crlf);
+        sdfio_writer *writer = sdfio_writer_new();
+        CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+        CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                     heights, COLUMNS * sizeof(double)));
+        CHECK_OK(sdfio_write_trailer(writer, tagged_trailer,
+                                     strlen(tagged_trailer)));
+        sdfio_writer_free(writer);
+
+        double expected[ROWS * COLUMNS];
+        sdfio_reader *reader = sdfio_reader_new();
+        CHECK_OK(sdfio_open_memory(reader, crlf.data, crlf.size));
+        CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                    expected, COLUMNS * sizeof(double)));
+        sdfio_reader_free(reader);
+
+        for (size_t e = 0; e < 2; ++e)
+        {
+            membuf other = with_line_ends(&crlf, line_ends[e]);
+            CHECK(other.size < crlf.size);
+            double read[ROWS * COLUMNS];
+            reader = sdfio_reader_new();
+            CHECK_OK(sdfio_open_memory(reader, other.data, other.size));
+            const sdfio_header *got = sdfio_get_header(reader);
+            CHECK(got != NULL && got->columns == COLUMNS && got->rows == ROWS
+                  && got->x_scale == header.x_scale
+                  && got->creation_date == header.creation_date);
+            CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                        read, COLUMNS * sizeof(double)));
+            for (size_t i = 0; i < ROWS * COLUMNS; ++i)
+            {
+                CHECK(isnan(expected[i]) ? isnan(read[i])
+                                         : read[i] == expected[i]);
+            }
+            const char *trailer = NULL;
+            size_t size = 0;
+            CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+            CHECK(trailer != NULL && size == strlen(tagged_trailer)
+                  && memcmp(trailer, tagged_trailer, size) == 0);
+            sdfio_reader_free(reader);
+            free(other.data);
+        }
+        free(crlf.data);
+    }
+}
+
 int main(void)
 {
+    check_read_line_ends();
+    check_trailer_line_ends();
     check_defaults();
     check_resolution();
     check_element_stride();

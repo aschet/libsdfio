@@ -271,6 +271,10 @@ time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision);
 /* ---- Tagged fields: the lines `Name = Value` ------------------------------
  */
 
+/* A trailer from the file: every line end LF, and the end of the last line
+ * dropped. */
+void sdfi_lines_to_lf(sdfi_string *text);
+
 /* The next line of a text, ended by LF, CR or CRLF. */
 bool sdfi_next_line(const char *text, size_t size, size_t *position,
                     const char **line, size_t *line_size);
@@ -319,6 +323,11 @@ typedef struct sdfi_sink
 void sdfi_sink_init(sdfi_sink *sink, const sdfio_stream *io);
 bool sdfi_sink_write(sdfi_sink *sink, const void *data, size_t size);
 bool sdfi_sink_flush(sdfi_sink *sink);
+
+/* A trailer into the file: every line end of the text, LF, CR or CRLF, written
+ * as CRLF as the standard has it, and the last line closed by one. */
+bool sdfi_write_crlf_lines(sdfi_sink *sink, const char *text, size_t size);
+bool sdfi_append_crlf_lines(sdfi_string *out, const char *text, size_t size);
 
 /* ---- The formats ----------------------------------------------------------
  */
