@@ -241,7 +241,7 @@ static void check_header_errors(void)
     reader = sdfio_reader_new();
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, "not an sdf file at all", 22));
-    CHECK(strlen(sdfio_reader_message(reader)) > 0);
+    CHECK(strlen(sdfio_reader_error_message(reader)) > 0);
     sdfio_reader_free(reader);
 
     if (data != NULL)
@@ -284,7 +284,7 @@ static void check_header_errors(void)
     reader = sdfio_reader_new();
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_open_file(reader, SDFIO_TEST_DATA_DIR "/missing.sdf"));
-    CHECK(strstr(sdfio_reader_message(reader), "missing.sdf") != NULL);
+    CHECK(strstr(sdfio_reader_error_message(reader), "missing.sdf") != NULL);
     CHECK(sdfio_get_header(reader) == NULL);
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_read_data(reader, NULL, 0));
     sdfio_reader_free(reader);

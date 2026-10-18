@@ -47,7 +47,7 @@ int main(int argc, char **argv)
     }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_writer_message(writer));
+        fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
     }
     sdfio_writer_free(writer);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;

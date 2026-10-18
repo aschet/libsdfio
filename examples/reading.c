@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     sdfio_status status = sdfio_open_file(reader, path);
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
         sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
     }
     else
     {

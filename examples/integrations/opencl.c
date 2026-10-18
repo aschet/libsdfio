@@ -282,7 +282,8 @@ int main(int argc, char **argv)
     check(status, "row_sums");
 
     sdfio_reader *reader = sdfio_reader_new();
-    check_sdfio(sdfio_open_file(reader, path), sdfio_reader_message(reader));
+    check_sdfio(sdfio_open_file(reader, path),
+                sdfio_reader_error_message(reader));
     const sdfio_header *header = sdfio_get_header(reader);
     const cl_uint width = (cl_uint)header->columns;
     const cl_uint height = (cl_uint)header->rows;
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
     float *memory = map(queue, input, floats, CL_MAP_WRITE_INVALIDATE_REGION);
     check_sdfio(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), memory,
                                    (ptrdiff_t)((size_t)pitch * sizeof(float))),
-                sdfio_reader_message(reader));
+                sdfio_reader_error_message(reader));
     unmap(queue, input, memory);
 
     const size_t global[2] = {width, height};
@@ -319,12 +320,12 @@ int main(int argc, char **argv)
     smoothed.z_scale = SDFIO_AUTO_Z_SCALE;
     sdfio_writer *writer = sdfio_writer_new();
     check_sdfio(sdfio_create_file(writer, "smooth.sdf", &smoothed),
-                sdfio_writer_message(writer));
+                sdfio_writer_error_message(writer));
     check_sdfio(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), memory,
                                     (ptrdiff_t)((size_t)pitch * sizeof(float))),
-                sdfio_writer_message(writer));
+                sdfio_writer_error_message(writer));
     check_sdfio(sdfio_write_trailer(writer, NULL, 0),
-                sdfio_writer_message(writer));
+                sdfio_writer_error_message(writer));
     unmap(queue, output, memory);
 
     const int agrees =

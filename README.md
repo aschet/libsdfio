@@ -59,8 +59,8 @@ on data from any other source.
 - **Memory**: `sdfio_alloc_heights` and `sdfio_alloc_data` size a buffer from the
   description of a file, with the overflow checked, and `sdfio_free` releases it.
   Your own `malloc` works as well; the library never allocates the heights.
-- **Errors**: every call returns an `sdfio_status`; `sdfio_reader_message()` and
-  `sdfio_writer_message()` give the text of the last failure.
+- **Errors**: every call returns an `sdfio_status`; `sdfio_reader_error_message()` and
+  `sdfio_writer_error_message()` give the text of the last failure.
 - **Sample types**: heights can be `int8` to `uint32`, `float` or `double`; the
   program does not have to widen its memory to `double`.
 - **Missing points** are NaN, or the marker of your choice, which is taken in

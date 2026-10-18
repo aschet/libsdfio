@@ -244,7 +244,7 @@ static void check_errors(void)
     int16_t counts[ROWS * COLUMNS] = {0};
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data(writer, counts, 1));
-    CHECK(strstr(sdfio_writer_message(writer), "z-scale") != NULL);
+    CHECK(strstr(sdfio_writer_error_message(writer), "z-scale") != NULL);
     sdfio_writer_free(writer);
 
     /* A height that does not fit the z-scale that was asked for. */

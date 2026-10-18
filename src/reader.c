@@ -94,7 +94,7 @@ void sdfio_reader_free(sdfio_reader *reader)
     free(reader);
 }
 
-const char *sdfio_reader_message(const sdfio_reader *reader)
+const char *sdfio_reader_error_message(const sdfio_reader *reader)
 {
     return reader != NULL ? reader->message.text : "";
 }

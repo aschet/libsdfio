@@ -66,7 +66,7 @@ int main(void)
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
                                  3 * sizeof(float)));
     CHECK_OK(sdfio_write_trailer(writer, "Note = public", 13));
-    CHECK(strcmp(sdfio_writer_message(writer), "") == 0);
+    CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 
     sdfio_reader *reader = sdfio_reader_new();

@@ -38,7 +38,7 @@ sdfio_writer *sdfio_writer_new(void)
     return calloc(1, sizeof(sdfio_writer));
 }
 
-const char *sdfio_writer_message(const sdfio_writer *writer)
+const char *sdfio_writer_error_message(const sdfio_writer *writer)
 {
     return writer != NULL ? writer->message.text : "";
 }

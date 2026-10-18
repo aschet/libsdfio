@@ -37,7 +37,7 @@ Reader open(const char* path)
 {
     Reader reader(sdfio_reader_new(), sdfio_reader_free);
     check(sdfio_open_file(reader.get(), path),
-          sdfio_reader_message(reader.get()));
+          sdfio_reader_error_message(reader.get()));
     return reader;
 }
 
@@ -53,7 +53,7 @@ cv::Mat read_depth(sdfio_reader* reader)
                   static_cast<int>(header->columns), CV_32F);
     check(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32),
                              depth.ptr(depth.rows - 1), stride_up(depth)),
-          sdfio_reader_message(reader));
+          sdfio_reader_error_message(reader));
     return depth;
 }
 
@@ -78,12 +78,12 @@ void write_depth(const char* path, sdfio_header header, const cv::Mat& depth)
     header.z_scale = SDFIO_AUTO_Z_SCALE;
     Writer writer(sdfio_writer_new(), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
-          sdfio_writer_message(writer.get()));
+          sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), sdfio_metres(SDFIO_FLOAT32),
                               depth.ptr(depth.rows - 1), stride_up(depth)),
-          sdfio_writer_message(writer.get()));
+          sdfio_writer_error_message(writer.get()));
     check(sdfio_write_trailer(writer.get(), nullptr, 0),
-          sdfio_writer_message(writer.get()));
+          sdfio_writer_error_message(writer.get()));
 }
 
 // The counts of a 16 bit image, as a scanner delivers them, go through the
@@ -105,21 +105,21 @@ bool counts_roundtrip(const char* path)
 
     Writer writer(sdfio_writer_new(), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
-          sdfio_writer_message(writer.get()));
+          sdfio_writer_error_message(writer.get()));
     for (int row = 0; row < counts.rows; ++row)
     {
         check(sdfio_write_data(writer.get(), counts.ptr(row), 1),
-              sdfio_writer_message(writer.get()));
+              sdfio_writer_error_message(writer.get()));
     }
     check(sdfio_write_trailer(writer.get(), nullptr, 0),
-          sdfio_writer_message(writer.get()));
+          sdfio_writer_error_message(writer.get()));
 
     const Reader reader = open(path);
     cv::Mat back(counts.size(), CV_16S);
     for (int row = 0; row < back.rows; ++row)
     {
         check(sdfio_read_data(reader.get(), back.ptr(row), 1),
-              sdfio_reader_message(reader.get()));
+              sdfio_reader_error_message(reader.get()));
     }
     return cv::countNonZero(counts != back) == 0;
 }
@@ -132,10 +132,10 @@ cv::Mat read_into_region(sdfio_reader* reader)
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
                                      static_cast<int>(header->rows)));
-    check(sdfio_rewind(reader), sdfio_reader_message(reader));
+    check(sdfio_rewind(reader), sdfio_reader_error_message(reader));
     check(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32),
                              region.ptr(region.rows - 1), stride_up(region)),
-          sdfio_reader_message(reader));
+          sdfio_reader_error_message(reader));
     return canvas;
 }
 

@@ -367,8 +367,8 @@ SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
 /** Goes back to the first row, for a source that can seek. */
 SDFIO_API sdfio_status sdfio_rewind(sdfio_reader *reader);
 
-/** The text of the last failure of the reader, empty if none. */
-SDFIO_API const char *sdfio_reader_message(const sdfio_reader *reader);
+/** The text of the last error of the reader, empty if there was none. */
+SDFIO_API const char *sdfio_reader_error_message(const sdfio_reader *reader);
 
 /* ---- Writing ------------------------------------------------------------ */
 
@@ -432,7 +432,8 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
 SDFIO_API sdfio_status sdfio_write_trailer(sdfio_writer *writer,
                                            const char *trailer, size_t size);
 
-SDFIO_API const char *sdfio_writer_message(const sdfio_writer *writer);
+/** The text of the last error of the writer, empty if there was none. */
+SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
 
 /* ---- Heights ------------------------------------------------------------ */
 

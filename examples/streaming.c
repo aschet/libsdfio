@@ -12,7 +12,7 @@ int main(void)
     sdfio_status status = sdfio_open_stream(reader, &stream);
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
         sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
@@ -42,7 +42,7 @@ int main(void)
     }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
     }
     else
     {
