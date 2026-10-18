@@ -87,25 +87,6 @@ size_t sdfio_source_fill(sdfio_source *source, size_t want)
     return source->end - source->position;
 }
 
-int sdfio_source_peek(sdfio_source *source)
-{
-    if (source->position == source->end && sdfio_source_fill(source, 1) == 0)
-    {
-        return -1;
-    }
-    return source->buffer[source->position];
-}
-
-int sdfio_source_getc(sdfio_source *source)
-{
-    const int c = sdfio_source_peek(source);
-    if (c >= 0)
-    {
-        ++source->position;
-    }
-    return c;
-}
-
 size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
 {
     unsigned char *out = dst;

@@ -8,26 +8,6 @@
 
 #include "internal.h"
 
-bool sdfio_is_space(char c)
-{
-    return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f'
-           || c == '\r';
-}
-
-bool sdfio_is_digit(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-char sdfio_lower(char c)
-{
-    if (c >= 'A' && c <= 'Z')
-    {
-        return (char)(c + ('a' - 'A'));
-    }
-    return c;
-}
-
 bool sdfio_equals_nocase(const char *text, size_t size, const char *lower)
 {
     if (strlen(lower) != size)

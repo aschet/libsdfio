@@ -203,11 +203,6 @@ sdfio_bad_test sdfio_bad_test_for(sdfio_data_type type, sdfio_revision revision)
     return test;
 }
 
-bool sdfio_matches(sdfio_bad_test test, double coded)
-{
-    return test.at_least ? coded >= test.value : coded == test.value;
-}
-
 bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
                         double value)
 {

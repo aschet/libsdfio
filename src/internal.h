@@ -201,7 +201,11 @@ typedef struct sdfio_bad_test
 
 sdfio_bad_test sdfio_bad_test_for(sdfio_data_type type,
                                   sdfio_revision revision);
-bool sdfio_matches(sdfio_bad_test test, double coded);
+/* Inline: every value of the data area is tested. */
+static inline bool sdfio_matches(sdfio_bad_test test, double coded)
+{
+    return test.at_least ? coded >= test.value : coded == test.value;
+}
 /* The number a text file writes for a point not measured, in BCR-1.0. */
 double sdfio_ascii_bad_value(sdfio_data_type type, sdfio_revision revision);
 
@@ -259,9 +263,24 @@ typedef struct sdfio_point
 
 sdfio_point sdfio_point_now(void);
 
-bool sdfio_is_space(char c);
-bool sdfio_is_digit(char c);
-char sdfio_lower(char c);
+/* The characters of text, whatever the locale. They are inline because the
+ * parsers call them for every character. */
+static inline bool sdfio_is_space(char c)
+{
+    return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f'
+           || c == '\r';
+}
+
+static inline bool sdfio_is_digit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+static inline char sdfio_lower(char c)
+{
+    return c >= 'A' && c <= 'Z' ? (char)(c + ('a' - 'A')) : c;
+}
+
 bool sdfio_equals_nocase(const char *text, size_t size, const char *lower);
 void sdfio_trim(const char **text, size_t *size);
 
@@ -332,8 +351,26 @@ void sdfio_source_init(sdfio_source *source, const sdfio_stream *io);
 /* Makes sure `want` bytes are buffered if the stream has them, and returns how
  * many are. */
 size_t sdfio_source_fill(sdfio_source *source, size_t want);
-int sdfio_source_peek(sdfio_source *source);
-int sdfio_source_getc(sdfio_source *source);
+/* The next byte, -1 at the end or on a failure. Inline: a text is read byte by
+ * byte. */
+static inline int sdfio_source_peek(sdfio_source *source)
+{
+    if (source->position == source->end && sdfio_source_fill(source, 1) == 0)
+    {
+        return -1;
+    }
+    return source->buffer[source->position];
+}
+
+static inline int sdfio_source_getc(sdfio_source *source)
+{
+    const int c = sdfio_source_peek(source);
+    if (c >= 0)
+    {
+        ++source->position;
+    }
+    return c;
+}
 size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size);
 int64_t sdfio_source_tell(const sdfio_source *source);
 bool sdfio_source_seek(sdfio_source *source, int64_t position);

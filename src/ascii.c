@@ -108,6 +108,12 @@ static void skip_line(sdfio_source *source)
     }
 }
 
+static bool starts_with_letter(char c)
+{
+    const char lower = sdfio_lower(c);
+    return lower >= 'a' && lower <= 'z';
+}
+
 static bool ends_token(char c, bool comments)
 {
     return sdfio_is_space(c) || (comments && c == comment_marker);
@@ -632,8 +638,10 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                           "The data area has fewer values than the header "
                           "says");
     }
-    if (sdfio_equals_nocase(token, size, bad_token)
-        || sdfio_equals_nocase(token, size, nan_token))
+    /* The words start with a letter, a number does not. */
+    if (starts_with_letter(token[0])
+        && (sdfio_equals_nocase(token, size, bad_token)
+            || sdfio_equals_nocase(token, size, nan_token)))
     {
         return sdfio_put_real(
             header->data_type, dst, index,
@@ -861,6 +869,32 @@ sdfio_status sdfio_ascii_header(const sdfio_header *header,
     return SDFIO_OK;
 }
 
+/* The decimal digits of an integer, without a terminator, which the C library
+ * would format by a call per value. */
+static size_t format_integer(long long value, char *out)
+{
+    unsigned long long magnitude = value < 0 ? 0ULL - (unsigned long long)value
+                                             : (unsigned long long)value;
+    char reversed[SDFIO_NUMBER_CAPACITY];
+    size_t digits = 0;
+    do
+    {
+        reversed[digits++] = (char)('0' + magnitude % 10);
+        magnitude /= 10;
+    } while (magnitude != 0);
+    size_t used = 0;
+    if (value < 0)
+    {
+        out[used++] = '-';
+    }
+    while (digits > 0)
+    {
+        out[used++] = reversed[--digits];
+    }
+    out[used] = '\0';
+    return used;
+}
+
 size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
                           const void *coded, size_t index, char *out,
                           size_t capacity)
@@ -871,13 +905,15 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
     {
         if (sdfio_has_bad_token(header->revision))
         {
-            return (size_t)snprintf(out, capacity, "BAD");
+            static const char bad[] = "BAD";
+            memcpy(out, bad, sizeof bad);
+            return sizeof bad - 1;
         }
         value = sdfio_ascii_bad_value(type, header->revision);
     }
     if (!sdfio_is_floating(type))
     {
-        return (size_t)snprintf(out, capacity, "%lld", (long long)value);
+        return format_integer((long long)value, out);
     }
     if (type == SDFIO_DATA_BINARY32)
     {

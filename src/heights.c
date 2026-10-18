@@ -153,21 +153,43 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     return SDFIO_OK;
 }
 
+/* What the check of a height needs of the data area, found once for all
+ * heights. */
+typedef struct coder
+{
+    bool floating;
+    bool binary32;
+    double lowest;
+    double highest;
+    sdfio_bad_test bad;
+} coder;
+
+static coder coder_for(sdfio_data_type type, sdfio_revision revision)
+{
+    coder result;
+    result.floating = sdfio_is_floating(type);
+    result.binary32 = type == SDFIO_DATA_BINARY32;
+    result.lowest = sdfio_lowest(type);
+    result.highest = sdfio_highest(type);
+    result.bad = sdfio_bad_test_for(type, revision);
+    return result;
+}
+
 /* A height as the data area codes it, checked against the range of the type and
  * against the number that marks a point as not measured. */
-static sdfio_status checked_coded(sdfio_data_type type, sdfio_revision revision,
-                                  double value, double *out)
+static sdfio_status checked_coded(const coder *checks, double value,
+                                  double *out)
 {
     double candidate = value;
-    if (sdfio_is_floating(type))
+    if (checks->floating)
     {
-        if (!in_range(value, sdfio_lowest(type), sdfio_highest(type)))
+        if (!in_range(value, checks->lowest, checks->highest))
         {
             return SDFIO_ERR_RANGE;
         }
         /* A number is compared as it is stored: one that rounds to the marker
          * is the marker. */
-        if (type == SDFIO_DATA_BINARY32)
+        if (checks->binary32)
         {
             candidate = (double)(float)value;
         }
@@ -175,16 +197,16 @@ static sdfio_status checked_coded(sdfio_data_type type, sdfio_revision revision,
     else
     {
         candidate = nearbyint(value);
-        if (!in_range(candidate, sdfio_lowest(type), sdfio_highest(type)))
+        if (!in_range(candidate, checks->lowest, checks->highest))
         {
             return SDFIO_ERR_RANGE;
         }
     }
-    if (sdfio_is_bad_value(type, revision, candidate))
+    if (sdfio_matches(checks->bad, candidate))
     {
         return SDFIO_ERR_BAD_VALUE;
     }
-    *out = sdfio_is_floating(type) ? value : candidate;
+    *out = checks->floating ? value : candidate;
     return SDFIO_OK;
 }
 
@@ -205,6 +227,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(format);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
+    const coder checks = coder_for(type, header->revision);
     double values[SDFIO_STACK_CHUNK];
     for (size_t first = 0; first < count; first += SDFIO_STACK_CHUNK)
     {
@@ -222,8 +245,8 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
                 values[i] = marker;
                 continue;
             }
-            const sdfio_status status = checked_coded(
-                type, header->revision, height / header->z_scale, &values[i]);
+            const sdfio_status status =
+                checked_coded(&checks, height / header->z_scale, &values[i]);
             if (status != SDFIO_OK)
             {
                 return status;

@@ -47,16 +47,19 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
         return false;
     }
     const double sign = negative ? -1.0 : 1.0;
-    if (sdfio_equals_nocase(text, size, "inf")
-        || sdfio_equals_nocase(text, size, "infinity"))
+    if (!sdfio_is_digit(text[0]) && text[0] != '.')
     {
-        *out = sign * INFINITY;
-        return true;
-    }
-    if (sdfio_equals_nocase(text, size, "nan"))
-    {
-        *out = NAN;
-        return true;
+        if (sdfio_equals_nocase(text, size, "inf")
+            || sdfio_equals_nocase(text, size, "infinity"))
+        {
+            *out = sign * INFINITY;
+            return true;
+        }
+        if (sdfio_equals_nocase(text, size, "nan"))
+        {
+            *out = NAN;
+            return true;
+        }
     }
 
     /* digits [. digits] [e [sign] digits], with a digit before or after the
@@ -199,35 +202,52 @@ size_t sdfio_format_scientific(const sdfio_point *point, char *out,
     }
     *marker = '\0';
 
-    /* The mantissa with a dot. */
-    char mantissa[SDFIO_NUMBER_CAPACITY];
-    size_t used = 0;
-    const size_t point_size = strlen(point->text);
-    for (const char *p = raw; *p != '\0';)
-    {
-        if (point_size > 0 && strncmp(p, point->text, point_size) == 0)
-        {
-            mantissa[used++] = '.';
-            p += point_size;
-        }
-        else
-        {
-            mantissa[used++] = *p++;
-        }
-    }
-    mantissa[used] = '\0';
-
     /* The exponent has a sign and at least `exponent_width` digits, which the
      * C library does not promise. */
     const char sign = marker[1] == '-' ? '-' : '+';
     const char *exponent = marker + 2;
-    while (exponent[0] == '0' && strlen(exponent) > 1)
+    while (exponent[0] == '0' && exponent[1] != '\0')
     {
         ++exponent;
     }
     const size_t exponent_size = strlen(exponent);
     const size_t width = (size_t)exponent_width;
     const size_t padding = exponent_size < width ? width - exponent_size : 0;
-    return (size_t)snprintf(out, capacity, "%se%c%.*s%s", mantissa, sign,
-                            (int)padding, "0000000000", exponent);
+
+    /* The mantissa with a dot where the C library has the point of the
+     * locale: after the first digit, behind an optional minus. */
+    const size_t point_size = strlen(point->text);
+    const size_t first_digit = raw[0] == '-' ? 1 : 0;
+    const size_t mantissa_size = (size_t)(marker - raw);
+    const bool has_point = digits > 0 && point_size > 0
+                           && mantissa_size > first_digit + point_size;
+    const size_t written = mantissa_size - (has_point ? point_size - 1 : 0) + 2
+                           + padding + exponent_size;
+    if (written >= capacity)
+    {
+        return written;
+    }
+    char *at = out;
+    if (has_point)
+    {
+        memcpy(at, raw, first_digit + 1);
+        at += first_digit + 1;
+        *at++ = '.';
+        const size_t rest = mantissa_size - first_digit - 1 - point_size;
+        memcpy(at, raw + first_digit + 1 + point_size, rest);
+        at += rest;
+    }
+    else
+    {
+        memcpy(at, raw, mantissa_size);
+        at += mantissa_size;
+    }
+    *at++ = 'e';
+    *at++ = sign;
+    memset(at, '0', padding);
+    at += padding;
+    memcpy(at, exponent, exponent_size);
+    at += exponent_size;
+    *at = '\0';
+    return (size_t)(at - out);
 }
