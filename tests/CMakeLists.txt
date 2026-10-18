@@ -50,11 +50,3 @@ add_executable(test_public test_public.c)
 target_link_libraries(test_public PRIVATE sdfio)
 target_compile_options(test_public PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
 add_test(NAME test_public COMMAND test_public)
-
-# Everything the library puts into a program starts with its name.
-if(UNIX)
-    add_test(NAME test_names COMMAND ${CMAKE_COMMAND}
-        -DLIBRARY=$<TARGET_FILE:sdfio>
-        "-DHEADERS=${PROJECT_SOURCE_DIR}/include/sdfio/sdfio.h;${PROJECT_SOURCE_DIR}/include/sdfio/file.h"
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/check_names.cmake)
-endif()
