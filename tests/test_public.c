@@ -65,7 +65,14 @@ int main(void)
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
                                  3 * sizeof(float)));
-    CHECK_OK(sdfio_write_trailer(writer, "Note = public", 13));
+    char composed[128];
+    size_t composed_size = 0;
+    CHECK_OK(sdfio_trailer_put_text(composed, sizeof composed, &composed_size,
+                                    "Note", "public"));
+    CHECK_OK(sdfio_trailer_put_real(composed, sizeof composed, &composed_size,
+                                    "Averages", 16.0));
+    CHECK_OK(sdfio_check_trailer(header.revision, composed, composed_size));
+    CHECK_OK(sdfio_write_trailer(writer, composed, composed_size));
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 
@@ -87,6 +94,20 @@ int main(void)
     const char *value = NULL;
     size_t value_size = 0;
     CHECK(sdfio_trailer_find(trailer, size, "Note", &value, &value_size));
+    double averages = 0.0;
+    CHECK_OK(sdfio_trailer_get_real(trailer, size, "Averages", &averages));
+    CHECK(averages == 16.0);
+    long long missing = 0;
+    CHECK_STATUS(SDFIO_ERR_NOT_FOUND,
+                 sdfio_trailer_get_integer(trailer, size, "Absent", &missing));
+    size_t position = 0;
+    sdfio_field field;
+    size_t fields = 0;
+    while (sdfio_trailer_next(trailer, size, &position, &field))
+    {
+        ++fields;
+    }
+    CHECK(fields == 2);
     CHECK_OK(sdfio_rewind(reader));
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));

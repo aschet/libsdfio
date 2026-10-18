@@ -75,6 +75,8 @@ typedef enum sdfio_status
     SDFIO_ERR_RANGE,
     /** A height equals the bad value, which labels a point as not measured. */
     SDFIO_ERR_BAD_VALUE,
+    /** A field of the trailer is not there. */
+    SDFIO_ERR_NOT_FOUND,
     SDFIO_ERR_MEMORY
 } sdfio_status;
 
@@ -89,11 +91,12 @@ typedef enum sdfio_revision
     SDFIO_BCR_1_0
 } sdfio_revision;
 
-typedef enum sdfio_storage
+/** The representation of a file, as the standard calls them: text or binary. */
+typedef enum sdfio_representation
 {
     SDFIO_BINARY,
     SDFIO_ASCII
-} sdfio_storage;
+} sdfio_representation;
 
 /** How a value of the data area is coded. The numbers are those of the
  * standard. */
@@ -166,7 +169,7 @@ enum
 typedef struct sdfio_header
 {
     sdfio_revision revision;
-    sdfio_storage storage;
+    sdfio_representation representation;
     sdfio_data_type data_type;
     /** Number of columns in the data matrix, M: the points along x. */
     size_t columns;
@@ -551,14 +554,96 @@ sdfio_suggest_z_scale(sdfio_data_type type, sdfio_revision revision,
 
 /* ---- Trailer ------------------------------------------------------------ */
 
+/*
+ * A trailer, record 3, is free text, and in ISO-2.0 it is made of fields in
+ * the tagged form of the header: a line `field name = value`, the field name
+ * without regard to the case. Lines that are not of that form are not fields.
+ * In memory the lines end with LF; see sdfio_read_trailer() and
+ * sdfio_write_trailer(). The numbers are written and read with a dot, whatever
+ * the locale is.
+ */
+
+/** A field of a trailer: it points into the trailer, which keeps it. */
+typedef struct sdfio_field
+{
+    /** The field name and the value, not 0-terminated, without the white space
+     * around them. */
+    const char *name;
+    size_t name_size;
+    const char *value;
+    size_t value_size;
+} sdfio_field;
+
 /**
- * Looks for the line `Name = Value` in a trailer, with the name compared
- * without regard to the case; the last such line wins. On success `value`
- * points into the trailer, without the white space around it.
+ * Looks for the field `name` in a trailer, with the name compared without
+ * regard to the case; the last such field wins. On success `value` points into
+ * the trailer, without the white space around it.
  */
 SDFIO_API bool sdfio_trailer_find(const char *trailer, size_t size,
                                   const char *name, const char **value,
                                   size_t *value_size);
+
+/**
+ * Goes through the fields of a trailer in their order: start with a position
+ * of 0, and every call gives the next field and moves the position past it.
+ * Returns false when there are no more.
+ *
+ * ~~~
+ * size_t position = 0;
+ * sdfio_field field;
+ * while (sdfio_trailer_next(trailer, size, &position, &field)) { ... }
+ * ~~~
+ */
+SDFIO_API bool sdfio_trailer_next(const char *trailer, size_t size,
+                                  size_t *position, sdfio_field *field);
+
+/**
+ * The value of a field as an integer, or as a number, with white space around
+ * it allowed.
+ *
+ * @return SDFIO_ERR_NOT_FOUND if there is no such field, SDFIO_ERR_FORMAT if
+ * its value is not a number of that kind or does not fit.
+ */
+SDFIO_API sdfio_status sdfio_trailer_get_integer(const char *trailer,
+                                                 size_t size, const char *field,
+                                                 long long *value);
+SDFIO_API sdfio_status sdfio_trailer_get_real(const char *trailer, size_t size,
+                                              const char *field, double *value);
+
+/**
+ * Appends the line `field = value` to the text in `buffer`, which holds `*size`
+ * bytes of `capacity`, and adds its length to `*size`. Nothing is allocated.
+ * The buffer stays 0-terminated, and its text is a trailer to hand to
+ * sdfio_write_trailer(). The value of an integer is written in decimal, and a
+ * number with enough digits to be read back exactly. White space around a text
+ * value is lost when it is read.
+ *
+ * @return SDFIO_ERR_ARGUMENT if the field name is empty or has a character
+ * other than a letter, a digit or `_`, if the value is not one line of 7-bit
+ * ASCII, or if a number is not finite. SDFIO_ERR_RANGE if the line and its
+ * 0 do not fit: the buffer is left as it was.
+ */
+SDFIO_API sdfio_status sdfio_trailer_put_text(char *buffer, size_t capacity,
+                                              size_t *size, const char *field,
+                                              const char *value);
+SDFIO_API sdfio_status sdfio_trailer_put_integer(char *buffer, size_t capacity,
+                                                 size_t *size,
+                                                 const char *field,
+                                                 long long value);
+SDFIO_API sdfio_status sdfio_trailer_put_real(char *buffer, size_t capacity,
+                                              size_t *size, const char *field,
+                                              double value);
+
+/**
+ * Checks that a trailer can be written to a file of the revision: 7-bit ASCII,
+ * and in ISO-2.0 every line a field or blank. Call it before the first row,
+ * so that a trailer that cannot be written does not show only after the whole
+ * data area is.
+ *
+ * @return SDFIO_ERR_ARGUMENT if it cannot.
+ */
+SDFIO_API sdfio_status sdfio_check_trailer(sdfio_revision revision,
+                                           const char *trailer, size_t size);
 
 #ifdef __cplusplus
 }

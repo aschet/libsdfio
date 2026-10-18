@@ -22,7 +22,7 @@ typedef struct expectation
 {
     char path[LINE_CAPACITY];
     char revision[16];
-    char storage[16];
+    char representation[16];
     char type[16];
     size_t rows;
     size_t columns;
@@ -91,7 +91,7 @@ static bool parse_line(char *line, expectation *e)
     }
     snprintf(e->path, sizeof e->path, "%s", fields[0]);
     snprintf(e->revision, sizeof e->revision, "%s", fields[1]);
-    snprintf(e->storage, sizeof e->storage, "%s", fields[2]);
+    snprintf(e->representation, sizeof e->representation, "%s", fields[2]);
     snprintf(e->type, sizeof e->type, "%s", fields[3]);
     e->rows = strtoul(fields[4], NULL, 10);
     e->columns = strtoul(fields[5], NULL, 10);
@@ -129,9 +129,9 @@ static void check_against(const expectation *e)
         return;
     }
     CHECK(strcmp(sdfio_revision_name(header->revision), e->revision) == 0);
-    CHECK(
-        strcmp(header->storage == SDFIO_ASCII ? "ascii" : "binary", e->storage)
-        == 0);
+    CHECK(strcmp(header->representation == SDFIO_ASCII ? "ascii" : "binary",
+                 e->representation)
+          == 0);
     CHECK(strcmp(sdfio_data_type_name(header->data_type), e->type) == 0);
     CHECK(header->rows == e->rows);
     CHECK(header->columns == e->columns);

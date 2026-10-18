@@ -218,7 +218,7 @@ void sdfio_header_init(sdfio_header *header)
 {
     *header = (sdfio_header){0};
     header->revision = SDFIO_ISO_2_0;
-    header->storage = SDFIO_BINARY;
+    header->representation = SDFIO_BINARY;
     header->data_type = SDFIO_DATA_BINARY32;
     header->x_scale = 1.0;
     header->y_scale = 1.0;

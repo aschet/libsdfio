@@ -33,6 +33,8 @@ const char *sdfio_status_string(sdfio_status status)
         return "a number does not fit its type";
     case SDFIO_ERR_BAD_VALUE:
         return "a height equals the marker of a point that is not measured";
+    case SDFIO_ERR_NOT_FOUND:
+        return "a field was not found";
     case SDFIO_ERR_MEMORY:
         return "out of memory";
     }

@@ -121,7 +121,7 @@ static void check_locale(void)
     /* A file written and read in such a locale has the dots of the format. */
     sdfio_header header;
     sdfio_header_init(&header);
-    header.storage = SDFIO_ASCII;
+    header.representation = SDFIO_ASCII;
     header.data_type = SDFIO_DATA_BINARY64;
     header.columns = 3;
     header.rows = 1;

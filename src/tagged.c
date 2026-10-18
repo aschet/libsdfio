@@ -157,27 +157,36 @@ bool sdfi_tagged_valid(const char *text, size_t size)
     return true;
 }
 
+bool sdfi_tagged_next(const char *text, size_t size, size_t *position,
+                      const char **name, size_t *name_size, const char **value,
+                      size_t *value_size)
+{
+    const char *line = NULL;
+    size_t line_size = 0;
+    while (sdfi_next_line(text, size, position, &line, &line_size))
+    {
+        if (split_line(line, line_size, name, name_size, value, value_size))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool sdfi_tagged_find(const char *text, size_t size, const char *name,
                       const char **value, size_t *value_size)
 {
     const size_t wanted = strlen(name);
     bool found = false;
     size_t position = 0;
-    const char *line = NULL;
-    size_t line_size = 0;
-    while (sdfi_next_line(text, size, &position, &line, &line_size))
+    const char *field = NULL;
+    const char *content = NULL;
+    size_t field_size = 0;
+    size_t content_size = 0;
+    while (sdfi_tagged_next(text, size, &position, &field, &field_size,
+                            &content, &content_size))
     {
-        const char *field = NULL;
-        const char *content = NULL;
-        size_t field_size = 0;
-        size_t content_size = 0;
-        if (!split_line(line, line_size, &field, &field_size, &content,
-                        &content_size)
-            || field_size != wanted)
-        {
-            continue;
-        }
-        bool same = true;
+        bool same = field_size == wanted;
         for (size_t i = 0; i < wanted && same; ++i)
         {
             same = sdfi_lower(field[i]) == sdfi_lower(name[i]);
@@ -190,14 +199,4 @@ bool sdfi_tagged_find(const char *text, size_t size, const char *name,
         }
     }
     return found;
-}
-
-bool sdfio_trailer_find(const char *trailer, size_t size, const char *name,
-                        const char **value, size_t *value_size)
-{
-    if (trailer == NULL || name == NULL || value == NULL || value_size == NULL)
-    {
-        return false;
-    }
-    return sdfi_tagged_find(trailer, size, name, value, value_size);
 }

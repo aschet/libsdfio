@@ -185,7 +185,7 @@ static sdfio_status start_data(sdfio_writer *writer)
         }
     }
     sdfio_status status = SDFIO_OK;
-    if (header->storage == SDFIO_BINARY)
+    if (header->representation == SDFIO_BINARY)
     {
         unsigned char bytes[SDFI_BINARY_HEADER_MAX];
         size_t size = 0;
@@ -219,7 +219,7 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
 {
     const sdfio_header *header = &writer->header;
     const size_t size = sdfio_data_type_size(header->data_type);
-    if (header->storage == SDFIO_BINARY)
+    if (header->representation == SDFIO_BINARY)
     {
         if (sdfi_host_is_little_endian())
         {
@@ -442,18 +442,6 @@ static sdfio_status finish_file(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-static bool is_ascii_text(const char *text, size_t size)
-{
-    for (size_t i = 0; i < size; ++i)
-    {
-        if ((unsigned char)text[i] >= SDFI_FIRST_NON_ASCII)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
                                  size_t size)
 {
@@ -469,30 +457,18 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
                          "%zu of %zu rows were written", writer->next_row,
                          header->rows);
     }
-    if (trailer == NULL && size > 0)
+    status =
+        sdfi_check_trailer(header->revision, trailer, size, &writer->message);
+    if (status != SDFIO_OK)
     {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    if (!is_ascii_text(trailer != NULL ? trailer : "",
-                       trailer != NULL ? size : 0))
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "The SDF trailer must be 7-bit ASCII");
-    }
-    if (size > 0 && sdfi_requires_tagged_trailer(header->revision)
-        && !sdfi_tagged_valid(trailer, size))
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "The trailer of SDF %s must use the tagged "
-                         "'Name = Value' form",
-                         sdfio_revision_name(header->revision));
+        return status;
     }
     status = start_data(writer);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    if (header->storage == SDFIO_BINARY)
+    if (header->representation == SDFIO_BINARY)
     {
         if (size > 0 && !sdfi_write_crlf_lines(&writer->sink, trailer, size))
         {

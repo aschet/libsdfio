@@ -54,6 +54,7 @@ set(SDFIO_SOURCES
     src/reader.c
     src/stream.c
     src/tagged.c
+    src/trailer.c
     src/types.c
     src/values.c
     src/writer.c

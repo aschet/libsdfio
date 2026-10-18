@@ -81,12 +81,14 @@ static bool positive(double value)
 sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message)
 {
     if (header->revision < SDFIO_ISO_1_0 || header->revision > SDFIO_BCR_1_0
-        || (header->storage != SDFIO_BINARY && header->storage != SDFIO_ASCII)
+        || (header->representation != SDFIO_BINARY
+            && header->representation != SDFIO_ASCII)
         || !sdfi_valid_data_type(header->data_type))
     {
-        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
-                         "The revision, the storage or the data type is not "
-                         "one of the enumeration");
+        return sdfi_fail(
+            message, SDFIO_ERR_ARGUMENT,
+            "The revision, the representation or the data type is not "
+            "one of the enumeration");
     }
     if (!sdfio_revision_allows(header->revision, header->data_type))
     {
@@ -141,7 +143,7 @@ sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message)
         return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "columns times rows does not fit in size_t");
     }
-    if (header->storage == SDFIO_BINARY
+    if (header->representation == SDFIO_BINARY
         && (header->columns > sdfi_max_binary_count(header->revision)
             || header->rows > sdfi_max_binary_count(header->revision)))
     {

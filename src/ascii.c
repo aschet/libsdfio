@@ -560,7 +560,7 @@ sdfio_status sdfi_ascii_parse_header(sdfi_source *source, sdfio_header *header,
         goto done;
     }
     header->revision = revision;
-    header->storage = SDFIO_ASCII;
+    header->representation = SDFIO_ASCII;
     header->data_type = type;
     header->z_resolution = resolution > 0.0 && isfinite(resolution)
                                ? resolution

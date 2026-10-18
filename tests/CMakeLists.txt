@@ -46,3 +46,4 @@ if(UNIX)
         -DHEADER=${PROJECT_SOURCE_DIR}/include/sdfio/sdfio.h
         -P ${CMAKE_CURRENT_SOURCE_DIR}/check_names.cmake)
 endif()
+sdfio_add_test(test_trailer)

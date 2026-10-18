@@ -45,11 +45,11 @@ static void make_heights(double *heights)
 }
 
 static void describe(sdfio_header *header, sdfio_revision revision,
-                     sdfio_storage storage, sdfio_data_type type)
+                     sdfio_representation representation, sdfio_data_type type)
 {
     sdfio_header_init(header);
     header->revision = revision;
-    header->storage = storage;
+    header->representation = representation;
     header->data_type = type;
     header->columns = COLUMNS;
     header->rows = ROWS;
@@ -61,11 +61,12 @@ static void describe(sdfio_header *header, sdfio_revision revision,
     snprintf(header->manufacturer_id, sizeof header->manufacturer_id, "ACME 7");
 }
 
-static void check_roundtrip(sdfio_revision revision, sdfio_storage storage,
+static void check_roundtrip(sdfio_revision revision,
+                            sdfio_representation representation,
                             sdfio_data_type type)
 {
     sdfio_header header;
-    describe(&header, revision, storage, type);
+    describe(&header, revision, representation, type);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
 
@@ -90,7 +91,7 @@ static void check_roundtrip(sdfio_revision revision, sdfio_storage storage,
         return;
     }
     CHECK(read->revision == revision);
-    CHECK(read->storage == storage);
+    CHECK(read->representation == representation);
     CHECK(read->data_type == type);
     CHECK(read->columns == COLUMNS && read->rows == ROWS);
     CHECK(read->x_scale == header.x_scale && read->y_scale == header.y_scale);
@@ -146,10 +147,11 @@ static void check_all_types(void)
 {
     const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
                                         SDFIO_BCR_1_0};
-    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < sizeof revisions / sizeof revisions[0]; ++r)
     {
-        for (size_t s = 0; s < sizeof storages / sizeof storages[0]; ++s)
+        for (size_t s = 0;
+             s < sizeof representations / sizeof representations[0]; ++s)
         {
             for (int t = SDFIO_DATA_UINT8; t <= SDFIO_DATA_BINARY64; ++t)
             {
@@ -161,7 +163,7 @@ static void check_all_types(void)
                 {
                     continue;
                 }
-                check_roundtrip(revisions[r], storages[s], type);
+                check_roundtrip(revisions[r], representations[s], type);
             }
         }
     }
@@ -169,10 +171,11 @@ static void check_all_types(void)
 
 /* The rows API moves the stored values as they are, in the order of the file,
  * which is reversed in BCR-1.0. */
-static void check_rows(sdfio_revision revision, sdfio_storage storage)
+static void check_rows(sdfio_revision revision,
+                       sdfio_representation representation)
 {
     sdfio_header header;
-    describe(&header, revision, storage, SDFIO_DATA_INT16);
+    describe(&header, revision, representation, SDFIO_DATA_INT16);
     header.z_scale = 1e-9;
     int16_t counts[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
@@ -201,8 +204,8 @@ static void check_rows(sdfio_revision revision, sdfio_storage storage)
     size_t size = 1;
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     /* A text file closes the trailer record, so it has an empty one. */
-    CHECK(storage == SDFIO_ASCII ? (trailer != NULL && size == 0)
-                                 : (trailer == NULL && size == 0));
+    CHECK(representation == SDFIO_ASCII ? (trailer != NULL && size == 0)
+                                        : (trailer == NULL && size == 0));
 
     /* The heights are in the order of y in every revision. */
     sdfio_header as_read = *sdfio_get_header(reader);
@@ -489,11 +492,12 @@ static void check_element_stride(void)
 /* An unknown z-resolution is -1, as the standard has it: whatever a program
  * gives that is not positive is written as -1, and whatever a file holds that
  * is not positive is read as -1. */
-static void write_with_resolution(membuf *file, sdfio_storage storage,
+static void write_with_resolution(membuf *file,
+                                  sdfio_representation representation,
                                   double resolution)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, storage, SDFIO_DATA_BINARY64);
+    describe(&header, SDFIO_ISO_2_0, representation, SDFIO_DATA_BINARY64);
     header.z_resolution = resolution;
     double heights[ROWS * COLUMNS];
     make_heights(heights);
@@ -527,17 +531,17 @@ static void check_resolution(void)
     CHECK(initial.z_resolution == SDFIO_NO_RESOLUTION);
 
     const double given[] = {SDFIO_NO_RESOLUTION, 0.0, -5.0, 1e-9};
-    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
     {
         for (size_t g = 0; g < sizeof given / sizeof given[0]; ++g)
         {
             membuf file = {0};
-            write_with_resolution(&file, storages[s], given[g]);
+            write_with_resolution(&file, representations[s], given[g]);
             const double expected =
                 given[g] > 0.0 ? given[g] : SDFIO_NO_RESOLUTION;
             CHECK(resolution_read(&file) == expected);
-            if (storages[s] == SDFIO_BINARY)
+            if (representations[s] == SDFIO_BINARY)
             {
                 /* Four doubles and three bytes end the header. */
                 double stored = 0.0;
@@ -588,7 +592,7 @@ static void check_defaults(void)
     sdfio_header header;
     sdfio_header_init(&header);
     CHECK(header.revision == SDFIO_ISO_2_0);
-    CHECK(header.storage == SDFIO_BINARY);
+    CHECK(header.representation == SDFIO_BINARY);
     CHECK(header.data_type == SDFIO_DATA_BINARY32);
     CHECK(header.z_scale == SDFIO_AUTO_Z_SCALE);
     CHECK(header.columns == 0 && header.rows == 0);
@@ -655,13 +659,14 @@ static void check_trailer_line_ends(void)
         {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2"},
         {"A = 1", "A = 1\r\n", "A = 1"},
     };
-    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
     {
         for (size_t v = 0; v < sizeof variants / sizeof variants[0]; ++v)
         {
             sdfio_header header;
-            describe(&header, SDFIO_ISO_2_0, storages[s], SDFIO_DATA_BINARY64);
+            describe(&header, SDFIO_ISO_2_0, representations[s],
+                     SDFIO_DATA_BINARY64);
             header.columns = 1;
             header.rows = 1;
             const double height = 1e-6;
@@ -677,7 +682,7 @@ static void check_trailer_line_ends(void)
 
             const size_t data_at =
                 sdfi_binary_header_size(SDFIO_ISO_2_0) + sizeof(double);
-            if (storages[s] == SDFIO_BINARY)
+            if (representations[s] == SDFIO_BINARY)
             {
                 CHECK(file.size == data_at + strlen(variants[v].in_file));
                 CHECK(memcmp(file.data + data_at, variants[v].in_file,

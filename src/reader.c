@@ -123,7 +123,7 @@ static sdfio_status check_size(sdfio_reader *reader)
     const uint64_t room = (uint64_t)size > (uint64_t)reader->data_start
                               ? (uint64_t)size - (uint64_t)reader->data_start
                               : 0;
-    if (header->storage == SDFIO_BINARY)
+    if (header->representation == SDFIO_BINARY)
     {
         if (reader->value_count
             > room / sdfio_data_type_size(header->data_type))
@@ -268,7 +268,7 @@ static sdfio_status stream_error(sdfio_reader *reader)
 static sdfio_status read_values(sdfio_reader *reader, void *dst, size_t count)
 {
     const sdfio_header *header = &reader->header;
-    if (header->storage == SDFIO_ASCII)
+    if (header->representation == SDFIO_ASCII)
     {
         for (size_t i = 0; i < count; ++i)
         {
@@ -304,7 +304,7 @@ static sdfio_status finish_data(sdfio_reader *reader)
     }
     const sdfio_header *header = &reader->header;
     const bool all_read = reader->next_row == header->rows;
-    if (header->storage == SDFIO_ASCII)
+    if (header->representation == SDFIO_ASCII)
     {
         const sdfio_status status =
             all_read
@@ -473,7 +473,7 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
     status = finish_data(reader);
     if (status == SDFIO_OK)
     {
-        status = reader->header.storage == SDFIO_ASCII
+        status = reader->header.representation == SDFIO_ASCII
                      ? sdfi_ascii_trailer(
                            &reader->source, &reader->header, &reader->trailer,
                            &reader->trailer_present, &reader->message)

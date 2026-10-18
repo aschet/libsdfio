@@ -280,6 +280,10 @@ bool sdfi_next_line(const char *text, size_t size, size_t *position,
                     const char **line, size_t *line_size);
 /* Whether every line is blank or of the form `Name = Value`. */
 bool sdfi_tagged_valid(const char *text, size_t size);
+/* The next line that is a field, with its name and its value trimmed. */
+bool sdfi_tagged_next(const char *text, size_t size, size_t *position,
+                      const char **name, size_t *name_size, const char **value,
+                      size_t *value_size);
 bool sdfi_tagged_find(const char *text, size_t size, const char *name,
                       const char **value, size_t *value_size);
 
@@ -380,6 +384,11 @@ size_t sdfi_ascii_format(const sdfio_header *header, const sdfi_point *point,
 /* The closing "*" of the data area, the trailer record and its "*". */
 sdfio_status sdfi_ascii_tail(const char *trailer, size_t size, sdfi_string *out,
                              sdfi_message *message);
+
+/* Checks that a trailer can be written to a file of the revision: 7-bit ASCII,
+ * and in the tagged form for ISO-2.0. */
+sdfio_status sdfi_check_trailer(sdfio_revision revision, const char *trailer,
+                                size_t size, sdfi_message *message);
 
 /* Checks what makes a file that cannot be written. */
 sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message);

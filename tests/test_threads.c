@@ -100,7 +100,7 @@ static void *write_and_read(void *argument)
         sdfio_header header;
         sdfio_header_init(&header);
         header.revision = revisions[(self->id + (size_t)round) % 3];
-        header.storage =
+        header.representation =
             (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY : SDFIO_ASCII;
         header.data_type = SDFIO_DATA_INT32;
         header.columns = COLUMNS;

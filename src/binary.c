@@ -148,7 +148,7 @@ sdfio_status sdfi_binary_parse(const unsigned char *bytes, sdfio_header *header,
                          sdfio_revision_name(revision));
     }
     header->revision = revision;
-    header->storage = SDFIO_BINARY;
+    header->representation = SDFIO_BINARY;
     header->data_type = type;
     header->z_resolution = resolution > 0.0 && isfinite(resolution)
                                ? resolution
