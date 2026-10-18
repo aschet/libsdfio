@@ -1,4 +1,4 @@
-#include <sdf/sdf.h>
+#include <sdfio/sdfio.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -7,30 +7,30 @@
 /* The statistics of a file from a pipe, a row at a time: no matrix is held. */
 int main(void)
 {
-    const sdf_stream stream = sdf_stdio_stream(stdin);
-    sdf_reader *reader = sdf_reader_new();
-    sdf_status status = sdf_open_stream(reader, &stream);
-    if (status != SDF_OK)
+    const sdfio_stream stream = sdfio_stdio_stream(stdin);
+    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_status status = sdfio_open_stream(reader, &stream);
+    if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdf_reader_message(reader));
-        sdf_reader_free(reader);
+        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
 
-    const sdf_info *info = sdf_get_info(reader);
-    void *stored = sdf_alloc_stored(info, 1);
-    double *heights = sdf_alloc_heights(info, SDF_FLOAT64, 1);
+    const sdfio_header *header = sdfio_get_header(reader);
+    void *coded = sdfio_alloc_data(header, 1);
+    double *heights = sdfio_alloc_heights(header, SDFIO_FLOAT64, 1);
     double lowest = INFINITY;
     double highest = -INFINITY;
-    for (size_t row = 0; row < info->rows && status == SDF_OK; ++row)
+    for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
     {
-        status = sdf_read_rows(reader, stored, 1);
-        if (status == SDF_OK)
+        status = sdfio_read_data(reader, coded, 1);
+        if (status == SDFIO_OK)
         {
-            status = sdf_decode_heights(info, sdf_metres(SDF_FLOAT64), stored,
-                                        info->columns, heights);
+            status = sdfio_decode_heights(header, sdfio_metres(SDFIO_FLOAT64),
+                                          coded, header->columns, heights);
         }
-        for (size_t column = 0; column < info->columns && status == SDF_OK;
+        for (size_t column = 0; column < header->columns && status == SDFIO_OK;
              ++column)
         {
             if (!isnan(heights[column]))
@@ -40,16 +40,16 @@ int main(void)
             }
         }
     }
-    if (status != SDF_OK)
+    if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdf_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
     }
     else
     {
         printf("from %g m to %g m\n", lowest, highest);
     }
-    sdf_free(stored);
-    sdf_free(heights);
-    sdf_reader_free(reader);
-    return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
+    sdfio_free(coded);
+    sdfio_free(heights);
+    sdfio_reader_free(reader);
+    return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

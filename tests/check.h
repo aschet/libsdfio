@@ -7,15 +7,15 @@
 /* A small harness: a failed check is counted and reported, and the test goes
  * on. The program exits with the number of failures. */
 
-#ifndef SDF_TESTS_CHECK_H
-#define SDF_TESTS_CHECK_H
+#ifndef SDFIO_TESTS_CHECK_H
+#define SDFIO_TESTS_CHECK_H
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <sdf/sdf.h>
+#include <sdfio/sdfio.h>
 
 static int failures = 0;
 static int checks = 0;
@@ -35,19 +35,19 @@ static int checks = 0;
 #define CHECK_STATUS(expected, call)                                           \
     do                                                                         \
     {                                                                          \
-        const sdf_status actual_status = (call);                               \
+        const sdfio_status actual_status = (call);                             \
         ++checks;                                                              \
         if (actual_status != (expected))                                       \
         {                                                                      \
             fprintf(stderr, "%s:%d: %s returned \"%s\", expected \"%s\"\n",    \
                     __FILE__, __LINE__, #call,                                 \
-                    sdf_status_string(actual_status),                          \
-                    sdf_status_string(expected));                              \
+                    sdfio_status_string(actual_status),                        \
+                    sdfio_status_string(expected));                            \
             ++failures;                                                        \
         }                                                                      \
     } while (0)
 
-#define CHECK_OK(call) CHECK_STATUS(SDF_OK, call)
+#define CHECK_OK(call) CHECK_STATUS(SDFIO_OK, call)
 
 static inline bool near_relative(double a, double b, double relative)
 {
@@ -86,9 +86,9 @@ static inline size_t membuf_write(void *user, const void *data, size_t size)
     return size;
 }
 
-static inline sdf_stream membuf_stream(membuf *buffer)
+static inline sdfio_stream membuf_stream(membuf *buffer)
 {
-    sdf_stream stream = {0};
+    sdfio_stream stream = {0};
     stream.user = buffer;
     stream.write = membuf_write;
     return stream;
@@ -105,4 +105,4 @@ static inline int finish_tests(void)
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-#endif /* SDF_TESTS_CHECK_H */
+#endif /* SDFIO_TESTS_CHECK_H */

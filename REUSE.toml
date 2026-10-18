@@ -16,6 +16,6 @@ SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = ["examples/*.c"]
+path = ["examples/*.c", "examples/integrations/*.cpp"]
 SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "0BSD"

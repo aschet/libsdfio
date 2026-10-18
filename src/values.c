@@ -54,7 +54,7 @@ static bool in_range(double value, double low, double high)
         }                                                                      \
         break;
 
-void sdfi_load_samples(sdf_sample sample, const void *src, size_t count,
+void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
                        double *out)
 {
     switch (sample)
@@ -68,8 +68,8 @@ void sdfi_load_samples(sdf_sample sample, const void *src, size_t count,
         sdfi_load_samples(sample, src, count, out);                            \
         break;
 
-void sdfi_load_stored(sdf_data_type type, const void *src, size_t count,
-                      double *out)
+void sdfi_load_coded(sdfio_data_type type, const void *src, size_t count,
+                     double *out)
 {
     switch (type)
     {
@@ -89,7 +89,7 @@ void sdfi_load_stored(sdf_data_type type, const void *src, size_t count,
                 if (isfinite(values[i])                                        \
                     && !in_range(values[i], (double)(low), (double)(high)))    \
                 {                                                              \
-                    return SDF_ERR_RANGE;                                      \
+                    return SDFIO_ERR_RANGE;                                    \
                 }                                                              \
                 converted = (type)values[i];                                   \
             }                                                                  \
@@ -99,7 +99,7 @@ void sdfi_load_stored(sdf_data_type type, const void *src, size_t count,
                     isnan(values[i]) ? 0.0 : nearbyint(values[i]);             \
                 if (!in_range(rounded, (double)(low), (double)(high)))         \
                 {                                                              \
-                    return SDF_ERR_RANGE;                                      \
+                    return SDFIO_ERR_RANGE;                                    \
                 }                                                              \
                 converted = (type)rounded;                                     \
             }                                                                  \
@@ -108,49 +108,48 @@ void sdfi_load_stored(sdf_data_type type, const void *src, size_t count,
         }                                                                      \
         break;
 
-sdf_status sdfi_store_samples(sdf_sample sample, void *dst,
-                              const double *values, size_t count)
+sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
+                                const double *values, size_t count)
 {
     switch (sample)
     {
         SDFI_SCALARS(STORE_CASE)
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
 #define STORE_STORED_CASE(sample, data, name, type, bits, low, high, floating) \
     case data:                                                                 \
         return sdfi_store_samples(sample, dst, values, count);
 
-sdf_status sdfi_store_stored(sdf_data_type type, void *dst,
-                             const double *values, size_t count)
+sdfio_status sdfi_store_coded(sdfio_data_type type, void *dst,
+                              const double *values, size_t count)
 {
     switch (type)
     {
         SDFI_SCALARS(STORE_STORED_CASE)
     }
-    return SDF_ERR_ARGUMENT;
+    return SDFIO_ERR_ARGUMENT;
 }
 
-sdf_status sdfi_put_real(sdf_data_type type, void *dst, size_t index,
-                         double value)
+sdfio_status sdfi_put_real(sdfio_data_type type, void *dst, size_t index,
+                           double value)
 {
-    const size_t size = sdf_data_type_size(type);
-    return sdfi_store_stored(type, (unsigned char *)dst + index * size, &value,
-                             1);
+    const size_t size = sdfio_data_type_size(type);
+    return sdfi_store_coded(type, (unsigned char *)dst + index * size, &value,
+                            1);
 }
 
-sdf_status sdfi_put_integer(sdf_data_type type, void *dst, size_t index,
-                            long long value)
+sdfio_status sdfi_put_integer(sdfio_data_type type, void *dst, size_t index,
+                              long long value)
 {
     return sdfi_put_real(type, dst, index, (double)value);
 }
 
-double sdfi_get_real(sdf_data_type type, const void *src, size_t index)
+double sdfi_get_real(sdfio_data_type type, const void *src, size_t index)
 {
     double value = 0.0;
-    const size_t size = sdf_data_type_size(type);
-    sdfi_load_stored(type, (const unsigned char *)src + index * size, 1,
-                     &value);
+    const size_t size = sdfio_data_type_size(type);
+    sdfi_load_coded(type, (const unsigned char *)src + index * size, 1, &value);
     return value;
 }

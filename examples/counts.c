@@ -1,4 +1,4 @@
-#include <sdf/sdf.h>
+#include <sdfio/sdfio.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,33 +22,33 @@ static void scan(int16_t *row, size_t index)
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "counts.sdf";
-    sdf_info info;
-    sdf_info_init(&info);
-    info.data_type = SDF_DATA_INT16;
-    info.columns = COLUMNS;
-    info.rows = ROWS;
-    info.x_scale = 2e-6;
-    info.y_scale = 2e-6;
-    info.z_scale =
-        sdf_z_scale_for_range(info.data_type, info.revision, -80e-6, 80e-6);
-    info.z_resolution = info.z_scale;
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.data_type = SDFIO_DATA_INT16;
+    header.columns = COLUMNS;
+    header.rows = ROWS;
+    header.x_scale = 2e-6;
+    header.y_scale = 2e-6;
+    header.z_scale = sdfio_z_scale_for_range(header.data_type, header.revision,
+                                             -80e-6, 80e-6);
+    header.z_resolution = header.z_scale;
 
-    sdf_writer *writer = sdf_writer_new();
-    sdf_status status = sdf_create_file(writer, path, &info);
+    sdfio_writer *writer = sdfio_writer_new();
+    sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
-    for (size_t index = 0; index < ROWS && status == SDF_OK; ++index)
+    for (size_t index = 0; index < ROWS && status == SDFIO_OK; ++index)
     {
         scan(row, index);
-        status = sdf_write_rows(writer, row, 1);
+        status = sdfio_write_data(writer, row, 1);
     }
-    if (status == SDF_OK)
+    if (status == SDFIO_OK)
     {
-        status = sdf_write_end(writer, NULL, 0);
+        status = sdfio_write_trailer(writer, NULL, 0);
     }
-    if (status != SDF_OK)
+    if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdf_writer_message(writer));
+        fprintf(stderr, "%s\n", sdfio_writer_message(writer));
     }
-    sdf_writer_free(writer);
-    return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
+    sdfio_writer_free(writer);
+    return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

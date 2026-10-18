@@ -24,25 +24,27 @@ static void *allocate(size_t columns, size_t rows, size_t element_size)
     return calloc(bytes > 0 ? bytes : 1, 1);
 }
 
-void *sdf_alloc_stored(const sdf_info *info, size_t rows)
+void *sdfio_alloc_data(const sdfio_header *header, size_t rows)
 {
-    if (info == NULL)
+    if (header == NULL)
     {
         return NULL;
     }
-    return allocate(info->columns, rows, sdf_data_type_size(info->data_type));
+    return allocate(header->columns, rows,
+                    sdfio_data_type_size(header->data_type));
 }
 
-void *sdf_alloc_heights(const sdf_info *info, sdf_sample sample, size_t rows)
+void *sdfio_alloc_heights(const sdfio_header *header, sdfio_sample sample,
+                          size_t rows)
 {
-    if (info == NULL)
+    if (header == NULL)
     {
         return NULL;
     }
-    return allocate(info->columns, rows, sdf_sample_size(sample));
+    return allocate(header->columns, rows, sdfio_sample_size(sample));
 }
 
-void sdf_free(void *memory)
+void sdfio_free(void *memory)
 {
     free(memory);
 }

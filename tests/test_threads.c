@@ -12,8 +12,8 @@
 
 #include <pthread.h>
 
-#define SAMPLES SDF_TEST_DATA_DIR "/samples/iso25178-71-2026/"
-#define BCR_SAMPLES SDF_TEST_DATA_DIR "/samples/bcr-1.0/"
+#define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
+#define BCR_SAMPLES SDFIO_TEST_DATA_DIR "/samples/bcr-1.0/"
 
 enum
 {
@@ -40,20 +40,20 @@ typedef struct job
 } job;
 
 /* The sum of the heights of a file, or NaN if it cannot be read. */
-static double read_sum(const char *path, sdf_reader *reader)
+static double read_sum(const char *path, sdfio_reader *reader)
 {
-    if (sdf_open_file(reader, path) != SDF_OK)
+    if (sdfio_open_file(reader, path) != SDFIO_OK)
     {
         return NAN;
     }
-    const sdf_info *info = sdf_get_info(reader);
-    const size_t count = info->rows * info->columns;
+    const sdfio_header *header = sdfio_get_header(reader);
+    const size_t count = header->rows * header->columns;
     double *heights = malloc(count * sizeof *heights);
     double sum = NAN;
     if (heights != NULL
-        && sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), heights,
-                            (ptrdiff_t)(info->columns * sizeof(double)))
-               == SDF_OK)
+        && sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
+                              (ptrdiff_t)(header->columns * sizeof(double)))
+               == SDFIO_OK)
     {
         sum = 0.0;
         for (size_t i = 0; i < count; ++i)
@@ -62,7 +62,7 @@ static double read_sum(const char *path, sdf_reader *reader)
         }
         const char *trailer = NULL;
         size_t size = 0;
-        if (sdf_read_trailer(reader, &trailer, &size) != SDF_OK)
+        if (sdfio_read_trailer(reader, &trailer, &size) != SDFIO_OK)
         {
             sum = NAN;
         }
@@ -79,13 +79,13 @@ static void *read_files(void *argument)
     for (int round = 0; round < ROUNDS; ++round)
     {
         const size_t index = (self->id + (size_t)round) % FILE_COUNT;
-        sdf_reader *reader = sdf_reader_new();
+        sdfio_reader *reader = sdfio_reader_new();
         const double sum = read_sum(files[index], reader);
         if (isnan(sum) || sum != expected_sums[index])
         {
             ++self->errors;
         }
-        sdf_reader_free(reader);
+        sdfio_reader_free(reader);
     }
     return NULL;
 }
@@ -93,41 +93,42 @@ static void *read_files(void *argument)
 static void *write_and_read(void *argument)
 {
     job *self = argument;
-    const sdf_revision revisions[] = {SDF_ISO_1_0, SDF_ISO_2_0, SDF_BCR_1_0};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
+                                        SDFIO_BCR_1_0};
     for (int round = 0; round < ROUNDS; ++round)
     {
-        sdf_info info;
-        sdf_info_init(&info);
-        info.revision = revisions[(self->id + (size_t)round) % 3];
-        info.storage =
-            (self->id + (size_t)round) % 2 == 0 ? SDF_BINARY : SDF_ASCII;
-        info.data_type = SDF_DATA_INT32;
-        info.columns = COLUMNS;
-        info.rows = ROWS;
+        sdfio_header header;
+        sdfio_header_init(&header);
+        header.revision = revisions[(self->id + (size_t)round) % 3];
+        header.storage =
+            (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY : SDFIO_ASCII;
+        header.data_type = SDFIO_DATA_INT32;
+        header.columns = COLUMNS;
+        header.rows = ROWS;
         double heights[ROWS * COLUMNS];
         for (size_t i = 0; i < ROWS * COLUMNS; ++i)
         {
             heights[i] = 1e-6 * (double)(i + self->id);
         }
         membuf file = {0};
-        const sdf_stream stream = membuf_stream(&file);
-        sdf_writer *writer = sdf_writer_new();
-        if (sdf_create_stream(writer, &stream, &info) != SDF_OK
-            || sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), heights,
-                                 COLUMNS * sizeof(double))
-                   != SDF_OK
-            || sdf_write_end(writer, NULL, 0) != SDF_OK)
+        const sdfio_stream stream = membuf_stream(&file);
+        sdfio_writer *writer = sdfio_writer_new();
+        if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
+            || sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
+                                   COLUMNS * sizeof(double))
+                   != SDFIO_OK
+            || sdfio_write_trailer(writer, NULL, 0) != SDFIO_OK)
         {
             ++self->errors;
         }
-        sdf_writer_free(writer);
+        sdfio_writer_free(writer);
 
         double back[ROWS * COLUMNS];
-        sdf_reader *reader = sdf_reader_new();
-        if (sdf_open_memory(reader, file.data, file.size) != SDF_OK
-            || sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), back,
-                                COLUMNS * sizeof(double))
-                   != SDF_OK)
+        sdfio_reader *reader = sdfio_reader_new();
+        if (sdfio_open_memory(reader, file.data, file.size) != SDFIO_OK
+            || sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), back,
+                                  COLUMNS * sizeof(double))
+                   != SDFIO_OK)
         {
             ++self->errors;
         }
@@ -142,7 +143,7 @@ static void *write_and_read(void *argument)
                 }
             }
         }
-        sdf_reader_free(reader);
+        sdfio_reader_free(reader);
         free(file.data);
     }
     return NULL;
@@ -157,25 +158,26 @@ static void *read_shared(void *argument)
     job *self = argument;
     for (int round = 0; round < ROUNDS; ++round)
     {
-        sdf_reader *reader = sdf_reader_new();
-        if (sdf_open_memory(reader, shared_bytes, shared_size) != SDF_OK)
+        sdfio_reader *reader = sdfio_reader_new();
+        if (sdfio_open_memory(reader, shared_bytes, shared_size) != SDFIO_OK)
         {
             ++self->errors;
         }
         else
         {
-            const sdf_info *info = sdf_get_info(reader);
+            const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
-                malloc(info->rows * info->columns * sizeof *heights);
-            if (sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), heights,
-                                 (ptrdiff_t)(info->columns * sizeof(double)))
-                != SDF_OK)
+                malloc(header->rows * header->columns * sizeof *heights);
+            if (sdfio_read_heights(
+                    reader, sdfio_metres(SDFIO_FLOAT64), heights,
+                    (ptrdiff_t)(header->columns * sizeof(double)))
+                != SDFIO_OK)
             {
                 ++self->errors;
             }
             free(heights);
         }
-        sdf_reader_free(reader);
+        sdfio_reader_free(reader);
     }
     return NULL;
 }
@@ -184,10 +186,10 @@ int main(void)
 {
     for (size_t i = 0; i < FILE_COUNT; ++i)
     {
-        sdf_reader *reader = sdf_reader_new();
+        sdfio_reader *reader = sdfio_reader_new();
         expected_sums[i] = read_sum(files[i], reader);
         CHECK(!isnan(expected_sums[i]));
-        sdf_reader_free(reader);
+        sdfio_reader_free(reader);
     }
     FILE *file = fopen(files[1], "rb");
     CHECK(file != NULL);

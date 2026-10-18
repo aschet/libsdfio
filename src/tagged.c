@@ -130,8 +130,8 @@ bool sdfi_tagged_find(const char *text, size_t size, const char *name,
     return found;
 }
 
-bool sdf_trailer_find(const char *trailer, size_t size, const char *name,
-                      const char **value, size_t *value_size)
+bool sdfio_trailer_find(const char *trailer, size_t size, const char *name,
+                        const char **value, size_t *value_size)
 {
     if (trailer == NULL || name == NULL || value == NULL || value_size == NULL)
     {

@@ -6,49 +6,50 @@ leaves out what the C++ library needs templates for.
 
 ## Handles
 
-A reader or writer is an opaque pointer. It is made empty (`sdf_reader_new`)
+A reader or writer is an opaque pointer. It is made empty (`sdfio_reader_new`)
 and opened later, as libpng makes its struct before it reads, so that a failed
 open still has a handle that can say why. There is one mechanism for errors:
 the call returns a status, the handle keeps the message. A failure in the
-middle of the data ends the reading; `sdf_rewind` starts again for a source
+middle of the data ends the reading; `sdfio_rewind` starts again for a source
 that can seek.
 
-The description of a file, `sdf_info`, is a plain struct, because C programs
-want to fill one in. `sdf_info_init` sets it, as `WebPConfigInit` does, so a
-field that a later version adds has a default. A change of the struct is a
-change of the major version.
+The header of a file, `sdfio_header`, record 1 of the standard with its fields
+and names, is a plain struct, because C programs want to fill one in.
+`sdfio_header_init` sets it, as `WebPConfigInit` does, so a field that a later
+version adds has a default. A change of the struct is a change of the major
+version.
 
 ## Streams
 
-Bytes come from and go to callbacks (`sdf_stream`), as libtiff's
+Bytes come from and go to callbacks (`sdfio_stream`), as libtiff's
 `TIFFClientOpen` has them. A stream without `seek` is read once from the front.
 Files and memory are streams too. The reader holds a 16 KiB buffer; the heights
 are never held. A file that is written goes to a name beside its place and is
 renamed when it is whole.
 
-## Stored values first
+## The records first
 
-The data area is read and written as the file stores it: the data type of the
-file, in the byte order of the machine, with the number that marks a missing
-point unchanged. Nothing about metres. A text file is parsed into the type of
-the file, so a binary32 text file is rounded to single precision.
+The data area, record 2, is read and written as the file codes it: the data
+type of the file, in the byte order of the machine, with the number that marks
+a missing point unchanged. Nothing about metres. A text file is parsed into the
+type of the file, so a binary32 text file is rounded to single precision.
 
-Metres are a separate step: `sdf_decode_heights` turns stored values into
-heights of any sample type, `sdf_encode_heights` does the reverse, and both
+Metres are a separate step: `sdfio_decode_heights` turns the coded height
+information into heights of any sample type, `sdfio_encode_heights` does the reverse, and both
 work on a chunk of 1024 values at a time. They need no handle, so they apply to
 data from any source. Splitting the layers took out the `raw`/`metres` switch of
 the C++ library, and with it the combination of options that is an error
 (a marker for missing points in the raw space).
 
-The convenience calls `sdf_read_heights` and `sdf_write_heights` compose the two
+The convenience calls `sdfio_read_heights` and `sdfio_write_heights` compose the two
 layers for a matrix and take a row stride, which can be negative.
 
 ## Where the type is a double
 
-Memory of the program has the type of its sample (`sdf_sample`): `float` is as
+Memory of the program has the type of its sample (`sdfio_sample`): `float` is as
 good as `double`. A marker for missing points is a number of the program and is
 taken in the precision of the sample type. Scalars that describe the file
-(scales, resolution) are binary64 in the file and `double` in `sdf_info`.
+(scales, resolution) are binary64 in the file and `double` in `sdfio_header`.
 A `double` is only the intermediate of a chunk, which holds every integer
 type of the format exactly.
 
@@ -57,17 +58,17 @@ type of the format exactly.
 The library allocates no memory for the heights, but sizing it is where
 programs go wrong: `columns * rows * size` overflows, and the element size is
 that of the data type in one place and of the sample type in another.
-`sdf_alloc_stored` and `sdf_alloc_heights` do the arithmetic from the
+`sdfio_alloc_data` and `sdfio_alloc_heights` do the arithmetic from the
 description of the file, return zeroed memory, and refuse a size that cannot be
-counted. `sdf_free` pairs with them, so a shared library on Windows frees in the
+counted. `sdfio_free` pairs with them, so a shared library on Windows frees in the
 runtime that allocated.
 
 ## Z-scale
 
-An integer data type needs a z-scale. `sdf_write_heights` chooses the best for
+An integer data type needs a z-scale. `sdfio_write_heights` chooses the best for
 the heights it is given; the row call cannot, because it has not seen the
-other rows, and says so instead of guessing. `sdf_z_scale_for_range` and
-`sdf_suggest_z_scale` compute it for a program that knows its range or has the
+other rows, and says so instead of guessing. `sdfio_z_scale_for_range` and
+`sdfio_suggest_z_scale` compute it for a program that knows its range or has the
 matrix.
 
 ## Threads

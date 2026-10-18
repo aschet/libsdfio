@@ -20,7 +20,7 @@ enum
     SECONDS_PER_DAY = 86400
 };
 
-static void format(time_t time, sdf_revision revision,
+static void format(time_t time, sdfio_revision revision,
                    char out[SDFI_DATE_SIZE + 1])
 {
     memset(out, 0, SDFI_DATE_SIZE + 1);
@@ -30,25 +30,26 @@ static void format(time_t time, sdf_revision revision,
 static void check_utc(void)
 {
     char text[SDFI_DATE_SIZE + 1];
-    format(1772600760, SDF_ISO_2_0, text); /* 2026-03-04 05:06 UTC */
+    format(1772600760, SDFIO_ISO_2_0, text); /* 2026-03-04 05:06 UTC */
     CHECK(strcmp(text, "040320260506") == 0);
-    CHECK(sdfi_date_parse(text, SDFI_DATE_SIZE, SDF_ISO_2_0) == 1772600760);
-    format(0, SDF_ISO_2_0, text);
+    CHECK(sdfi_date_parse(text, SDFI_DATE_SIZE, SDFIO_ISO_2_0) == 1772600760);
+    format(0, SDFIO_ISO_2_0, text);
     CHECK(strcmp(text, "010119700000") == 0);
-    format(SDF_NO_TIME, SDF_ISO_2_0, text);
+    format(SDFIO_NO_TIME, SDFIO_ISO_2_0, text);
     CHECK(strcmp(text, "000000000000") == 0);
-    CHECK(sdfi_date_parse(text, SDFI_DATE_SIZE, SDF_ISO_2_0) == SDF_NO_TIME);
+    CHECK(sdfi_date_parse(text, SDFI_DATE_SIZE, SDFIO_ISO_2_0)
+          == SDFIO_NO_TIME);
 
     /* The leap day, and the first and the last day the field has. */
-    CHECK(sdfi_date_parse("290220240000", SDFI_DATE_SIZE, SDF_ISO_2_0)
+    CHECK(sdfi_date_parse("290220240000", SDFI_DATE_SIZE, SDFIO_ISO_2_0)
           == 1709164800);
-    CHECK(sdfi_date_parse("290220230000", SDFI_DATE_SIZE, SDF_ISO_2_0)
-          == SDF_NO_TIME);
-    CHECK(sdfi_date_parse("010100010000", SDFI_DATE_SIZE, SDF_ISO_2_0)
+    CHECK(sdfi_date_parse("290220230000", SDFI_DATE_SIZE, SDFIO_ISO_2_0)
+          == SDFIO_NO_TIME);
+    CHECK(sdfi_date_parse("010100010000", SDFI_DATE_SIZE, SDFIO_ISO_2_0)
           == -62135596800);
-    format(-62135596800, SDF_ISO_2_0, text);
+    format(-62135596800, SDFIO_ISO_2_0, text);
     CHECK(strcmp(text, "010100010000") == 0);
-    format(253402300740, SDF_ISO_2_0, text); /* 9999-12-31 23:59 */
+    format(253402300740, SDFIO_ISO_2_0, text); /* 9999-12-31 23:59 */
     CHECK(strcmp(text, "311299992359") == 0);
     CHECK(!sdfi_date_representable(253402300800));
     CHECK(!sdfi_date_representable(-62135596801));
@@ -59,14 +60,14 @@ static void check_utc(void)
                          "0101202600001", "0101202600x0", "            "};
     for (size_t i = 0; i < sizeof bad / sizeof bad[0]; ++i)
     {
-        CHECK(sdfi_date_parse(bad[i], strlen(bad[i]), SDF_ISO_2_0)
-              == SDF_NO_TIME);
+        CHECK(sdfi_date_parse(bad[i], strlen(bad[i]), SDFIO_ISO_2_0)
+              == SDFIO_NO_TIME);
     }
     /* The seconds are dropped. */
-    format(1772600760 + 59, SDF_ISO_2_0, text);
+    format(1772600760 + 59, SDFIO_ISO_2_0, text);
     CHECK(strcmp(text, "040320260506") == 0);
-    /* -1 is SDF_NO_TIME: one minute before the epoch is -60. */
-    format(-60, SDF_ISO_2_0, text);
+    /* -1 is SDFIO_NO_TIME: one minute before the epoch is -60. */
+    format(-60, SDFIO_ISO_2_0, text);
     CHECK(strcmp(text, "311219692359") == 0);
 }
 
@@ -81,14 +82,14 @@ static void check_zone(const char *zone)
          time += 5 * SECONDS_PER_HOUR + 1800)
     {
         char field[SDFI_DATE_SIZE + 1];
-        format(time, SDF_ISO_1_0, field);
+        format(time, SDFIO_ISO_1_0, field);
         const time_t parsed =
-            sdfi_date_parse(field, SDFI_DATE_SIZE, SDF_ISO_1_0);
-        CHECK(parsed != SDF_NO_TIME);
+            sdfi_date_parse(field, SDFI_DATE_SIZE, SDFIO_ISO_1_0);
+        CHECK(parsed != SDFIO_NO_TIME);
         /* The local clock is the same; in the hour that a change of the clock
          * repeats, the same clock reading is two instants. */
         char again[SDFI_DATE_SIZE + 1];
-        format(parsed, SDF_ISO_1_0, again);
+        format(parsed, SDFIO_ISO_1_0, again);
         if (strcmp(field, again) != 0)
         {
             fprintf(stderr, "%s: %s read as %s\n", zone, field, again);
@@ -104,8 +105,8 @@ static void check_zone(const char *zone)
     /* ISO-2.0 does not depend on the zone, the others do. */
     char utc[SDFI_DATE_SIZE + 1];
     char local[SDFI_DATE_SIZE + 1];
-    format(1772600760, SDF_ISO_2_0, utc);
-    format(1772600760, SDF_BCR_1_0, local);
+    format(1772600760, SDFIO_ISO_2_0, utc);
+    format(1772600760, SDFIO_BCR_1_0, local);
     CHECK(strcmp(utc, "040320260506") == 0);
     if (strcmp(zone, "UTC") == 0)
     {

@@ -12,8 +12,8 @@
 /* The mark that some editors put in front of a text. */
 static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
 
-sdf_status sdfi_read_header(sdfi_source *source, sdf_info *info,
-                            const sdfi_point *point, sdfi_message *message)
+sdfio_status sdfi_read_header(sdfi_source *source, sdfio_header *header,
+                              const sdfi_point *point, sdfi_message *message)
 {
     size_t available = sdfi_source_fill(source, sizeof byte_order_mark);
     if (available >= sizeof byte_order_mark
@@ -26,25 +26,25 @@ sdf_status sdfi_read_header(sdfi_source *source, sdf_info *info,
     available = sdfi_source_fill(source, SDFI_MAGIC_SIZE);
     if (available < SDFI_MAGIC_SIZE)
     {
-        return source->failed ? sdfi_fail(message, SDF_ERR_IO,
+        return source->failed ? sdfi_fail(message, SDFIO_ERR_IO,
                                           "The stream could not be read")
-                              : sdfi_fail(message, SDF_ERR_FORMAT,
+                              : sdfi_fail(message, SDFIO_ERR_FORMAT,
                                           "Not an SDF file, unexpected magic");
     }
     const unsigned char *magic = source->buffer + source->position;
     const char prefix = sdfi_lower((char)magic[0]);
     if (prefix == 'a')
     {
-        return sdfi_ascii_parse_header(source, info, point, message);
+        return sdfi_ascii_parse_header(source, header, point, message);
     }
     if (prefix != 'b')
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "Not an SDF file, unexpected magic");
     }
-    sdf_revision revision = SDF_ISO_2_0;
-    const sdf_status status = sdfi_binary_revision(magic, &revision, message);
-    if (status != SDF_OK)
+    sdfio_revision revision = SDFIO_ISO_2_0;
+    const sdfio_status status = sdfi_binary_revision(magic, &revision, message);
+    if (status != SDFIO_OK)
     {
         return status;
     }
@@ -52,13 +52,13 @@ sdf_status sdfi_read_header(sdfi_source *source, sdf_info *info,
     const size_t size = sdfi_binary_header_size(revision);
     if (sdfi_source_read(source, bytes, size) != size)
     {
-        return source->failed ? sdfi_fail(message, SDF_ERR_IO,
+        return source->failed ? sdfi_fail(message, SDFIO_ERR_IO,
                                           "The stream could not be read")
-                              : sdfi_fail(message, SDF_ERR_FORMAT,
+                              : sdfi_fail(message, SDFIO_ERR_FORMAT,
                                           "File is too short to contain an "
                                           "SDF header");
     }
-    return sdfi_binary_parse(bytes, info, message);
+    return sdfi_binary_parse(bytes, header, message);
 }
 
 static bool is_ascii_text(const char *text, size_t size)
@@ -78,78 +78,78 @@ static bool positive(double value)
     return value > 0.0 && isfinite(value);
 }
 
-sdf_status sdfi_validate(const sdf_info *info, sdfi_message *message)
+sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message)
 {
-    if (info->revision < SDF_ISO_1_0 || info->revision > SDF_BCR_1_0
-        || (info->storage != SDF_BINARY && info->storage != SDF_ASCII)
-        || !sdfi_valid_data_type(info->data_type))
+    if (header->revision < SDFIO_ISO_1_0 || header->revision > SDFIO_BCR_1_0
+        || (header->storage != SDFIO_BINARY && header->storage != SDFIO_ASCII)
+        || !sdfi_valid_data_type(header->data_type))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "The revision, the storage or the data type is not "
                          "one of the enumeration");
     }
-    if (!sdf_revision_allows(info->revision, info->data_type))
+    if (!sdfio_revision_allows(header->revision, header->data_type))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "Data type %s is not valid for SDF revision %s",
-                         sdf_data_type_name(info->data_type),
-                         sdf_revision_name(info->revision));
+                         sdfio_data_type_name(header->data_type),
+                         sdfio_revision_name(header->revision));
     }
-    if (info->z_scale != SDF_AUTO_Z_SCALE && !positive(info->z_scale))
+    if (header->z_scale != SDFIO_AUTO_Z_SCALE && !positive(header->z_scale))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "z_scale must be a positive number, got %g",
-                         info->z_scale);
+                         header->z_scale);
     }
-    if (info->z_resolution != SDF_NO_RESOLUTION
-        && !positive(info->z_resolution))
+    if (header->z_resolution != SDFIO_NO_RESOLUTION
+        && !positive(header->z_resolution))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "z_resolution must be a positive number, got %g",
-                         info->z_resolution);
+                         header->z_resolution);
     }
-    if (!positive(info->x_scale) || !positive(info->y_scale))
+    if (!positive(header->x_scale) || !positive(header->y_scale))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "x_scale and y_scale must be positive numbers");
     }
     const char *terminator =
-        memchr(info->manufacturer_id, '\0', sizeof info->manufacturer_id);
+        memchr(header->manufacturer_id, '\0', sizeof header->manufacturer_id);
     if (terminator == NULL)
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "manufacturer_id has to end with a 0");
     }
-    if (!is_ascii_text(info->manufacturer_id,
-                       (size_t)(terminator - info->manufacturer_id)))
+    if (!is_ascii_text(header->manufacturer_id,
+                       (size_t)(terminator - header->manufacturer_id)))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "manufacturer_id must be 7-bit ASCII");
     }
-    if ((info->create_date != SDF_NO_TIME
-         && !sdfi_date_representable(info->create_date))
-        || (info->mod_date != SDF_NO_TIME
-            && !sdfi_date_representable(info->mod_date)))
+    if ((header->creation_date != SDFIO_NO_TIME
+         && !sdfi_date_representable(header->creation_date))
+        || (header->modification_date != SDFIO_NO_TIME
+            && !sdfi_date_representable(header->modification_date)))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "The year of a date must be one of %d to %d",
                          SDFI_FIRST_YEAR, SDFI_LAST_YEAR);
     }
     size_t count = 0;
-    if (!sdfi_count(info, &count))
+    if (!sdfi_count(header, &count))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "columns times rows does not fit in size_t");
     }
-    if (info->storage == SDF_BINARY
-        && (info->columns > sdfi_max_binary_count(info->revision)
-            || info->rows > sdfi_max_binary_count(info->revision)))
+    if (header->storage == SDFIO_BINARY
+        && (header->columns > sdfi_max_binary_count(header->revision)
+            || header->rows > sdfi_max_binary_count(header->revision)))
     {
-        return sdfi_fail(message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
                          "The columns and the rows must be between 0 and %zu "
                          "for SDF revision %s (binary format)",
-                         sdfi_max_binary_count(info->revision),
-                         sdf_revision_name(info->revision));
+                         sdfi_max_binary_count(header->revision),
+                         sdfio_revision_name(header->revision));
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }

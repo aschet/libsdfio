@@ -44,47 +44,48 @@ static void make_heights(double *heights)
     }
 }
 
-static void describe(sdf_info *info, sdf_revision revision, sdf_storage storage,
-                     sdf_data_type type)
+static void describe(sdfio_header *header, sdfio_revision revision,
+                     sdfio_storage storage, sdfio_data_type type)
 {
-    sdf_info_init(info);
-    info->revision = revision;
-    info->storage = storage;
-    info->data_type = type;
-    info->columns = COLUMNS;
-    info->rows = ROWS;
-    info->x_scale = 2e-6;
-    info->y_scale = 3e-6;
-    info->z_resolution = 1e-9;
-    info->create_date = 1772600760; /* 2026-03-04 05:06 UTC */
-    info->mod_date = 1772604360;
-    snprintf(info->manufacturer_id, sizeof info->manufacturer_id, "ACME 7");
+    sdfio_header_init(header);
+    header->revision = revision;
+    header->storage = storage;
+    header->data_type = type;
+    header->columns = COLUMNS;
+    header->rows = ROWS;
+    header->x_scale = 2e-6;
+    header->y_scale = 3e-6;
+    header->z_resolution = 1e-9;
+    header->creation_date = 1772600760; /* 2026-03-04 05:06 UTC */
+    header->modification_date = 1772604360;
+    snprintf(header->manufacturer_id, sizeof header->manufacturer_id, "ACME 7");
 }
 
-static void check_roundtrip(sdf_revision revision, sdf_storage storage,
-                            sdf_data_type type)
+static void check_roundtrip(sdfio_revision revision, sdfio_storage storage,
+                            sdfio_data_type type)
 {
-    sdf_info info;
-    describe(&info, revision, storage, type);
+    sdfio_header header;
+    describe(&header, revision, storage, type);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
 
     membuf file = {0};
-    const sdf_stream stream = membuf_stream(&file);
-    sdf_writer *writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_OK(sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), heights,
-                               COLUMNS * sizeof(double)));
-    CHECK_OK(sdf_write_end(writer, tagged_trailer, strlen(tagged_trailer)));
-    sdf_writer_free(writer);
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
+                                 COLUMNS * sizeof(double)));
+    CHECK_OK(
+        sdfio_write_trailer(writer, tagged_trailer, strlen(tagged_trailer)));
+    sdfio_writer_free(writer);
 
-    sdf_reader *reader = sdf_reader_new();
-    CHECK_OK(sdf_open_memory(reader, file.data, file.size));
-    const sdf_info *read = sdf_get_info(reader);
+    sdfio_reader *reader = sdfio_reader_new();
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    const sdfio_header *read = sdfio_get_header(reader);
     CHECK(read != NULL);
     if (read == NULL)
     {
-        sdf_reader_free(reader);
+        sdfio_reader_free(reader);
         free(file.data);
         return;
     }
@@ -92,20 +93,20 @@ static void check_roundtrip(sdf_revision revision, sdf_storage storage,
     CHECK(read->storage == storage);
     CHECK(read->data_type == type);
     CHECK(read->columns == COLUMNS && read->rows == ROWS);
-    CHECK(read->x_scale == info.x_scale && read->y_scale == info.y_scale);
-    CHECK(read->z_resolution == info.z_resolution);
-    CHECK(read->create_date == info.create_date);
-    CHECK(read->mod_date == info.mod_date);
-    CHECK(strcmp(read->manufacturer_id, info.manufacturer_id) == 0);
+    CHECK(read->x_scale == header.x_scale && read->y_scale == header.y_scale);
+    CHECK(read->z_resolution == header.z_resolution);
+    CHECK(read->creation_date == header.creation_date);
+    CHECK(read->modification_date == header.modification_date);
+    CHECK(strcmp(read->manufacturer_id, header.manufacturer_id) == 0);
     CHECK(read->z_scale > 0.0);
 
     double back[ROWS * COLUMNS];
-    CHECK_OK(sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), back,
-                              COLUMNS * sizeof(double)));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), back,
+                                COLUMNS * sizeof(double)));
     /* An integer type is as exact as one count; text and binary32 keep
      * about as many digits as they print. */
     double tolerance = 1e-13;
-    if (type == SDF_DATA_BINARY32)
+    if (type == SDFIO_DATA_BINARY32)
     {
         tolerance = 1e-6;
     }
@@ -128,34 +129,35 @@ static void check_roundtrip(sdf_revision revision, sdf_storage storage,
 
     const char *trailer = NULL;
     size_t size = 0;
-    CHECK_OK(sdf_read_trailer(reader, &trailer, &size));
+    CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     CHECK(trailer != NULL && size == strlen(tagged_trailer)
           && memcmp(trailer, tagged_trailer, size) == 0);
     const char *value = NULL;
     size_t value_size = 0;
-    CHECK(sdf_trailer_find(trailer, size, "partname", &value, &value_size)
+    CHECK(sdfio_trailer_find(trailer, size, "partname", &value, &value_size)
           && value_size == strlen("Sample")
           && memcmp(value, "Sample", value_size) == 0);
 
-    sdf_reader_free(reader);
+    sdfio_reader_free(reader);
     free(file.data);
 }
 
 static void check_all_types(void)
 {
-    const sdf_revision revisions[] = {SDF_ISO_1_0, SDF_ISO_2_0, SDF_BCR_1_0};
-    const sdf_storage storages[] = {SDF_BINARY, SDF_ASCII};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
+                                        SDFIO_BCR_1_0};
+    const sdfio_storage storages[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < sizeof revisions / sizeof revisions[0]; ++r)
     {
         for (size_t s = 0; s < sizeof storages / sizeof storages[0]; ++s)
         {
-            for (int t = SDF_DATA_UINT8; t <= SDF_DATA_BINARY64; ++t)
+            for (int t = SDFIO_DATA_UINT8; t <= SDFIO_DATA_BINARY64; ++t)
             {
-                const sdf_data_type type = (sdf_data_type)t;
+                const sdfio_data_type type = (sdfio_data_type)t;
                 /* The unsigned types cannot hold the negative heights. */
-                if (!sdf_revision_allows(revisions[r], type)
-                    || type == SDF_DATA_UINT8 || type == SDF_DATA_UINT16
-                    || type == SDF_DATA_UINT32)
+                if (!sdfio_revision_allows(revisions[r], type)
+                    || type == SDFIO_DATA_UINT8 || type == SDFIO_DATA_UINT16
+                    || type == SDFIO_DATA_UINT32)
                 {
                     continue;
                 }
@@ -167,11 +169,11 @@ static void check_all_types(void)
 
 /* The rows API moves the stored values as they are, in the order of the file,
  * which is reversed in BCR-1.0. */
-static void check_rows(sdf_revision revision, sdf_storage storage)
+static void check_rows(sdfio_revision revision, sdfio_storage storage)
 {
-    sdf_info info;
-    describe(&info, revision, storage, SDF_DATA_INT16);
-    info.z_scale = 1e-9;
+    sdfio_header header;
+    describe(&header, revision, storage, SDFIO_DATA_INT16);
+    header.z_scale = 1e-9;
     int16_t counts[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
     {
@@ -181,113 +183,118 @@ static void check_rows(sdf_revision revision, sdf_storage storage)
     counts[4] = INT16_MAX; /* the marker of BCR-1.0 */
 
     membuf file = {0};
-    const sdf_stream stream = membuf_stream(&file);
-    sdf_writer *writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_OK(sdf_write_rows(writer, counts, 3));
-    CHECK_OK(sdf_write_rows(writer, counts + 3 * COLUMNS, ROWS - 3));
-    CHECK_OK(sdf_write_end(writer, NULL, 0));
-    sdf_writer_free(writer);
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_data(writer, counts, 3));
+    CHECK_OK(sdfio_write_data(writer, counts + 3 * COLUMNS, ROWS - 3));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
 
-    sdf_reader *reader = sdf_reader_new();
-    CHECK_OK(sdf_open_memory(reader, file.data, file.size));
+    sdfio_reader *reader = sdfio_reader_new();
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     int16_t back[ROWS * COLUMNS];
-    CHECK_OK(sdf_read_rows(reader, back, 2));
-    CHECK_OK(sdf_read_rows(reader, back + 2 * COLUMNS, ROWS - 2));
+    CHECK_OK(sdfio_read_data(reader, back, 2));
+    CHECK_OK(sdfio_read_data(reader, back + 2 * COLUMNS, ROWS - 2));
     CHECK(memcmp(counts, back, sizeof counts) == 0);
     const char *trailer = (const char *)1;
     size_t size = 1;
-    CHECK_OK(sdf_read_trailer(reader, &trailer, &size));
+    CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     /* A text file closes the trailer record, so it has an empty one. */
-    CHECK(storage == SDF_ASCII ? (trailer != NULL && size == 0)
-                               : (trailer == NULL && size == 0));
+    CHECK(storage == SDFIO_ASCII ? (trailer != NULL && size == 0)
+                                 : (trailer == NULL && size == 0));
 
     /* The heights are in the order of y in every revision. */
-    sdf_info as_read = *sdf_get_info(reader);
-    CHECK_OK(sdf_rewind(reader));
+    sdfio_header as_read = *sdfio_get_header(reader);
+    CHECK_OK(sdfio_rewind(reader));
     double heights[ROWS * COLUMNS];
-    CHECK_OK(sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), heights,
-                              COLUMNS * sizeof(double)));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
+                                COLUMNS * sizeof(double)));
     for (size_t file_row = 0; file_row < ROWS; ++file_row)
     {
-        const size_t y = sdf_row_y(&as_read, file_row);
-        CHECK(y == (revision == SDF_BCR_1_0 ? ROWS - 1 - file_row : file_row));
+        const size_t y = sdfio_row_y(&as_read, file_row);
+        CHECK(y
+              == (revision == SDFIO_BCR_1_0 ? ROWS - 1 - file_row : file_row));
         for (size_t column = 5; column < COLUMNS; ++column)
         {
             const int16_t count = counts[file_row * COLUMNS + column];
-            if (!sdf_is_sentinel(SDF_DATA_INT16, revision, count))
+            if (!sdfio_is_sentinel(SDFIO_DATA_INT16, revision, count))
             {
                 CHECK(near_relative(heights[y * COLUMNS + column], count * 1e-9,
                                     1e-12));
             }
         }
     }
-    sdf_reader_free(reader);
+    sdfio_reader_free(reader);
     free(file.data);
 }
 
 static void check_errors(void)
 {
-    sdf_info info;
-    describe(&info, SDF_ISO_2_0, SDF_BINARY, SDF_DATA_INT16);
+    sdfio_header header;
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_INT16);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
     const ptrdiff_t stride = COLUMNS * sizeof(double);
     membuf file = {0};
-    const sdf_stream stream = membuf_stream(&file);
+    const sdfio_stream stream = membuf_stream(&file);
 
     /* Counts need a z-scale: the writer cannot know what they mean. */
-    sdf_writer *writer = sdf_writer_new();
+    sdfio_writer *writer = sdfio_writer_new();
     int16_t counts[ROWS * COLUMNS] = {0};
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_STATUS(SDF_ERR_ARGUMENT, sdf_write_rows(writer, counts, 1));
-    CHECK(strstr(sdf_writer_message(writer), "z-scale") != NULL);
-    sdf_writer_free(writer);
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data(writer, counts, 1));
+    CHECK(strstr(sdfio_writer_message(writer), "z-scale") != NULL);
+    sdfio_writer_free(writer);
 
     /* A height that does not fit the z-scale that was asked for. */
-    info.z_scale = 1e-12;
-    writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_STATUS(
-        SDF_ERR_RANGE,
-        sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), heights, stride));
-    sdf_writer_free(writer);
+    header.z_scale = 1e-12;
+    writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_STATUS(SDFIO_ERR_RANGE,
+                 sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                     heights, stride));
+    sdfio_writer_free(writer);
 
     /* A height that would be read as a point not measured. */
-    info.z_scale = 1.0;
+    header.z_scale = 1.0;
     double marker[1] = {-32768.0};
-    info.columns = 1;
-    info.rows = 1;
-    writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_STATUS(SDF_ERR_SENTINEL,
-                 sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), marker,
-                                   sizeof(double)));
-    sdf_writer_free(writer);
+    header.columns = 1;
+    header.rows = 1;
+    writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_STATUS(SDFIO_ERR_SENTINEL,
+                 sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                     marker, sizeof(double)));
+    sdfio_writer_free(writer);
 
     /* A description that cannot be written. */
-    describe(&info, SDF_ISO_1_0, SDF_BINARY, SDF_DATA_INT8);
-    writer = sdf_writer_new();
-    CHECK_STATUS(SDF_ERR_ARGUMENT, sdf_create_stream(writer, &stream, &info));
-    sdf_writer_free(writer);
-    describe(&info, SDF_ISO_1_0, SDF_BINARY, SDF_DATA_INT16);
-    info.columns = (size_t)UINT16_MAX + 1;
-    writer = sdf_writer_new();
-    CHECK_STATUS(SDF_ERR_ARGUMENT, sdf_create_stream(writer, &stream, &info));
-    sdf_writer_free(writer);
+    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_DATA_INT8);
+    writer = sdfio_writer_new();
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_create_stream(writer, &stream, &header));
+    sdfio_writer_free(writer);
+    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_DATA_INT16);
+    header.columns = (size_t)UINT16_MAX + 1;
+    writer = sdfio_writer_new();
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_create_stream(writer, &stream, &header));
+    sdfio_writer_free(writer);
 
     /* The end before the rows, and a trailer ISO-2.0 cannot have. */
-    describe(&info, SDF_ISO_2_0, SDF_BINARY, SDF_DATA_BINARY64);
-    writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_STATUS(SDF_ERR_STATE, sdf_write_end(writer, NULL, 0));
-    CHECK_OK(
-        sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), heights, stride));
-    CHECK_STATUS(SDF_ERR_ARGUMENT, sdf_write_end(writer, "free text", 9));
-    CHECK_STATUS(SDF_ERR_ARGUMENT, sdf_write_end(writer, "caf\xC3\xA9 = 1", 8));
-    CHECK_OK(sdf_write_end(writer, "Note = a", 8));
-    CHECK_STATUS(SDF_ERR_STATE, sdf_write_end(writer, NULL, 0));
-    sdf_writer_free(writer);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY64);
+    writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
+                                 stride));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_trailer(writer, "free text", 9));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_trailer(writer, "caf\xC3\xA9 = 1", 8));
+    CHECK_OK(sdfio_write_trailer(writer, "Note = a", 8));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
     free(file.data);
 }
 
@@ -295,21 +302,75 @@ static void check_errors(void)
 static void check_z_scale(void)
 {
     const double scale =
-        sdf_z_scale_for_range(SDF_DATA_INT16, SDF_ISO_2_0, -80e-6, 80e-6);
+        sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_ISO_2_0, -80e-6, 80e-6);
     CHECK(near_relative(scale, 80e-6 / 32767.0, 1e-12));
-    CHECK(sdf_z_scale_for_range(SDF_DATA_BINARY64, SDF_ISO_2_0, -1, 1) == 1.0);
-    CHECK(sdf_z_scale_for_range(SDF_DATA_INT16, SDF_ISO_2_0, NAN, NAN) == 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_BINARY64, SDFIO_ISO_2_0, -1, 1)
+          == 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_ISO_2_0, NAN, NAN)
+          == 1.0);
     /* BCR-1.0 keeps the maximum for the marker. */
-    CHECK(sdf_z_scale_for_range(SDF_DATA_INT16, SDF_BCR_1_0, 0, 32767.0) > 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_BCR_1_0, 0, 32767.0)
+          > 1.0);
+}
+
+/* A negative row stride, with the pointer at the last row, turns the matrix
+ * upside down without a copy, for both directions. */
+static void check_stride(void)
+{
+    sdfio_header header;
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY64);
+    double heights[ROWS * COLUMNS];
+    make_heights(heights);
+    const ptrdiff_t stride = COLUMNS * sizeof(double);
+
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64),
+                                 heights + (ROWS - 1) * COLUMNS, -stride));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
+
+    double up[ROWS * COLUMNS];
+    double down[ROWS * COLUMNS];
+    sdfio_reader *reader = sdfio_reader_new();
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    CHECK_OK(
+        sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), up, stride));
+    CHECK_OK(sdfio_rewind(reader));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                down + (ROWS - 1) * COLUMNS, -stride));
+    for (size_t row = 0; row < ROWS; ++row)
+    {
+        for (size_t column = 0; column < COLUMNS; ++column)
+        {
+            const double written = heights[(ROWS - 1 - row) * COLUMNS + column];
+            const double read_up = up[row * COLUMNS + column];
+            const double read_down = down[(ROWS - 1 - row) * COLUMNS + column];
+            CHECK(isnan(written)
+                      ? isnan(read_up) && isnan(read_down)
+                      : read_up == written
+                            && read_down == up[row * COLUMNS + column]);
+        }
+    }
+    /* A stride smaller than a row would overwrite the memory. */
+    CHECK_OK(sdfio_rewind(reader));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), up,
+                                    (ptrdiff_t)sizeof(double)));
+    sdfio_reader_free(reader);
+    free(file.data);
 }
 
 int main(void)
 {
+    check_stride();
     check_all_types();
-    for (int r = SDF_ISO_1_0; r <= SDF_BCR_1_0; ++r)
+    for (int r = SDFIO_ISO_1_0; r <= SDFIO_BCR_1_0; ++r)
     {
-        check_rows((sdf_revision)r, SDF_BINARY);
-        check_rows((sdf_revision)r, SDF_ASCII);
+        check_rows((sdfio_revision)r, SDFIO_BINARY);
+        check_rows((sdfio_revision)r, SDFIO_ASCII);
     }
     check_errors();
     check_z_scale();

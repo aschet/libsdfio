@@ -43,14 +43,15 @@ static void put_double(unsigned char *bytes, double value)
     put_le(bytes, sizeof bits, bits);
 }
 
-sdf_status sdfi_binary_revision(const unsigned char *magic,
-                                sdf_revision *revision, sdfi_message *message)
+sdfio_status sdfi_binary_revision(const unsigned char *magic,
+                                  sdfio_revision *revision,
+                                  sdfi_message *message)
 {
     const char *text = (const char *)magic;
     const char prefix = sdfi_lower(text[0]);
     if ((prefix != 'a' && prefix != 'b') || text[SDFI_MAGIC_DASH_AT] != '-')
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "Not an SDF file, unexpected magic: '%.*s'",
                          SDFI_MAGIC_SIZE, text);
     }
@@ -58,22 +59,22 @@ sdf_status sdfi_binary_revision(const unsigned char *magic,
                                  SDFI_MAGIC_SIZE - SDFI_MAGIC_NAME_AT,
                                  revision))
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "Unknown or unsupported SDF revision in magic '%.*s'",
                          SDFI_MAGIC_SIZE, text);
     }
     if (prefix != 'b')
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "ASCII magic found while parsing a binary SDF file");
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
 /* The identifier up to the first 0, without the white space at its end:
  * BCR-1.0 lets a string that is shorter than its field end in a 0, and some
  * ISO writers do the same instead of filling the field with spaces. */
-static void copy_identifier(sdf_info *info, const unsigned char *field)
+static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
     size_t size = 0;
     while (size < SDFI_ID_SIZE && field[size] != '\0')
@@ -84,21 +85,21 @@ static void copy_identifier(sdf_info *info, const unsigned char *field)
     {
         --size;
     }
-    memcpy(info->manufacturer_id, field, size);
-    info->manufacturer_id[size] = '\0';
+    memcpy(header->manufacturer_id, field, size);
+    header->manufacturer_id[size] = '\0';
 }
 
-sdf_status sdfi_binary_parse(const unsigned char *bytes, sdf_info *info,
-                             sdfi_message *message)
+sdfio_status sdfi_binary_parse(const unsigned char *bytes, sdfio_header *header,
+                               sdfi_message *message)
 {
-    sdf_revision revision = SDF_ISO_2_0;
-    sdf_status status = sdfi_binary_revision(bytes, &revision, message);
-    if (status != SDF_OK)
+    sdfio_revision revision = SDFIO_ISO_2_0;
+    sdfio_status status = sdfi_binary_revision(bytes, &revision, message);
+    if (status != SDFIO_OK)
     {
         return status;
     }
     const unsigned char *at = bytes + SDFI_MAGIC_SIZE;
-    copy_identifier(info, at);
+    copy_identifier(header, at);
     at += SDFI_ID_SIZE;
     const time_t created =
         sdfi_date_parse((const char *)at, SDFI_DATE_SIZE, revision);
@@ -107,16 +108,16 @@ sdf_status sdfi_binary_parse(const unsigned char *bytes, sdf_info *info,
         sdfi_date_parse((const char *)at, SDFI_DATE_SIZE, revision);
     at += SDFI_DATE_SIZE;
     const size_t count_size =
-        revision == SDF_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    info->columns = (size_t)get_le(at, count_size);
+        revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
+    header->columns = (size_t)get_le(at, count_size);
     at += count_size;
-    info->rows = (size_t)get_le(at, count_size);
+    header->rows = (size_t)get_le(at, count_size);
     at += count_size;
-    info->x_scale = get_double(at);
+    header->x_scale = get_double(at);
     at += sizeof(double);
-    info->y_scale = get_double(at);
+    header->y_scale = get_double(at);
     at += sizeof(double);
-    info->z_scale = get_double(at);
+    header->z_scale = get_double(at);
     at += sizeof(double);
     const double resolution = get_double(at);
     at += sizeof(double);
@@ -125,35 +126,36 @@ sdf_status sdfi_binary_parse(const unsigned char *bytes, sdf_info *info,
     const unsigned check_type = *at;
     if (compression != SDFI_NONE)
     {
-        return sdfi_fail(message, SDF_ERR_UNSUPPORTED,
+        return sdfi_fail(message, SDFIO_ERR_UNSUPPORTED,
                          "Compressed SDF data areas are not supported");
     }
     if (check_type != SDFI_NONE)
     {
-        return sdfi_fail(message, SDF_ERR_UNSUPPORTED,
+        return sdfi_fail(message, SDFIO_ERR_UNSUPPORTED,
                          "Checksummed SDF data areas are not supported");
     }
-    if (code > (unsigned)SDF_DATA_BINARY64)
+    if (code > (unsigned)SDFIO_DATA_BINARY64)
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "Unknown SDF data type code %u", code);
     }
-    const sdf_data_type type = (sdf_data_type)code;
-    if (!sdf_revision_allows(revision, type))
+    const sdfio_data_type type = (sdfio_data_type)code;
+    if (!sdfio_revision_allows(revision, type))
     {
-        return sdfi_fail(message, SDF_ERR_FORMAT,
+        return sdfi_fail(message, SDFIO_ERR_FORMAT,
                          "Data type %s is not valid for SDF revision %s",
-                         sdf_data_type_name(type), sdf_revision_name(revision));
+                         sdfio_data_type_name(type),
+                         sdfio_revision_name(revision));
     }
-    info->revision = revision;
-    info->storage = SDF_BINARY;
-    info->data_type = type;
-    info->z_resolution = resolution > 0.0 && isfinite(resolution)
-                             ? resolution
-                             : SDF_NO_RESOLUTION;
-    info->create_date = created;
-    info->mod_date = modified;
-    return SDF_OK;
+    header->revision = revision;
+    header->storage = SDFIO_BINARY;
+    header->data_type = type;
+    header->z_resolution = resolution > 0.0 && isfinite(resolution)
+                               ? resolution
+                               : SDFIO_NO_RESOLUTION;
+    header->creation_date = created;
+    header->modification_date = modified;
+    return SDFIO_OK;
 }
 
 static unsigned char *put_text(unsigned char *out, const char *text,
@@ -169,44 +171,44 @@ static unsigned char *put_text(unsigned char *out, const char *text,
     return out + width;
 }
 
-sdf_status sdfi_binary_header(const sdf_info *info, unsigned char *out,
-                              size_t *size, sdfi_message *message)
+sdfio_status sdfi_binary_header(const sdfio_header *header, unsigned char *out,
+                                size_t *size, sdfi_message *message)
 {
     (void)message;
     unsigned char *at = out;
     char magic[SDFI_MAGIC_SIZE + 1];
-    snprintf(magic, sizeof magic, "b%s", sdf_revision_name(info->revision));
+    snprintf(magic, sizeof magic, "b%s", sdfio_revision_name(header->revision));
     at = put_text(at, magic, SDFI_MAGIC_SIZE);
-    at = put_text(at, info->manufacturer_id, SDFI_ID_SIZE);
+    at = put_text(at, header->manufacturer_id, SDFI_ID_SIZE);
     char date[SDFI_DATE_SIZE + 1] = {0};
-    sdfi_date_format(info->create_date, info->revision, date);
+    sdfi_date_format(header->creation_date, header->revision, date);
     at = put_text(at, date, SDFI_DATE_SIZE);
-    sdfi_date_format(info->mod_date, info->revision, date);
+    sdfi_date_format(header->modification_date, header->revision, date);
     at = put_text(at, date, SDFI_DATE_SIZE);
     const size_t count_size =
-        info->revision == SDF_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    put_le(at, count_size, info->columns);
+        header->revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
+    put_le(at, count_size, header->columns);
     at += count_size;
-    put_le(at, count_size, info->rows);
+    put_le(at, count_size, header->rows);
     at += count_size;
-    put_double(at, info->x_scale);
+    put_double(at, header->x_scale);
     at += sizeof(double);
-    put_double(at, info->y_scale);
+    put_double(at, header->y_scale);
     at += sizeof(double);
-    put_double(at, info->z_scale);
+    put_double(at, header->z_scale);
     at += sizeof(double);
-    put_double(at, info->z_resolution > 0.0 ? info->z_resolution
-                                            : SDFI_FILE_NO_RESOLUTION);
+    put_double(at, header->z_resolution > 0.0 ? header->z_resolution
+                                              : SDFI_FILE_NO_RESOLUTION);
     at += sizeof(double);
     *at++ = SDFI_NONE;
-    *at++ = (unsigned char)info->data_type;
+    *at++ = (unsigned char)header->data_type;
     *at++ = SDFI_NONE;
     *size = (size_t)(at - out);
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
-                               bool *present, sdfi_message *message)
+sdfio_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
+                                 bool *present, sdfi_message *message)
 {
     char piece[SDFI_SOURCE_BUFFER];
     size_t count = 0;
@@ -214,18 +216,18 @@ sdf_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
     {
         if (out->size + count > SDFI_MAX_TRAILER)
         {
-            return sdfi_fail(message, SDF_ERR_FORMAT,
+            return sdfi_fail(message, SDFIO_ERR_FORMAT,
                              "The SDF trailer is too long");
         }
         if (!sdfi_string_append(out, piece, count))
         {
-            return sdfi_fail(message, SDF_ERR_MEMORY, "Out of memory");
+            return sdfi_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
         }
     }
     if (source->failed)
     {
-        return sdfi_fail(message, SDF_ERR_IO, "The stream could not be read");
+        return sdfi_fail(message, SDFIO_ERR_IO, "The stream could not be read");
     }
     *present = out->size > 0; /* the file ends with the data */
-    return SDF_OK;
+    return SDFIO_OK;
 }

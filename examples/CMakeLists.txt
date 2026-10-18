@@ -4,8 +4,8 @@
 
 foreach(example writing reading streaming counts)
     add_executable(${example} ${example}.c)
-    target_link_libraries(${example} PRIVATE sdf)
-    target_compile_options(${example} PRIVATE ${SDF_WARNINGS} ${SDF_SANITIZER_FLAGS})
+    target_link_libraries(${example} PRIVATE sdfio)
+    target_compile_options(${example} PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
 endforeach()
 
 if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)

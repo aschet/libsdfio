@@ -1,4 +1,4 @@
-#include <sdf/sdf.h>
+#include <sdfio/sdfio.h>
 
 #include <math.h>
 #include <stdio.h>
@@ -7,34 +7,34 @@
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "surface.sdf";
-    sdf_reader *reader = sdf_reader_new();
-    sdf_status status = sdf_open_file(reader, path);
-    if (status != SDF_OK)
+    sdfio_reader *reader = sdfio_reader_new();
+    sdfio_status status = sdfio_open_file(reader, path);
+    if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdf_reader_message(reader));
-        sdf_reader_free(reader);
+        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
+        sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
 
-    const sdf_info *info = sdf_get_info(reader);
-    float *heights = sdf_alloc_heights(info, SDF_FLOAT32, info->rows);
-    status = sdf_read_heights(reader, sdf_metres(SDF_FLOAT32), heights,
-                              (ptrdiff_t)(info->columns * sizeof *heights));
+    const sdfio_header *header = sdfio_get_header(reader);
+    float *heights = sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+    status = sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), heights,
+                                (ptrdiff_t)(header->columns * sizeof *heights));
     const char *trailer = NULL;
     size_t trailer_size = 0;
-    if (status == SDF_OK)
+    if (status == SDFIO_OK)
     {
-        status = sdf_read_trailer(reader, &trailer, &trailer_size);
+        status = sdfio_read_trailer(reader, &trailer, &trailer_size);
     }
-    if (status != SDF_OK)
+    if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdf_reader_message(reader));
+        fprintf(stderr, "%s\n", sdfio_reader_message(reader));
     }
     else
     {
         double sum = 0.0;
         size_t measured = 0;
-        for (size_t i = 0; i < info->rows * info->columns; ++i)
+        for (size_t i = 0; i < header->rows * header->columns; ++i)
         {
             if (!isnan(heights[i]))
             {
@@ -44,14 +44,14 @@ int main(int argc, char **argv)
         }
         const char *operator_name = NULL;
         size_t operator_size = 0;
-        sdf_trailer_find(trailer, trailer_size, "OperatorName", &operator_name,
-                         &operator_size);
+        sdfio_trailer_find(trailer, trailer_size, "OperatorName",
+                           &operator_name, &operator_size);
         printf("%s %zu x %zu, mean %g m, operator %.*s\n",
-               sdf_revision_name(info->revision), info->columns, info->rows,
-               measured > 0 ? sum / (double)measured : 0.0, (int)operator_size,
-               operator_name != NULL ? operator_name : "");
+               sdfio_revision_name(header->revision), header->columns,
+               header->rows, measured > 0 ? sum / (double)measured : 0.0,
+               (int)operator_size, operator_name != NULL ? operator_name : "");
     }
-    sdf_free(heights);
-    sdf_reader_free(reader);
-    return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
+    sdfio_free(heights);
+    sdfio_reader_free(reader);
+    return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

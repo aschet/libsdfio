@@ -1,26 +1,42 @@
-# libsdf
+# sdfio for C
 
 A C library that reads and writes ISO 25178-71 SDF surface data files: the
 revisions ISO-1.0, ISO-2.0 and BCR-1.0, as text or binary. It is the C sibling
-of [libsdfio](../sdfkit), an experiment in what the same job looks like with the
-design of libpng and libtiff instead of C++ templates. The files are the same;
-the interface is not.
+of the C++ library [sdfio](../sdfkit), an experiment in what the same job looks
+like with the design of libpng and libtiff instead of C++ templates. The files
+are the same; the interface is not.
 
 ```c
-sdf_reader *reader = sdf_reader_new();
-if (sdf_open_file(reader, "surface.sdf") == SDF_OK)
+sdfio_reader *reader = sdfio_reader_new();
+if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 {
-    const sdf_info *info = sdf_get_info(reader);
-    float *depth = malloc(info->rows * info->columns * sizeof *depth);
-    sdf_read_heights(reader, sdf_metres(SDF_FLOAT32), depth,
-                     (ptrdiff_t)(info->columns * sizeof *depth));
+    const sdfio_header *header = sdfio_get_header(reader);
+    float *depth = sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+    sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), depth,
+                       (ptrdiff_t)(header->columns * sizeof *depth));
+    sdfio_free(depth);
 }
-sdf_reader_free(reader);
+sdfio_reader_free(reader);
 ```
 
 The library allocates no memory for the heights, holds no more of a file than
 a chunk of 1024 values, and reads from files, memory and callbacks of your own,
 also from a pipe that cannot seek.
+
+## Names
+
+Everything the library puts into your program starts with the name of the
+library, so it can sit next to others: functions and types with `sdfio_`,
+macros and enumerators with `SDFIO_`, the headers in `<sdfio/>`, the CMake
+package and target `sdfio`. The shorter `sdf_` and `SDF_` are taken: the
+measurement library comedi has `SDF_READABLE`, `SDF_WRITABLE` and a dozen more,
+and a program that talks to a scanner may include both. The library `libsdf`
+on GitHub (signed distance functions) has the same file name as a `sdf`
+library would. The files themselves keep the extension `.sdf`. The
+internals use `sdfi_`, hidden in the shared library.
+
+The C++ library has the same name and the same CMake package, so install the two
+into different prefixes.
 
 ## Layers
 
@@ -28,30 +44,30 @@ Use the highest one that does the job.
 
 | Layer | Calls | What it is |
 | --- | --- | --- |
-| Handles | `sdf_open_file`, `sdf_open_memory`, `sdf_open_stream`, `sdf_create_file`, `sdf_create_stream` | A reader or writer over a file, memory or `sdf_stream` callbacks |
-| Stored values | `sdf_read_rows`, `sdf_write_rows` | The data area as the file stores it: the data type of the file, host byte order, row by row, in file order |
-| Heights | `sdf_decode_heights`, `sdf_encode_heights`, `sdf_z_scale_for_range` | Stored values to metres and back, without a handle |
-| Images | `sdf_read_heights`, `sdf_write_heights` | A whole matrix of heights in metres of any sample type, any row stride |
+| Handles | `sdfio_open_file`, `sdfio_open_memory`, `sdfio_open_stream`, `sdfio_create_file`, `sdfio_create_stream` | A reader or writer over a file, memory or `sdfio_stream` callbacks |
+| Records | `sdfio_get_header`, `sdfio_read_data`, `sdfio_write_data`, `sdfio_read_trailer`, `sdfio_write_trailer` | The three records of the standard: the header (record 1), the data area (record 2) as the file codes it, in the data type of the file, host byte order, row by row, in file order, and the trailer (record 3) |
+| Heights | `sdfio_decode_heights`, `sdfio_encode_heights`, `sdfio_z_scale_for_range` | The coded height information to metres and back, without a handle |
+| Images | `sdfio_read_heights`, `sdfio_write_heights` | A whole matrix of heights in metres of any sample type, any row stride |
 
-The first two layers know nothing of metres, z-scales or missing points: they
+The records know nothing of metres, z-scales or missing points: they
 move what the file holds. The conversion is a step of its own, which also works
 on data from any other source.
 
 ## Using it
 
-- **One header**: `#include <sdf/sdf.h>`, link `sdf::sdf` with CMake.
-- **Memory**: `sdf_alloc_heights` and `sdf_alloc_stored` size a buffer from the
-  description of a file, with the overflow checked, and `sdf_free` releases it.
+- **One header**: `#include <sdfio/sdfio.h>`, link `sdf::sdf` with CMake.
+- **Memory**: `sdfio_alloc_heights` and `sdfio_alloc_data` size a buffer from the
+  description of a file, with the overflow checked, and `sdfio_free` releases it.
   Your own `malloc` works as well; the library never allocates the heights.
-- **Errors**: every call returns an `sdf_status`; `sdf_reader_message()` and
-  `sdf_writer_message()` give the text of the last failure.
+- **Errors**: every call returns an `sdfio_status`; `sdfio_reader_message()` and
+  `sdfio_writer_message()` give the text of the last failure.
 - **Sample types**: heights can be `int8` to `uint32`, `float` or `double`; the
   program does not have to widen its memory to `double`.
 - **Missing points** are NaN, or the marker of your choice, which is taken in
   the precision of the sample type.
 - **Row order**: the image calls always put `y = 0` first. The row calls keep
   the order of the file, which BCR-1.0 stores from the largest y down;
-  `sdf_row_y()` gives the y of a file row.
+  `sdfio_row_y()` gives the y of a file row.
 - **Dates** are UTC `time_t` in the program and the clock that the revision
   requires in the file.
 - **Threads**: there is no global state. Handles of different threads are
@@ -72,8 +88,8 @@ cmake --build build
 ctest --test-dir build
 ```
 
-The options are `BUILD_SHARED_LIBS`, `SDF_BUILD_EXAMPLES`, `SDF_SANITIZE`
-(AddressSanitizer and UndefinedBehaviorSanitizer) and `SDF_SANITIZE_THREAD`.
+The options are `BUILD_SHARED_LIBS`, `SDFIO_BUILD_EXAMPLES`, `SDFIO_SANITIZE`
+(AddressSanitizer and UndefinedBehaviorSanitizer) and `SDFIO_SANITIZE_THREAD`.
 The library needs a C11 compiler with IEEE 754 `float` and `double` and 8-bit
 bytes, and builds with GCC, Clang and MSVC. The version and the export macro
 are generated by CMake.

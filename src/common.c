@@ -8,39 +8,39 @@
 
 #include <stdio.h>
 
-const char *sdf_version(void)
+const char *sdfio_version(void)
 {
-    return SDF_VERSION_STRING;
+    return SDFIO_VERSION_STRING;
 }
 
-const char *sdf_status_string(sdf_status status)
+const char *sdfio_status_string(sdfio_status status)
 {
     switch (status)
     {
-    case SDF_OK:
+    case SDFIO_OK:
         return "no error";
-    case SDF_ERR_ARGUMENT:
+    case SDFIO_ERR_ARGUMENT:
         return "invalid argument";
-    case SDF_ERR_STATE:
+    case SDFIO_ERR_STATE:
         return "the call does not fit the state of the handle";
-    case SDF_ERR_IO:
+    case SDFIO_ERR_IO:
         return "input or output error";
-    case SDF_ERR_FORMAT:
+    case SDFIO_ERR_FORMAT:
         return "not an SDF file, or a damaged one";
-    case SDF_ERR_UNSUPPORTED:
+    case SDFIO_ERR_UNSUPPORTED:
         return "a feature of the file is not supported";
-    case SDF_ERR_RANGE:
+    case SDFIO_ERR_RANGE:
         return "a number does not fit its type";
-    case SDF_ERR_SENTINEL:
+    case SDFIO_ERR_SENTINEL:
         return "a height equals the marker of a point that is not measured";
-    case SDF_ERR_MEMORY:
+    case SDFIO_ERR_MEMORY:
         return "out of memory";
     }
     return "unknown status";
 }
 
-sdf_status sdfi_fail(sdfi_message *message, sdf_status code, const char *format,
-                     ...)
+sdfio_status sdfi_fail(sdfi_message *message, sdfio_status code,
+                       const char *format, ...)
 {
     /* The analyzer of clang-tidy 21 does not see that va_start initializes. */
     // NOLINTBEGIN(clang-analyzer-valist.Uninitialized)

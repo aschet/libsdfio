@@ -120,7 +120,7 @@ time_t sdfi_now(void)
     const time_t now = time(NULL);
     if (now == (time_t)-1)
     {
-        return SDF_NO_TIME;
+        return SDFIO_NO_TIME;
     }
     return (time_t)(minutes_of(now) * SECONDS_PER_MINUTE);
 }
@@ -190,10 +190,10 @@ static void put_digits(char *out, int value, size_t width)
     }
 }
 
-void sdfi_date_format(time_t time, sdf_revision revision,
+void sdfi_date_format(time_t time, sdfio_revision revision,
                       char out[SDFI_DATE_SIZE])
 {
-    if (time == SDF_NO_TIME)
+    if (time == SDFIO_NO_TIME)
     {
         memset(out, '0', SDFI_DATE_SIZE);
         return;
@@ -232,25 +232,25 @@ static int digits_at(const char *text, size_t at, size_t count)
     return number;
 }
 
-time_t sdfi_date_parse(const char *text, size_t size, sdf_revision revision)
+time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision)
 {
     sdfi_trim(&text, &size);
     if (size != SDFI_DATE_SIZE)
     {
-        return SDF_NO_TIME;
+        return SDFIO_NO_TIME;
     }
     bool all_zero = true;
     for (size_t i = 0; i < size; ++i)
     {
         if (!sdfi_is_digit(text[i]))
         {
-            return SDF_NO_TIME;
+            return SDFIO_NO_TIME;
         }
         all_zero = all_zero && text[i] == '0';
     }
     if (all_zero)
     {
-        return SDF_NO_TIME;
+        return SDFIO_NO_TIME;
     }
     const int day = digits_at(text, DAY_AT, TWO_DIGITS);
     const int month = digits_at(text, MONTH_AT, TWO_DIGITS);
@@ -260,7 +260,7 @@ time_t sdfi_date_parse(const char *text, size_t size, sdf_revision revision)
     if (year < SDFI_FIRST_YEAR || month < 1 || month > MONTHS_PER_YEAR
         || day < 1 || hour >= HOURS_PER_DAY || minute >= MINUTES_PER_HOUR)
     {
-        return SDF_NO_TIME;
+        return SDFIO_NO_TIME;
     }
     /* A day that the month does not have comes back as another date. */
     const int64_t days = days_from_civil(year, (unsigned)month, (unsigned)day);
@@ -271,7 +271,7 @@ time_t sdfi_date_parse(const char *text, size_t size, sdf_revision revision)
     if (back_year != year || back_month != (unsigned)month
         || back_day != (unsigned)day)
     {
-        return SDF_NO_TIME;
+        return SDFIO_NO_TIME;
     }
     int64_t clock =
         days * MINUTES_PER_DAY + (int64_t)hour * MINUTES_PER_HOUR + minute;

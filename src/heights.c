@@ -16,7 +16,7 @@ static bool in_range(double value, double low, double high)
 
 /* The marker of the caller as the buffer holds it: rounded to the sample type,
  * so that it equals the points that were set to it. NaN is no marker. */
-static double marker_of(sdf_format format)
+static double marker_of(sdfio_format format)
 {
     if (isnan(format.missing))
     {
@@ -24,116 +24,117 @@ static double marker_of(sdf_format format)
     }
     switch (format.sample)
     {
-    case SDF_FLOAT32:
+    case SDFIO_FLOAT32:
         return fabs(format.missing) > (double)FLT_MAX
                    ? format.missing
                    : (double)(float)format.missing;
-    case SDF_FLOAT64:
+    case SDFIO_FLOAT64:
         return format.missing;
     default:
         return nearbyint(format.missing);
     }
 }
 
-static bool usable_description(const sdf_info *info, sdf_format format)
+static bool usable_description(const sdfio_header *header, sdfio_format format)
 {
-    return info != NULL && sdfi_valid_data_type(info->data_type)
+    return header != NULL && sdfi_valid_data_type(header->data_type)
            && sdfi_valid_sample(format.sample);
 }
 
-sdf_status sdf_decode_heights(const sdf_info *info, sdf_format format,
-                              const void *stored, size_t count, void *heights)
+sdfio_status sdfio_decode_heights(const sdfio_header *header,
+                                  sdfio_format format, const void *data,
+                                  size_t count, void *heights)
 {
-    if (!usable_description(info, format)
-        || (count > 0 && (stored == NULL || heights == NULL)))
+    if (!usable_description(header, format)
+        || (count > 0 && (data == NULL || heights == NULL)))
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
-    const sdf_data_type type = info->data_type;
+    const sdfio_data_type type = header->data_type;
     const sdfi_sentinel_test is_missing =
-        sdfi_sentinel_test_for(type, info->revision);
-    const size_t stored_size = sdf_data_type_size(type);
-    const size_t sample_size = sdf_sample_size(format.sample);
+        sdfi_sentinel_test_for(type, header->revision);
+    const size_t coded_size = sdfio_data_type_size(type);
+    const size_t sample_size = sdfio_sample_size(format.sample);
     const double marker = marker_of(format);
     double values[SDFI_CHUNK];
     for (size_t first = 0; first < count; first += SDFI_CHUNK)
     {
         const size_t n =
             count - first < SDFI_CHUNK ? count - first : SDFI_CHUNK;
-        sdfi_load_stored(type,
-                         (const unsigned char *)stored + first * stored_size, n,
-                         values);
+        sdfi_load_coded(type, (const unsigned char *)data + first * coded_size,
+                        n, values);
         for (size_t i = 0; i < n; ++i)
         {
             /* NaN before scaling: a huge marker could overflow when scaled. */
             double height = sdfi_matches(is_missing, values[i])
                                 ? NAN
-                                : values[i] * info->z_scale;
+                                : values[i] * header->z_scale;
             if (isnan(height) && !isnan(marker))
             {
                 height = marker;
             }
             values[i] = height;
         }
-        const sdf_status status = sdfi_store_samples(
+        const sdfio_status status = sdfi_store_samples(
             format.sample, (unsigned char *)heights + first * sample_size,
             values, n);
-        if (status != SDF_OK)
+        if (status != SDFIO_OK)
         {
             return status;
         }
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-/* A height as it is stored, checked against the range of the type and against
- * the number that marks a point as not measured. */
-static sdf_status checked_stored(sdf_data_type type, sdf_revision revision,
-                                 double stored, double *out)
+/* A height as the data area codes it, checked against the range of the type and
+ * against the number that marks a point as not measured. */
+static sdfio_status checked_coded(sdfio_data_type type, sdfio_revision revision,
+                                  double value, double *out)
 {
-    double candidate = stored;
+    double candidate = value;
     if (sdfi_is_floating(type))
     {
-        if (!in_range(stored, sdfi_lowest(type), sdfi_highest(type)))
+        if (!in_range(value, sdfi_lowest(type), sdfi_highest(type)))
         {
-            return SDF_ERR_RANGE;
+            return SDFIO_ERR_RANGE;
         }
         /* A number is compared as it is stored: one that rounds to the marker
          * is the marker. */
-        if (type == SDF_DATA_BINARY32)
+        if (type == SDFIO_DATA_BINARY32)
         {
-            candidate = (double)(float)stored;
+            candidate = (double)(float)value;
         }
     }
     else
     {
-        candidate = nearbyint(stored);
+        candidate = nearbyint(value);
         if (!in_range(candidate, sdfi_lowest(type), sdfi_highest(type)))
         {
-            return SDF_ERR_RANGE;
+            return SDFIO_ERR_RANGE;
         }
     }
-    if (sdf_is_sentinel(type, revision, candidate))
+    if (sdfio_is_sentinel(type, revision, candidate))
     {
-        return SDF_ERR_SENTINEL;
+        return SDFIO_ERR_SENTINEL;
     }
-    *out = sdfi_is_floating(type) ? stored : candidate;
-    return SDF_OK;
+    *out = sdfi_is_floating(type) ? value : candidate;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_encode_heights(const sdf_info *info, sdf_format format,
-                              const void *heights, size_t count, void *stored)
+sdfio_status sdfio_encode_heights(const sdfio_header *header,
+                                  sdfio_format format, const void *heights,
+                                  size_t count, void *data)
 {
-    if (!usable_description(info, format)
-        || (count > 0 && (stored == NULL || heights == NULL))
-        || !(info->z_scale > 0.0 && isfinite(info->z_scale)))
+    if (!usable_description(header, format)
+        || (count > 0 && (data == NULL || heights == NULL))
+        || !(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
-    const sdf_data_type type = info->data_type;
-    const double marker = sdf_sentinel(type, info->revision);
-    const size_t stored_size = sdf_data_type_size(type);
-    const size_t sample_size = sdf_sample_size(format.sample);
+    const sdfio_data_type type = header->data_type;
+    const double marker = sdfio_sentinel(type, header->revision);
+    const size_t coded_size = sdfio_data_type_size(type);
+    const size_t sample_size = sdfio_sample_size(format.sample);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
     double values[SDFI_CHUNK];
@@ -152,28 +153,28 @@ sdf_status sdf_encode_heights(const sdf_info *info, sdf_format format,
                 values[i] = marker;
                 continue;
             }
-            const sdf_status status = checked_stored(
-                type, info->revision, height / info->z_scale, &values[i]);
-            if (status != SDF_OK)
+            const sdfio_status status = checked_coded(
+                type, header->revision, height / header->z_scale, &values[i]);
+            if (status != SDFIO_OK)
             {
                 return status;
             }
         }
-        const sdf_status status = sdfi_store_stored(
-            type, (unsigned char *)stored + first * stored_size, values, n);
-        if (status != SDF_OK)
+        const sdfio_status status = sdfi_store_coded(
+            type, (unsigned char *)data + first * coded_size, values, n);
+        if (status != SDFIO_OK)
         {
             return status;
         }
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
 /* The step from the extreme of a type that a sentinel takes away: one count. */
 static const double one_count = 1.0;
 
-double sdf_z_scale_for_range(sdf_data_type type, sdf_revision revision,
-                             double lowest, double highest)
+double sdfio_z_scale_for_range(sdfio_data_type type, sdfio_revision revision,
+                               double lowest, double highest)
 {
     if (!sdfi_valid_data_type(type) || sdfi_is_floating(type)
         || !(lowest <= highest))
@@ -201,16 +202,17 @@ double sdf_z_scale_for_range(sdf_data_type type, sdf_revision revision,
     return z_scale > 0.0 ? z_scale : 1.0;
 }
 
-static sdf_status find_range(sdf_format format, const void *heights,
-                             size_t rows, size_t columns, ptrdiff_t row_stride,
-                             double *lowest, double *highest)
+static sdfio_status find_range(sdfio_format format, const void *heights,
+                               size_t rows, size_t columns,
+                               ptrdiff_t row_stride, double *lowest,
+                               double *highest)
 {
     if (!sdfi_valid_sample(format.sample) || lowest == NULL || highest == NULL
         || (rows > 0 && columns > 0 && heights == NULL))
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
-    const size_t sample_size = sdf_sample_size(format.sample);
+    const size_t sample_size = sdfio_sample_size(format.sample);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
     double low = INFINITY;
@@ -239,25 +241,26 @@ static sdf_status find_range(sdf_format format, const void *heights,
     }
     *lowest = low <= high ? low : NAN;
     *highest = low <= high ? high : NAN;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_suggest_z_scale(sdf_data_type type, sdf_revision revision,
-                               sdf_format format, const void *heights,
-                               size_t rows, size_t columns,
-                               ptrdiff_t row_stride, double *z_scale)
+sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
+                                   sdfio_revision revision, sdfio_format format,
+                                   const void *heights, size_t rows,
+                                   size_t columns, ptrdiff_t row_stride,
+                                   double *z_scale)
 {
     if (!sdfi_valid_data_type(type) || z_scale == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     double lowest = 0.0;
     double highest = 0.0;
-    const sdf_status status = find_range(format, heights, rows, columns,
-                                         row_stride, &lowest, &highest);
-    if (status == SDF_OK)
+    const sdfio_status status = find_range(format, heights, rows, columns,
+                                           row_stride, &lowest, &highest);
+    if (status == SDFIO_OK)
     {
-        *z_scale = sdf_z_scale_for_range(type, revision, lowest, highest);
+        *z_scale = sdfio_z_scale_for_range(type, revision, lowest, highest);
     }
     return status;
 }

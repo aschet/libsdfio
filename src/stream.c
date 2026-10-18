@@ -5,7 +5,7 @@
  */
 
 /* The bytes of a file: the stdio stream, a buffered source and a buffered
- * sink over the callbacks of sdf_stream. */
+ * sink over the callbacks of sdfio_stream. */
 
 #include "internal.h"
 
@@ -15,7 +15,7 @@ static size_t stdio_read(void *user, void *data, size_t size)
     const size_t count = fread(data, 1, size, file);
     if (count < size && ferror(file) != 0)
     {
-        return SDF_STREAM_ERROR;
+        return SDFIO_STREAM_ERROR;
     }
     return count;
 }
@@ -43,9 +43,9 @@ static int64_t stdio_seek(void *user, int64_t offset, int whence)
 #endif
 }
 
-sdf_stream sdf_stdio_stream(FILE *file)
+sdfio_stream sdfio_stdio_stream(FILE *file)
 {
-    sdf_stream stream = {0};
+    sdfio_stream stream = {0};
     stream.user = file;
     stream.read = stdio_read;
     stream.write = stdio_write;
@@ -53,7 +53,7 @@ sdf_stream sdf_stdio_stream(FILE *file)
     return stream;
 }
 
-void sdfi_source_init(sdfi_source *source, const sdf_stream *io)
+void sdfi_source_init(sdfi_source *source, const sdfio_stream *io)
 {
     source->io = *io;
     source->position = 0;
@@ -99,7 +99,7 @@ size_t sdfi_source_fill(sdfi_source *source, size_t want)
         const size_t count =
             source->io.read(source->io.user, source->buffer + source->end,
                             SDFI_SOURCE_BUFFER - source->end);
-        if (count == SDF_STREAM_ERROR)
+        if (count == SDFIO_STREAM_ERROR)
         {
             source->failed = true;
         }
@@ -162,7 +162,7 @@ size_t sdfi_source_read(sdfi_source *source, void *dst, size_t size)
             source->end = 0;
             const size_t count =
                 source->io.read(source->io.user, out + done, size - done);
-            if (count == SDF_STREAM_ERROR)
+            if (count == SDFIO_STREAM_ERROR)
             {
                 source->failed = true;
                 break;
@@ -220,7 +220,7 @@ int64_t sdfi_source_size(sdfi_source *source)
     return size;
 }
 
-void sdfi_sink_init(sdfi_sink *sink, const sdf_stream *io)
+void sdfi_sink_init(sdfi_sink *sink, const sdfio_stream *io)
 {
     sink->io = *io;
     sink->used = 0;

@@ -6,10 +6,10 @@
 
 /* What the parts of the library share and the public header does not offer. */
 
-#ifndef SDF_SRC_INTERNAL_H
-#define SDF_SRC_INTERNAL_H
+#ifndef SDFIO_SRC_INTERNAL_H
+#define SDFIO_SRC_INTERNAL_H
 
-#include <sdf/sdf.h>
+#include <sdfio/sdfio.h>
 
 #include <float.h>
 #include <limits.h>
@@ -96,8 +96,8 @@ typedef struct sdfi_message
     char text[SDFI_MESSAGE_CAPACITY];
 } sdfi_message;
 
-sdf_status sdfi_fail(sdfi_message *message, sdf_status code, const char *format,
-                     ...) SDFI_PRINTF(3, 4);
+sdfio_status sdfi_fail(sdfi_message *message, sdfio_status code,
+                       const char *format, ...) SDFI_PRINTF(3, 4);
 
 /* A growable text, always 0-terminated once something is in it. */
 typedef struct sdfi_string
@@ -119,65 +119,65 @@ const char *sdfi_string_text(const sdfi_string *string);
  * size, its lowest and highest value, and whether it is a floating point
  * type. */
 #define SDFI_SCALARS(X)                                                        \
-    X(SDF_INT8, SDF_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX,    \
+    X(SDFIO_INT8, SDFIO_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN,          \
+      INT8_MAX, false)                                                         \
+    X(SDFIO_UINT8, SDFIO_DATA_UINT8, "uint8", uint8_t, uint8_t, 0, UINT8_MAX,  \
       false)                                                                   \
-    X(SDF_UINT8, SDF_DATA_UINT8, "uint8", uint8_t, uint8_t, 0, UINT8_MAX,      \
-      false)                                                                   \
-    X(SDF_INT16, SDF_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN,        \
+    X(SDFIO_INT16, SDFIO_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN,    \
       INT16_MAX, false)                                                        \
-    X(SDF_UINT16, SDF_DATA_UINT16, "uint16", uint16_t, uint16_t, 0,            \
+    X(SDFIO_UINT16, SDFIO_DATA_UINT16, "uint16", uint16_t, uint16_t, 0,        \
       UINT16_MAX, false)                                                       \
-    X(SDF_INT32, SDF_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN,        \
+    X(SDFIO_INT32, SDFIO_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN,    \
       INT32_MAX, false)                                                        \
-    X(SDF_UINT32, SDF_DATA_UINT32, "uint32", uint32_t, uint32_t, 0,            \
+    X(SDFIO_UINT32, SDFIO_DATA_UINT32, "uint32", uint32_t, uint32_t, 0,        \
       UINT32_MAX, false)                                                       \
-    X(SDF_FLOAT32, SDF_DATA_BINARY32, "binary32", float, uint32_t, -FLT_MAX,   \
-      FLT_MAX, true)                                                           \
-    X(SDF_FLOAT64, SDF_DATA_BINARY64, "binary64", double, uint64_t, -DBL_MAX,  \
-      DBL_MAX, true)
+    X(SDFIO_FLOAT32, SDFIO_DATA_BINARY32, "binary32", float, uint32_t,         \
+      -FLT_MAX, FLT_MAX, true)                                                 \
+    X(SDFIO_FLOAT64, SDFIO_DATA_BINARY64, "binary64", double, uint64_t,        \
+      -DBL_MAX, DBL_MAX, true)
 
-bool sdfi_valid_sample(sdf_sample sample);
-bool sdfi_valid_data_type(sdf_data_type type);
-bool sdfi_is_floating(sdf_data_type type);
-double sdfi_lowest(sdf_data_type type);
-double sdfi_highest(sdf_data_type type);
+bool sdfi_valid_sample(sdfio_sample sample);
+bool sdfi_valid_data_type(sdfio_data_type type);
+bool sdfi_is_floating(sdfio_data_type type);
+double sdfi_lowest(sdfio_data_type type);
+double sdfi_highest(sdfio_data_type type);
 bool sdfi_revision_from_text(const char *text, size_t size,
-                             sdf_revision *revision);
+                             sdfio_revision *revision);
 
 /* The rules of the revisions. */
-static inline bool sdfi_requires_utc(sdf_revision revision)
+static inline bool sdfi_requires_utc(sdfio_revision revision)
 {
-    return revision == SDF_ISO_2_0;
+    return revision == SDFIO_ISO_2_0;
 }
 
-static inline bool sdfi_requires_tagged_trailer(sdf_revision revision)
+static inline bool sdfi_requires_tagged_trailer(sdfio_revision revision)
 {
-    return revision == SDF_ISO_2_0;
+    return revision == SDFIO_ISO_2_0;
 }
 
-static inline bool sdfi_uses_max_sentinel(sdf_revision revision)
+static inline bool sdfi_uses_max_sentinel(sdfio_revision revision)
 {
-    return revision == SDF_BCR_1_0;
+    return revision == SDFIO_BCR_1_0;
 }
 
-static inline bool sdfi_allows_comments(sdf_revision revision)
+static inline bool sdfi_allows_comments(sdfio_revision revision)
 {
-    return revision == SDF_BCR_1_0;
+    return revision == SDFIO_BCR_1_0;
 }
 
-static inline bool sdfi_allows_symbols(sdf_revision revision)
+static inline bool sdfi_allows_symbols(sdfio_revision revision)
 {
-    return revision == SDF_BCR_1_0;
+    return revision == SDFIO_BCR_1_0;
 }
 
-static inline bool sdfi_has_bad_token(sdf_revision revision)
+static inline bool sdfi_has_bad_token(sdfio_revision revision)
 {
-    return revision != SDF_BCR_1_0;
+    return revision != SDFIO_BCR_1_0;
 }
 
 /* The largest number of columns or rows of a binary file. */
-size_t sdfi_max_binary_count(sdf_revision revision);
-size_t sdfi_binary_header_size(sdf_revision revision);
+size_t sdfi_max_binary_count(sdfio_revision revision);
+size_t sdfi_binary_header_size(sdfio_revision revision);
 
 /* ---- Values -------------------------------------------------------------- */
 
@@ -189,11 +189,11 @@ typedef struct sdfi_sentinel_test
     double value;
 } sdfi_sentinel_test;
 
-sdfi_sentinel_test sdfi_sentinel_test_for(sdf_data_type type,
-                                          sdf_revision revision);
-bool sdfi_matches(sdfi_sentinel_test test, double stored);
+sdfi_sentinel_test sdfi_sentinel_test_for(sdfio_data_type type,
+                                          sdfio_revision revision);
+bool sdfi_matches(sdfi_sentinel_test test, double coded);
 /* The number a text file writes for a point not measured, in BCR-1.0. */
-double sdfi_ascii_sentinel(sdf_data_type type, sdf_revision revision);
+double sdfi_ascii_sentinel(sdfio_data_type type, sdfio_revision revision);
 
 bool sdfi_host_is_little_endian(void);
 /* Puts the values of `bytes` in file order (little endian) or back, in
@@ -201,25 +201,26 @@ bool sdfi_host_is_little_endian(void);
 void sdfi_fix_endianness(void *values, size_t count, size_t size);
 
 /* Samples of a buffer of the caller to doubles and back; the integers are
- * rounded, a number that does not fit is SDF_ERR_RANGE, and NaN becomes 0 in
+ * rounded, a number that does not fit is SDFIO_ERR_RANGE, and NaN becomes 0 in
  * an integer type. */
-void sdfi_load_samples(sdf_sample sample, const void *src, size_t count,
+void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
                        double *out);
-sdf_status sdfi_store_samples(sdf_sample sample, void *dst,
+sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
+                                const double *values, size_t count);
+
+/* The values of the data area in memory, in the byte order of the host, as
+ * doubles and back. */
+void sdfi_load_coded(sdfio_data_type type, const void *src, size_t count,
+                     double *out);
+sdfio_status sdfi_store_coded(sdfio_data_type type, void *dst,
                               const double *values, size_t count);
 
-/* The stored values of the host in memory, as doubles and back. */
-void sdfi_load_stored(sdf_data_type type, const void *src, size_t count,
-                      double *out);
-sdf_status sdfi_store_stored(sdf_data_type type, void *dst,
-                             const double *values, size_t count);
-
-/* One stored value, put at an index. */
-sdf_status sdfi_put_real(sdf_data_type type, void *dst, size_t index,
-                         double value);
-sdf_status sdfi_put_integer(sdf_data_type type, void *dst, size_t index,
-                            long long value);
-double sdfi_get_real(sdf_data_type type, const void *src, size_t index);
+/* One value of the data area, put at an index. */
+sdfio_status sdfi_put_real(sdfio_data_type type, void *dst, size_t index,
+                           double value);
+sdfio_status sdfi_put_integer(sdfio_data_type type, void *dst, size_t index,
+                              long long value);
+double sdfi_get_real(sdfio_data_type type, const void *src, size_t index);
 
 /* ---- Numbers ------------------------------------------------------------- */
 
@@ -250,11 +251,11 @@ size_t sdfi_format_scientific(const sdfi_point *point, char *out,
  */
 
 time_t sdfi_now(void);
-void sdfi_date_format(time_t time, sdf_revision revision,
+void sdfi_date_format(time_t time, sdfio_revision revision,
                       char out[SDFI_DATE_SIZE]);
 /* Whether `year` is a year the field can hold. */
 bool sdfi_date_representable(time_t time);
-time_t sdfi_date_parse(const char *text, size_t size, sdf_revision revision);
+time_t sdfi_date_parse(const char *text, size_t size, sdfio_revision revision);
 
 /* ---- Tagged fields: the lines `Name = Value` ------------------------------
  */
@@ -271,7 +272,7 @@ bool sdfi_tagged_find(const char *text, size_t size, const char *name,
 
 typedef struct sdfi_source
 {
-    sdf_stream io;
+    sdfio_stream io;
     unsigned char buffer[SDFI_SOURCE_BUFFER];
     size_t position;
     size_t end;
@@ -285,7 +286,7 @@ typedef struct sdfi_source
     bool skip_lf;
 } sdfi_source;
 
-void sdfi_source_init(sdfi_source *source, const sdf_stream *io);
+void sdfi_source_init(sdfi_source *source, const sdfio_stream *io);
 /* Makes sure `want` bytes are buffered if the stream has them, and returns how
  * many are. */
 size_t sdfi_source_fill(sdfi_source *source, size_t want);
@@ -298,13 +299,13 @@ int64_t sdfi_source_size(sdfi_source *source);
 
 typedef struct sdfi_sink
 {
-    sdf_stream io;
+    sdfio_stream io;
     unsigned char buffer[SDFI_SINK_BUFFER];
     size_t used;
     bool failed;
 } sdfi_sink;
 
-void sdfi_sink_init(sdfi_sink *sink, const sdf_stream *io);
+void sdfi_sink_init(sdfi_sink *sink, const sdfio_stream *io);
 bool sdfi_sink_write(sdfi_sink *sink, const void *data, size_t size);
 bool sdfi_sink_flush(sdfi_sink *sink);
 
@@ -313,54 +314,56 @@ bool sdfi_sink_flush(sdfi_sink *sink);
 
 /* Reads the header at the start of the source, ASCII or binary, and leaves
  * the source at the data area. */
-sdf_status sdfi_read_header(sdfi_source *source, sdf_info *info,
-                            const sdfi_point *point, sdfi_message *message);
+sdfio_status sdfi_read_header(sdfi_source *source, sdfio_header *header,
+                              const sdfi_point *point, sdfi_message *message);
 
 /* The binary header: the revision of a magic, and the fields. */
-sdf_status sdfi_binary_revision(const unsigned char *magic,
-                                sdf_revision *revision, sdfi_message *message);
-sdf_status sdfi_binary_parse(const unsigned char *bytes, sdf_info *info,
-                             sdfi_message *message);
-sdf_status sdfi_binary_header(const sdf_info *info, unsigned char *out,
-                              size_t *size, sdfi_message *message);
+sdfio_status sdfi_binary_revision(const unsigned char *magic,
+                                  sdfio_revision *revision,
+                                  sdfi_message *message);
+sdfio_status sdfi_binary_parse(const unsigned char *bytes, sdfio_header *header,
+                               sdfi_message *message);
+sdfio_status sdfi_binary_header(const sdfio_header *header, unsigned char *out,
+                                size_t *size, sdfi_message *message);
 /* The rest of the source, nothing if it is empty. */
-sdf_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
-                               bool *present, sdfi_message *message);
+sdfio_status sdfi_binary_trailer(sdfi_source *source, sdfi_string *out,
+                                 bool *present, sdfi_message *message);
 
 /* The text header, and the lines of the text data area. */
-sdf_status sdfi_ascii_parse_header(sdfi_source *source, sdf_info *info,
-                                   const sdfi_point *point,
-                                   sdfi_message *message);
-/* One value of the stored type is parsed into `dst` at `index`; `position` is
+sdfio_status sdfi_ascii_parse_header(sdfi_source *source, sdfio_header *header,
+                                     const sdfi_point *point,
+                                     sdfi_message *message);
+/* One value of the data type is parsed into `dst` at `index`; `position` is
  * its number in the data area, for messages. */
-sdf_status sdfi_ascii_value(sdfi_source *source, const sdf_info *info,
-                            const sdfi_point *point, void *dst, size_t index,
-                            size_t position, sdfi_message *message);
+sdfio_status sdfi_ascii_value(sdfi_source *source, const sdfio_header *header,
+                              const sdfi_point *point, void *dst, size_t index,
+                              size_t position, sdfi_message *message);
 /* Reads the closing "*" of a data area that all its values were read from. */
-sdf_status sdfi_ascii_finish(sdfi_source *source, const sdf_info *info,
-                             sdfi_message *message);
+sdfio_status sdfi_ascii_finish(sdfi_source *source, const sdfio_header *header,
+                               sdfi_message *message);
 /* Passes the values up to the closing "*". */
-sdf_status sdfi_ascii_skip(sdfi_source *source, const sdf_info *info,
-                           sdfi_message *message);
+sdfio_status sdfi_ascii_skip(sdfi_source *source, const sdfio_header *header,
+                             sdfi_message *message);
 /* Reads the trailer record of a text file; `present` is false if the file
  * ends with the data. */
-sdf_status sdfi_ascii_trailer(sdfi_source *source, const sdf_info *info,
-                              sdfi_string *out, bool *present,
-                              sdfi_message *message);
+sdfio_status sdfi_ascii_trailer(sdfi_source *source, const sdfio_header *header,
+                                sdfi_string *out, bool *present,
+                                sdfi_message *message);
 
-sdf_status sdfi_ascii_header(const sdf_info *info, const sdfi_point *point,
-                             sdfi_string *out, sdfi_message *message);
+sdfio_status sdfi_ascii_header(const sdfio_header *header,
+                               const sdfi_point *point, sdfi_string *out,
+                               sdfi_message *message);
 /* The text of the value at `index`: a number, or BAD. Returns its length. */
-size_t sdfi_ascii_format(const sdf_info *info, const sdfi_point *point,
-                         const void *stored, size_t index, char *out,
+size_t sdfi_ascii_format(const sdfio_header *header, const sdfi_point *point,
+                         const void *coded, size_t index, char *out,
                          size_t capacity);
 /* The closing "*" of the data area, the trailer record and its "*". */
-sdf_status sdfi_ascii_tail(const char *trailer, size_t size, sdfi_string *out,
-                           sdfi_message *message);
+sdfio_status sdfi_ascii_tail(const char *trailer, size_t size, sdfi_string *out,
+                             sdfi_message *message);
 
 /* Checks what makes a file that cannot be written. */
-sdf_status sdfi_validate(const sdf_info *info, sdfi_message *message);
+sdfio_status sdfi_validate(const sdfio_header *header, sdfi_message *message);
 /* Counts with an overflow check. */
-bool sdfi_count(const sdf_info *info, size_t *count);
+bool sdfi_count(const sdfio_header *header, size_t *count);
 
-#endif /* SDF_SRC_INTERNAL_H */
+#endif /* SDFIO_SRC_INTERNAL_H */

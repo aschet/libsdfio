@@ -119,33 +119,33 @@ static void check_locale(void)
     check_numbers(&point);
 
     /* A file written and read in such a locale has the dots of the format. */
-    sdf_info info;
-    sdf_info_init(&info);
-    info.storage = SDF_ASCII;
-    info.columns = 3;
-    info.rows = 1;
-    info.x_scale = 1.5e-6;
-    info.y_scale = 1.5e-6;
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.storage = SDFIO_ASCII;
+    header.columns = 3;
+    header.rows = 1;
+    header.x_scale = 1.5e-6;
+    header.y_scale = 1.5e-6;
     const double heights[3] = {1.25e-6, NAN, -3.5e-7};
     membuf file = {0};
-    const sdf_stream stream = membuf_stream(&file);
-    sdf_writer *writer = sdf_writer_new();
-    CHECK_OK(sdf_create_stream(writer, &stream, &info));
-    CHECK_OK(sdf_write_heights(writer, sdf_metres(SDF_FLOAT64), heights,
-                               sizeof heights));
-    CHECK_OK(sdf_write_end(writer, NULL, 0));
-    sdf_writer_free(writer);
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new();
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT64), heights,
+                                 sizeof heights));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    sdfio_writer_free(writer);
     CHECK(memchr(file.data, ',', file.size) == NULL);
 
-    sdf_reader *reader = sdf_reader_new();
-    CHECK_OK(sdf_open_memory(reader, file.data, file.size));
+    sdfio_reader *reader = sdfio_reader_new();
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     double back[3];
-    CHECK_OK(
-        sdf_read_heights(reader, sdf_metres(SDF_FLOAT64), back, sizeof back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), back,
+                                sizeof back));
     CHECK(near_relative(back[0], 1.25e-6, 1e-12) && isnan(back[1])
           && near_relative(back[2], -3.5e-7, 1e-12));
-    CHECK(sdf_get_info(reader)->x_scale == 1.5e-6);
-    sdf_reader_free(reader);
+    CHECK(sdfio_get_header(reader)->x_scale == 1.5e-6);
+    sdfio_reader_free(reader);
     free(file.data);
     setlocale(LC_NUMERIC, "C");
 }

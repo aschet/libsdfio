@@ -13,10 +13,10 @@ typedef struct memory_stream
     size_t position;
 } memory_stream;
 
-struct sdf_reader
+struct sdfio_reader
 {
     sdfi_message message;
-    sdf_info info;
+    sdfio_header header;
     sdfi_source source;
     sdfi_point point;
     FILE *file;
@@ -75,12 +75,12 @@ static int64_t memory_seek(void *user, int64_t offset, int whence)
     return target;
 }
 
-sdf_reader *sdf_reader_new(void)
+sdfio_reader *sdfio_reader_new(void)
 {
-    return calloc(1, sizeof(sdf_reader));
+    return calloc(1, sizeof(sdfio_reader));
 }
 
-void sdf_reader_free(sdf_reader *reader)
+void sdfio_reader_free(sdfio_reader *reader)
 {
     if (reader == NULL)
     {
@@ -94,74 +94,76 @@ void sdf_reader_free(sdf_reader *reader)
     free(reader);
 }
 
-const char *sdf_reader_message(const sdf_reader *reader)
+const char *sdfio_reader_message(const sdfio_reader *reader)
 {
     return reader != NULL ? reader->message.text : "";
 }
 
-const sdf_info *sdf_get_info(const sdf_reader *reader)
+const sdfio_header *sdfio_get_header(const sdfio_reader *reader)
 {
-    return reader != NULL && reader->opened ? &reader->info : NULL;
+    return reader != NULL && reader->opened ? &reader->header : NULL;
 }
 
-static sdf_status fail_reading(sdf_reader *reader, sdf_status status)
+static sdfio_status fail_reading(sdfio_reader *reader, sdfio_status status)
 {
     reader->failed = true;
     return status;
 }
 
 /* The size of a file that has been opened, against what its header claims. */
-static sdf_status check_size(sdf_reader *reader)
+static sdfio_status check_size(sdfio_reader *reader)
 {
-    const sdf_info *info = &reader->info;
+    const sdfio_header *header = &reader->header;
     const int64_t size = sdfi_source_size(&reader->source);
     if (size < 0)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_IO,
+        return sdfi_fail(&reader->message, SDFIO_ERR_IO,
                          "The stream cannot seek to its end");
     }
     const uint64_t room = (uint64_t)size > (uint64_t)reader->data_start
                               ? (uint64_t)size - (uint64_t)reader->data_start
                               : 0;
-    if (info->storage == SDF_BINARY)
+    if (header->storage == SDFIO_BINARY)
     {
-        if (reader->value_count > room / sdf_data_type_size(info->data_type))
+        if (reader->value_count
+            > room / sdfio_data_type_size(header->data_type))
         {
-            return sdfi_fail(&reader->message, SDF_ERR_FORMAT,
+            return sdfi_fail(&reader->message, SDFIO_ERR_FORMAT,
                              "Unexpected end of file while reading the SDF "
                              "data area");
         }
     }
     else if (reader->value_count > room)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_FORMAT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_FORMAT,
                          "Expected %zu data values, found fewer",
                          reader->value_count);
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-static sdf_status open_source(sdf_reader *reader, const sdf_stream *stream)
+static sdfio_status open_source(sdfio_reader *reader,
+                                const sdfio_stream *stream)
 {
     if (reader->opened)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE,
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
                          "The reader is open already");
     }
     sdfi_source_init(&reader->source, stream);
     reader->point = sdfi_point_now();
-    sdf_status status = sdfi_read_header(&reader->source, &reader->info,
-                                         &reader->point, &reader->message);
-    if (status != SDF_OK)
+    sdfio_status status = sdfi_read_header(&reader->source, &reader->header,
+                                           &reader->point, &reader->message);
+    if (status != SDFIO_OK)
     {
         return status;
     }
-    const sdf_info *info = &reader->info;
-    const size_t type_size = sdf_data_type_size(info->data_type);
-    if (!sdfi_count(info, &reader->value_count)
+    const sdfio_header *header = &reader->header;
+    const size_t type_size = sdfio_data_type_size(header->data_type);
+    if (!sdfi_count(header, &reader->value_count)
         || reader->value_count > SIZE_MAX / type_size)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_FORMAT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_FORMAT,
                          "The SDF file has more points than can be counted");
     }
     reader->data_start = -1;
@@ -169,7 +171,7 @@ static sdf_status open_source(sdf_reader *reader, const sdf_stream *stream)
     {
         reader->data_start = sdfi_source_tell(&reader->source);
         status = check_size(reader);
-        if (status != SDF_OK)
+        if (status != SDFIO_OK)
         {
             return status;
         }
@@ -179,98 +181,101 @@ static sdf_status open_source(sdf_reader *reader, const sdf_stream *stream)
     reader->data_done = false;
     reader->failed = false;
     reader->opened = true;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_open_stream(sdf_reader *reader, const sdf_stream *stream)
+sdfio_status sdfio_open_stream(sdfio_reader *reader, const sdfio_stream *stream)
 {
     if (reader == NULL || stream == NULL || stream->read == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     return open_source(reader, stream);
 }
 
-sdf_status sdf_open_memory(sdf_reader *reader, const void *data, size_t size)
+sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
+                               size_t size)
 {
     if (reader == NULL || (data == NULL && size > 0))
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     reader->memory = (memory_stream){data, size, 0};
-    const sdf_stream stream = {&reader->memory, memory_read, NULL, memory_seek};
+    const sdfio_stream stream = {&reader->memory, memory_read, NULL,
+                                 memory_seek};
     return open_source(reader, &stream);
 }
 
-sdf_status sdf_open_file(sdf_reader *reader, const char *path)
+sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path)
 {
     if (reader == NULL || path == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     if (reader->opened)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE,
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
                          "The reader is open already");
     }
     FILE *file = fopen(path, "rb");
     if (file == NULL)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_IO,
+        return sdfi_fail(&reader->message, SDFIO_ERR_IO,
                          "The file cannot be opened: %s", path);
     }
-    const sdf_stream stream = sdf_stdio_stream(file);
-    const sdf_status status = open_source(reader, &stream);
-    if (status != SDF_OK)
+    const sdfio_stream stream = sdfio_stdio_stream(file);
+    const sdfio_status status = open_source(reader, &stream);
+    if (status != SDFIO_OK)
     {
         fclose(file);
         return status;
     }
     reader->file = file;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-static sdf_status require_readable(sdf_reader *reader)
+static sdfio_status require_readable(sdfio_reader *reader)
 {
     if (reader == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     if (!reader->opened)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE, "Open a file first");
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
+                         "Open a file first");
     }
     if (reader->failed)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE,
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
                          "An error ended the reading: rewind the reader to "
                          "start again");
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-static sdf_status stream_error(sdf_reader *reader)
+static sdfio_status stream_error(sdfio_reader *reader)
 {
     return reader->source.failed
-               ? sdfi_fail(&reader->message, SDF_ERR_IO,
+               ? sdfi_fail(&reader->message, SDFIO_ERR_IO,
                            "The stream could not be read")
-               : sdfi_fail(&reader->message, SDF_ERR_FORMAT,
+               : sdfi_fail(&reader->message, SDFIO_ERR_FORMAT,
                            "Unexpected end of file while reading the SDF data "
                            "area");
 }
 
 /* The next `count` values of the data area, as the file stores them. */
-static sdf_status read_values(sdf_reader *reader, void *dst, size_t count)
+static sdfio_status read_values(sdfio_reader *reader, void *dst, size_t count)
 {
-    const sdf_info *info = &reader->info;
-    if (info->storage == SDF_ASCII)
+    const sdfio_header *header = &reader->header;
+    if (header->storage == SDFIO_ASCII)
     {
         for (size_t i = 0; i < count; ++i)
         {
-            const sdf_status status =
-                sdfi_ascii_value(&reader->source, info, &reader->point, dst, i,
-                                 reader->next_value + i, &reader->message);
-            if (status != SDF_OK)
+            const sdfio_status status =
+                sdfi_ascii_value(&reader->source, header, &reader->point, dst,
+                                 i, reader->next_value + i, &reader->message);
+            if (status != SDFIO_OK)
             {
                 return status;
             }
@@ -278,7 +283,7 @@ static sdf_status read_values(sdf_reader *reader, void *dst, size_t count)
     }
     else
     {
-        const size_t size = sdf_data_type_size(info->data_type);
+        const size_t size = sdfio_data_type_size(header->data_type);
         if (sdfi_source_read(&reader->source, dst, count * size)
             != count * size)
         {
@@ -287,32 +292,32 @@ static sdf_status read_values(sdf_reader *reader, void *dst, size_t count)
         sdfi_fix_endianness(dst, count, size);
     }
     reader->next_value += count;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
 /* Reads or skips to the end of the data area. */
-static sdf_status finish_data(sdf_reader *reader)
+static sdfio_status finish_data(sdfio_reader *reader)
 {
     if (reader->data_done)
     {
-        return SDF_OK;
+        return SDFIO_OK;
     }
-    const sdf_info *info = &reader->info;
-    const bool all_read = reader->next_row == info->rows;
-    if (info->storage == SDF_ASCII)
+    const sdfio_header *header = &reader->header;
+    const bool all_read = reader->next_row == header->rows;
+    if (header->storage == SDFIO_ASCII)
     {
-        const sdf_status status =
+        const sdfio_status status =
             all_read
-                ? sdfi_ascii_finish(&reader->source, info, &reader->message)
-                : sdfi_ascii_skip(&reader->source, info, &reader->message);
-        if (status != SDF_OK)
+                ? sdfi_ascii_finish(&reader->source, header, &reader->message)
+                : sdfi_ascii_skip(&reader->source, header, &reader->message);
+        if (status != SDFIO_OK)
         {
             return status;
         }
     }
     else if (!all_read)
     {
-        const size_t size = sdf_data_type_size(info->data_type);
+        const size_t size = sdfio_data_type_size(header->data_type);
         const size_t left = (reader->value_count - reader->next_value) * size;
         if (reader->source.seekable)
         {
@@ -320,7 +325,7 @@ static sdf_status finish_data(sdf_reader *reader)
                                 + (int64_t)reader->value_count * (int64_t)size;
             if (!sdfi_source_seek(&reader->source, end))
             {
-                return sdfi_fail(&reader->message, SDF_ERR_IO,
+                return sdfi_fail(&reader->message, SDFIO_ERR_IO,
                                  "The stream cannot seek to the trailer");
             }
         }
@@ -341,112 +346,112 @@ static sdf_status finish_data(sdf_reader *reader)
         }
     }
     reader->data_done = true;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_read_rows(sdf_reader *reader, void *dst, size_t rows)
+sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
 {
-    sdf_status status = require_readable(reader);
-    if (status != SDF_OK)
+    sdfio_status status = require_readable(reader);
+    if (status != SDFIO_OK)
     {
         return status;
     }
-    const sdf_info *info = &reader->info;
-    if (rows > info->rows - reader->next_row)
+    const sdfio_header *header = &reader->header;
+    if (rows > header->rows - reader->next_row)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "%zu rows were asked for, %zu are left", rows,
-                         info->rows - reader->next_row);
+                         header->rows - reader->next_row);
     }
-    if (rows > 0 && info->columns > 0 && dst == NULL)
+    if (rows > 0 && header->columns > 0 && dst == NULL)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "Give the memory to read the rows into");
     }
     const size_t row_bytes =
-        info->columns * sdf_data_type_size(info->data_type);
+        header->columns * sdfio_data_type_size(header->data_type);
     for (size_t i = 0; i < rows; ++i)
     {
         status = read_values(reader, (unsigned char *)dst + i * row_bytes,
-                             info->columns);
-        if (status != SDF_OK)
+                             header->columns);
+        if (status != SDFIO_OK)
         {
             return fail_reading(reader, status);
         }
         ++reader->next_row;
     }
-    if (reader->next_row == info->rows)
+    if (reader->next_row == header->rows)
     {
         status = finish_data(reader);
-        if (status != SDF_OK)
+        if (status != SDFIO_OK)
         {
             return fail_reading(reader, status);
         }
     }
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_read_heights(sdf_reader *reader, sdf_format format, void *dst,
-                            ptrdiff_t row_stride)
+sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
+                                void *dst, ptrdiff_t row_stride)
 {
-    sdf_status status = require_readable(reader);
-    if (status != SDF_OK)
+    sdfio_status status = require_readable(reader);
+    if (status != SDFIO_OK)
     {
         return status;
     }
-    const sdf_info *info = &reader->info;
+    const sdfio_header *header = &reader->header;
     if (reader->next_row != 0)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE,
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
                          "Rows were read already: rewind the reader to read "
                          "the heights");
     }
     if (!sdfi_valid_sample(format.sample))
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "The sample type is not one of the enumeration");
     }
-    const size_t sample_size = sdf_sample_size(format.sample);
-    if (info->columns > SIZE_MAX / sample_size)
+    const size_t sample_size = sdfio_sample_size(format.sample);
+    if (header->columns > SIZE_MAX / sample_size)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "A row is larger than memory");
     }
-    const size_t row_bytes = info->columns * sample_size;
+    const size_t row_bytes = header->columns * sample_size;
     const size_t stride_size =
         row_stride < 0 ? (size_t)(-(row_stride + 1)) + 1 : (size_t)row_stride;
-    if (info->rows > 1 && stride_size < row_bytes)
+    if (header->rows > 1 && stride_size < row_bytes)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "The row stride is smaller than a row");
     }
     if (reader->value_count > 0 && dst == NULL)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_ARGUMENT,
+        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                          "Give the memory to read the heights into");
     }
-    for (size_t file_row = 0; file_row < info->rows; ++file_row)
+    for (size_t file_row = 0; file_row < header->rows; ++file_row)
     {
         unsigned char *row =
             (unsigned char *)dst
-            + (ptrdiff_t)sdf_row_y(info, file_row) * row_stride;
-        for (size_t first = 0; first < info->columns; first += SDFI_CHUNK)
+            + (ptrdiff_t)sdfio_row_y(header, file_row) * row_stride;
+        for (size_t first = 0; first < header->columns; first += SDFI_CHUNK)
         {
-            const size_t count = info->columns - first < SDFI_CHUNK
-                                     ? info->columns - first
+            const size_t count = header->columns - first < SDFI_CHUNK
+                                     ? header->columns - first
                                      : SDFI_CHUNK;
             status = read_values(reader, reader->chunk, count);
-            if (status == SDF_OK)
+            if (status == SDFIO_OK)
             {
-                status = sdf_decode_heights(info, format, reader->chunk, count,
-                                            row + first * sample_size);
-                if (status != SDF_OK)
+                status = sdfio_decode_heights(header, format, reader->chunk,
+                                              count, row + first * sample_size);
+                if (status != SDFIO_OK)
                 {
                     sdfi_fail(&reader->message, status,
                               "A height does not fit the sample type");
                 }
             }
-            if (status != SDF_OK)
+            if (status != SDFIO_OK)
             {
                 return fail_reading(reader, status);
             }
@@ -454,40 +459,40 @@ sdf_status sdf_read_heights(sdf_reader *reader, sdf_format format, void *dst,
         ++reader->next_row;
     }
     status = finish_data(reader);
-    return status == SDF_OK ? status : fail_reading(reader, status);
+    return status == SDFIO_OK ? status : fail_reading(reader, status);
 }
 
-sdf_status sdf_read_trailer(sdf_reader *reader, const char **trailer,
-                            size_t *size)
+sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
+                                size_t *size)
 {
     if (trailer == NULL || size == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     if (reader != NULL && reader->trailer_read && !reader->failed)
     {
         *trailer =
             reader->trailer_present ? sdfi_string_text(&reader->trailer) : NULL;
         *size = reader->trailer.size;
-        return SDF_OK;
+        return SDFIO_OK;
     }
-    sdf_status status = require_readable(reader);
-    if (status != SDF_OK)
+    sdfio_status status = require_readable(reader);
+    if (status != SDFIO_OK)
     {
         return status;
     }
     status = finish_data(reader);
-    if (status == SDF_OK)
+    if (status == SDFIO_OK)
     {
-        status = reader->info.storage == SDF_ASCII
+        status = reader->header.storage == SDFIO_ASCII
                      ? sdfi_ascii_trailer(
-                           &reader->source, &reader->info, &reader->trailer,
+                           &reader->source, &reader->header, &reader->trailer,
                            &reader->trailer_present, &reader->message)
                      : sdfi_binary_trailer(&reader->source, &reader->trailer,
                                            &reader->trailer_present,
                                            &reader->message);
     }
-    if (status != SDF_OK)
+    if (status != SDFIO_OK)
     {
         return fail_reading(reader, status);
     }
@@ -495,27 +500,28 @@ sdf_status sdf_read_trailer(sdf_reader *reader, const char **trailer,
     *trailer =
         reader->trailer_present ? sdfi_string_text(&reader->trailer) : NULL;
     *size = reader->trailer.size;
-    return SDF_OK;
+    return SDFIO_OK;
 }
 
-sdf_status sdf_rewind(sdf_reader *reader)
+sdfio_status sdfio_rewind(sdfio_reader *reader)
 {
     if (reader == NULL)
     {
-        return SDF_ERR_ARGUMENT;
+        return SDFIO_ERR_ARGUMENT;
     }
     if (!reader->opened)
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE, "Open a file first");
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
+                         "Open a file first");
     }
     if (!sdfi_source_seek(&reader->source, reader->data_start))
     {
-        return sdfi_fail(&reader->message, SDF_ERR_STATE,
+        return sdfi_fail(&reader->message, SDFIO_ERR_STATE,
                          "A source that cannot seek cannot be rewound");
     }
     reader->next_row = 0;
     reader->next_value = 0;
     reader->data_done = false;
     reader->failed = false;
-    return SDF_OK;
+    return SDFIO_OK;
 }

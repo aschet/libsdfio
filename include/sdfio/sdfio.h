@@ -1,0 +1,502 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * Reading and writing ISO 25178-71 SDF surface data files, in the revisions
+ * ISO-1.0, ISO-2.0 and BCR-1.0, as text or binary.
+ *
+ * A file has three records, as the standard names them: the header (record
+ * 1), the data area (record 2) and the trailer (record 3). The library is made
+ * of layers; use the highest one that does the job.
+ *
+ *  1. Handles and streams: a reader or a writer works on a file, on memory or
+ *     on callbacks of your own, and holds no more of the file than a chunk.
+ *  2. Records: sdfio_get_header() has the header. sdfio_read_data() and
+ *     sdfio_write_data() move the data area as the file codes it, in the data
+ *     type of the file, row by row into and out of memory that you own.
+ *     sdfio_read_trailer() and sdfio_write_trailer() move the trailer.
+ *  3. Heights: sdfio_decode_heights() and sdfio_encode_heights() turn the coded
+ *     height information of the data area into metres and back. They need no
+ *     handle, only the header, so they work on data from any source.
+ *  4. Images: sdfio_read_heights() and sdfio_write_heights() do layers 2 and 3
+ *     for a whole matrix with any row stride.
+ *
+ * Threads: there is no global state. Handles are independent of each other, so
+ * one thread can read a file while another writes one, also over the same
+ * memory that is only read. A single handle is used by one thread at a time.
+ * Do not change the locale or the time zone while a call is running.
+ */
+
+#ifndef SDFIO_SDFIO_H
+#define SDFIO_SDFIO_H
+
+#include <sdfio/sdfio_export.h>
+#include <sdfio/version.h>
+
+#include <math.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/**
+ * The version of the library that is loaded, as "major.minor.patch". With a
+ * shared library this can differ from SDFIO_VERSION_STRING, which describes
+ * the headers that were compiled against.
+ */
+SDFIO_API const char *sdfio_version(void);
+
+/** What a call returns: SDFIO_OK, or the kind of the failure. */
+typedef enum sdfio_status
+{
+    SDFIO_OK = 0,
+    /** A parameter is invalid, such as a null pointer or a row count. */
+    SDFIO_ERR_ARGUMENT,
+    /** The call does not fit the state of the handle, such as a second
+       open. */
+    SDFIO_ERR_STATE,
+    /** The stream failed, or the file could not be opened. */
+    SDFIO_ERR_IO,
+    /** The data is not an SDF file, or is damaged or cut off. */
+    SDFIO_ERR_FORMAT,
+    /** A valid file with a feature that is not supported: compression. */
+    SDFIO_ERR_UNSUPPORTED,
+    /** A number does not fit the type that has to hold it. */
+    SDFIO_ERR_RANGE,
+    /** A height is the number that marks a point as not measured. */
+    SDFIO_ERR_SENTINEL,
+    SDFIO_ERR_MEMORY
+} sdfio_status;
+
+/** A short fixed text for a status, never null. */
+SDFIO_API const char *sdfio_status_string(sdfio_status status);
+
+/** The version number of the format that a file follows. */
+typedef enum sdfio_revision
+{
+    SDFIO_ISO_1_0,
+    SDFIO_ISO_2_0,
+    SDFIO_BCR_1_0
+} sdfio_revision;
+
+typedef enum sdfio_storage
+{
+    SDFIO_BINARY,
+    SDFIO_ASCII
+} sdfio_storage;
+
+/** How a value of the data area is coded. The numbers are those of the
+ * standard. */
+typedef enum sdfio_data_type
+{
+    SDFIO_DATA_UINT8 = 0,
+    SDFIO_DATA_UINT16 = 1,
+    SDFIO_DATA_UINT32 = 2,
+    SDFIO_DATA_BINARY32 = 3,
+    SDFIO_DATA_INT8 = 4,
+    SDFIO_DATA_INT16 = 5,
+    SDFIO_DATA_INT32 = 6,
+    SDFIO_DATA_BINARY64 = 7
+} sdfio_data_type;
+
+/** The element type of a buffer of the caller. */
+typedef enum sdfio_sample
+{
+    SDFIO_INT8,
+    SDFIO_UINT8,
+    SDFIO_INT16,
+    SDFIO_UINT16,
+    SDFIO_INT32,
+    SDFIO_UINT32,
+    SDFIO_FLOAT32,
+    SDFIO_FLOAT64
+} sdfio_sample;
+
+SDFIO_API const char *sdfio_revision_name(sdfio_revision revision);
+SDFIO_API const char *sdfio_data_type_name(sdfio_data_type type);
+
+/** The size in bytes of a value of the data area, and of a sample. */
+SDFIO_API size_t sdfio_data_type_size(sdfio_data_type type);
+SDFIO_API size_t sdfio_sample_size(sdfio_sample sample);
+
+/** The sample type that holds the values of a data type as they are. */
+SDFIO_API sdfio_sample sdfio_sample_of(sdfio_data_type type);
+
+/** Whether a revision allows a data type. */
+SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
+                                     sdfio_data_type type);
+
+enum
+{
+    /** The room for the manufacturer's identifier, with its terminating 0.
+     */
+    SDFIO_MANUFACTURER_CAPACITY = 64
+};
+
+/** A date and time that is not recorded. */
+#define SDFIO_NO_TIME ((time_t)-1)
+
+/** A z-scale that the writer chooses, and a resolution that is not known. */
+#define SDFIO_AUTO_Z_SCALE 0.0
+#define SDFIO_NO_RESOLUTION 0.0
+
+/**
+ * The header of a file, record 1, with the names of the standard. It is a plain
+ * value that you fill in to write a file and that the reader fills in when it
+ * opens one. The compression type and the checksum type are not fields: a file
+ * has none of either.
+ */
+typedef struct sdfio_header
+{
+    sdfio_revision revision;
+    sdfio_storage storage;
+    sdfio_data_type data_type;
+    /** Number of columns in the data matrix, M: the points along x. */
+    size_t columns;
+    /** Number of rows in the data matrix, N: 1 for a profile. */
+    size_t rows;
+    /** X-scale and Y-scale factor: the sampling intervals in metres. */
+    double x_scale;
+    double y_scale;
+    /**
+     * Z-scale factor: the height of one count of the data area in metres. A
+     * reader always sets it. A writer given SDFIO_AUTO_Z_SCALE takes 1 for the
+     * floating point types and chooses the best for the heights in
+     * sdfio_write_heights(); the integer types need one for sdfio_write_data().
+     */
+    double z_scale;
+    /**
+     * Z-resolution: the quantization step of the instrument in metres,
+     * SDFIO_NO_RESOLUTION if it is not known. It is not the z-scale: data can
+     * be rescaled after the measurement.
+     */
+    double z_resolution;
+    /**
+     * Original creation date and time, and last modification date and time,
+     * in UTC to the minute, or SDFIO_NO_TIME. The files of ISO-1.0 and BCR-1.0
+     * hold the local clock of the writer, and the library converts, so a date
+     * that is read back equals the one that was written.
+     */
+    time_t creation_date;
+    time_t modification_date;
+    /** Manufacturer's ID, 7-bit ASCII; a binary file keeps 10 characters. */
+    char manufacturer_id[SDFIO_MANUFACTURER_CAPACITY];
+} sdfio_header;
+
+/**
+ * Sets the header of a binary ISO-2.0 file of binary64 values with sampling
+ * intervals of 1 m, both dates now and the manufacturer "libsdfio". Set the
+ * fields you need, and the number of columns and rows, afterwards.
+ */
+SDFIO_API void sdfio_header_init(sdfio_header *header);
+
+/**
+ * Whether the first row in a file of the revision is the one with the
+ * largest y (BCR-1.0). The row functions work in the order of the file; the
+ * image functions always put y = 0 first.
+ */
+SDFIO_API bool sdfio_rows_reversed(sdfio_revision revision);
+
+/** The y of the n-th row of the file, counting from 0. */
+SDFIO_API size_t sdfio_row_y(const sdfio_header *header, size_t file_row);
+
+/** Whether a value of the data area marks a point that was not measured. */
+SDFIO_API bool sdfio_is_sentinel(sdfio_data_type type, sdfio_revision revision,
+                                 double value);
+
+/** The value of the data area that marks a point that was not measured. */
+SDFIO_API double sdfio_sentinel(sdfio_data_type type, sdfio_revision revision);
+
+/* ---- Streams ------------------------------------------------------------ */
+
+/** The result of a read callback that failed. */
+#define SDFIO_STREAM_ERROR ((size_t)-1)
+
+/**
+ * Where the bytes of a file come from and go to, as callbacks of your own.
+ * A reader uses `read` and `seek`, a writer `write`. Without `seek` the
+ * bytes are handled in order and once, which is enough for a pipe.
+ */
+typedef struct sdfio_stream
+{
+    void *user;
+    /**
+     * Reads up to `size` bytes and returns how many, 0 at the end of the
+     * data, SDFIO_STREAM_ERROR on failure. It returns fewer than `size` bytes
+     * only at the end.
+     */
+    size_t (*read)(void *user, void *data, size_t size);
+    /** Writes `size` bytes and returns how many were written. */
+    size_t (*write)(void *user, const void *data, size_t size);
+    /**
+     * Moves like `lseek`: `whence` is SEEK_SET, SEEK_CUR or SEEK_END, the
+     * result is the new position from the start, or -1 on failure.
+     */
+    int64_t (*seek)(void *user, int64_t offset, int whence);
+} sdfio_stream;
+
+/** A stream over a C file, which stays yours and is not closed. */
+SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
+
+/* ---- Memory ------------------------------------------------------------- */
+
+/**
+ * Memory for `rows` rows of the data area of the file that `header`
+ * describes, zeroed, to read into with sdfio_read_data() or to hand to
+ * sdfio_decode_heights(). The size is checked for an overflow. Returns null if
+ * the memory is short or `header` is not valid. Free it with sdfio_free().
+ */
+SDFIO_API void *sdfio_alloc_data(const sdfio_header *header, size_t rows);
+
+/**
+ * Memory for `rows` rows of the file as heights of the sample type, zeroed:
+ * the matrix for sdfio_read_heights() and sdfio_write_heights() when `rows` is
+ * `header->rows`. Returns null as sdfio_alloc_data() does.
+ */
+SDFIO_API void *sdfio_alloc_heights(const sdfio_header *header,
+                                    sdfio_sample sample, size_t rows);
+
+/**
+ * Frees memory of sdfio_alloc_data() and sdfio_alloc_heights(), in the runtime
+ * that allocated it, which with a shared library on Windows is not that of the
+ * program. Null is ignored.
+ */
+SDFIO_API void sdfio_free(void *memory);
+
+/* ---- Reading ------------------------------------------------------------ */
+
+typedef struct sdfio_reader sdfio_reader;
+
+/**
+ * Makes a reader, which reads nothing yet; open a source next. A reader is
+ * made first so that a failed open can still tell what went wrong.
+ * Returns null if memory is short.
+ */
+SDFIO_API sdfio_reader *sdfio_reader_new(void);
+
+/** Frees a reader and closes the file it opened. Null is ignored. */
+SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
+
+/**
+ * Opens a source and reads its header. A source that cannot seek can be
+ * read once, from the front. The memory and the stream stay yours: keep
+ * them alive and unchanged while the reader is used.
+ *
+ * @return SDFIO_ERR_IO if the file cannot be opened, SDFIO_ERR_FORMAT if it is
+ * not an SDF file or is cut off, SDFIO_ERR_UNSUPPORTED for a compressed or
+ * checksummed data area.
+ */
+SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
+SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
+                                         size_t size);
+SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
+                                         const sdfio_stream *stream);
+
+/** The header of the opened file, null before it is open. */
+SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
+
+/**
+ * Reads the next `rows` rows of the data area, record 2, into `dst`, which
+ * holds rows * columns values of header.data_type in the byte order of the
+ * machine, as the file codes them: in the order of the file, with the number
+ * that marks a point that is not measured unchanged. Text is parsed to the
+ * data type of the file, so a binary32 text file is rounded to single
+ * precision. To get heights, decode the values, see sdfio_decode_heights().
+ *
+ * After an error the reader cannot go on; rewind it if it can seek.
+ */
+SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst,
+                                       size_t rows);
+
+/**
+ * How a buffer of heights of the caller looks: its element type, and the
+ * number that stands in it for a point that was not measured. NaN means
+ * none: a point that was not measured is NaN, or 0 in an integer type,
+ * which has no NaN. A marker is taken in the precision of the sample type,
+ * so -9999.1 marks the points of a float buffer that hold the float
+ * -9999.1.
+ */
+typedef struct sdfio_format
+{
+    sdfio_sample sample;
+    double missing;
+} sdfio_format;
+
+/** Heights in metres of the sample type, a point not measured being NaN. */
+static inline sdfio_format sdfio_metres(sdfio_sample sample)
+{
+    sdfio_format format = {sample, NAN};
+    return format;
+}
+
+/**
+ * Reads the rest of the file as heights in metres into a matrix of `rows`
+ * rows of `columns` samples whose rows are `row_stride` bytes apart. Row 0
+ * is y = 0 in every revision. A stride that is negative, with `dst` at the
+ * last row, turns the matrix upside down.
+ *
+ * Start from the first row: after other reads, rewind first.
+ */
+SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
+                                          sdfio_format format, void *dst,
+                                          ptrdiff_t row_stride);
+
+/**
+ * Reads the trailer, record 3, the free text after the data area, and returns
+ * it with its size, valid until the reader is freed. Nothing is returned as a
+ * null pointer. Rows of the data area that were not read are passed over,
+ * which a stream that cannot seek has to do to get there. A second call
+ * returns the same trailer. It has a 0 after its last byte, which the size
+ * does not count.
+ *
+ * Text files give the line ends of the trailer as LF.
+ */
+SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
+                                          const char **trailer, size_t *size);
+
+/** Goes back to the first row, for a source that can seek. */
+SDFIO_API sdfio_status sdfio_rewind(sdfio_reader *reader);
+
+/** The text of the last failure of the reader, empty if none. */
+SDFIO_API const char *sdfio_reader_message(const sdfio_reader *reader);
+
+/* ---- Writing ------------------------------------------------------------ */
+
+typedef struct sdfio_writer sdfio_writer;
+
+SDFIO_API sdfio_writer *sdfio_writer_new(void);
+
+/**
+ * Frees a writer. One that was not ended is abandoned: a file it created is
+ * removed.
+ */
+SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
+
+/**
+ * Starts a file whose header is `header`, the number of columns and rows
+ * included. The header is written with the first rows of the data area. A file
+ * is written beside its place and moved there by sdfio_write_trailer(), so an
+ * error never leaves a half-written file.
+ *
+ * @return SDFIO_ERR_ARGUMENT if the description cannot be written: a data
+ * type the revision does not have, a scale that is not positive, a count
+ * the binary header cannot hold.
+ */
+SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
+                                         const sdfio_header *header);
+SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
+                                           const sdfio_stream *stream,
+                                           const sdfio_header *header);
+
+/**
+ * Writes the next `rows` rows of the data area from `src`, which holds
+ * rows * columns values of header.data_type in the byte order of the machine,
+ * in the order of the file. The number that marks a point as not measured is
+ * written as it is.
+ *
+ * @return SDFIO_ERR_ARGUMENT if the data type is an integer type and the
+ * z-scale is not set: the writer cannot know what a count means.
+ */
+SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
+                                        size_t rows);
+
+/**
+ * Writes the whole file from a matrix of heights in metres, `rows` rows of
+ * `columns` samples whose rows are `row_stride` bytes apart, row 0 being
+ * y = 0. With SDFIO_AUTO_Z_SCALE and an integer data type the best z-scale
+ * for the heights is chosen. NaN, infinity and `format.missing` mark points
+ * that are not measured. Write the trailer with sdfio_write_trailer() after it.
+ *
+ * @return SDFIO_ERR_RANGE if a height does not fit the data type with the
+ * z-scale, SDFIO_ERR_SENTINEL if one would be read as a point not measured.
+ */
+SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
+                                           sdfio_format format, const void *src,
+                                           ptrdiff_t row_stride);
+
+/**
+ * Writes the trailer, record 3, and ends the file: 7-bit ASCII text, or null
+ * for none; in ISO-2.0 every line must be of the form `Name = Value`. All rows
+ * of the data area must have been written. A file is moved to its place.
+ */
+SDFIO_API sdfio_status sdfio_write_trailer(sdfio_writer *writer,
+                                           const char *trailer, size_t size);
+
+SDFIO_API const char *sdfio_writer_message(const sdfio_writer *writer);
+
+/* ---- Heights ------------------------------------------------------------ */
+
+/**
+ * Turns `count` values of the data area (header->data_type), the coded height
+ * information, into heights in metres of the format. A point that is not
+ * measured becomes format.missing. Needs no handle, so it works on data from
+ * any source.
+ *
+ * @return SDFIO_ERR_RANGE if a height does not fit the sample type.
+ */
+SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
+                                            sdfio_format format,
+                                            const void *data, size_t count,
+                                            void *heights);
+
+/**
+ * The reverse: heights in metres of the format into values of the data area
+ * (header->data_type), with header->z_scale. NaN, infinity and
+ * `format.missing` become the number that marks a point not measured.
+ * Integers are rounded.
+ *
+ * @return SDFIO_ERR_ARGUMENT if the z-scale is not set, SDFIO_ERR_RANGE if a
+ * height does not fit the data type, SDFIO_ERR_SENTINEL if one would be read
+ * as a point not measured.
+ */
+SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
+                                            sdfio_format format,
+                                            const void *heights, size_t count,
+                                            void *data);
+
+/**
+ * The z-scale for heights between `lowest` and `highest` metres that uses
+ * the range of an integer data type best; 1 for a floating point type.
+ */
+SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
+                                         sdfio_revision revision, double lowest,
+                                         double highest);
+
+/**
+ * The best z-scale for a matrix of heights in metres of any sample type, as
+ * sdfio_write_heights() chooses it: the range of the finite heights, leaving
+ * out the points that format.missing marks, is looked up and handed to
+ * sdfio_z_scale_for_range(). For the use of sdfio_write_data() with an integer
+ * data type.
+ */
+SDFIO_API sdfio_status
+sdfio_suggest_z_scale(sdfio_data_type type, sdfio_revision revision,
+                      sdfio_format format, const void *heights, size_t rows,
+                      size_t columns, ptrdiff_t row_stride, double *z_scale);
+
+/* ---- Trailer ------------------------------------------------------------ */
+
+/**
+ * Looks for the line `Name = Value` in a trailer, with the name compared
+ * without regard to the case; the last such line wins. On success `value`
+ * points into the trailer, without the white space around it.
+ */
+SDFIO_API bool sdfio_trailer_find(const char *trailer, size_t size,
+                                  const char *name, const char **value,
+                                  size_t *value_size);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SDFIO_SDFIO_H */
