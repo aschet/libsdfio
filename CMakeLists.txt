@@ -41,6 +41,7 @@ set(SDF_SOURCES
     src/dates.c
     src/header.c
     src/heights.c
+    src/memory.c
     src/numbers.c
     src/reader.c
     src/stream.c

@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     }
 
     const sdf_info *info = sdf_get_info(reader);
-    float *heights = malloc(info->rows * info->columns * sizeof *heights);
+    float *heights = sdf_alloc_heights(info, SDF_FLOAT32, info->rows);
     status = sdf_read_heights(reader, sdf_metres(SDF_FLOAT32), heights,
                               (ptrdiff_t)(info->columns * sizeof *heights));
     const char *trailer = NULL;
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
                measured > 0 ? sum / (double)measured : 0.0, (int)operator_size,
                operator_name != NULL ? operator_name : "");
     }
-    free(heights);
+    sdf_free(heights);
     sdf_reader_free(reader);
     return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

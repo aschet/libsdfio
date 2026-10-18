@@ -18,8 +18,8 @@ int main(void)
     }
 
     const sdf_info *info = sdf_get_info(reader);
-    void *stored = malloc(info->columns * sdf_data_type_size(info->data_type));
-    double *heights = malloc(info->columns * sizeof *heights);
+    void *stored = sdf_alloc_stored(info, 1);
+    double *heights = sdf_alloc_heights(info, SDF_FLOAT64, 1);
     double lowest = INFINITY;
     double highest = -INFINITY;
     for (size_t row = 0; row < info->rows && status == SDF_OK; ++row)
@@ -48,8 +48,8 @@ int main(void)
     {
         printf("from %g m to %g m\n", lowest, highest);
     }
-    free(stored);
-    free(heights);
+    sdf_free(stored);
+    sdf_free(heights);
     sdf_reader_free(reader);
     return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

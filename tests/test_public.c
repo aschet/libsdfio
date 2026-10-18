@@ -9,8 +9,47 @@
 
 #include "check.h"
 
+/* The size is that of the matrix, and one that cannot be counted is refused. */
+static void check_memory(void)
+{
+    sdf_info info;
+    sdf_info_init(&info);
+    info.data_type = SDF_DATA_INT16;
+    info.columns = 5;
+    info.rows = 3;
+
+    float *heights = sdf_alloc_heights(&info, SDF_FLOAT32, info.rows);
+    CHECK(heights != NULL);
+    if (heights != NULL)
+    {
+        for (size_t i = 0; i < 15; ++i)
+        {
+            CHECK(heights[i] == 0.0F);
+        }
+        heights[14] = 1.0F;
+    }
+    sdf_free(heights);
+    int16_t *stored = sdf_alloc_stored(&info, 1);
+    CHECK(stored != NULL);
+    sdf_free(stored);
+    sdf_free(NULL);
+
+    info.columns = 0;
+    void *empty = sdf_alloc_stored(&info, 4);
+    CHECK(empty != NULL);
+    sdf_free(empty);
+
+    info.columns = SIZE_MAX / 2;
+    CHECK(sdf_alloc_heights(&info, SDF_FLOAT64, 3) == NULL);
+    info.columns = SIZE_MAX / 4;
+    CHECK(sdf_alloc_heights(&info, SDF_FLOAT64, 2) == NULL);
+    CHECK(sdf_alloc_heights(&info, (sdf_sample)99, 1) == NULL);
+    CHECK(sdf_alloc_stored(NULL, 1) == NULL);
+}
+
 int main(void)
 {
+    check_memory();
     CHECK(strcmp(sdf_version(), SDF_VERSION_STRING) == 0);
 
     sdf_info info;

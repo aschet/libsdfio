@@ -14,7 +14,15 @@ enum
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "surface.sdf";
-    float *heights = malloc((size_t)ROWS * COLUMNS * sizeof *heights);
+    sdf_info info;
+    sdf_info_init(&info);
+    info.data_type = SDF_DATA_INT16;
+    info.columns = COLUMNS;
+    info.rows = ROWS;
+    info.x_scale = 1e-6;
+    info.y_scale = 1e-6;
+
+    float *heights = sdf_alloc_heights(&info, SDF_FLOAT32, info.rows);
     if (heights == NULL)
     {
         return EXIT_FAILURE;
@@ -30,14 +38,6 @@ int main(int argc, char **argv)
                                * cos(0.07 * (double)column));
         }
     }
-
-    sdf_info info;
-    sdf_info_init(&info);
-    info.data_type = SDF_DATA_INT16;
-    info.columns = COLUMNS;
-    info.rows = ROWS;
-    info.x_scale = 1e-6;
-    info.y_scale = 1e-6;
 
     const char trailer[] = "OperatorName = Jane Doe";
     sdf_writer *writer = sdf_writer_new();
@@ -56,6 +56,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s\n", sdf_writer_message(writer));
     }
     sdf_writer_free(writer);
-    free(heights);
+    sdf_free(heights);
     return status == SDF_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

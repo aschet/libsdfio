@@ -40,6 +40,9 @@ on data from any other source.
 ## Using it
 
 - **One header**: `#include <sdf/sdf.h>`, link `sdf::sdf` with CMake.
+- **Memory**: `sdf_alloc_heights` and `sdf_alloc_stored` size a buffer from the
+  description of a file, with the overflow checked, and `sdf_free` releases it.
+  Your own `malloc` works as well; the library never allocates the heights.
 - **Errors**: every call returns an `sdf_status`; `sdf_reader_message()` and
   `sdf_writer_message()` give the text of the last failure.
 - **Sample types**: heights can be `int8` to `uint32`, `float` or `double`; the

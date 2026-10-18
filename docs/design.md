@@ -52,6 +52,16 @@ taken in the precision of the sample type. Scalars that describe the file
 A `double` is only the intermediate of a chunk, which holds every integer
 type of the format exactly.
 
+## Memory
+
+The library allocates no memory for the heights, but sizing it is where
+programs go wrong: `columns * rows * size` overflows, and the element size is
+that of the data type in one place and of the sample type in another.
+`sdf_alloc_stored` and `sdf_alloc_heights` do the arithmetic from the
+description of the file, return zeroed memory, and refuse a size that cannot be
+counted. `sdf_free` pairs with them, so a shared library on Windows frees in the
+runtime that allocated.
+
 ## Z-scale
 
 An integer data type needs a z-scale. `sdf_write_heights` chooses the best for

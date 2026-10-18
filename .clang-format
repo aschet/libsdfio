@@ -18,3 +18,4 @@ PointerAlignment: Right
 SortIncludes: CaseSensitive
 IncludeBlocks: Preserve
 AlignEscapedNewlines: Right
+IndentExternBlock: NoIndent
