@@ -48,19 +48,26 @@ static bool in_range(double value, double low, double high)
         for (size_t i = 0; i < count; ++i)                                     \
         {                                                                      \
             type value;                                                        \
-            memcpy(&value, (const unsigned char *)src + i * sizeof value,      \
+            memcpy(&value, (const unsigned char *)src + (ptrdiff_t)i * stride, \
                    sizeof value);                                              \
             out[i] = (double)value;                                            \
         }                                                                      \
         break;
 
-void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
-                       double *out)
+void sdfi_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
+                       size_t count, double *out)
 {
     switch (sample)
     {
         SDFI_SCALARS(LOAD_CASE)
     }
+}
+
+void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
+                       double *out)
+{
+    sdfi_load_strided(sample, src, (ptrdiff_t)sdfio_sample_size(sample), count,
+                      out);
 }
 
 #define LOAD_STORED_CASE(sample, data, name, type, bits, low, high, floating)  \
@@ -103,19 +110,27 @@ void sdfi_load_coded(sdfio_data_type type, const void *src, size_t count,
                 }                                                              \
                 converted = (type)rounded;                                     \
             }                                                                  \
-            memcpy((unsigned char *)dst + i * sizeof converted, &converted,    \
+            memcpy((unsigned char *)dst + (ptrdiff_t)i * stride, &converted,   \
                    sizeof converted);                                          \
         }                                                                      \
         break;
 
-sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
-                                const double *values, size_t count)
+sdfio_status sdfi_store_strided(sdfio_sample sample, void *dst,
+                                ptrdiff_t stride, const double *values,
+                                size_t count)
 {
     switch (sample)
     {
         SDFI_SCALARS(STORE_CASE)
     }
     return SDFIO_OK;
+}
+
+sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
+                                const double *values, size_t count)
+{
+    return sdfi_store_strided(sample, dst, (ptrdiff_t)sdfio_sample_size(sample),
+                              values, count);
 }
 
 #define STORE_STORED_CASE(sample, data, name, type, bits, low, high, floating) \

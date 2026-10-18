@@ -61,6 +61,10 @@ on data from any other source.
   Your own `malloc` works as well; the library never allocates the heights.
 - **Errors**: every call returns an `sdfio_status`; `sdfio_reader_error_message()` and
   `sdfio_writer_error_message()` give the text of the last failure.
+- **Strides**: `sdfio_format.element_stride` and the row stride place the heights
+  in memory that is not a plain matrix: the `z` of an array of points, one
+  channel of an interleaved image, a column-major matrix, a mirrored row. Both
+  strides may be negative.
 - **Sample types**: heights can be `int8` to `uint32`, `float` or `double`; the
   program does not have to widen its memory to `double`.
 - **Missing points** are NaN, or the marker of your choice, which is taken in

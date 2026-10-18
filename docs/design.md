@@ -63,6 +63,16 @@ description of the file, return zeroed memory, and refuse a size that cannot be
 counted. `sdfio_free` pairs with them, so a shared library on Windows frees in the
 runtime that allocated.
 
+## Strides
+
+The matrix of heights of the caller is described by a row stride and an
+element stride in bytes, both of which may be negative, as GDAL has its line and
+pixel spacing. A plain matrix needs neither. The element stride reads the `z` of
+an array of points or one channel of an image in place, a negative row stride
+turns an image the right way up, and both together take a column-major matrix.
+The library accepts rows that lie beside each other or columns that do, and
+refuses strides that make elements overlap.
+
 ## Z-scale
 
 An integer data type needs a z-scale. `sdfio_write_heights` chooses the best for

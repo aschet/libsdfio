@@ -346,25 +346,13 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
         return sdfi_fail(&writer->message, SDFIO_ERR_STATE,
                          "Rows were written already");
     }
-    if (!sdfi_valid_sample(format.sample))
+    status = sdfi_check_layout(format, header->rows, header->columns,
+                               row_stride, &writer->message);
+    if (status != SDFIO_OK)
     {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "The sample type is not one of the enumeration");
+        return status;
     }
-    const size_t sample_size = sdfio_sample_size(format.sample);
-    if (header->columns > SIZE_MAX / sample_size)
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "A row is larger than memory");
-    }
-    const size_t row_bytes = header->columns * sample_size;
-    const size_t stride_size =
-        row_stride < 0 ? (size_t)(-(row_stride + 1)) + 1 : (size_t)row_stride;
-    if (header->rows > 1 && stride_size < row_bytes)
-    {
-        return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                         "The row stride is smaller than a row");
-    }
+    const ptrdiff_t element = sdfi_element_stride(format);
     if (header->rows > 0 && header->columns > 0 && src == NULL)
     {
         return sdfi_fail(&writer->message, SDFIO_ERR_ARGUMENT,
@@ -396,9 +384,9 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
             const size_t count = header->columns - first < SDFI_CHUNK
                                      ? header->columns - first
                                      : SDFI_CHUNK;
-            status =
-                sdfio_encode_heights(header, format, row + first * sample_size,
-                                     count, writer->coded);
+            status = sdfio_encode_heights(header, format,
+                                          row + (ptrdiff_t)first * element,
+                                          count, writer->coded);
             if (status == SDFIO_ERR_RANGE || status == SDFIO_ERR_SENTINEL)
             {
                 sdfi_fail(&writer->message, status,

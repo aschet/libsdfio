@@ -207,6 +207,21 @@ void sdfi_load_samples(sdfio_sample sample, const void *src, size_t count,
                        double *out);
 sdfio_status sdfi_store_samples(sdfio_sample sample, void *dst,
                                 const double *values, size_t count);
+/* The same for samples that are `stride` bytes apart, which may be negative. */
+void sdfi_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
+                       size_t count, double *out);
+sdfio_status sdfi_store_strided(sdfio_sample sample, void *dst,
+                                ptrdiff_t stride, const double *values,
+                                size_t count);
+
+/* The distance in bytes between the samples of a row of the heights of the
+ * caller: the element stride of the format, the size of a sample if it is 0. */
+ptrdiff_t sdfi_element_stride(sdfio_format format);
+/* Checks that the strides of a matrix of heights keep its elements apart:
+ * rows that lie beside each other, or columns that do (a column-major matrix),
+ * with samples that do not overlap. */
+sdfio_status sdfi_check_layout(sdfio_format format, size_t rows, size_t columns,
+                               ptrdiff_t row_stride, sdfi_message *message);
 
 /* The values of the data area in memory, in the byte order of the host, as
  * doubles and back. */

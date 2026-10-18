@@ -35,6 +35,70 @@ static double marker_of(sdfio_format format)
     }
 }
 
+ptrdiff_t sdfi_element_stride(sdfio_format format)
+{
+    return format.element_stride != 0
+               ? format.element_stride
+               : (ptrdiff_t)sdfio_sample_size(format.sample);
+}
+
+static size_t magnitude(ptrdiff_t stride)
+{
+    return stride < 0 ? (size_t)(-(stride + 1)) + 1 : (size_t)stride;
+}
+
+/* The bytes from the first byte of the first element of `count` elements that
+ * are `stride` apart to the end of the last, or 0 if that is not countable. */
+static size_t extent_of(size_t count, size_t stride, size_t size)
+{
+    if (count == 0)
+    {
+        return 0;
+    }
+    if (stride != 0 && count - 1 > (SIZE_MAX - size) / stride)
+    {
+        return 0;
+    }
+    return (count - 1) * stride + size;
+}
+
+sdfio_status sdfi_check_layout(sdfio_format format, size_t rows, size_t columns,
+                               ptrdiff_t row_stride, sdfi_message *message)
+{
+    if (!sdfi_valid_sample(format.sample))
+    {
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
+                         "The sample type is not one of the enumeration");
+    }
+    const size_t size = sdfio_sample_size(format.sample);
+    const size_t element = magnitude(sdfi_element_stride(format));
+    const size_t row = magnitude(row_stride);
+    if (columns > 1 && element < size)
+    {
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
+                         "The element stride is smaller than a sample");
+    }
+    if (rows > 1 && row < size)
+    {
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
+                         "The row stride is smaller than a sample");
+    }
+    const size_t row_extent = extent_of(columns, element, size);
+    const size_t column_extent = extent_of(rows, row, size);
+    if ((columns > 1 && row_extent == 0) || (rows > 1 && column_extent == 0))
+    {
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
+                         "The matrix is larger than memory");
+    }
+    if (rows > 1 && columns > 1 && row < row_extent && element < column_extent)
+    {
+        return sdfi_fail(message, SDFIO_ERR_ARGUMENT,
+                         "The strides make elements overlap: the rows have to "
+                         "lie beside each other, or the columns do");
+    }
+    return SDFIO_OK;
+}
+
 static bool usable_description(const sdfio_header *header, sdfio_format format)
 {
     return header != NULL && sdfi_valid_data_type(header->data_type)
@@ -46,7 +110,8 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
                                   size_t count, void *heights)
 {
     if (!usable_description(header, format)
-        || (count > 0 && (data == NULL || heights == NULL)))
+        || (count > 0 && (data == NULL || heights == NULL))
+        || sdfi_check_layout(format, 1, count, 0, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -54,7 +119,7 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     const sdfi_sentinel_test is_missing =
         sdfi_sentinel_test_for(type, header->revision);
     const size_t coded_size = sdfio_data_type_size(type);
-    const size_t sample_size = sdfio_sample_size(format.sample);
+    const ptrdiff_t element = sdfi_element_stride(format);
     const double marker = marker_of(format);
     double values[SDFI_CHUNK];
     for (size_t first = 0; first < count; first += SDFI_CHUNK)
@@ -75,8 +140,9 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
             }
             values[i] = height;
         }
-        const sdfio_status status = sdfi_store_samples(
-            format.sample, (unsigned char *)heights + first * sample_size,
+        const sdfio_status status = sdfi_store_strided(
+            format.sample,
+            (unsigned char *)heights + (ptrdiff_t)first * element, element,
             values, n);
         if (status != SDFIO_OK)
         {
@@ -127,6 +193,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
 {
     if (!usable_description(header, format)
         || (count > 0 && (data == NULL || heights == NULL))
+        || sdfi_check_layout(format, 1, count, 0, NULL) != SDFIO_OK
         || !(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
         return SDFIO_ERR_ARGUMENT;
@@ -134,7 +201,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     const sdfio_data_type type = header->data_type;
     const double marker = sdfio_sentinel(type, header->revision);
     const size_t coded_size = sdfio_data_type_size(type);
-    const size_t sample_size = sdfio_sample_size(format.sample);
+    const ptrdiff_t element = sdfi_element_stride(format);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
     double values[SDFI_CHUNK];
@@ -142,9 +209,10 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     {
         const size_t n =
             count - first < SDFI_CHUNK ? count - first : SDFI_CHUNK;
-        sdfi_load_samples(format.sample,
-                          (const unsigned char *)heights + first * sample_size,
-                          n, values);
+        sdfi_load_strided(format.sample,
+                          (const unsigned char *)heights
+                              + (ptrdiff_t)first * element,
+                          element, n, values);
         for (size_t i = 0; i < n; ++i)
         {
             const double height = values[i];
@@ -208,11 +276,13 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
                                double *highest)
 {
     if (!sdfi_valid_sample(format.sample) || lowest == NULL || highest == NULL
-        || (rows > 0 && columns > 0 && heights == NULL))
+        || (rows > 0 && columns > 0 && heights == NULL)
+        || sdfi_check_layout(format, rows, columns, row_stride, NULL)
+               != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const size_t sample_size = sdfio_sample_size(format.sample);
+    const ptrdiff_t element = sdfi_element_stride(format);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
     double low = INFINITY;
@@ -226,8 +296,8 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
         {
             const size_t n =
                 columns - first < SDFI_CHUNK ? columns - first : SDFI_CHUNK;
-            sdfi_load_samples(format.sample, at + first * sample_size, n,
-                              values);
+            sdfi_load_strided(format.sample, at + (ptrdiff_t)first * element,
+                              element, n, values);
             for (size_t i = 0; i < n; ++i)
             {
                 if (isfinite(values[i])

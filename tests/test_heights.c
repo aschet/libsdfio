@@ -235,6 +235,105 @@ static void check_tables(void)
     }
 }
 
+/* The samples of the caller need not follow each other: the z of a point, one
+ * channel, a row that runs backwards. */
+typedef struct point
+{
+    float x;
+    float y;
+    float z;
+    float w;
+} point;
+
+static void check_element_stride(void)
+{
+    const sdfio_header header =
+        description(SDFIO_ISO_2_0, SDFIO_DATA_INT16, 1e-3);
+    const int16_t coded[4] = {1000, INT16_MIN, -2000, 3000};
+
+    /* Decoded into the z of points: the rest of a point is left alone. */
+    point points[4];
+    for (size_t i = 0; i < 4; ++i)
+    {
+        points[i] = (point){1.0F, 2.0F, 99.0F, 4.0F};
+    }
+    sdfio_format format = sdfio_metres(SDFIO_FLOAT32);
+    format.element_stride = sizeof(point);
+    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, &points[0].z));
+    CHECK(points[0].z == 1.0F && isnan(points[1].z) && points[2].z == -2.0F
+          && points[3].z == 3.0F);
+    for (size_t i = 0; i < 4; ++i)
+    {
+        CHECK(points[i].x == 1.0F && points[i].y == 2.0F
+              && points[i].w == 4.0F);
+    }
+
+    /* Encoded from them. */
+    int16_t back[4];
+    CHECK_OK(sdfio_encode_heights(&header, format, &points[0].z, 4, back));
+    CHECK(back[0] == 1000 && back[1] == INT16_MIN && back[2] == -2000
+          && back[3] == 3000);
+
+    /* The range of the z alone, whatever the other members say. */
+    points[0].x = 1e30F;
+    points[3].w = -1e30F;
+    double z_scale = 0.0;
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0, format,
+                                   &points[0].z, 1, 4, 0, &z_scale));
+    CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-9));
+
+    /* A negative stride runs backwards from the pointer. */
+    float mirrored[4] = {0};
+    format = sdfio_metres(SDFIO_FLOAT32);
+    format.element_stride = -(ptrdiff_t)sizeof(float);
+    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, &mirrored[3]));
+    CHECK(mirrored[3] == 1.0F && isnan(mirrored[2]) && mirrored[1] == -2.0F
+          && mirrored[0] == 3.0F);
+
+    /* A stride that is smaller than a sample would overwrite itself. */
+    format = sdfio_metres(SDFIO_FLOAT32);
+    format.element_stride = 2;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_decode_heights(&header, format, coded, 4, mirrored));
+    CHECK_OK(sdfio_decode_heights(&header, format, coded, 1, mirrored));
+}
+
+static void check_layout(void)
+{
+    sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
+    const ptrdiff_t size = sizeof(double);
+    /* Row-major, with padding at the end of the rows. */
+    CHECK_OK(sdfi_check_layout(format, 3, 4, 5 * size, NULL));
+    /* Column-major: the columns lie beside each other. */
+    format.element_stride = 3 * size;
+    CHECK_OK(sdfi_check_layout(format, 3, 4, size, NULL));
+    /* Interleaved: one of three channels. */
+    format.element_stride = 3 * size;
+    CHECK_OK(sdfi_check_layout(format, 3, 4, 12 * size, NULL));
+    /* Mirrored. */
+    format.element_stride = -size;
+    CHECK_OK(sdfi_check_layout(format, 3, 4, -4 * size, NULL));
+    /* Overlapping: both strides a sample. */
+    format.element_stride = 0;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfi_check_layout(format, 3, 4, size, NULL));
+    /* Rows that interleave but do not fit: a stride between. */
+    format.element_stride = 2 * size;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfi_check_layout(format, 3, 4, 3 * size, NULL));
+    /* A matrix of one row or column needs only one of the strides. */
+    format.element_stride = 0;
+    CHECK_OK(sdfi_check_layout(format, 1, 4, 0, NULL));
+    format = sdfio_metres(SDFIO_FLOAT64);
+    format.element_stride = 0;
+    CHECK_OK(sdfi_check_layout(format, 4, 1, size, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfi_check_layout(format, 4, 1, 3, NULL));
+    /* Not countable. */
+    format.element_stride = PTRDIFF_MAX;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfi_check_layout(format, 2, SIZE_MAX / 2, PTRDIFF_MAX, NULL));
+}
+
 int main(void)
 {
     check_decode();
@@ -242,6 +341,8 @@ int main(void)
     check_chunks();
     check_range();
     check_float_marker();
+    check_element_stride();
+    check_layout();
     check_tables();
     return finish_tests();
 }

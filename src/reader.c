@@ -406,25 +406,13 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
                          "Rows were read already: rewind the reader to read "
                          "the heights");
     }
-    if (!sdfi_valid_sample(format.sample))
+    status = sdfi_check_layout(format, header->rows, header->columns,
+                               row_stride, &reader->message);
+    if (status != SDFIO_OK)
     {
-        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                         "The sample type is not one of the enumeration");
+        return status;
     }
-    const size_t sample_size = sdfio_sample_size(format.sample);
-    if (header->columns > SIZE_MAX / sample_size)
-    {
-        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                         "A row is larger than memory");
-    }
-    const size_t row_bytes = header->columns * sample_size;
-    const size_t stride_size =
-        row_stride < 0 ? (size_t)(-(row_stride + 1)) + 1 : (size_t)row_stride;
-    if (header->rows > 1 && stride_size < row_bytes)
-    {
-        return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                         "The row stride is smaller than a row");
-    }
+    const ptrdiff_t element = sdfi_element_stride(format);
     if (reader->value_count > 0 && dst == NULL)
     {
         return sdfi_fail(&reader->message, SDFIO_ERR_ARGUMENT,
@@ -443,8 +431,9 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
             status = read_values(reader, reader->chunk, count);
             if (status == SDFIO_OK)
             {
-                status = sdfio_decode_heights(header, format, reader->chunk,
-                                              count, row + first * sample_size);
+                status =
+                    sdfio_decode_heights(header, format, reader->chunk, count,
+                                         row + (ptrdiff_t)first * element);
                 if (status != SDFIO_OK)
                 {
                     sdfi_fail(&reader->message, status,

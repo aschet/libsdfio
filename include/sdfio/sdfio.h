@@ -330,20 +330,33 @@ typedef struct sdfio_format
 {
     sdfio_sample sample;
     double missing;
+    /**
+     * The distance in bytes between a sample and the next one in a row of the
+     * heights, 0 for samples that follow each other. With it the heights are
+     * read and written in place where they are not contiguous: the z of an
+     * array of points, one channel of an interleaved image, the rows of a
+     * column-major matrix. A negative stride runs the row backwards. The
+     * element (y, x) is at `data + y * row_stride + x * element_stride`, and
+     * the strides have to keep the elements apart: rows that lie beside each
+     * other, or columns that do.
+     */
+    ptrdiff_t element_stride;
 } sdfio_format;
 
 /** Heights in metres of the sample type, a point not measured being NaN. */
 static inline sdfio_format sdfio_metres(sdfio_sample sample)
 {
-    sdfio_format format = {sample, NAN};
+    sdfio_format format = {sample, NAN, 0};
     return format;
 }
 
 /**
  * Reads the rest of the file as heights in metres into a matrix of `rows`
- * rows of `columns` samples whose rows are `row_stride` bytes apart. Row 0
- * is y = 0 in every revision. A stride that is negative, with `dst` at the
- * last row, turns the matrix upside down.
+ * rows of `columns` samples: the sample (y, x) is at
+ * `dst + y * row_stride + x * format.element_stride`, and y = 0 is the first
+ * row in every revision. A negative row stride, with `dst` at the first sample
+ * of the row y = 0, which is the last row in memory, turns the matrix upside
+ * down.
  *
  * Start from the first row: after other reads, rewind first.
  */
@@ -412,10 +425,11 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
 
 /**
  * Writes the whole file from a matrix of heights in metres, `rows` rows of
- * `columns` samples whose rows are `row_stride` bytes apart, row 0 being
- * y = 0. With SDFIO_AUTO_Z_SCALE and an integer data type the best z-scale
- * for the heights is chosen. NaN, infinity and `format.missing` mark points
- * that are not measured. Write the trailer with sdfio_write_trailer() after it.
+ * `columns` samples laid out as for sdfio_read_heights(): the sample (y, x) is
+ * at `src + y * row_stride + x * format.element_stride`, row 0 being y = 0.
+ * With SDFIO_AUTO_Z_SCALE and an integer data type the best z-scale for the
+ * heights is chosen. NaN, infinity and `format.missing` mark points that are
+ * not measured. Write the trailer with sdfio_write_trailer() after it.
  *
  * @return SDFIO_ERR_RANGE if a height does not fit the data type with the
  * z-scale, SDFIO_ERR_SENTINEL if one would be read as a point not measured.
@@ -439,9 +453,9 @@ SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
 
 /**
  * Turns `count` values of the data area (header->data_type), the coded height
- * information, into heights in metres of the format. A point that is not
- * measured becomes format.missing. Needs no handle, so it works on data from
- * any source.
+ * information, into heights in metres of the format, `format.element_stride`
+ * bytes apart. A point that is not measured becomes format.missing. Needs no
+ * handle, so it works on data from any source.
  *
  * @return SDFIO_ERR_RANGE if a height does not fit the sample type.
  */
