@@ -521,6 +521,29 @@ static double resolution_read(const membuf *file)
     return resolution;
 }
 
+/* A double as the file holds it: 8 bytes, the least significant first. */
+static double double_in_file(const unsigned char *bytes)
+{
+    uint64_t bits = 0;
+    for (size_t i = 0; i < sizeof bits; ++i)
+    {
+        bits |= (uint64_t)bytes[i] << (CHAR_BIT * i);
+    }
+    double value = 0.0;
+    memcpy(&value, &bits, sizeof value);
+    return value;
+}
+
+static void put_double_in_file(unsigned char *bytes, double value)
+{
+    uint64_t bits = 0;
+    memcpy(&bits, &value, sizeof bits);
+    for (size_t i = 0; i < sizeof bits; ++i)
+    {
+        bytes[i] = (unsigned char)(bits >> (CHAR_BIT * i));
+    }
+}
+
 static void check_resolution(void)
 {
     sdfio_header initial;
@@ -542,11 +565,9 @@ static void check_resolution(void)
             if (representations[s] == SDFIO_BINARY)
             {
                 /* Four doubles and three bytes end the header. */
-                double stored = 0.0;
-                memcpy(&stored,
-                       file.data + sdfio_binary_header_size(SDFIO_ISO_2_0) - 3
-                           - sizeof stored,
-                       sizeof stored);
+                const double stored = double_in_file(
+                    file.data + sdfio_binary_header_size(SDFIO_ISO_2_0) - 3
+                    - sizeof(double));
                 CHECK(stored == expected);
             }
             free(file.data);
@@ -559,9 +580,9 @@ static void check_resolution(void)
     {
         membuf file = {0};
         write_with_resolution(&file, SDFIO_BINARY, 1e-9);
-        memcpy(file.data + sdfio_binary_header_size(SDFIO_ISO_2_0) - 3
-                   - sizeof(double),
-               &stored_values[i], sizeof(double));
+        put_double_in_file(file.data + sdfio_binary_header_size(SDFIO_ISO_2_0)
+                               - 3 - sizeof(double),
+                           stored_values[i]);
         CHECK(resolution_read(&file) == SDFIO_NO_RESOLUTION);
         free(file.data);
     }
