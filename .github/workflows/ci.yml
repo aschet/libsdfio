@@ -45,7 +45,7 @@ jobs:
             cc: gcc
             options: -DCMAKE_BUILD_TYPE=Debug -DSDFIO_SANITIZE=ON -DSDFIO_TEXT=OFF -DSDFIO_LOCAL_TIME=OFF
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Let the sanitizers map their memory
         run: sudo sysctl vm.mmap_rnd_bits=28 || true
       - name: Configure
@@ -55,19 +55,19 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
   macos:
     name: macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
   windows:
     name: Windows, ${{ matrix.name }}
@@ -81,19 +81,19 @@ jobs:
           - name: DLL
             shared: "ON"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Configure
         run: cmake -S . -B build -DBUILD_SHARED_LIBS=${{ matrix.shared }}
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error
 
   big-endian:
     name: Big endian (s390x)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler and the emulator
         run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross
       - name: Configure
@@ -107,13 +107,13 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
   arm-32-bit:
     name: 32-bit ARM (armhf)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler and the emulator
         run: sudo apt-get update && sudo apt-get install -y qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
       - name: Configure
@@ -127,13 +127,13 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
   cortex-m:
     name: Cortex-M4 firmware
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler
         run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
       - name: Configure
@@ -156,7 +156,7 @@ jobs:
     name: RISC-V firmware
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler
         run: sudo apt-get update && sudo apt-get install -y gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
       - name: Configure
@@ -178,7 +178,7 @@ jobs:
     name: Static analysis
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install clang-tidy
         run: |
           pipx install "clang-tidy==21.1.6"
@@ -193,9 +193,124 @@ jobs:
           clang-tidy -p build --warnings-as-errors='*'
           src/*.c tests/*.c examples/*.c
 
+  package:
+    name: Install and use, ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            generator: Ninja
+          - name: macOS
+            os: macos-latest
+            generator: Ninja
+          - name: Windows
+            os: windows-latest
+            generator: ""
+    steps:
+      - uses: actions/checkout@v7
+      # The library is installed, and a project of its own finds it with
+      # find_package and links it, as a user's project does.
+      - name: Install and use
+        env:
+          GENERATOR: ${{ matrix.generator }}
+        run: |
+          if [ -n "$GENERATOR" ]; then
+            configure=(-G "$GENERATOR" -DCMAKE_BUILD_TYPE=Release)
+          else
+            configure=()
+          fi
+          for linkage in ON OFF; do
+            echo "== BUILD_SHARED_LIBS=$linkage"
+            rm -rf build stage
+            cmake -S . -B build "${configure[@]}" \
+              -DBUILD_SHARED_LIBS=$linkage \
+              -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+              -DCMAKE_INSTALL_PREFIX="$PWD/stage"
+            cmake --build build --config Release
+            cmake --install build --config Release
+            cmake -S test_package -B build/consumer "${configure[@]}" \
+              -DCMAKE_PREFIX_PATH="$PWD/stage"
+            cmake --build build/consumer --config Release
+            consumer=$(find build/consumer \
+              \( -name test_package -o -name test_package.exe \) -type f | head -1)
+            PATH="$PWD/stage/bin:$PATH" LD_LIBRARY_PATH="$PWD/stage/lib" \
+              DYLD_LIBRARY_PATH="$PWD/stage/lib" "$consumer"
+          done
+
+  conan:
+    name: Conan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Conan
+        run: |
+          pipx install conan
+          bin_dir=$(pipx environment --value PIPX_BIN_DIR)
+          echo "$bin_dir" >> "$GITHUB_PATH"
+          "$bin_dir/conan" profile detect --force
+      - name: Create the package
+        run: |
+          for shared in True False; do
+            echo "== shared=$shared"
+            conan create . -o "sdfio/*:shared=$shared"
+          done
+
+  vcpkg:
+    name: vcpkg, ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            triplets: x64-linux x64-linux-dynamic
+          - name: macOS
+            os: macos-latest
+            triplets: arm64-osx arm64-osx-dynamic
+          - name: Windows
+            os: windows-latest
+            triplets: x64-windows-static x64-windows
+    steps:
+      - uses: actions/checkout@v7
+      # The port of this repository is an overlay port: it builds the library
+      # from the checkout, and a project of its own finds the result with the
+      # toolchain file of vcpkg.
+      - name: Install and use
+        env:
+          TRIPLETS: ${{ matrix.triplets }}
+        run: |
+          for triplet in $TRIPLETS; do
+            echo "== $triplet"
+            rm -rf build vcpkg_installed
+            "$VCPKG_INSTALLATION_ROOT/vcpkg" install sdfio \
+              --overlay-ports=ports --triplet="$triplet" \
+              --x-install-root="$PWD/vcpkg_installed" --binarysource=clear
+            cmake -S test_package -B build \
+              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
+              -DVCPKG_TARGET_TRIPLET="$triplet" \
+              -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+              -DCMAKE_BUILD_TYPE=Release
+            cmake --build build --config Release
+            consumer=$(find build \
+              \( -name test_package -o -name test_package.exe \) -type f | head -1)
+            PATH="$PWD/vcpkg_installed/$triplet/bin:$PATH" \
+              LD_LIBRARY_PATH="$PWD/vcpkg_installed/$triplet/lib" \
+              DYLD_LIBRARY_PATH="$PWD/vcpkg_installed/$triplet/lib" "$consumer"
+          done
+
   reuse:
     name: Licenses
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: fsfe/reuse-action@v5

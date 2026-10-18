@@ -155,7 +155,7 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     add_subdirectory(tests)
 endif()
 
-set(sdfio_cmakedir "${CMAKE_INSTALL_LIBDIR}/cmake/sdf")
+set(sdfio_cmakedir "${CMAKE_INSTALL_LIBDIR}/cmake/sdfio")
 
 install(TARGETS sdfio
     EXPORT sdfio-targets
