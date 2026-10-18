@@ -222,22 +222,31 @@ static void check_small(void)
 }
 
 /* An arena that never gives anything back, as a program without a heap has. */
+/* Memory that suits every type: the union has the alignment of the largest. */
+typedef union arena_cell
+{
+    long long integer;
+    long double real;
+    void *pointer;
+    void (*function)(void);
+} arena_cell;
+
 typedef struct arena
 {
-    _Alignas(max_align_t) unsigned char memory[ARENA_SIZE];
+    arena_cell memory[ARENA_SIZE / sizeof(arena_cell)];
     size_t used;
 } arena;
 
 static void *arena_allocate(void *user, size_t size)
 {
     arena *state = user;
-    const size_t step = sizeof(max_align_t);
+    const size_t step = sizeof(arena_cell);
     const size_t rounded = (size + step - 1) / step * step;
     if (rounded > ARENA_SIZE - state->used)
     {
         return NULL;
     }
-    void *memory = state->memory + state->used;
+    void *memory = (unsigned char *)state->memory + state->used;
     state->used += rounded;
     return memory;
 }
