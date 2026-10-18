@@ -227,20 +227,21 @@ jobs:
           fi
           for linkage in ON OFF; do
             echo "== BUILD_SHARED_LIBS=$linkage"
-            rm -rf build stage
-            cmake -S . -B build "${configure[@]}" \
+            build="build-$linkage"
+            stage="$PWD/stage-$linkage"
+            cmake -S . -B "$build" "${configure[@]}" \
               -DBUILD_SHARED_LIBS=$linkage \
               -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-              -DCMAKE_INSTALL_PREFIX="$PWD/stage"
-            cmake --build build --config Release
-            cmake --install build --config Release
-            cmake -S test_package -B build/consumer "${configure[@]}" \
-              -DCMAKE_PREFIX_PATH="$PWD/stage"
-            cmake --build build/consumer --config Release
-            consumer=$(find build/consumer \
+              -DCMAKE_INSTALL_PREFIX="$stage"
+            cmake --build "$build" --config Release
+            cmake --install "$build" --config Release
+            cmake -S test_package -B "$build/consumer" "${configure[@]}" \
+              -DCMAKE_PREFIX_PATH="$stage"
+            cmake --build "$build/consumer" --config Release
+            consumer=$(find "$build/consumer" \
               \( -name test_package -o -name test_package.exe \) -type f | head -1)
-            PATH="$PWD/stage/bin:$PATH" LD_LIBRARY_PATH="$PWD/stage/lib" \
-              DYLD_LIBRARY_PATH="$PWD/stage/lib" "$consumer"
+            PATH="$stage/bin:$PATH" LD_LIBRARY_PATH="$stage/lib" \
+              DYLD_LIBRARY_PATH="$stage/lib" "$consumer"
           done
 
   conan:
@@ -291,21 +292,21 @@ jobs:
         run: |
           for triplet in $TRIPLETS; do
             echo "== $triplet"
-            rm -rf build vcpkg_installed
+            installed="$PWD/vcpkg_installed-$triplet"
             "$VCPKG_INSTALLATION_ROOT/vcpkg" install sdfio \
               --overlay-ports=ports --triplet="$triplet" \
-              --x-install-root="$PWD/vcpkg_installed" --binarysource=clear
-            cmake -S test_package -B build \
+              --x-install-root="$installed" --binarysource=clear
+            cmake -S test_package -B "build-$triplet" \
               -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
               -DVCPKG_TARGET_TRIPLET="$triplet" \
-              -DVCPKG_INSTALLED_DIR="$PWD/vcpkg_installed" \
+              -DVCPKG_INSTALLED_DIR="$installed" \
               -DCMAKE_BUILD_TYPE=Release
-            cmake --build build --config Release
-            consumer=$(find build \
+            cmake --build "build-$triplet" --config Release
+            consumer=$(find "build-$triplet" \
               \( -name test_package -o -name test_package.exe \) -type f | head -1)
-            PATH="$PWD/vcpkg_installed/$triplet/bin:$PATH" \
-              LD_LIBRARY_PATH="$PWD/vcpkg_installed/$triplet/lib" \
-              DYLD_LIBRARY_PATH="$PWD/vcpkg_installed/$triplet/lib" "$consumer"
+            PATH="$installed/$triplet/bin:$PATH" \
+              LD_LIBRARY_PATH="$installed/$triplet/lib" \
+              DYLD_LIBRARY_PATH="$installed/$triplet/lib" "$consumer"
           done
 
   reuse:

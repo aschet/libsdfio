@@ -93,6 +93,8 @@ target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER
 target_compile_definitions(sdfio_objects PRIVATE
     $<$<NOT:$<PLATFORM_ID:Windows>>:_POSIX_C_SOURCE=200809L>
     $<$<NOT:$<PLATFORM_ID:Windows>>:_FILE_OFFSET_BITS=64>
+    # fopen is the C function of the standard, and the file functions use it
+    $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>
 )
 set_target_properties(sdfio_objects PROPERTIES
     C_EXTENSIONS OFF
