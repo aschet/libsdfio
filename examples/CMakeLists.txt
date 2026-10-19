@@ -16,10 +16,8 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
     add_test(NAME example_counts COMMAND counts WORKING_DIRECTORY "${work}")
     set_tests_properties(example_reading PROPERTIES DEPENDS example_writing)
     if(UNIX)
-        # A program that runs under an emulator is started by it.
-        string(REPLACE ";" " " emulator "${CMAKE_CROSSCOMPILING_EMULATOR}")
         add_test(NAME example_streaming
-            COMMAND sh -c "cat counts.sdf | ${emulator} $<TARGET_FILE:streaming>"
+            COMMAND sh -c "cat counts.sdf | $<TARGET_FILE:streaming>"
             WORKING_DIRECTORY "${work}")
         set_tests_properties(example_streaming PROPERTIES DEPENDS example_counts)
     endif()
