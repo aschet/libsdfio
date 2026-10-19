@@ -23,8 +23,8 @@ option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitize
 # For a small program: a build can leave out what it does not use. Each option
 # swaps one file for a stub with the same functions, so that nothing is
 # conditional in the code.
-option(SDFIO_TEXT "Read and write text files" ON)
-option(SDFIO_LOCAL_TIME "Convert the local clock dates of ISO-1.0 and BCR-1.0 files with the time zone of the C library" ON)
+option(SDFIO_WITH_ASCII_FORMAT "Read and write ASCII files, not only binary ones" ON)
+option(SDFIO_WITH_TIME_ZONE "Convert the local clock dates of ISO-1.0 and BCR-1.0 files with the time zone of the C library" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 
@@ -73,12 +73,12 @@ set(SDFIO_SOURCES
 if(WIN32)
     list(APPEND SDFIO_SOURCES src/file_windows.c)
 endif()
-if(SDFIO_TEXT)
+if(SDFIO_WITH_ASCII_FORMAT)
     list(APPEND SDFIO_SOURCES src/ascii.c src/decimal.c)
 else()
     list(APPEND SDFIO_SOURCES src/ascii_stub.c)
 endif()
-if(SDFIO_LOCAL_TIME)
+if(SDFIO_WITH_TIME_ZONE)
     list(APPEND SDFIO_SOURCES src/localtime.c)
 else()
     list(APPEND SDFIO_SOURCES src/localtime_stub.c)

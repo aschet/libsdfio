@@ -23,7 +23,7 @@ endfunction()
 
 # The tests of the whole library need all of it. A build without text
 # or the local clock runs the tests of what is left.
-if(SDFIO_TEXT AND SDFIO_LOCAL_TIME)
+if(SDFIO_WITH_ASCII_FORMAT AND SDFIO_WITH_TIME_ZONE)
     sdfio_add_test(test_samples)
     sdfio_add_test(test_roundtrip)
     sdfio_add_test(test_streams)
@@ -37,10 +37,10 @@ if(WIN32)
     sdfio_add_test(test_wide)
 endif()
 target_compile_definitions(test_allocator PRIVATE
-    SDFIO_TEST_TEXT=$<BOOL:${SDFIO_TEXT}>
+    SDFIO_TEST_TEXT=$<BOOL:${SDFIO_WITH_ASCII_FORMAT}>
 )
 
-if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT AND SDFIO_TEXT)
+if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT AND SDFIO_WITH_ASCII_FORMAT)
     sdfio_add_test(test_threads)
     target_link_libraries(test_threads PRIVATE Threads::Threads)
 endif()

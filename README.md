@@ -39,9 +39,9 @@ The options are `BUILD_SHARED_LIBS`, `SDFIO_BUILD_EXAMPLES`, `SDFIO_SANITIZE`
 A scanner that writes binary files and has no file system needs little of the
 library. A static library costs only what the program calls, so nothing has to
 be switched off for that. Two things reach far into the C library, and a build
-can leave each out by `-DSDFIO_TEXT=OFF` (text files are refused with
+can leave each out by `-DSDFIO_WITH_ASCII_FORMAT=OFF` (ASCII files are refused with
 `SDFIO_ERR_UNSUPPORTED`; the parsing and printing of numbers goes with them)
-and `-DSDFIO_LOCAL_TIME=OFF` (no time zone is used: the dates of ISO-1.0 and
+and `-DSDFIO_WITH_TIME_ZONE=OFF` (no time zone is used: the dates of ISO-1.0 and
 BCR-1.0 files, which hold the local clock of the writer, are read and written as
 if that clock were UTC). Each option swaps source files for a stub with the same
 functions, so the code has no conditions. The text of an error is a fixed
