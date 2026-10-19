@@ -52,6 +52,17 @@ taken in the precision of the sample type. Scalars that describe the file
 A `double` is only the intermediate of a chunk, which holds every integer
 type of the format exactly.
 
+## Names
+
+Everything the library puts into a program starts with its name: `sdfio_` for
+functions and types, `SDFIO_` for macros and enumerators, the headers in
+`<sdfio/>`, the CMake package and target `sdfio`. The shorter `sdf_` and `SDF_`
+are taken: the measurement library comedi has `SDF_READABLE`, `SDF_WRITABLE` and
+a dozen more, and a program that talks to a scanner may include both. The
+library `libsdf` on GitHub (signed distance functions) has the same file name as
+a `sdf` library would. The files keep the extension `.sdf`. The internal
+functions have the prefix too, and are hidden in the shared library.
+
 ## Memory
 
 The library allocates no memory for the heights, but sizing it is where

@@ -25,6 +25,26 @@
  *  4. Images: sdfio_read_heights() and sdfio_write_heights() do layers 2 and 3
  *     for a whole matrix with any row stride.
  *
+ * Names: everything that the library puts into a program starts with `sdfio_`
+ * (functions and types) or `SDFIO_` (macros and enumerators), and the headers
+ * are in `<sdfio/>`.
+ *
+ * Memory: the library allocates no memory for heights. sdfio_alloc_data() and
+ * sdfio_alloc_heights() size a buffer from the description of a file, with the
+ * overflow checked, and sdfio_free() releases it; a buffer of your own works as
+ * well. A reader or a writer takes its memory from the allocator of an
+ * sdfio_config.
+ *
+ * Errors: every call returns an sdfio_status. The text of the last failure of a
+ * handle is sdfio_reader_error_message() or sdfio_writer_error_message().
+ *
+ * Missing points: heights in metres mark them with NaN, or with the marker of
+ * your choice. The coded values of the data area mark them with the bad value
+ * of the data type and revision, sdfio_bad_value(), which sdfio_is_bad_value()
+ * tests.
+ *
+ * Locale: numbers in text files always have the dot, whatever LC_NUMERIC says.
+ *
  * Threads: there is no global state. Handles are independent of each other, so
  * one thread can read a file while another writes one, also over the same
  * memory that is only read. A single handle is used by one thread at a time.
