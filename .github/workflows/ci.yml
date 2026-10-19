@@ -37,6 +37,7 @@ jobs:
             gcc-arm-none-eabi libnewlib-arm-none-eabi \
             gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
           pipx install "clang-tidy==21.1.6"
+          pipx install "clang-format==21.1.6"
           pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
           # The sanitizers map their memory
           sudo sysctl vm.mmap_rnd_bits=28 || true
