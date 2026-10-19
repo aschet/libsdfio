@@ -27,6 +27,11 @@ static void format(time_t time, sdfio_revision revision,
     sdfio_date_format(time, revision, out);
 }
 
+static time_t as_time(long long seconds)
+{
+    return (time_t)seconds;
+}
+
 static void check_utc(void)
 {
     char text[SDFIO_DATE_SIZE + 1];
@@ -45,14 +50,26 @@ static void check_utc(void)
           == 1709164800);
     CHECK(sdfio_date_parse("290220230000", SDFIO_DATE_SIZE, SDFIO_ISO_2_0)
           == SDFIO_NO_TIME);
-    CHECK(sdfio_date_parse("010100010000", SDFIO_DATE_SIZE, SDFIO_ISO_2_0)
-          == -62135596800);
-    format(-62135596800, SDFIO_ISO_2_0, text);
-    CHECK(strcmp(text, "010100010000") == 0);
-    format(253402300740, SDFIO_ISO_2_0, text); /* 9999-12-31 23:59 */
-    CHECK(strcmp(text, "311299992359") == 0);
-    CHECK(!sdfio_date_representable(253402300800));
-    CHECK(!sdfio_date_representable(-62135596801));
+    if (sizeof(time_t) >= sizeof(int64_t))
+    {
+        CHECK(sdfio_date_parse("010100010000", SDFIO_DATE_SIZE, SDFIO_ISO_2_0)
+              == as_time(-62135596800LL));
+        format(as_time(-62135596800LL), SDFIO_ISO_2_0, text);
+        CHECK(strcmp(text, "010100010000") == 0);
+        format(as_time(253402300740LL), SDFIO_ISO_2_0, text); /* 9999-12-31 */
+        CHECK(strcmp(text, "311299992359") == 0);
+        CHECK(!sdfio_date_representable(as_time(253402300800LL)));
+        CHECK(!sdfio_date_representable(as_time(-62135596801LL)));
+    }
+    else
+    {
+        /* A time_t of 32 bits cannot hold the first and the last year of the
+         * field: they read as no date, and do not wrap into another one. */
+        CHECK(sdfio_date_parse("010100010000", SDFIO_DATE_SIZE, SDFIO_ISO_2_0)
+              == SDFIO_NO_TIME);
+        CHECK(sdfio_date_parse("311299992359", SDFIO_DATE_SIZE, SDFIO_ISO_2_0)
+              == SDFIO_NO_TIME);
+    }
 
     /* A field that is no date reads as no date. */
     const char *bad[] = {"310220260000",  "320120260000", "011320260000",

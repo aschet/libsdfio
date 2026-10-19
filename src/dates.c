@@ -115,6 +115,19 @@ static int64_t minutes_of(time_t time)
     return floor_div((int64_t)time, SECONDS_PER_MINUTE);
 }
 
+/* Seconds as a time_t, if the type has room for them: a time_t of 32 bits ends
+ * in the year 2038, and a date beyond it must not wrap into another one. */
+static bool seconds_to_time(int64_t seconds, time_t *out)
+{
+    const time_t converted = (time_t)seconds;
+    if ((int64_t)converted != seconds)
+    {
+        return false;
+    }
+    *out = converted;
+    return true;
+}
+
 time_t sdfio_now(void)
 {
     const time_t now = time(NULL);
@@ -129,7 +142,9 @@ time_t sdfio_now(void)
 static bool local_clock_of(int64_t utc_minutes, int64_t *clock)
 {
     struct tm local;
-    if (!sdfio_local_time((time_t)(utc_minutes * SECONDS_PER_MINUTE), &local))
+    time_t instant = 0;
+    if (!seconds_to_time(utc_minutes * SECONDS_PER_MINUTE, &instant)
+        || !sdfio_local_time(instant, &local))
     {
         return false;
     }
@@ -270,5 +285,7 @@ time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision)
     {
         clock = utc_of_local_clock(clock);
     }
-    return (time_t)(clock * SECONDS_PER_MINUTE);
+    time_t date = 0;
+    return seconds_to_time(clock * SECONDS_PER_MINUTE, &date) ? date
+                                                              : SDFIO_NO_TIME;
 }
