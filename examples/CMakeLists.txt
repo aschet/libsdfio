@@ -15,7 +15,8 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
     add_test(NAME example_reading COMMAND reading integer.sdf WORKING_DIRECTORY "${work}")
     add_test(NAME example_counts COMMAND counts WORKING_DIRECTORY "${work}")
     set_tests_properties(example_reading PROPERTIES DEPENDS example_writing)
-    if(UNIX)
+    # A pipe through a shell: not for a program that needs an emulator
+    if(UNIX AND NOT CMAKE_CROSSCOMPILING)
         add_test(NAME example_streaming
             COMMAND sh -c "cat counts.sdf | $<TARGET_FILE:streaming>"
             WORKING_DIRECTORY "${work}")
