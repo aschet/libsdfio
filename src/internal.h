@@ -17,17 +17,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* A check at compile time that C99 has: a type with a negative size does not
- * compile. The name says what failed. */
-#define SDFIO_REQUIRE(name, condition)                                         \
-    typedef char sdfio_requirement_##name[(condition) ? 1 : -1]
-
 /* What the format needs of the platform, checked here and nowhere else: bytes
  * of 8 bits, and IEEE 754 binary32 and binary64 for float and double. */
-SDFIO_REQUIRE(bytes_of_8_bits, CHAR_BIT == 8);
-SDFIO_REQUIRE(float_is_binary32,
-              sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24);
-SDFIO_REQUIRE(double_is_binary64, sizeof(double) == 8 && DBL_MANT_DIG == 53);
+_Static_assert(CHAR_BIT == 8, "the format counts in 8-bit bytes");
+_Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
+               "float has to be IEEE 754 binary32");
+_Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
+               "double has to be IEEE 754 binary64");
 
 enum
 {
@@ -150,6 +146,30 @@ const char *sdfio_string_text(const sdfio_string *string);
       -FLT_MAX, FLT_MAX, true)                                                 \
     X(SDFIO_FLOAT64, SDFIO_DATA_BINARY64, "binary64", double, uint64_t,        \
       -DBL_MAX, DBL_MAX, true)
+
+/* The sizes of the data types, as the file stores them: the type of the program
+ * and the unsigned type that holds its bytes are of one size, and no sample is
+ * larger than the largest that a buffer is made for. */
+#define SDFIO_CHECK_SCALAR(sample, data, name, ctype, stored, low, high,       \
+                           floating)                                           \
+    _Static_assert(sizeof(ctype) == sizeof(stored),                            \
+                   name ": the type and its stored bytes differ in size");     \
+    _Static_assert(sizeof(ctype) <= SDFIO_LARGEST_SAMPLE,                      \
+                   name ": larger than the largest sample");
+SDFIO_SCALARS(SDFIO_CHECK_SCALAR)
+#undef SDFIO_CHECK_SCALAR
+_Static_assert(sizeof(int8_t) == 1 && sizeof(int16_t) == 2
+                   && sizeof(int32_t) == 4 && sizeof(uint64_t) == 8,
+               "the integer types of the file have the sizes of the format");
+_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
+               "the largest sample is a binary64");
+_Static_assert(SDFIO_BINARY_HEADER_MAX
+                   == SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE
+                          + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
+                          + SDFIO_HEADER_COUNTS * sizeof(uint32_t)
+                          + SDFIO_HEADER_DOUBLES * sizeof(double)
+                          + SDFIO_HEADER_CODES,
+               "the largest binary header is the sum of its fields");
 
 bool sdfio_valid_sample(sdfio_sample sample);
 bool sdfio_valid_data_type(sdfio_data_type type);

@@ -94,7 +94,7 @@ target_include_directories(sdfio_objects
     PRIVATE
         "${PROJECT_SOURCE_DIR}/src"
 )
-target_compile_features(sdfio_objects PUBLIC c_std_99)
+target_compile_features(sdfio_objects PUBLIC c_std_11)
 target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
 # fseeko and localtime_r, and files above 2 GiB on 32-bit systems
 target_compile_definitions(sdfio_objects PRIVATE
@@ -134,7 +134,7 @@ target_include_directories(sdfio
         "$<BUILD_INTERFACE:${SDFIO_GENERATED_INCLUDE_DIR}>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
-target_compile_features(sdfio PUBLIC c_std_99)
+target_compile_features(sdfio PUBLIC c_std_11)
 target_link_libraries(sdfio PUBLIC $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
 target_link_options(sdfio PUBLIC ${SDFIO_SANITIZER_FLAGS})
 
