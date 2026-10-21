@@ -48,6 +48,13 @@
  *
  * Locale: numbers in text files always have the dot, whatever LC_NUMERIC says.
  *
+ * Versions: the structs, such as sdfio_header, are plain structs that a program
+ * fills in. A change of one is a change of the major version.
+ *
+ * Limits: compression and checksums of the data area are not supported. The
+ * comments of BCR-1.0 files are dropped when a file is read. A row of a binary
+ * file cannot be read at random.
+ *
  * Threads: there is no global state. Handles are independent of each other, so
  * one thread can read a file while another writes one, also over the same
  * memory that is only read. A single handle is used by one thread at a time.

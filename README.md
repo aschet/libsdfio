@@ -19,8 +19,7 @@ if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 sdfio_reader_free(reader);
 ```
 
-The [headers](include/sdfio) document the interface, and [docs/design.md](docs/design.md)
-says why it is the way it is. See the [examples](examples).
+See the [examples](examples).
 
 ## Building
 
