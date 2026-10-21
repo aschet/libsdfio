@@ -1,30 +1,25 @@
 # Design
 
-This is the C library for the SDF format. The design follows what C libraries
-for images and arrays do well, libpng, libtiff, libwebp and libheif, and
-and keeps the interface small.
+This is the C library for the SDF format. It keeps the interface small.
 
 ## Handles
 
 A reader or writer is an opaque pointer. It is made empty (`sdfio_reader_new`)
-and opened later, as libpng makes its struct before it reads, so that a failed
-open still has a handle that can say why. There is one mechanism for errors:
-the call returns a status, the handle keeps the message. A failure in the
-middle of the data ends the reading; `sdfio_rewind` starts again for a source
-that can seek.
+and opened later, so that a failed open still has a handle that can say why.
+There is one mechanism for errors: the call returns a status, the handle keeps
+the message. A failure in the middle of the data ends the reading;
+`sdfio_rewind` starts again for a source that can seek.
 
 The header of a file, `sdfio_header`, record 1 of the standard with its fields
 and names, is a plain struct, because C programs want to fill one in.
-`sdfio_header_init` sets it, as `WebPConfigInit` does, so a field that a later
-version adds has a default. A change of the struct is a change of the major
-version.
+`sdfio_header_init` sets it, so a field that a later version adds has a default.
+A change of the struct is a change of the major version.
 
 ## Streams
 
-Bytes come from and go to callbacks (`sdfio_stream`), as libtiff's
-`TIFFClientOpen` has them. A stream without `seek` is read once from the front.
-Files and memory are streams too. The reader holds a 16 KiB buffer; the heights
-are never held.
+Bytes come from and go to callbacks (`sdfio_stream`). A stream without `seek` is
+read once from the front. Files and memory are streams too. The reader holds a
+16 KiB buffer; the heights are never held.
 
 ## The records first
 
@@ -76,8 +71,8 @@ runtime that allocated.
 ## Allocator and configuration
 
 `sdfio_reader_new` and `sdfio_writer_new` take an `sdfio_config`, null for all
-defaults. Its allocator is a pair of callbacks with a user pointer, as in libpng
-and OpenEXR, and covers every allocation of a handle: the handle, the buffer
+defaults. Its allocator is a pair of callbacks with a user pointer, and covers every
+allocation of a handle: the handle, the buffer
 between it and its stream, the chunk in which values are converted, and the
 strings of a text header and a trailer. The sizes of buffer and chunk are in
 the configuration too, because they are the RAM of a small program. The

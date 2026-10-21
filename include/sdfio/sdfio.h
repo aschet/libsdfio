@@ -29,6 +29,9 @@
  * (functions and types) or `SDFIO_` (macros and enumerators), and the headers
  * are in `<sdfio/>`.
  *
+ * Files: sdfio_open_file() and sdfio_create_file() are in `<sdfio/file.h>`, so
+ * that a program without a file system does not need `<stdio.h>`.
+ *
  * Memory: the library allocates no memory for heights. sdfio_alloc_data() and
  * sdfio_alloc_heights() size a buffer from the description of a file, with the
  * overflow checked, and sdfio_free() releases it; a buffer of your own works as
