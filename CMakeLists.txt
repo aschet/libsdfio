@@ -53,6 +53,7 @@ endif()
 set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 set(SDFIO_SOURCES
+    src/internal.h
     src/binary.c
     src/common.c
     src/dates.c
@@ -128,11 +129,17 @@ if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(sdfio PUBLIC SDFIO_STATIC_DEFINE)
 endif()
 
-target_include_directories(sdfio
+target_sources(sdfio
     PUBLIC
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-        "$<BUILD_INTERFACE:${SDFIO_GENERATED_INCLUDE_DIR}>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
+        FILE_SET HEADERS
+            BASE_DIRS
+                "${PROJECT_SOURCE_DIR}/include"
+                "${SDFIO_GENERATED_INCLUDE_DIR}"
+            FILES
+                include/sdfio/file.h
+                include/sdfio/sdfio.h
+                "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"
+                "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h"
 )
 target_compile_features(sdfio PUBLIC c_std_11)
 target_link_libraries(sdfio PUBLIC $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
@@ -172,16 +179,8 @@ set(sdfio_cmakedir "${CMAKE_INSTALL_LIBDIR}/cmake/sdfio")
 
 install(TARGETS sdfio
     EXPORT sdfio-targets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    FILE_SET HEADERS
 )
-install(DIRECTORY include/sdfio DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
-    FILES_MATCHING PATTERN "*.h")
-install(FILES
-    "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"
-    "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/sdfio")
 
 install(EXPORT sdfio-targets
     FILE sdfio-targets.cmake
