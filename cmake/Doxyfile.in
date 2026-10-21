@@ -10,7 +10,11 @@ PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
 INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
+                         @PROJECT_SOURCE_DIR@/examples/examples.dox \
                          @PROJECT_SOURCE_DIR@/README.md
+EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
+                         @PROJECT_SOURCE_DIR@/examples/integrations
+EXAMPLE_PATTERNS       = *.c *.cpp
 USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 OPTIMIZE_OUTPUT_FOR_C  = YES
 JAVADOC_AUTOBRIEF      = YES

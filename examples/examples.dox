@@ -1,0 +1,66 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: 0BSD
+ */
+
+/*
+ * Descriptions of the example programs for the API reference. Doxygen lists
+ * each program with its source, linked to the documentation of the functions
+ * it calls.
+ */
+
+/**
+ * @example writing.c
+ * Writes a surface as binary32 values and as 16-bit integer values, each with
+ * the data type of the header set explicitly. The trailer is assembled with
+ * sdfio_trailer_add_field().
+ */
+
+/**
+ * @example reading.c
+ * Reads a file as heights in metres of type float, prints the revision, the
+ * size and the mean height, and prints the trailer.
+ */
+
+/**
+ * @example streaming.c
+ * Reads a file from a stream that cannot seek, here standard input, one row at
+ * a time with sdfio_read_data() and sdfio_decode_heights(), and prints the
+ * lowest and the highest height. The program holds one row in memory, not the
+ * matrix.
+ */
+
+/**
+ * @example counts.c
+ * Writes and reads the integer counts of a scanner as 16-bit values in an
+ * ISO-2.0 file and in a BCR-1.0 file. The rows are written in the order of the
+ * file with sdfio_row_y(), and the points that are not measured carry the bad
+ * value, which sdfio_is_bad_value() recognizes when reading.
+ */
+
+/**
+ * @example image.cpp
+ * A C++ image class over the C interface: the handles belong to objects that
+ * release them, a failed call is an exception that carries the message of the
+ * library, and the heights are read into a `std::vector`.
+ */
+
+/**
+ * @example opencv.cpp
+ * A surface as an OpenCV depth image. A negative row stride turns the surface
+ * into an image without a copy, and a region of interest is read.
+ */
+
+/**
+ * @example vtk.cpp
+ * A surface as VTK image data, read in place into the array of the image. Points
+ * that are not measured are hidden, and the surface is shown as a height field.
+ */
+
+/**
+ * @example eigen.cpp
+ * A surface as an Eigen matrix: the heights are read into the matrix in place,
+ * a plane is fitted by least squares for the form removal, and the matrix is
+ * written back in the same layout.
+ */
