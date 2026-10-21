@@ -1,4 +1,4 @@
-// VTK: a surface as image data, a height field by warping, and the file of VTK.
+// VTK: a surface as image data, shown as a height field.
 //
 // The rows of vtkImageData start at y = 0 and the system is right-handed, as in
 // the standard: nothing is flipped, and the heights are read into the array of
@@ -6,9 +6,8 @@
 // and VTK is told which points they are by its ghost array, so that the cells
 // that touch one are left out.
 //
-// The viewer is a few lines at the end: the height field coloured by height,
-// turned and zoomed with the mouse. It opens a window with --show, and without
-// it draws offscreen into surface.png.
+// The program takes an SDF file as its argument and opens a window with the
+// height field coloured by height, which is turned and zoomed with the mouse.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -21,7 +20,6 @@
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkLookupTable.h>
 #include <vtkNew.h>
-#include <vtkPNGWriter.h>
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
@@ -32,9 +30,6 @@
 #include <vtkUnsignedCharArray.h>
 #include <vtkVersion.h>
 #include <vtkWarpScalar.h>
-#include <vtkWindowToImageFilter.h>
-#include <vtkXMLImageDataReader.h>
-#include <vtkXMLImageDataWriter.h>
 
 #include <algorithm>
 #include <array>
@@ -48,7 +43,6 @@ namespace
 {
 
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
-using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 
 void check(sdfio_status status, const char *message)
 {
@@ -136,7 +130,7 @@ std::array<double, 2> z_range(vtkImageData *image)
 // The viewer. The relief is raised to a quarter of the width of the surface,
 // as a few micrometres of height would not be seen. Returns false if the
 // machine cannot draw.
-bool view(vtkImageData *image, bool show, const char *png)
+bool view(vtkImageData *image)
 {
     const std::array<double, 2> z = z_range(image);
     double bounds[6];
@@ -166,71 +160,20 @@ bool view(vtkImageData *image, bool show, const char *png)
     {
         return false;
     }
-    if (show)
-    {
-        vtkNew<vtkRenderWindowInteractor> interactor;
-        vtkNew<vtkInteractorStyleTrackballCamera> style;
-        interactor->SetRenderWindow(window);
-        interactor->SetInteractorStyle(style);
-        window->Render();
-        interactor->Start();
-        return true;
-    }
-    window->SetOffScreenRendering(1);
+    vtkNew<vtkRenderWindowInteractor> interactor;
+    vtkNew<vtkInteractorStyleTrackballCamera> style;
+    interactor->SetRenderWindow(window);
+    interactor->SetInteractorStyle(style);
     window->Render();
-    vtkNew<vtkWindowToImageFilter> picture;
-    picture->SetInput(window);
-    vtkNew<vtkPNGWriter> writer;
-    writer->SetFileName(png);
-    writer->SetInputConnection(picture->GetOutputPort());
-    writer->Write();
+    interactor->Start();
     return true;
-}
-
-vtkSmartPointer<vtkImageData> round_trip(vtkImageData *image, const char *path)
-{
-    vtkNew<vtkXMLImageDataWriter> writer;
-    writer->SetFileName(path);
-    writer->SetInputData(image);
-    writer->Write();
-    vtkNew<vtkXMLImageDataReader> reader;
-    reader->SetFileName(path);
-    reader->Update();
-    return reader->GetOutput();
-}
-
-void write_heights(const char *path, sdfio_header header, vtkImageData *image)
-{
-    header.data_type = SDFIO_DATA_BINARY32;
-    header.z_scale = SDFIO_AUTO_Z_SCALE;
-    Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
-    check(sdfio_create_file(writer.get(), path, &header),
-          sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(
-              writer.get(), sdfio_metres(SDFIO_FLOAT32), heights_of(image),
-              static_cast<ptrdiff_t>(header.columns * sizeof(float))),
-          sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_trailer(writer.get(), nullptr, 0),
-          sdfio_writer_error_message(writer.get()));
 }
 
 } // namespace
 
 int main(int argc, char **argv)
 {
-    const char *path = SDFIO_EXAMPLE_FILE;
-    bool show = false;
-    for (int i = 1; i < argc; ++i)
-    {
-        if (std::string(argv[i]) == "--show")
-        {
-            show = true;
-        }
-        else
-        {
-            path = argv[i];
-        }
-    }
+    const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
     try
     {
         Reader reader(sdfio_reader_new(NULL), sdfio_reader_free);
@@ -241,18 +184,15 @@ int main(int argc, char **argv)
         hide_missing(image);
         const vtkIdType cells = visible_cells(image);
         const std::array<double, 2> z = z_range(image);
-        const vtkSmartPointer<vtkImageData> back =
-            round_trip(image, "surface.vti");
-        write_heights("again.sdf", *sdfio_get_header(reader.get()), back);
         std::cout << "VTK " << vtkVersion::GetVTKVersion() << ": " << cells
                   << " of " << all_cells << " cells, z from " << z[0] * 1e6
                   << " to " << z[1] * 1e6 << " um\n";
-        if (!view(image, show, "surface.png"))
+        if (!view(image))
         {
-            std::cerr << "no OpenGL here: the viewer is skipped\n";
-            return 77;
+            std::cerr << "no OpenGL here: the viewer cannot open\n";
+            return 1;
         }
-        return cells < all_cells ? 0 : 1;
+        return 0;
     }
     catch (const std::exception &error)
     {

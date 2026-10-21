@@ -54,8 +54,9 @@
 
 /**
  * @example vtk.cpp
- * A surface as VTK image data, read in place into the array of the image. Points
- * that are not measured are hidden, and the surface is shown as a height field.
+ * Shows the SDF file given as the argument as VTK image data: the heights are
+ * read in place into the array of the image, points that are not measured are
+ * hidden, and the surface is displayed as a height field in a window.
  */
 
 /**

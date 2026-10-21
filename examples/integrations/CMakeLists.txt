@@ -7,7 +7,7 @@
 # note if not.
 
 function(sdfio_integration name)
-    cmake_parse_arguments(ARG "" "SOURCE" "LIBS;DEFINITIONS" ${ARGN})
+    cmake_parse_arguments(ARG "NO_TEST" "SOURCE" "LIBS;DEFINITIONS" ${ARGN})
     add_executable(integration_${name} ${ARG_SOURCE})
     target_link_libraries(integration_${name} PRIVATE sdfio ${ARG_LIBS})
     target_compile_definitions(integration_${name} PRIVATE ${ARG_DEFINITIONS}
@@ -19,12 +19,14 @@ function(sdfio_integration name)
         target_compile_features(integration_${name} PRIVATE c_std_11)
         set_target_properties(integration_${name} PROPERTIES C_EXTENSIONS OFF)
     endif()
-    set(work "${CMAKE_CURRENT_BINARY_DIR}/run_${name}")
-    file(MAKE_DIRECTORY "${work}")
-    add_test(NAME integration_${name} COMMAND integration_${name}
-        WORKING_DIRECTORY "${work}")
-    set_tests_properties(integration_${name} PROPERTIES
-        LABELS integration SKIP_RETURN_CODE 77)
+    if(NOT ARG_NO_TEST)
+        set(work "${CMAKE_CURRENT_BINARY_DIR}/run_${name}")
+        file(MAKE_DIRECTORY "${work}")
+        add_test(NAME integration_${name} COMMAND integration_${name}
+            WORKING_DIRECTORY "${work}")
+        set_tests_properties(integration_${name} PROPERTIES
+            LABELS integration SKIP_RETURN_CODE 77)
+    endif()
 endfunction()
 
 # A C++ class over the C interface needs no other library.
@@ -39,10 +41,11 @@ else()
 endif()
 
 find_package(VTK QUIET COMPONENTS CommonCore CommonDataModel FiltersCore
-    FiltersGeneral FiltersGeometry IOImage IOXML InteractionStyle
-    RenderingCore RenderingOpenGL2)
+    FiltersGeneral FiltersGeometry InteractionStyle RenderingCore
+    RenderingOpenGL2)
 if(VTK_FOUND)
-    sdfio_integration(vtk SOURCE vtk.cpp LIBS ${VTK_LIBRARIES})
+    # A viewer: it opens a window and waits, so it is not a test.
+    sdfio_integration(vtk SOURCE vtk.cpp LIBS ${VTK_LIBRARIES} NO_TEST)
     vtk_module_autoinit(TARGETS integration_vtk MODULES ${VTK_LIBRARIES})
 else()
     message(STATUS "Integration example for VTK: not found, skipped")
