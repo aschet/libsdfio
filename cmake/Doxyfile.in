@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+# The API reference of the public headers: configured by CMake, built with the
+# target `docs`.
+PROJECT_NAME           = "libsdfio"
+PROJECT_NUMBER         = @PROJECT_VERSION@
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
+OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
+INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
+                         @PROJECT_SOURCE_DIR@/README.md
+USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
+OPTIMIZE_OUTPUT_FOR_C  = YES
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+PREDEFINED             = "SDFIO_API="
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+HAVE_DOT               = NO

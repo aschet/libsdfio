@@ -27,6 +27,7 @@ option(SDFIO_WITH_ASCII_FORMAT "Support for ASCII format" ON)
 option(SDFIO_WITH_TIME_ZONE "Convert ISO-1.0 and BCR-1.0 dates between local clock and UTC" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
+option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
 
 set(SDFIO_WARNINGS
     $<$<C_COMPILER_ID:MSVC>:/W4;/permissive-;/utf-8>
@@ -169,6 +170,17 @@ endif()
 
 if(SDFIO_BUILD_FUZZERS)
     add_subdirectory(tests/fuzz)
+endif()
+
+if(SDFIO_BUILD_DOCS)
+    find_package(Doxygen REQUIRED)
+    configure_file(cmake/Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
+    add_custom_target(docs
+        COMMAND "${DOXYGEN_EXECUTABLE}" "${PROJECT_BINARY_DIR}/Doxyfile"
+        WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
+        COMMENT "Generating the API reference"
+        VERBATIM
+    )
 endif()
 
 if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
