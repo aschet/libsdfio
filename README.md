@@ -4,7 +4,8 @@
 
 A portable C library that reads and writes ISO 25178-71 SDF surface data
 files: the revisions ISO-1.0, ISO-2.0 and BCR-1.0, in ASCII or binary format. It
-requires a C11 compiler with IEEE 754 `float` and `double` and 8-bit bytes.
+requires a C99 compiler with IEEE 754 `float` and `double` and 8-bit bytes,
+which a C11 compiler checks at compile time.
 
 ```c
 sdfio_reader *reader = sdfio_reader_new(NULL);

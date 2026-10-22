@@ -134,7 +134,7 @@ target_sources(sdfio
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h"
 )
-target_compile_features(sdfio PUBLIC c_std_11)
+target_compile_features(sdfio PUBLIC c_std_99)
 target_link_libraries(sdfio PUBLIC $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
 target_link_options(sdfio PUBLIC ${SDFIO_SANITIZER_FLAGS})
 
