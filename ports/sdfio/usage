@@ -1,4 +1,0 @@
-sdfio provides CMake targets:
-
-    find_package(sdfio CONFIG REQUIRED)
-    target_link_libraries(main PRIVATE sdfio::sdfio)

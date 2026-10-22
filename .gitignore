@@ -7,4 +7,3 @@ compile_commands.json
 *.sdftmp
 build-*/
 stage-*/
-vcpkg_installed-*/

@@ -1,7 +1,7 @@
 version = 1
 
 [[annotations]]
-path = ["README.md", "ports/sdfio/vcpkg.json", "ports/sdfio/usage", "examples/integrations/README.md", "tests/data/README.md", "tests/data/expected.txt", ".clang-format", ".gitattributes", ".gitignore", "LICENSE"]
+path = ["README.md", "examples/integrations/README.md", "tests/data/README.md", "tests/data/expected.txt", ".clang-format", ".gitattributes", ".gitignore", "LICENSE"]
 SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "MIT"
 

@@ -170,32 +170,6 @@ jobs:
             tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
             examples/*.c examples/integrations/*.cpp
 
-      - name: Conan
-        if: ${{ !cancelled() }}
-        run: |
-          pipx install conan
-          conan profile detect --force
-          for shared in True False; do
-            conan create . -o "sdfio/*:shared=$shared"
-          done
-
-      - name: vcpkg
-        if: ${{ !cancelled() }}
-        run: |
-          for triplet in x64-linux x64-linux-dynamic; do
-            installed="$PWD/vcpkg_installed-$triplet"
-            "$VCPKG_INSTALLATION_ROOT/vcpkg" install sdfio \
-              --overlay-ports=ports --triplet="$triplet" \
-              --x-install-root="$installed" --binarysource=clear
-            cmake -S test_package -B "build/vcpkg-$triplet" \
-              -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
-              -DVCPKG_TARGET_TRIPLET="$triplet" \
-              -DVCPKG_INSTALLED_DIR="$installed" -DCMAKE_BUILD_TYPE=Release
-            cmake --build "build/vcpkg-$triplet"
-            LD_LIBRARY_PATH="$installed/$triplet/lib" \
-              "build/vcpkg-$triplet/test_package"
-          done
-
       - name: Licenses
         if: ${{ !cancelled() }}
         uses: fsfe/reuse-action@v5
