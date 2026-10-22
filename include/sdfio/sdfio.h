@@ -75,8 +75,7 @@
  * version.
  *
  * @par Limitations
- * Compressed and checksummed data areas are not supported. Rows of a file can
- * be read only in order.
+ * Rows of a file can be read only in order.
  *
  * @par Thread safety
  * The library has no global state. Distinct handles can be used concurrently by
@@ -130,9 +129,8 @@ typedef enum sdfio_status
     /** The data is not an SDF file, is damaged or is truncated. */
     SDFIO_ERR_FORMAT,
     /**
-     * The file or the request requires an unavailable feature: a compressed or
-     * checksummed data area, or the ASCII representation in a library built
-     * without it.
+     * The request requires an unavailable feature: the ASCII representation in
+     * a library built without it.
      */
     SDFIO_ERR_UNSUPPORTED,
     /** A number does not fit the type that has to hold it. */
@@ -177,12 +175,6 @@ typedef enum sdfio_representation
  */
 typedef enum sdfio_data_type
 {
-    /** Unsigned 8-bit integer. */
-    SDFIO_DATA_UINT8 = 0,
-    /** Unsigned 16-bit integer. */
-    SDFIO_DATA_UINT16 = 1,
-    /** Unsigned 32-bit integer. */
-    SDFIO_DATA_UINT32 = 2,
     /** IEEE 754 binary32 floating point number. */
     SDFIO_DATA_BINARY32 = 3,
     /** Signed 8-bit integer. */
@@ -275,7 +267,7 @@ enum
  *
  * A reader fills it in when it opens a file. A writer takes it as the
  * description of the file to create. The compression type and the checksum
- * type are not members: a file has neither.
+ * type are not members: the standard allows neither.
  */
 typedef struct sdfio_header
 {
@@ -567,8 +559,8 @@ SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The data area is compressed or checksummed, or
- * the file is ASCII and the library was built without it.
+ * @retval SDFIO_ERR_UNSUPPORTED The file is ASCII and the library was built
+ * without it.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
@@ -585,8 +577,8 @@ SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The data area is compressed or checksummed, or
- * the file is ASCII and the library was built without it.
+ * @retval SDFIO_ERR_UNSUPPORTED The file is ASCII and the library was built
+ * without it.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,

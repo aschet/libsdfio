@@ -257,14 +257,12 @@ static void check_header_errors(void)
         memcpy(copy, data, size);
         copy[header_size - 3] = 1;
         reader = sdfio_reader_new(NULL);
-        CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
-                     sdfio_open_memory(reader, copy, size));
+        CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 1] = 1;
         reader = sdfio_reader_new(NULL);
-        CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
-                     sdfio_open_memory(reader, copy, size));
+        CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 2] = 99;
@@ -273,13 +271,14 @@ static void check_header_errors(void)
         sdfio_reader_free(reader);
         free(copy);
 
-        /* A mark at the start is not part of the file. */
+        /* A byte order mark in front of the magic is not an SDF file. */
         unsigned char *marked = malloc(size + 3);
         const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
         memcpy(marked, mark, 3);
         memcpy(marked + 3, data, size);
         reader = sdfio_reader_new(NULL);
-        CHECK_OK(sdfio_open_memory(reader, marked, size + 3));
+        CHECK_STATUS(SDFIO_ERR_FORMAT,
+                     sdfio_open_memory(reader, marked, size + 3));
         sdfio_reader_free(reader);
         free(marked);
     }

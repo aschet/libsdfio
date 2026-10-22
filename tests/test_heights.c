@@ -210,7 +210,9 @@ static void check_tables(void)
     CHECK(sdfio_bad_value(SDFIO_DATA_BINARY64) == -DBL_MAX);
     CHECK(sdfio_is_bad_value(SDFIO_DATA_BINARY64, -DBL_MAX));
     CHECK(!sdfio_is_bad_value(SDFIO_DATA_BINARY64, 1.7e308));
-    CHECK(sdfio_data_type_size(SDFIO_DATA_UINT8) == 1);
+    CHECK(sdfio_data_type_size(SDFIO_DATA_INT8) == 1);
+    CHECK(sdfio_data_type_size((sdfio_data_type)0) == 0);
+    CHECK(!sdfio_valid_data_type((sdfio_data_type)2));
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY32) == 4);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY64) == 8);
     CHECK(sdfio_sample_size(SDFIO_FLOAT32) == 4);
@@ -218,7 +220,6 @@ static void check_tables(void)
     CHECK(sdfio_sample_size((sdfio_sample)99) == 0);
     CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT16));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT8));
-    CHECK(!sdfio_revision_allows(SDFIO_ISO_2_0, SDFIO_DATA_UINT16));
     CHECK(strcmp(sdfio_revision_name(SDFIO_ISO_2_0), "ISO-2.0") == 0);
     CHECK(strcmp(sdfio_revision_name((sdfio_revision)99), "") == 0);
     CHECK(strcmp(sdfio_data_type_name(SDFIO_DATA_BINARY64), "binary64") == 0);
@@ -364,14 +365,12 @@ static size_t stored_values(sdfio_data_type type, uint32_t *state,
     switch (type)
     {
     case SDFIO_DATA_INT8:
-    case SDFIO_DATA_UINT8:
         for (unsigned v = 0; v < 256; ++v)
         {
             bytes[count++] = (unsigned char)v;
         }
         return count;
     case SDFIO_DATA_INT16:
-    case SDFIO_DATA_UINT16:
         for (unsigned v = 0; v < ALL_VALUES; ++v)
         {
             const uint16_t value = (uint16_t)v;
@@ -414,8 +413,7 @@ static bool same_coded(sdfio_data_type type, const unsigned char *a,
  * calculation in double gives. */
 static void check_float_path(void)
 {
-    static const sdfio_data_type types[] = {SDFIO_DATA_INT8, SDFIO_DATA_UINT8,
-                                            SDFIO_DATA_INT16, SDFIO_DATA_UINT16,
+    static const sdfio_data_type types[] = {SDFIO_DATA_INT8, SDFIO_DATA_INT16,
                                             SDFIO_DATA_BINARY32};
     static const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     static const double scales[] = {1.0, 1e-3, 3e-9, 0.25e-6, 7.0, 0.1, 1e-35};

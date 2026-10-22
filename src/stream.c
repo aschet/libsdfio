@@ -35,7 +35,6 @@ void sdfio_source_init(sdfio_source *source, const sdfio_stream *io)
     source->at_end = false;
     source->failed = false;
     source->no_memory = false;
-    source->skip_lf = false;
 }
 
 size_t sdfio_source_fill(sdfio_source *source, size_t want)

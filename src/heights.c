@@ -528,9 +528,7 @@ double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
     {
         z_scale = fmax(z_scale, highest / usable_max);
     }
-    /* The minimum of an unsigned type is 0, which no negative height fits at
-     * any scale: leave that to the range check of the write. */
-    if (lowest < 0.0 && usable_min != 0.0)
+    if (lowest < 0.0)
     {
         z_scale = fmax(z_scale, lowest / usable_min);
     }

@@ -50,13 +50,21 @@ typedef struct scalar_info
 
 /** A row of the table of the data types, for SDFIO_SCALARS(). */
 #define SCALAR_ROW(data, name, type, bits, low, high, floating)                \
-    [data] = {name, sizeof(type), (double)(low), (double)(high), floating},
+    [(data) - FIRST_DATA_TYPE] = {name, sizeof(type), (double)(low),           \
+                                  (double)(high), floating},
 
-static const scalar_info scalars[] = {SDFIO_SCALARS(SCALAR_ROW)};
 enum
 {
-    SCALAR_COUNT = sizeof scalars / sizeof scalars[0]
+    /* The codes of the standard start here. */
+    FIRST_DATA_TYPE = SDFIO_DATA_BINARY32
 };
+static const scalar_info scalars[] = {SDFIO_SCALARS(SCALAR_ROW)};
+
+static const scalar_info *scalar_of(sdfio_data_type type)
+{
+    return sdfio_valid_data_type(type) ? &scalars[type - FIRST_DATA_TYPE]
+                                       : NULL;
+}
 
 bool sdfio_valid_sample(sdfio_sample sample)
 {
@@ -65,7 +73,16 @@ bool sdfio_valid_sample(sdfio_sample sample)
 
 bool sdfio_valid_data_type(sdfio_data_type type)
 {
-    return (size_t)type < SCALAR_COUNT;
+    switch (type)
+    {
+    case SDFIO_DATA_BINARY32:
+    case SDFIO_DATA_INT8:
+    case SDFIO_DATA_INT16:
+    case SDFIO_DATA_INT32:
+    case SDFIO_DATA_BINARY64:
+        return true;
+    }
+    return false;
 }
 
 static bool valid_revision(sdfio_revision revision)
@@ -80,12 +97,14 @@ const char *sdfio_revision_name(sdfio_revision revision)
 
 const char *sdfio_data_type_name(sdfio_data_type type)
 {
-    return sdfio_valid_data_type(type) ? scalars[type].name : "";
+    const scalar_info *info = scalar_of(type);
+    return info != NULL ? info->name : "";
 }
 
 size_t sdfio_data_type_size(sdfio_data_type type)
 {
-    return sdfio_valid_data_type(type) ? scalars[type].size : 0;
+    const scalar_info *info = scalar_of(type);
+    return info != NULL ? info->size : 0;
 }
 
 size_t sdfio_sample_size(sdfio_sample sample)
@@ -108,17 +127,20 @@ bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
 
 bool sdfio_is_floating(sdfio_data_type type)
 {
-    return sdfio_valid_data_type(type) && scalars[type].floating;
+    const scalar_info *info = scalar_of(type);
+    return info != NULL && info->floating;
 }
 
 double sdfio_lowest(sdfio_data_type type)
 {
-    return sdfio_valid_data_type(type) ? scalars[type].lowest : 0.0;
+    const scalar_info *info = scalar_of(type);
+    return info != NULL ? info->lowest : 0.0;
 }
 
 double sdfio_highest(sdfio_data_type type)
 {
-    return sdfio_valid_data_type(type) ? scalars[type].highest : 0.0;
+    const scalar_info *info = scalar_of(type);
+    return info != NULL ? info->highest : 0.0;
 }
 
 bool sdfio_revision_from_text(const char *text, size_t size,

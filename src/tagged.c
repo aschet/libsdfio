@@ -21,16 +21,16 @@ bool sdfio_next_line(const char *text, size_t size, size_t *position,
     }
     const size_t start = *position;
     size_t end = start;
-    while (end < size && text[end] != '\n' && text[end] != '\r')
+    while (end < size && text[end] != '\n')
     {
         ++end;
     }
     *line = text + start;
     *line_size = end - start;
-    if (end < size && text[end] == '\r' && end + 1 < size
-        && text[end + 1] == '\n')
+    /* The CR of a CRLF is not part of the line. */
+    if (end < size && *line_size > 0 && text[end - 1] == '\r')
     {
-        ++end;
+        --*line_size;
     }
     *position = end < size ? end + 1 : end;
     return true;
@@ -75,16 +75,12 @@ void sdfio_lines_to_lf(sdfio_string *text)
     size_t used = 0;
     for (size_t i = 0; i < text->size; ++i)
     {
-        char c = text->data[i];
-        if (c == '\r')
+        if (text->data[i] == '\r' && i + 1 < text->size
+            && text->data[i + 1] == '\n')
         {
-            c = '\n';
-            if (i + 1 < text->size && text->data[i + 1] == '\n')
-            {
-                ++i;
-            }
+            continue;
         }
-        text->data[used++] = c;
+        text->data[used++] = text->data[i];
     }
     /* The end of the last line is not part of the text. */
     if (used > 0 && text->data[used - 1] == '\n')

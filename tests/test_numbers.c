@@ -42,9 +42,8 @@ static void check_numbers(const sdfio_point *point)
     CHECK(parses(point, ".5", 0.5));
     CHECK(parses(point, "5.", 5.0));
     CHECK(parses(point, "1E3", 1000.0));
-    CHECK(parses(point, "inf", INFINITY));
-    CHECK(parses(point, "-Infinity", -INFINITY));
-    CHECK(parses(point, "NaN", NAN));
+    CHECK(refuses(point, "inf"));
+    CHECK(refuses(point, "NaN"));
     CHECK(parses(point, "1e400", INFINITY));
     CHECK(parses(point, "1e-400", 0.0));
     CHECK(refuses(point, ""));

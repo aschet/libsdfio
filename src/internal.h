@@ -257,13 +257,10 @@ const char *sdfio_string_text(const sdfio_string *string);
  */
 #define SDFIO_SCALARS(X)                                                       \
     X(SDFIO_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)     \
-    X(SDFIO_DATA_UINT8, "uint8", uint8_t, uint8_t, 0, UINT8_MAX, false)        \
     X(SDFIO_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX,      \
       false)                                                                   \
-    X(SDFIO_DATA_UINT16, "uint16", uint16_t, uint16_t, 0, UINT16_MAX, false)   \
     X(SDFIO_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX,      \
       false)                                                                   \
-    X(SDFIO_DATA_UINT32, "uint32", uint32_t, uint32_t, 0, UINT32_MAX, false)   \
     X(SDFIO_DATA_BINARY32, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX,     \
       true)                                                                    \
     X(SDFIO_DATA_BINARY64, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX,    \
@@ -512,7 +509,8 @@ typedef struct sdfio_point
 sdfio_point sdfio_point_now(void);
 
 /**
- * Tells whether a character is white space, whatever the locale.
+ * Tells whether a character is white space, whatever the locale: a space, a
+ * tab, a line feed, and the carriage return of a CRLF.
  *
  * The function is inline because the parsers call it for every character.
  *
@@ -520,8 +518,7 @@ sdfio_point sdfio_point_now(void);
  */
 static inline bool sdfio_is_space(char c)
 {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f'
-           || c == '\r';
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
 /**
@@ -738,9 +735,6 @@ typedef struct sdfio_source
     bool failed;
     /** Whether a line did not fit in memory. */
     bool no_memory;
-    /** Whether a CR was the last character of a line: an LF that follows is
-     * part of its end. */
-    bool skip_lf;
 } sdfio_source;
 
 /**

@@ -53,7 +53,7 @@ sdfio_status sdfio_binary_revision(const unsigned char *magic,
                                    sdfio_message *message)
 {
     const char *text = (const char *)magic;
-    const char prefix = sdfio_lower(text[0]);
+    const char prefix = text[0];
     if ((prefix != 'a' && prefix != 'b') || text[SDFIO_MAGIC_DASH_AT] != '-')
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -74,9 +74,10 @@ sdfio_status sdfio_binary_revision(const unsigned char *magic,
     return SDFIO_OK;
 }
 
-/* The identifier up to the first 0, without the white space at its end:
- * some writers end a string that is shorter than its field in a 0, instead of
- * filling the field with spaces. */
+/* The identifier up to the first 0, without the white space at its end. The
+ * standard fills a string that is shorter than its field with spaces; the
+ * writer of MountainsMap ends it in a 0 instead, and the bytes after that are
+ * whatever was in memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
     size_t size = 0;
@@ -131,15 +132,16 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
     const unsigned check_type = *at;
     if (compression != SDFIO_NONE)
     {
-        return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "Compressed SDF data areas are not supported");
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The compression type of an SDF file has to be 0");
     }
     if (check_type != SDFIO_NONE)
     {
-        return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "Checksummed SDF data areas are not supported");
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The checksum type of an SDF file has to be 0");
     }
-    if (code > (unsigned)SDFIO_DATA_BINARY64)
+    if (code < (unsigned)SDFIO_DATA_BINARY32
+        || code > (unsigned)SDFIO_DATA_BINARY64)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Unknown SDF data type code");

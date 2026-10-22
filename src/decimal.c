@@ -52,20 +52,6 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
         return false;
     }
     const double sign = negative ? -1.0 : 1.0;
-    if (!sdfio_is_digit(text[0]) && text[0] != '.')
-    {
-        if (sdfio_equals_nocase(text, size, "inf")
-            || sdfio_equals_nocase(text, size, "infinity"))
-        {
-            *out = sign * INFINITY;
-            return true;
-        }
-        if (sdfio_equals_nocase(text, size, "nan"))
-        {
-            *out = NAN;
-            return true;
-        }
-    }
 
     /* digits [. digits] [e [sign] digits], with a digit before or after the
      * dot */

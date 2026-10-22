@@ -150,13 +150,10 @@ static void check_all_types(void)
         for (size_t s = 0;
              s < sizeof representations / sizeof representations[0]; ++s)
         {
-            for (int t = SDFIO_DATA_UINT8; t <= SDFIO_DATA_BINARY64; ++t)
+            for (int t = SDFIO_DATA_BINARY32; t <= SDFIO_DATA_BINARY64; ++t)
             {
                 const sdfio_data_type type = (sdfio_data_type)t;
-                /* The unsigned types cannot hold the negative heights. */
-                if (!sdfio_revision_allows(revisions[r], type)
-                    || type == SDFIO_DATA_UINT8 || type == SDFIO_DATA_UINT16
-                    || type == SDFIO_DATA_UINT32)
+                if (!sdfio_revision_allows(revisions[r], type))
                 {
                     continue;
                 }
@@ -683,7 +680,6 @@ static void check_trailer_line_ends(void)
     };
     const struct variant variants[] = {
         {"A = 1\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
-        {"A = 1\rB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
         {"A = 1\r\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
         {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
         {"A = 1\r\nB = 2\nC = 3", "A = 1\r\nB = 2\r\nC = 3\r\n",
@@ -740,7 +736,7 @@ static void check_trailer_line_ends(void)
 }
 
 /* A text file is read whatever ends its lines: CR LF as ISO has it, LF of Unix,
- * or the CR of old Macintosh files. */
+ * which the writers of some programs use. */
 static membuf with_line_ends(const membuf *file, const char *line_end)
 {
     membuf out = {0};
@@ -763,7 +759,7 @@ static membuf with_line_ends(const membuf *file, const char *line_end)
 static void check_read_line_ends(void)
 {
     const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
-    const char *const line_ends[] = {"\n", "\r"};
+    const char *const line_ends[] = {"\n"};
     for (size_t r = 0; r < 2; ++r)
     {
         sdfio_header header;
@@ -785,7 +781,7 @@ static void check_read_line_ends(void)
         CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT64, expected));
         sdfio_reader_free(reader);
 
-        for (size_t e = 0; e < 2; ++e)
+        for (size_t e = 0; e < 1; ++e)
         {
             membuf other = with_line_ends(&crlf, line_ends[e]);
             CHECK(other.size < crlf.size);

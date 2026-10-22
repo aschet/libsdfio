@@ -12,23 +12,12 @@
 
 #include "internal.h"
 
-/* The mark that some editors put in front of a text. */
-static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
-
 sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
                                const sdfio_point *point,
                                const sdfio_time_zone *zone,
                                sdfio_message *message)
 {
-    size_t available = sdfio_source_fill(source, sizeof byte_order_mark);
-    if (available >= sizeof byte_order_mark
-        && memcmp(source->buffer + source->position, byte_order_mark,
-                  sizeof byte_order_mark)
-               == 0)
-    {
-        source->position += sizeof byte_order_mark;
-    }
-    available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
+    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
     if (available < SDFIO_MAGIC_SIZE)
     {
         return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
@@ -37,7 +26,7 @@ sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
                                            "Not an SDF file, unexpected magic");
     }
     const unsigned char *magic = source->buffer + source->position;
-    const char prefix = sdfio_lower((char)magic[0]);
+    const char prefix = (char)magic[0];
     if (prefix == 'a')
     {
         return sdfio_ascii_parse_header(source, header, point, zone, message);

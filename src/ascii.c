@@ -16,9 +16,7 @@
 
 static const char crlf[] = "\r\n";
 static const char terminator = '*';
-static const char bad_token[] = "bad";
-static const char nan_token[] = "nan";
-/* Some writers write NaN for a point that is not measured. */
+static const char bad_token[] = "BAD";
 
 /* The result of reading a line or a token. */
 enum
@@ -47,17 +45,14 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
             *done = true;
             return source->failed ? GOT_ERROR : GOT_ONE;
         }
-        if (source->skip_lf)
+        if (c == '\n')
         {
-            source->skip_lf = false;
-            if (c == '\n')
+            /* The CR of a CRLF is not part of the line. */
+            if (line->size > 0 && line->data[line->size - 1] == '\r')
             {
-                continue;
+                --line->size;
+                line->data[line->size] = '\0';
             }
-        }
-        if (c == '\n' || c == '\r')
-        {
-            source->skip_lf = c == '\r';
             *ended = true;
             return GOT_ONE;
         }
@@ -94,7 +89,6 @@ static sdfio_status read_failure(const sdfio_source *source,
 
 static void skip_line(sdfio_source *source)
 {
-    source->skip_lf = false;
     int c = 0;
     while ((c = sdfio_source_getc(source)) >= 0)
     {
@@ -102,25 +96,13 @@ static void skip_line(sdfio_source *source)
         {
             return;
         }
-        if (c == '\r')
-        {
-            source->skip_lf = true;
-            return;
-        }
     }
-}
-
-static bool starts_with_letter(char c)
-{
-    const char lower = sdfio_lower(c);
-    return lower >= 'a' && lower <= 'z';
 }
 
 /* The next white-space separated word. */
 static int next_token(sdfio_source *source, char *token, size_t capacity,
                       size_t *size)
 {
-    source->skip_lf = false;
     int c = 0;
     for (;;)
     {
@@ -165,7 +147,7 @@ static bool matches_magic(const char *magic, size_t size)
     {
         return false;
     }
-    const char prefix = sdfio_lower(magic[0]);
+    const char prefix = magic[0];
     if (prefix != 'a' && prefix != 'b')
     {
         return false;
@@ -254,12 +236,6 @@ static sdfio_status header_count(const sdfio_string *header_text,
     *out = (size_t)number;
     return SDFIO_OK;
 }
-
-enum
-{
-    COMPRESSION_RLL = 1,
-    CHECK_UINTTRACE = 1
-};
 
 static sdfio_status header_coded(const sdfio_string *header_text,
                                  const char *name, long long *out,
@@ -407,7 +383,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                             "Not an ASCII SDF file: unexpected magic");
         goto done;
     }
-    if (sdfio_lower(magic[0]) != 'a')
+    if (magic[0] != 'a')
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
                             "Binary magic found while parsing an ASCII SDF "
@@ -471,7 +447,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     const long long type_code = parsed_codes.type;
     const long long compression = parsed_codes.compression;
     const long long check_type = parsed_codes.check_type;
-    if (type_code < 0 || type_code > SDFIO_DATA_BINARY64)
+    if (type_code < SDFIO_DATA_BINARY32 || type_code > SDFIO_DATA_BINARY64)
     {
         status =
             sdfio_fail(message, SDFIO_ERR_FORMAT, "Unknown SDF data type code");
@@ -486,14 +462,14 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     }
     if (compression != SDFIO_NONE)
     {
-        status = sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                            "Compressed SDF data areas are not supported");
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "The compression type of an SDF file has to be 0");
         goto done;
     }
     if (check_type != SDFIO_NONE)
     {
-        status = sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                            "Checksummed SDF data areas are not supported");
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "The checksum type of an SDF file has to be 0");
         goto done;
     }
 
@@ -561,10 +537,7 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                           "The data area has fewer values than the header "
                           "says");
     }
-    /* The words start with a letter, a number does not. */
-    if (starts_with_letter(token[0])
-        && (sdfio_equals_nocase(token, size, bad_token)
-            || sdfio_equals_nocase(token, size, nan_token)))
+    if (size == sizeof bad_token - 1 && memcmp(token, bad_token, size) == 0)
     {
         return sdfio_put_real(header->data_type, dst, index,
                               sdfio_bad_value(header->data_type));
