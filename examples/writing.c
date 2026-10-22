@@ -54,8 +54,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32),
-                                     heights, COLUMNS * sizeof(float));
+        status = sdfio_write_heights(writer, SDFIO_FLOAT32, heights);
     }
     if (status == SDFIO_OK)
     {

@@ -37,17 +37,16 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+// Eigen stores a matrix column by column: the elements of a row are one column
+// apart, and the rows are one element apart.
 sdfio_format layout_of(const Eigen::MatrixXd &matrix)
 {
-    sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
+    sdfio_format format = sdfio_format_packed(SDFIO_FLOAT64);
     format.element_stride =
         static_cast<ptrdiff_t>(matrix.outerStride() * sizeof(double));
+    format.row_stride =
+        static_cast<ptrdiff_t>(matrix.innerStride() * sizeof(double));
     return format;
-}
-
-ptrdiff_t row_stride_of(const Eigen::MatrixXd &matrix)
-{
-    return static_cast<ptrdiff_t>(matrix.innerStride() * sizeof(double));
 }
 
 Eigen::MatrixXd read_matrix(sdfio_reader *reader)
@@ -55,9 +54,9 @@ Eigen::MatrixXd read_matrix(sdfio_reader *reader)
     const sdfio_header *header = sdfio_get_header(reader);
     Eigen::MatrixXd heights(static_cast<Eigen::Index>(header->rows),
                             static_cast<Eigen::Index>(header->columns));
-    check(sdfio_read_heights(reader, layout_of(heights), heights.data(),
-                             row_stride_of(heights)),
-          sdfio_reader_error_message(reader));
+    check(
+        sdfio_read_heights_strided(reader, layout_of(heights), heights.data()),
+        sdfio_reader_error_message(reader));
     return heights;
 }
 
@@ -123,8 +122,8 @@ void write_matrix(const char *path, sdfio_header header,
     Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data(),
-                              row_stride_of(heights)),
+    check(sdfio_write_heights_strided(writer.get(), layout_of(heights),
+                                      heights.data()),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_trailer(writer.get(), nullptr, 0),
           sdfio_writer_error_message(writer.get()));

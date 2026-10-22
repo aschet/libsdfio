@@ -87,8 +87,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(&heights[i], rest + i * sizeof(float), sizeof(float));
     }
 
-    const sdfio_format format = sdfio_metres(SDFIO_FLOAT32);
-    const ptrdiff_t row_stride = (ptrdiff_t)(header.columns * sizeof *heights);
     sink output = {NULL, 0};
     sdfio_writer *writer = sdfio_writer_new(NULL);
     sdfio_status status = SDFIO_ERR_MEMORY;
@@ -98,7 +96,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_heights(writer, format, heights, row_stride);
+            status = sdfio_write_heights(writer, SDFIO_FLOAT32, heights);
         }
         if (status == SDFIO_OK)
         {

@@ -505,36 +505,23 @@ sdfio_status sdfio_store_strided(sdfio_sample sample, void *dst,
 ptrdiff_t sdfio_element_stride(sdfio_format format);
 
 /**
- * Resolves a row stride of 0 to rows that follow each other directly: the
- * number of columns times the distance between the elements.
- *
- * @param format The format of the buffer.
- * @param columns The number of columns.
- * @param[in,out] row_stride The distance in bytes between rows. Another value
- * than 0 is kept.
- * @param[out] message Receives the reason. May be null.
- * @retval SDFIO_ERR_ARGUMENT The distance does not fit a ptrdiff_t.
- */
-sdfio_status sdfio_resolve_row_stride(sdfio_format format, size_t columns,
-                                      ptrdiff_t *row_stride,
-                                      sdfio_message *message);
-
-/**
  * Checks that the strides of a matrix of heights keep its elements apart.
  *
  * The rows lie beside each other, or the columns do (a column-major matrix),
- * and the samples do not overlap.
+ * and the samples do not overlap. A row stride of 0 becomes the stride of rows
+ * that follow each other: the number of columns times the distance between the
+ * elements.
  *
- * @param format The format of the buffer.
+ * @param[in,out] format The format of the buffer, whose row stride is
+ * resolved.
  * @param rows The number of rows.
  * @param columns The number of columns.
- * @param row_stride The distance in bytes between rows.
  * @param[out] message Receives the reason. May be null.
- * @retval SDFIO_ERR_ARGUMENT The strides do not keep the elements apart.
+ * @retval SDFIO_ERR_ARGUMENT The strides do not keep the elements apart, or
+ * the matrix is larger than memory.
  */
-sdfio_status sdfio_check_layout(sdfio_format format, size_t rows,
-                                size_t columns, ptrdiff_t row_stride,
-                                sdfio_message *message);
+sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
+                                size_t columns, sdfio_message *message);
 
 /**
  * Converts values of the data area, in memory in the byte order of the host, to

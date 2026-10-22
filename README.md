@@ -15,8 +15,7 @@ if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
     size_t bytes = 0;
     sdfio_heights_size(header, SDFIO_FLOAT32, &bytes);
     float *depth = malloc(bytes);
-    sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), depth,
-                       0);
+    sdfio_read_heights(reader, SDFIO_FLOAT32, depth);
     free(depth);
 }
 sdfio_reader_free(reader);

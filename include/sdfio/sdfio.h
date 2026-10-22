@@ -26,7 +26,8 @@
  *    the coded values of the data area and heights in metres. They require
  *    only a header, no handle.
  * 4. Images. sdfio_read_heights() and sdfio_write_heights() combine layers 2
- *    and 3 for a complete matrix with an arbitrary row stride.
+ *    and 3 for a complete matrix, in a plain array or in a buffer that lies in
+ *    memory as described by strides.
  *
  * @par Naming
  * Every identifier that the library provides begins with `sdfio_` (functions
@@ -41,8 +42,8 @@
  * The data area stores one value per point in the data type of the file, in
  * units of the z-scale of the header. These are the coded values, which
  * sdfio_read_data() and sdfio_write_data() transfer. A height is the same
- * point in metres, in a type that the program chooses: float, double or an
- * integer. A point that is not measured is NaN in a floating point type.
+ * point in metres, as a float or a double. A point that is not measured is NaN
+ * or a marker that the program chooses.
  * sdfio_read_heights() and sdfio_write_heights() transfer heights, and
  * sdfio_decode_heights() and sdfio_encode_heights() convert between the two.
  *
@@ -669,7 +670,16 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst,
                                        size_t rows);
 
 /**
- * Description of a buffer of heights of the caller.
+ * Description of a buffer of heights of the caller: the type of its elements,
+ * how a point that is not measured is marked, and how the matrix lies in
+ * memory.
+ *
+ * The element (y, x) is at `data + y * row_stride + x * element_stride`. Both
+ * strides can be negative. They must keep the elements apart: either the rows
+ * or the columns must not overlap. This allows heights to be read or written in
+ * place where they are not contiguous, for example the z member of an array of
+ * points, one channel of an interleaved image or a column-major matrix.
+ * sdfio_format_packed() describes a plain array.
  */
 typedef struct sdfio_format
 {
@@ -677,56 +687,52 @@ typedef struct sdfio_format
     sdfio_sample sample;
     /**
      * Marker for a point that is not measured. NaN selects no marker: such a
-     * point is NaN, or 0 in an integer sample type, which has no NaN. The
-     * marker is compared in the precision of the sample type, so -9999.1 marks
-     * the points of a float buffer that hold the float nearest to -9999.1.
+     * point is NaN. The marker is compared in the precision of the sample type,
+     * so -9999.1 marks the points of a float buffer that hold the float nearest
+     * to -9999.1.
      */
     double missing;
     /**
-     * Distance in bytes between consecutive samples within a row of heights. 0
-     * selects samples that follow each other directly.
-     *
-     * The element (y, x) is at `data + y * row_stride + x * element_stride`.
-     * Both strides can be negative. They must keep the elements apart: either
-     * the rows or the columns must not overlap. This allows heights to be read
-     * or written in place where they are not contiguous, for example the z
-     * member of an array of points, one channel of an interleaved image or a
-     * column-major matrix.
+     * Distance in bytes between consecutive elements within a row. 0 selects
+     * elements that follow each other directly.
      */
     ptrdiff_t element_stride;
+    /**
+     * Distance in bytes between consecutive rows. 0 selects rows that follow
+     * each other, each holding the columns of the matrix at `element_stride`.
+     * A column-major matrix needs an explicit value. sdfio_decode_heights() and
+     * sdfio_encode_heights() convert one row and ignore it.
+     */
+    ptrdiff_t row_stride;
 } sdfio_format;
 
 /**
- * Returns the format for heights in metres of a sample type: NaN marks a point
- * that is not measured, and the samples are contiguous.
+ * Returns the format of a plain array of heights: the elements follow each
+ * other, the rows follow each other, and NaN marks a point that is not
+ * measured.
  *
  * @param sample The sample type.
  */
-static inline sdfio_format sdfio_metres(sdfio_sample sample)
+static inline sdfio_format sdfio_format_packed(sdfio_sample sample)
 {
-    sdfio_format format = {sample, NAN, 0};
+    sdfio_format format = {sample, NAN, 0, 0};
     return format;
 }
 
 /**
- * Reads the remaining rows as heights in metres into a matrix of
- * `header->rows` rows of `header->columns` samples.
- *
- * The sample (y, x) is stored at `dst + y * row_stride + x *
- * format.element_stride`. The row y = 0 is the first row in every revision. A
- * negative row stride, with `dst` at the first sample of the row y = 0, which
- * is the last row in memory, stores the matrix upside down.
+ * Reads the remaining rows as heights in metres into a plain array of
+ * `header->rows` rows of `header->columns` samples. A point that is not
+ * measured is NaN. The row y = 0 is the first row.
  *
  * The function reads from the first row of the data area, so no rows may have
- * been read before.
+ * been read before. It is sdfio_read_heights_strided() with
+ * sdfio_format_packed().
  *
  * @param reader The reader.
- * @param format The format of the buffer.
- * @param[out] dst The buffer for the heights.
- * @param row_stride The distance in bytes between rows in the buffer. 0 selects
- * rows that follow each other, each holding the columns of the matrix at
- * `format.element_stride`.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
+ * @param sample The sample type of the array.
+ * @param[out] dst The array for the heights. sdfio_heights_size() gives its
+ * size.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the sample type is invalid.
  * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
  * or rows were read already.
  * @retval SDFIO_ERR_RANGE A height does not fit the sample type.
@@ -734,8 +740,33 @@ static inline sdfio_format sdfio_metres(sdfio_sample sample)
  * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
  */
 SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
-                                          sdfio_format format, void *dst,
-                                          ptrdiff_t row_stride);
+                                          sdfio_sample sample, void *dst);
+
+/**
+ * Reads the remaining rows as heights in metres into a buffer that lies in
+ * memory as the format describes.
+ *
+ * The sample (y, x) is stored at `dst + y * format.row_stride + x *
+ * format.element_stride`. The row y = 0 is the first row. A negative row
+ * stride, with `dst` at the first sample of the row y = 0, which is the last
+ * row in memory, stores the matrix upside down.
+ *
+ * The function reads from the first row of the data area, so no rows may have
+ * been read before.
+ *
+ * @param reader The reader.
+ * @param format The format of the buffer.
+ * @param[out] dst The buffer for the heights.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
+ * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
+ * or rows were read already.
+ * @retval SDFIO_ERR_RANGE A height does not fit the sample type.
+ * @retval SDFIO_ERR_IO The stream failed.
+ * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
+ */
+SDFIO_API sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
+                                                  sdfio_format format,
+                                                  void *dst);
 
 /**
  * Reads the trailer (record 3), the free text after the data area.
@@ -842,21 +873,18 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
                                         size_t rows);
 
 /**
- * Writes the whole data area from a matrix of heights in metres.
+ * Writes the whole data area from a plain array of heights in metres: the
+ * `header->rows` rows of `header->columns` samples follow each other, and the
+ * row y = 0 is the first. For an integer data type with SDFIO_AUTO_Z_SCALE the
+ * z-scale is selected from the heights. NaN and infinity label points that are
+ * not measured. Call sdfio_write_trailer() afterwards.
  *
- * The layout is that of sdfio_read_heights(): the sample (y, x) is at
- * `src + y * row_stride + x * format.element_stride`, and the row y = 0 is the
- * first row. For an integer data type with SDFIO_AUTO_Z_SCALE the z-scale is
- * selected from the heights. NaN, infinity and `format.missing` label points
- * that are not measured. Call sdfio_write_trailer() afterwards.
+ * It is sdfio_write_heights_strided() with sdfio_format_packed().
  *
  * @param writer The writer.
- * @param format The format of the buffer.
+ * @param sample The sample type of the array.
  * @param[in] src The heights.
- * @param row_stride The distance in bytes between rows in the buffer. 0 selects
- * rows that follow each other, each holding the columns of the matrix at
- * `format.element_stride`.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the sample type is invalid.
  * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
  * writing, or rows were written already.
  * @retval SDFIO_ERR_RANGE A height does not fit the data type with the z-scale.
@@ -865,8 +893,33 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
  * @retval SDFIO_ERR_IO The stream failed.
  */
 SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
-                                           sdfio_format format, const void *src,
-                                           ptrdiff_t row_stride);
+                                           sdfio_sample sample,
+                                           const void *src);
+
+/**
+ * Writes the whole data area from a matrix of heights in metres that lies in
+ * memory as the format describes.
+ *
+ * The layout is that of sdfio_read_heights_strided(): the sample (y, x) is at
+ * `src + y * format.row_stride + x * format.element_stride`, and the row y = 0
+ * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
+ * z-scale is selected from the heights. NaN, infinity and `format.missing`
+ * label points that are not measured. Call sdfio_write_trailer() afterwards.
+ *
+ * @param writer The writer.
+ * @param format The format of the buffer.
+ * @param[in] src The heights.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
+ * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
+ * writing, or rows were written already.
+ * @retval SDFIO_ERR_RANGE A height does not fit the data type with the z-scale.
+ * @retval SDFIO_ERR_BAD_VALUE A height would be read as a point that is not
+ * measured.
+ * @retval SDFIO_ERR_IO The stream failed.
+ */
+SDFIO_API sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
+                                                   sdfio_format format,
+                                                   const void *src);
 
 /**
  * Writes the trailer (record 3) and ends the file. All rows of the data area
@@ -973,16 +1026,14 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
  * @param[in] heights The heights.
  * @param rows The number of rows.
  * @param columns The number of columns.
- * @param row_stride The distance in bytes between rows in the buffer. 0 selects
- * rows that follow each other, each holding the columns of the matrix at
- * `format.element_stride`.
  * @param[out] z_scale The z-scale.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  */
-SDFIO_API sdfio_status
-sdfio_suggest_z_scale(sdfio_data_type type, sdfio_revision revision,
-                      sdfio_format format, const void *heights, size_t rows,
-                      size_t columns, ptrdiff_t row_stride, double *z_scale);
+SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
+                                             sdfio_revision revision,
+                                             sdfio_format format,
+                                             const void *heights, size_t rows,
+                                             size_t columns, double *z_scale);
 
 /* ---- Trailer ------------------------------------------------------------ */
 

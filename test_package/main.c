@@ -37,8 +37,6 @@ int main(void)
     {
         heights[i] = (float)i * 1.0e-6F;
     }
-    const sdfio_format format = sdfio_metres(SDFIO_FLOAT32);
-    const ptrdiff_t row_stride = COLUMNS * sizeof(float);
 
     sdfio_header header;
     sdfio_header_init(&header);
@@ -53,8 +51,8 @@ int main(void)
     if (writer != NULL)
     {
         failed |= check(sdfio_create_file(writer, path, &header), "create");
-        failed |= check(
-            sdfio_write_heights(writer, format, heights, row_stride), "write");
+        failed |=
+            check(sdfio_write_heights(writer, SDFIO_FLOAT32, heights), "write");
         failed |= check(sdfio_write_trailer(writer, NULL, 0), "trailer");
     }
     sdfio_writer_free(writer);
@@ -65,7 +63,7 @@ int main(void)
     {
         failed |= check(sdfio_open_file(reader, path), "open");
         failed |=
-            check(sdfio_read_heights(reader, format, read, row_stride), "read");
+            check(sdfio_read_heights(reader, SDFIO_FLOAT32, read), "read");
     }
     sdfio_reader_free(reader);
     remove(path);

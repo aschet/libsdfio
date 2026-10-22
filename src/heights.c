@@ -59,36 +59,27 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
     return (count - 1) * stride + size;
 }
 
-sdfio_status sdfio_resolve_row_stride(sdfio_format format, size_t columns,
-                                      ptrdiff_t *row_stride,
-                                      sdfio_message *message)
+sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
+                                size_t columns, sdfio_message *message)
 {
-    if (*row_stride != 0 || !sdfio_valid_sample(format.sample))
-    {
-        return SDFIO_OK;
-    }
-    const size_t element = magnitude(sdfio_element_stride(format));
-    if (columns != 0 && element > (size_t)PTRDIFF_MAX / columns)
-    {
-        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The matrix is larger than memory");
-    }
-    *row_stride = (ptrdiff_t)(columns * element);
-    return SDFIO_OK;
-}
-
-sdfio_status sdfio_check_layout(sdfio_format format, size_t rows,
-                                size_t columns, ptrdiff_t row_stride,
-                                sdfio_message *message)
-{
-    if (!sdfio_valid_sample(format.sample))
+    if (!sdfio_valid_sample(format->sample))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The sample type is not one of the enumeration");
     }
-    const size_t size = sdfio_sample_size(format.sample);
-    const size_t element = magnitude(sdfio_element_stride(format));
-    const size_t row = magnitude(row_stride);
+    const size_t size = sdfio_sample_size(format->sample);
+    const size_t element = magnitude(sdfio_element_stride(*format));
+    if (format->row_stride == 0)
+    {
+        /* Rows that follow each other. */
+        if (columns != 0 && element > (size_t)PTRDIFF_MAX / columns)
+        {
+            return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
+                              "The matrix is larger than memory");
+        }
+        format->row_stride = (ptrdiff_t)(columns * element);
+    }
+    const size_t row = magnitude(format->row_stride);
     if (columns > 1 && element < size)
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
@@ -142,14 +133,16 @@ static bool float_is_finite(float value)
 #define EXACT_IN_FLOAT(type, floating)                                         \
     (sizeof(type) <= 2 || ((floating) && sizeof(type) == 4))
 
-/*
+/**
  * The z-scale as two floats, which add up to it more closely than one does, so
  * that a float calculation rounds as the one in double would. The scales that
  * are far from 1 are left to the calculation in double.
  */
 typedef struct scale_pair
 {
+    /** The scale as a float. */
     float head;
+    /** What the float lacks of the scale. */
     float tail;
 } scale_pair;
 
@@ -160,12 +153,16 @@ static bool split_scale(double scale, scale_pair *pair)
     return pair->head >= 1e-30F && pair->head <= 1e30F;
 }
 
-/** Whether a float is a status of the decoding or encoding in float. */
+/** The result of the decoding or encoding in float. */
 typedef enum float_result
 {
+    /** Done. */
     FLOAT_DONE,
+    /** Not for this type or scale: the calculation in double does it. */
     FLOAT_UNHANDLED,
+    /** A number does not fit the type. */
     FLOAT_RANGE,
+    /** A height would be read as a point that is not measured. */
     FLOAT_BAD_VALUE
 } float_result;
 
@@ -233,9 +230,10 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
                                   sdfio_format format, const void *data,
                                   size_t count, void *heights)
 {
+    sdfio_format layout = format;
     if (!usable_description(header, format)
         || (count > 0 && (data == NULL || heights == NULL))
-        || sdfio_check_layout(format, 1, count, 0, NULL) != SDFIO_OK)
+        || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -451,9 +449,10 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
                                   sdfio_format format, const void *heights,
                                   size_t count, void *data)
 {
+    sdfio_format layout = format;
     if (!usable_description(header, format)
         || (count > 0 && (data == NULL || heights == NULL))
-        || sdfio_check_layout(format, 1, count, 0, NULL) != SDFIO_OK
+        || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK
         || !(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
         return SDFIO_ERR_ARGUMENT;
@@ -550,16 +549,12 @@ double sdfio_z_scale_for_range(sdfio_data_type type, sdfio_revision revision,
 }
 
 static sdfio_status find_range(sdfio_format format, const void *heights,
-                               size_t rows, size_t columns,
-                               ptrdiff_t row_stride, double *lowest,
+                               size_t rows, size_t columns, double *lowest,
                                double *highest)
 {
     if (!sdfio_valid_sample(format.sample) || lowest == NULL || highest == NULL
         || (rows > 0 && columns > 0 && heights == NULL)
-        || sdfio_resolve_row_stride(format, columns, &row_stride, NULL)
-               != SDFIO_OK
-        || sdfio_check_layout(format, rows, columns, row_stride, NULL)
-               != SDFIO_OK)
+        || sdfio_check_layout(&format, rows, columns, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -572,7 +567,7 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
     for (size_t row = 0; row < rows; ++row)
     {
         const unsigned char *at =
-            (const unsigned char *)heights + (ptrdiff_t)row * row_stride;
+            (const unsigned char *)heights + (ptrdiff_t)row * format.row_stride;
         for (size_t first = 0; first < columns; first += SDFIO_STACK_CHUNK)
         {
             const size_t n = columns - first < SDFIO_STACK_CHUNK
@@ -599,8 +594,7 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
 sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
                                    sdfio_revision revision, sdfio_format format,
                                    const void *heights, size_t rows,
-                                   size_t columns, ptrdiff_t row_stride,
-                                   double *z_scale)
+                                   size_t columns, double *z_scale)
 {
     if (!sdfio_valid_data_type(type) || z_scale == NULL)
     {
@@ -608,8 +602,8 @@ sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
     }
     double lowest = 0.0;
     double highest = 0.0;
-    const sdfio_status status = find_range(format, heights, rows, columns,
-                                           row_stride, &lowest, &highest);
+    const sdfio_status status =
+        find_range(format, heights, rows, columns, &lowest, &highest);
     if (status == SDFIO_OK)
     {
         *z_scale = sdfio_z_scale_for_range(type, revision, lowest, highest);

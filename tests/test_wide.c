@@ -35,13 +35,11 @@ int main(void)
     header.columns = 2;
     header.rows = 2;
     const double heights[4] = {1, 2, 3, 4};
-    const sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
-    const ptrdiff_t row_stride = 2 * sizeof(double);
 
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file_w(writer, path, &header));
     CHECK(file_exists(path));
-    CHECK_OK(sdfio_write_heights(writer, format, heights, row_stride));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT64, heights));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
@@ -49,7 +47,7 @@ int main(void)
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_file_w(reader, path));
     double back[4] = {0};
-    CHECK_OK(sdfio_read_heights(reader, format, back, row_stride));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT64, back));
     CHECK(back[0] == 1.0 && back[3] == 4.0);
     sdfio_reader_free(reader);
     _wremove(path);

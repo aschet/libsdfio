@@ -94,6 +94,15 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
     return stream;
 }
 
+/* The format of an array whose rows are `row_stride` bytes apart. */
+static inline sdfio_format format_with_rows(sdfio_sample sample,
+                                            ptrdiff_t row_stride)
+{
+    sdfio_format format = sdfio_format_packed(sample);
+    format.row_stride = row_stride;
+    return format;
+}
+
 /* Frees a reader and opens the file in memory again, to read it from the
  * start. */
 static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,

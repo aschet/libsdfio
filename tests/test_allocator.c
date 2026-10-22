@@ -106,7 +106,6 @@ static sdfio_status round_trip(const sdfio_config *config,
     header.z_scale = SDFIO_AUTO_Z_SCALE;
 
     memory_sink sink = {0};
-    const sdfio_format format = {SDFIO_FLOAT32, NAN, sizeof(float)};
     sdfio_status status = SDFIO_ERR_MEMORY;
     sdfio_writer *writer = sdfio_writer_new(config);
     if (writer != NULL)
@@ -115,8 +114,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_heights(writer, format, written,
-                                         COLUMNS * sizeof(float));
+            status = sdfio_write_heights(writer, SDFIO_FLOAT32, written);
         }
         if (status == SDFIO_OK)
         {
@@ -137,8 +135,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_open_memory(reader, sink.data, sink.size);
         if (status == SDFIO_OK)
         {
-            status = sdfio_read_heights(reader, format, read,
-                                        COLUMNS * sizeof(float));
+            status = sdfio_read_heights(reader, SDFIO_FLOAT32, read);
         }
         const char *trailer = NULL;
         size_t trailer_size = 0;

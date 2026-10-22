@@ -366,8 +366,15 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
-                                 const void *src, ptrdiff_t row_stride)
+sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_sample sample,
+                                 const void *src)
+{
+    return sdfio_write_heights_strided(writer, sdfio_format_packed(sample),
+                                       src);
+}
+
+sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
+                                         sdfio_format format, const void *src)
 {
     sdfio_status status = require_writable(writer);
     if (status != SDFIO_OK)
@@ -380,13 +387,8 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "Rows were written already");
     }
-    status = sdfio_resolve_row_stride(format, header->columns, &row_stride,
-                                      &writer->message);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_check_layout(format, header->rows, header->columns,
-                                    row_stride, &writer->message);
-    }
+    status = sdfio_check_layout(&format, header->rows, header->columns,
+                                &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -400,9 +402,9 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
     if (header->z_scale == SDFIO_AUTO_Z_SCALE
         && !sdfio_is_floating(header->data_type))
     {
-        status = sdfio_suggest_z_scale(
-            header->data_type, header->revision, format, src, header->rows,
-            header->columns, row_stride, &header->z_scale);
+        status = sdfio_suggest_z_scale(header->data_type, header->revision,
+                                       format, src, header->rows,
+                                       header->columns, &header->z_scale);
         if (status != SDFIO_OK)
         {
             return status;
@@ -418,7 +420,7 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
     {
         const unsigned char *row =
             (const unsigned char *)src
-            + (ptrdiff_t)sdfio_row_y(header, file_row) * row_stride;
+            + (ptrdiff_t)sdfio_row_y(header, file_row) * format.row_stride;
         for (size_t first = 0; first < header->columns;
              first += writer->chunk_values)
         {

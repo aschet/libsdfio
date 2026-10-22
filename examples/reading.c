@@ -27,8 +27,7 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        status =
-            sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), heights, 0);
+        status = sdfio_read_heights(reader, SDFIO_FLOAT32, heights);
     }
     const char *trailer = NULL;
     size_t trailer_size = 0;

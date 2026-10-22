@@ -42,9 +42,13 @@ Reader open(const char *path)
     return reader;
 }
 
-ptrdiff_t stride_up(const cv::Mat &image)
+// The format of an image that is read and written bottom up: the first row of
+// the file is the last row in memory, so the rows run backwards.
+sdfio_format bottom_up(const cv::Mat &image)
 {
-    return -static_cast<ptrdiff_t>(image.step);
+    sdfio_format format = sdfio_format_packed(SDFIO_FLOAT32);
+    format.row_stride = -static_cast<ptrdiff_t>(image.step);
+    return format;
 }
 
 cv::Mat read_depth(sdfio_reader *reader)
@@ -52,8 +56,8 @@ cv::Mat read_depth(sdfio_reader *reader)
     const sdfio_header *header = sdfio_get_header(reader);
     cv::Mat depth(static_cast<int>(header->rows),
                   static_cast<int>(header->columns), CV_32F);
-    check(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32),
-                             depth.ptr(depth.rows - 1), stride_up(depth)),
+    check(sdfio_read_heights_strided(reader, bottom_up(depth),
+                                     depth.ptr(depth.rows - 1)),
           sdfio_reader_error_message(reader));
     return depth;
 }
@@ -80,8 +84,8 @@ void write_depth(const char *path, sdfio_header header, const cv::Mat &depth)
     Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), sdfio_metres(SDFIO_FLOAT32),
-                              depth.ptr(depth.rows - 1), stride_up(depth)),
+    check(sdfio_write_heights_strided(writer.get(), bottom_up(depth),
+                                      depth.ptr(depth.rows - 1)),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_trailer(writer.get(), nullptr, 0),
           sdfio_writer_error_message(writer.get()));
@@ -96,8 +100,8 @@ cv::Mat read_into_region(const char *path)
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
                                      static_cast<int>(header->rows)));
-    check(sdfio_read_heights(reader.get(), sdfio_metres(SDFIO_FLOAT32),
-                             region.ptr(region.rows - 1), stride_up(region)),
+    check(sdfio_read_heights_strided(reader.get(), bottom_up(region),
+                                     region.ptr(region.rows - 1)),
           sdfio_reader_error_message(reader.get()));
     return canvas;
 }

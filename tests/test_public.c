@@ -64,8 +64,7 @@ int main(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), heights,
-                                 3 * sizeof(float)));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT32, heights));
     char composed[128];
     sdfio_trailer assembled;
     sdfio_trailer_init(&assembled, composed, sizeof composed);
@@ -84,8 +83,7 @@ int main(void)
         return finish_tests();
     }
     float back[6];
-    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), back,
-                                3 * sizeof(float)));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT32, back));
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
@@ -95,8 +93,7 @@ int main(void)
     /* A row stride of 0 means rows that follow each other. */
     reader = membuf_reopen(reader, &file);
     float packed[6];
-    CHECK_OK(
-        sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), packed, 0));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT32, packed));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
@@ -107,8 +104,8 @@ int main(void)
     CHECK_OK(sdfio_read_data(reader, counts, 2));
     CHECK(sdfio_is_bad_value(read->data_type, read->revision, counts[2]));
     CHECK_STATUS(SDFIO_OK,
-                 sdfio_decode_heights(read, sdfio_metres(SDFIO_FLOAT32), counts,
-                                      6, back));
+                 sdfio_decode_heights(read, sdfio_format_packed(SDFIO_FLOAT32),
+                                      counts, 6, back));
     CHECK(sdfio_row_y(read, 0) == 0 && !sdfio_rows_reversed(read->revision));
     sdfio_reader_free(reader);
     free(file.data);

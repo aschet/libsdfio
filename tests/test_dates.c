@@ -248,8 +248,7 @@ static void check_file(void)
     const float height = 1.0F;
     sdfio_writer *writer = sdfio_writer_new(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32), &height,
-                                 sizeof height));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT32, &height));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     CHECK(sink.size > DATE_AT + 2 * SDFIO_DATE_SIZE);
@@ -277,8 +276,7 @@ static void check_file(void)
     writer = sdfio_writer_new(&refusing_config);
     CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32),
-                                     &height, sizeof height));
+                 sdfio_write_heights(writer, SDFIO_FLOAT32, &height));
     sdfio_writer_free(writer);
     free(refused.data);
     free(sink.data);

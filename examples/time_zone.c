@@ -66,8 +66,7 @@ int main(void)
     sdfio_status status = sdfio_create_file(writer, path, &header);
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_heights(writer, sdfio_metres(SDFIO_FLOAT32),
-                                     &height, sizeof height);
+        status = sdfio_write_heights(writer, SDFIO_FLOAT32, &height);
     }
     if (status == SDFIO_OK)
     {

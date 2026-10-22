@@ -354,8 +354,14 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
-                                void *dst, ptrdiff_t row_stride)
+sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_sample sample,
+                                void *dst)
+{
+    return sdfio_read_heights_strided(reader, sdfio_format_packed(sample), dst);
+}
+
+sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
+                                        sdfio_format format, void *dst)
 {
     sdfio_status status = require_readable(reader);
     if (status != SDFIO_OK)
@@ -368,13 +374,8 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Rows were read already");
     }
-    status = sdfio_resolve_row_stride(format, header->columns, &row_stride,
-                                      &reader->message);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_check_layout(format, header->rows, header->columns,
-                                    row_stride, &reader->message);
-    }
+    status = sdfio_check_layout(&format, header->rows, header->columns,
+                                &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -390,7 +391,7 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
     {
         unsigned char *row =
             (unsigned char *)dst
-            + (ptrdiff_t)sdfio_row_y(header, file_row) * row_stride;
+            + (ptrdiff_t)sdfio_row_y(header, file_row) * format.row_stride;
         for (size_t first = 0; first < header->columns;
              first += reader->chunk_values)
         {
