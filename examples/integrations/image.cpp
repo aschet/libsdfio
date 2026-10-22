@@ -1,13 +1,14 @@
 // A C++ image class over the C interface, as most programs write it first.
 //
 // The handles belong to objects that free them, a call that fails is an
-// exception with the message of the library, and the heights are read into the
-// std::vector where it is. Everything else a program does with a surface works
-// on this class and never sees the C interface again.
+// exception with the message of the library, and the heights are read into a
+// two-dimensional array where it is: image[y][x]. Everything else a program
+// does with a surface works on this class and never sees the C interface again.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <filesystem>
@@ -15,7 +16,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <vector>
 
 namespace
 {
@@ -37,8 +37,9 @@ class Image
   public:
     Image(std::size_t columns, std::size_t rows, double x_scale, double y_scale)
         : columns_(columns), rows_(rows), x_scale_(x_scale), y_scale_(y_scale),
-          heights_(columns * rows, NAN)
+          heights_(std::make_unique<float[]>(columns * rows))
     {
+        std::fill_n(heights_.get(), columns * rows, NAN);
     }
 
     static Image read(const std::filesystem::path &path)
@@ -51,7 +52,7 @@ class Image
                     header->y_scale);
         check(sdfio_read_heights(
                   reader.get(), sdfio_metres(SDFIO_FLOAT32),
-                  image.heights_.data(),
+                  image.heights_.get(),
                   static_cast<ptrdiff_t>(image.columns_ * sizeof(float))),
               sdfio_reader_error_message(reader.get()));
         return image;
@@ -70,7 +71,7 @@ class Image
         check(sdfio_create_file(writer.get(), path.string().c_str(), &header),
               sdfio_writer_error_message(writer.get()));
         check(sdfio_write_heights(
-                  writer.get(), sdfio_metres(SDFIO_FLOAT32), heights_.data(),
+                  writer.get(), sdfio_metres(SDFIO_FLOAT32), heights_.get(),
                   static_cast<ptrdiff_t>(columns_ * sizeof(float))),
               sdfio_writer_error_message(writer.get()));
         check(sdfio_write_trailer(writer.get(), nullptr, 0),
@@ -94,17 +95,20 @@ class Image
         return y_scale_;
     }
 
-    float &operator()(std::size_t x, std::size_t y)
+    // The row y, an array of columns() heights: image[y][x]. The rows follow
+    // each other in one block of memory, as the interface of the library reads
+    // and writes them.
+    float *operator[](std::size_t y)
     {
-        return heights_[y * columns_ + x];
+        return heights_.get() + y * columns_;
     }
-    float operator()(std::size_t x, std::size_t y) const
+    const float *operator[](std::size_t y) const
     {
-        return heights_[y * columns_ + x];
+        return heights_.get() + y * columns_;
     }
     bool measured(std::size_t x, std::size_t y) const
     {
-        return !std::isnan((*this)(x, y));
+        return !std::isnan((*this)[y][x]);
     }
 
   private:
@@ -112,7 +116,7 @@ class Image
     std::size_t rows_;
     double x_scale_;
     double y_scale_;
-    std::vector<float> heights_;
+    std::unique_ptr<float[]> heights_;
 };
 
 Image ripples()
@@ -125,7 +129,7 @@ Image ripples()
             const bool hole = x > 60 && x < 70 && y > 40 && y < 50;
             if (!hole)
             {
-                image(x, y) = static_cast<float>(
+                image[y][x] = static_cast<float>(
                     2e-6 * std::sin(0.1 * static_cast<double>(x))
                     * std::cos(0.07 * static_cast<double>(y)));
             }
@@ -151,7 +155,7 @@ int main()
                 const bool same =
                     read.measured(x, y) == written.measured(x, y)
                     && (!read.measured(x, y)
-                        || std::fabs(read(x, y) - written(x, y)) < 1e-10F);
+                        || std::fabs(read[y][x] - written[y][x]) < 1e-10F);
                 differing += same ? 0 : 1;
             }
         }
