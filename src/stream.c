@@ -42,7 +42,7 @@ void sdfio_source_init(sdfio_source *source, const sdfio_stream *io)
         if (here >= 0)
         {
             source->seekable = true;
-            source->base = here;
+            source->base = (uint64_t)here;
         }
     }
 }
@@ -62,7 +62,7 @@ size_t sdfio_source_fill(sdfio_source *source, size_t want)
     {
         memmove(source->buffer, source->buffer + source->position,
                 source->end - source->position);
-        source->base += (int64_t)source->position;
+        source->base += source->position;
         source->end -= source->position;
         source->position = 0;
     }
@@ -110,7 +110,7 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
         if (size - done >= source->capacity)
         {
             /* A large piece goes straight to its place. */
-            source->base += (int64_t)source->end;
+            source->base += source->end;
             source->position = 0;
             source->end = 0;
             const size_t count =
@@ -125,7 +125,7 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
                 source->at_end = true;
                 break;
             }
-            source->base += (int64_t)count;
+            source->base += count;
             done += count;
             continue;
         }
@@ -137,15 +137,19 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
     return done;
 }
 
-int64_t sdfio_source_tell(const sdfio_source *source)
+uint64_t sdfio_source_tell(const sdfio_source *source)
 {
-    return source->base + (int64_t)source->position;
+    return source->base + source->position;
 }
 
-bool sdfio_source_seek(sdfio_source *source, int64_t position)
+bool sdfio_source_seek(sdfio_source *source, uint64_t position)
 {
-    if (!source->seekable
-        || source->io.seek(source->io.user, position, SEEK_SET) != position)
+    if (!source->seekable || position > INT64_MAX)
+    {
+        return false;
+    }
+    const int64_t target = (int64_t)position;
+    if (source->io.seek(source->io.user, target, SEEK_SET) != target)
     {
         return false;
     }
@@ -158,19 +162,20 @@ bool sdfio_source_seek(sdfio_source *source, int64_t position)
     return true;
 }
 
-int64_t sdfio_source_size(sdfio_source *source)
+bool sdfio_source_size(sdfio_source *source, uint64_t *size)
 {
     if (!source->seekable)
     {
-        return -1;
+        return false;
     }
-    const int64_t here = sdfio_source_tell(source);
-    const int64_t size = source->io.seek(source->io.user, 0, SEEK_END);
-    if (size < 0 || !sdfio_source_seek(source, here))
+    const uint64_t here = sdfio_source_tell(source);
+    const int64_t end = source->io.seek(source->io.user, 0, SEEK_END);
+    if (end < 0 || !sdfio_source_seek(source, here))
     {
-        return -1;
+        return false;
     }
-    return size;
+    *size = (uint64_t)end;
+    return true;
 }
 
 bool sdfio_sink_create(sdfio_sink *sink, size_t capacity,

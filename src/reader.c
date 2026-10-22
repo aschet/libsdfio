@@ -25,7 +25,7 @@ struct sdfio_reader
     memory_stream memory;
     bool opened;
     /* Where the data area begins, if the source can seek. */
-    int64_t data_start;
+    uint64_t data_start;
     size_t value_count;
     /* How much of the data area is read. */
     size_t next_row;
@@ -160,16 +160,15 @@ static sdfio_status fail_reading(sdfio_reader *reader, sdfio_status status)
 static sdfio_status check_size(sdfio_reader *reader)
 {
     const sdfio_header *header = &reader->header;
-    const int64_t size = sdfio_source_size(&reader->source);
-    if (size < 0)
+    uint64_t size = 0;
+    if (!sdfio_source_size(&reader->source, &size))
     {
         /* A stream that cannot tell its size, such as a file beyond what a
          * long holds, is read without this early check. */
         return SDFIO_OK;
     }
-    const uint64_t room = (uint64_t)size > (uint64_t)reader->data_start
-                              ? (uint64_t)size - (uint64_t)reader->data_start
-                              : 0;
+    const uint64_t room =
+        size > reader->data_start ? size - reader->data_start : 0;
     if (header->representation == SDFIO_BINARY)
     {
         if (reader->value_count
@@ -214,7 +213,7 @@ static sdfio_status open_source(sdfio_reader *reader,
         return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
                           "The SDF file has more points than can be counted");
     }
-    reader->data_start = -1;
+    reader->data_start = 0;
     if (reader->source.seekable)
     {
         reader->data_start = sdfio_source_tell(&reader->source);
@@ -339,10 +338,9 @@ static sdfio_status finish_data(sdfio_reader *reader)
     {
         const size_t size = sdfio_data_type_size(header->data_type);
         const size_t left = (reader->value_count - reader->next_value) * size;
-        const int64_t end =
-            reader->data_start + (int64_t)reader->value_count * (int64_t)size;
-        if (!reader->source.seekable
-            || !sdfio_source_seek(&reader->source, end))
+        const size_t total = reader->value_count * size;
+        if (!reader->source.seekable || total > UINT64_MAX - reader->data_start
+            || !sdfio_source_seek(&reader->source, reader->data_start + total))
         {
             /* A stream that cannot seek to the trailer is read through. */
             const size_t piece = reader->chunk_values * SDFIO_LARGEST_SAMPLE;

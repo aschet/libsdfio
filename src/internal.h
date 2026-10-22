@@ -368,7 +368,7 @@ typedef struct sdfio_source
     size_t position;
     size_t end;
     /* Where buffer[0] is in the stream, if the stream can seek. */
-    int64_t base;
+    uint64_t base;
     bool seekable;
     bool at_end;
     bool failed;
@@ -408,9 +408,9 @@ static inline int sdfio_source_getc(sdfio_source *source)
     return c;
 }
 size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size);
-int64_t sdfio_source_tell(const sdfio_source *source);
-bool sdfio_source_seek(sdfio_source *source, int64_t position);
-int64_t sdfio_source_size(sdfio_source *source);
+uint64_t sdfio_source_tell(const sdfio_source *source);
+bool sdfio_source_seek(sdfio_source *source, uint64_t position);
+bool sdfio_source_size(sdfio_source *source, uint64_t *size);
 
 typedef struct sdfio_sink
 {
