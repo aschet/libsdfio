@@ -19,25 +19,33 @@ static void check_memory(void)
     header.rows = 3;
 
     size_t bytes = 0;
-    CHECK_OK(sdfio_heights_size(&header, SDFIO_FLOAT32, header.rows, &bytes));
+    CHECK_OK(sdfio_heights_size(&header, SDFIO_FLOAT32, &bytes));
     CHECK(bytes == 15 * sizeof(float));
-    CHECK_OK(sdfio_data_size(&header, 1, &bytes));
+    CHECK_OK(sdfio_heights_row_size(&header, SDFIO_FLOAT64, &bytes));
+    CHECK(bytes == 5 * sizeof(double));
+    CHECK_OK(sdfio_data_size(&header, &bytes));
+    CHECK(bytes == 15 * sizeof(int16_t));
+    CHECK_OK(sdfio_data_row_size(&header, &bytes));
     CHECK(bytes == 5 * sizeof(int16_t));
 
     header.columns = 0;
-    CHECK_OK(sdfio_data_size(&header, 4, &bytes));
+    CHECK_OK(sdfio_data_size(&header, &bytes));
     CHECK(bytes == 0);
 
     header.columns = SIZE_MAX / 2;
+    header.rows = 3;
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_FLOAT64, 3, &bytes));
+                 sdfio_heights_size(&header, SDFIO_FLOAT64, &bytes));
     header.columns = SIZE_MAX / 4;
+    header.rows = 2;
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_FLOAT64, 2, &bytes));
+                 sdfio_heights_size(&header, SDFIO_FLOAT64, &bytes));
+    header.data_type = SDFIO_DATA_INT32;
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_data_size(&header, &bytes));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_heights_size(&header, (sdfio_sample)99, 1, &bytes));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(NULL, 1, &bytes));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(&header, 1, NULL));
+                 sdfio_heights_size(&header, (sdfio_sample)99, &bytes));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(NULL, &bytes));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(&header, NULL));
 }
 
 int main(void)

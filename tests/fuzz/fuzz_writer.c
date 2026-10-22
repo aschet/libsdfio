@@ -127,7 +127,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             size_t coded_size = 0;
             void *coded = NULL;
             if (read_status == SDFIO_OK
-                && sdfio_data_size(read, read->rows, &coded_size) == SDFIO_OK)
+                && sdfio_data_size(read, &coded_size) == SDFIO_OK)
             {
                 coded = calloc(coded_size + 1, 1);
             }

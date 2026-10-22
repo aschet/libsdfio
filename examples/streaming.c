@@ -31,10 +31,10 @@ int main(void)
     const sdfio_header *header = sdfio_get_header(reader);
     size_t coded_size = 0;
     size_t heights_size = 0;
-    status = sdfio_data_size(header, 1, &coded_size);
+    status = sdfio_data_row_size(header, &coded_size);
     if (status == SDFIO_OK)
     {
-        status = sdfio_heights_size(header, SDFIO_FLOAT64, 1, &heights_size);
+        status = sdfio_heights_row_size(header, SDFIO_FLOAT64, &heights_size);
     }
     void *coded = status == SDFIO_OK ? malloc(coded_size) : NULL;
     double *heights = status == SDFIO_OK ? malloc(heights_size) : NULL;

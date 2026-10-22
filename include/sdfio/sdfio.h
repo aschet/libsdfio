@@ -37,11 +37,21 @@
  * sdfio_open_file() and sdfio_create_file() are declared in `<sdfio/file.h>`.
  * This header does not include `<stdio.h>`.
  *
+ * @par Data and heights
+ * The data area stores one value per point in the data type of the file, in
+ * units of the z-scale of the header. These are the coded values, which
+ * sdfio_read_data() and sdfio_write_data() transfer. A height is the same
+ * point in metres, in a type that the program chooses: float, double or an
+ * integer. A point that is not measured is NaN in a floating point type.
+ * sdfio_read_heights() and sdfio_write_heights() transfer heights, and
+ * sdfio_decode_heights() and sdfio_encode_heights() convert between the two.
+ *
  * @par Memory
- * The library allocates no memory for heights. The buffers of the caller are
- * allocated by the caller, who obtains their size from sdfio_data_size() and
- * sdfio_heights_size(), with a check for arithmetic overflow. A reader or a
- * writer obtains its own memory through the allocator of its sdfio_config.
+ * The library allocates no memory for the data or the heights. The caller
+ * allocates the buffers and obtains their size from sdfio_data_size(),
+ * sdfio_data_row_size(), sdfio_heights_size() and sdfio_heights_row_size(),
+ * with a check for arithmetic overflow. A reader or a writer obtains its own
+ * memory through the allocator of its sdfio_config.
  *
  * @par Error handling
  * A function that can fail returns an sdfio_status, or a null pointer where it
@@ -526,36 +536,59 @@ typedef struct sdfio_config
 /* ---- Memory ------------------------------------------------------------- */
 
 /**
- * Returns the size in bytes of `rows` rows of the data area: `rows` times
- * `header->columns` values of `header->data_type`. The size is checked for
- * arithmetic overflow. A buffer of this size is suitable for sdfio_read_data()
- * and sdfio_decode_heights(). The caller allocates it.
+ * Returns the size in bytes of a buffer for the whole data area: `header->rows`
+ * times `header->columns` values of `header->data_type`. The size is checked
+ * for arithmetic overflow. A buffer of this size is suitable for
+ * sdfio_read_data() and sdfio_decode_heights(). The caller allocates it.
  *
  * @param[in] header The header of the file.
- * @param rows The number of rows.
  * @param[out] bytes The size, which is 0 for an empty matrix.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the data type is invalid.
  * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
  */
-SDFIO_API sdfio_status sdfio_data_size(const sdfio_header *header, size_t rows,
+SDFIO_API sdfio_status sdfio_data_size(const sdfio_header *header,
                                        size_t *bytes);
 
 /**
- * Returns the size in bytes of `rows` rows of `header->columns` samples of a
- * sample type. With `rows` equal to `header->rows` a buffer of this size holds
- * the matrix for sdfio_read_heights() and sdfio_write_heights(). The caller
+ * Returns the size in bytes of a buffer for one row of the data area, to read
+ * or write the data row by row with sdfio_read_data() and sdfio_write_data().
+ *
+ * @param[in] header The header of the file.
+ * @param[out] bytes The size, which is 0 for a row without columns.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the data type is invalid.
+ * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
+ */
+SDFIO_API sdfio_status sdfio_data_row_size(const sdfio_header *header,
+                                           size_t *bytes);
+
+/**
+ * Returns the size in bytes of a buffer for the whole matrix of heights in a
+ * sample type, for sdfio_read_heights() and sdfio_write_heights(). The caller
  * allocates it.
  *
  * @param[in] header The header of the file.
  * @param sample The sample type of the heights.
- * @param rows The number of rows.
  * @param[out] bytes The size, which is 0 for an empty matrix.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the sample type is invalid.
  * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
  */
 SDFIO_API sdfio_status sdfio_heights_size(const sdfio_header *header,
-                                          sdfio_sample sample, size_t rows,
-                                          size_t *bytes);
+                                          sdfio_sample sample, size_t *bytes);
+
+/**
+ * Returns the size in bytes of a buffer for one row of heights in a sample
+ * type, for sdfio_decode_heights() and sdfio_encode_heights() of one row of
+ * the data area.
+ *
+ * @param[in] header The header of the file.
+ * @param sample The sample type of the heights.
+ * @param[out] bytes The size, which is 0 for a row without columns.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the sample type is invalid.
+ * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
+ */
+SDFIO_API sdfio_status sdfio_heights_row_size(const sdfio_header *header,
+                                              sdfio_sample sample,
+                                              size_t *bytes);
 
 /* ---- Reading ------------------------------------------------------------ */
 

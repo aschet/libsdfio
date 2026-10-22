@@ -75,7 +75,7 @@ static int read_counts(const char *path)
         return EXIT_FAILURE;
     }
     size_t row_size = 0;
-    status = sdfio_data_size(header, 1, &row_size);
+    status = sdfio_data_row_size(header, &row_size);
     int16_t *row = status == SDFIO_OK ? malloc(row_size) : NULL;
     int16_t *expected = status == SDFIO_OK ? malloc(row_size) : NULL;
     if (status == SDFIO_OK
