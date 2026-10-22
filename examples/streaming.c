@@ -29,8 +29,8 @@ int main(void)
     }
 
     const sdfio_header *header = sdfio_get_header(reader);
-    void *coded = sdfio_alloc_data(header, 1);
-    double *heights = sdfio_alloc_heights(header, SDFIO_FLOAT64, 1);
+    void *coded = sdfio_alloc_data(NULL, header, 1);
+    double *heights = sdfio_alloc_heights(NULL, header, SDFIO_FLOAT64, 1);
     double lowest = INFINITY;
     double highest = -INFINITY;
     for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
@@ -59,8 +59,8 @@ int main(void)
     {
         printf("from %g m to %g m\n", lowest, highest);
     }
-    sdfio_free(coded);
-    sdfio_free(heights);
+    sdfio_free(NULL, coded);
+    sdfio_free(NULL, heights);
     sdfio_reader_free(reader);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

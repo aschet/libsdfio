@@ -12,10 +12,10 @@ sdfio_reader *reader = sdfio_reader_new(NULL);
 if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 {
     const sdfio_header *header = sdfio_get_header(reader);
-    float *depth = sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+    float *depth = sdfio_alloc_heights(NULL, header, SDFIO_FLOAT32, header->rows);
     sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), depth,
                        (ptrdiff_t)(header->columns * sizeof *depth));
-    sdfio_free(depth);
+    sdfio_free(NULL, depth);
 }
 sdfio_reader_free(reader);
 ```

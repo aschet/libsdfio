@@ -198,6 +198,34 @@ static void check_counted(void)
     }
 }
 
+/* The buffers for the caller come from the allocator too. */
+static void check_buffers(void)
+{
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.columns = 4;
+    header.rows = 3;
+    counting state = {-1, 0, 0, 0};
+    const sdfio_allocator allocator = {&state, counting_allocate,
+                                       counting_release};
+    double *heights =
+        sdfio_alloc_heights(&allocator, &header, SDFIO_FLOAT64, header.rows);
+    int16_t *coded = sdfio_alloc_data(&allocator, &header, 1);
+    CHECK(heights != NULL && coded != NULL);
+    CHECK(state.calls == 2 && state.live == 2);
+    CHECK(heights != NULL && heights[0] == 0.0 && heights[11] == 0.0);
+    sdfio_free(&allocator, heights);
+    sdfio_free(&allocator, coded);
+    sdfio_free(&allocator, NULL);
+    CHECK(state.live == 0);
+
+    /* A failing allocator gives null. */
+    counting failing = {0, 0, 0, 0};
+    const sdfio_allocator refusing = {&failing, counting_allocate,
+                                      counting_release};
+    CHECK(sdfio_alloc_data(&refusing, &header, 1) == NULL);
+}
+
 /* A handle that is small: a buffer of a few bytes, a chunk of a few values. */
 static void check_small(void)
 {
@@ -320,6 +348,7 @@ static void check_arguments(void)
 int main(void)
 {
     check_counted();
+    check_buffers();
     check_small();
     check_arena();
     check_arguments();

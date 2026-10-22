@@ -18,7 +18,8 @@ int main(int argc, char **argv)
     }
 
     const sdfio_header *header = sdfio_get_header(reader);
-    float *heights = sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+    float *heights =
+        sdfio_alloc_heights(NULL, header, SDFIO_FLOAT32, header->rows);
     status = sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), heights,
                                 (ptrdiff_t)(header->columns * sizeof *heights));
     const char *trailer = NULL;
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
                header->rows, measured > 0 ? sum / (double)measured : 0.0,
                (int)trailer_size, trailer != NULL ? trailer : "");
     }
-    sdfio_free(heights);
+    sdfio_free(NULL, heights);
     sdfio_reader_free(reader);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

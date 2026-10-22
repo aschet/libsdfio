@@ -18,7 +18,8 @@ static void check_memory(void)
     header.columns = 5;
     header.rows = 3;
 
-    float *heights = sdfio_alloc_heights(&header, SDFIO_FLOAT32, header.rows);
+    float *heights =
+        sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT32, header.rows);
     CHECK(heights != NULL);
     if (heights != NULL)
     {
@@ -28,23 +29,23 @@ static void check_memory(void)
         }
         heights[14] = 1.0F;
     }
-    sdfio_free(heights);
-    int16_t *coded = sdfio_alloc_data(&header, 1);
+    sdfio_free(NULL, heights);
+    int16_t *coded = sdfio_alloc_data(NULL, &header, 1);
     CHECK(coded != NULL);
-    sdfio_free(coded);
-    sdfio_free(NULL);
+    sdfio_free(NULL, coded);
+    sdfio_free(NULL, NULL);
 
     header.columns = 0;
-    void *empty = sdfio_alloc_data(&header, 4);
+    void *empty = sdfio_alloc_data(NULL, &header, 4);
     CHECK(empty != NULL);
-    sdfio_free(empty);
+    sdfio_free(NULL, empty);
 
     header.columns = SIZE_MAX / 2;
-    CHECK(sdfio_alloc_heights(&header, SDFIO_FLOAT64, 3) == NULL);
+    CHECK(sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT64, 3) == NULL);
     header.columns = SIZE_MAX / 4;
-    CHECK(sdfio_alloc_heights(&header, SDFIO_FLOAT64, 2) == NULL);
-    CHECK(sdfio_alloc_heights(&header, (sdfio_sample)99, 1) == NULL);
-    CHECK(sdfio_alloc_data(NULL, 1) == NULL);
+    CHECK(sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT64, 2) == NULL);
+    CHECK(sdfio_alloc_heights(NULL, &header, (sdfio_sample)99, 1) == NULL);
+    CHECK(sdfio_alloc_data(NULL, NULL, 1) == NULL);
 }
 
 int main(void)

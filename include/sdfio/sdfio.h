@@ -41,8 +41,9 @@
  * The library allocates no memory for heights. sdfio_alloc_data() and
  * sdfio_alloc_heights() allocate zero-initialized buffers whose size is derived
  * from a header, with a check for arithmetic overflow, and sdfio_free()
- * releases them. Buffers allocated by the caller are equally valid. A reader or
- * a writer obtains its internal memory through the allocator of its
+ * releases them. They use an sdfio_allocator, or malloc and free if none is
+ * given. Buffers allocated by the caller are equally valid. A reader or a
+ * writer obtains its internal memory through the allocator of its
  * sdfio_config.
  *
  * @par Error handling
@@ -531,27 +532,31 @@ typedef struct sdfio_config
  * Allocates zero-initialized memory for rows of the data area: `rows` times
  * `header->columns` values of `header->data_type`. The size is checked for
  * arithmetic overflow. The memory is suitable for sdfio_read_data() and
- * sdfio_decode_heights(). Release it with sdfio_free().
+ * sdfio_decode_heights(). Release it with sdfio_free(), and the same allocator.
  *
+ * @param[in] allocator The allocator, or null for malloc.
  * @param[in] header The header of the file.
  * @param rows The number of rows.
  * @return The memory, or null if the header is invalid, the size cannot be
  * represented or the allocation fails.
  */
-SDFIO_API void *sdfio_alloc_data(const sdfio_header *header, size_t rows);
+SDFIO_API void *sdfio_alloc_data(const sdfio_allocator *allocator,
+                                 const sdfio_header *header, size_t rows);
 
 /**
  * Allocates zero-initialized memory for `rows` rows of `header->columns`
  * samples of a sample type. With `rows` equal to `header->rows` it holds the
  * matrix for sdfio_read_heights() and sdfio_write_heights(). Release it with
- * sdfio_free().
+ * sdfio_free(), and the same allocator.
  *
+ * @param[in] allocator The allocator, or null for malloc.
  * @param[in] header The header of the file.
  * @param sample The sample type of the heights.
  * @param rows The number of rows.
  * @return The memory, or null as for sdfio_alloc_data().
  */
-SDFIO_API void *sdfio_alloc_heights(const sdfio_header *header,
+SDFIO_API void *sdfio_alloc_heights(const sdfio_allocator *allocator,
+                                    const sdfio_header *header,
                                     sdfio_sample sample, size_t rows);
 
 /**
@@ -561,9 +566,11 @@ SDFIO_API void *sdfio_alloc_heights(const sdfio_header *header,
  * library on Windows the allocating runtime is not necessarily that of the
  * program. A null pointer is ignored.
  *
+ * @param[in] allocator The allocator that allocated the memory, or null for
+ * free.
  * @param memory The memory to release.
  */
-SDFIO_API void sdfio_free(void *memory);
+SDFIO_API void sdfio_free(const sdfio_allocator *allocator, void *memory);
 
 /* ---- Reading ------------------------------------------------------------ */
 

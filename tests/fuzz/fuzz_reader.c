@@ -64,19 +64,19 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
             && header->columns * header->rows <= MATRIX_LIMIT)
         {
             float *heights =
-                sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+                sdfio_alloc_heights(NULL, header, SDFIO_FLOAT32, header->rows);
             if (heights != NULL)
             {
                 (void)sdfio_read_heights(
                     reader, sdfio_metres(SDFIO_FLOAT32), heights,
                     (ptrdiff_t)(header->columns * sizeof *heights));
-                sdfio_free(heights);
+                sdfio_free(NULL, heights);
             }
         }
     }
     else if (header->columns <= ROW_LIMIT)
     {
-        void *row = sdfio_alloc_data(header, 1);
+        void *row = sdfio_alloc_data(NULL, header, 1);
         if (row != NULL)
         {
             for (size_t i = 0; i < header->rows && i < ROW_LIMIT; ++i)
@@ -86,7 +86,7 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
                     break;
                 }
             }
-            sdfio_free(row);
+            sdfio_free(NULL, row);
         }
     }
     const char *trailer = NULL;

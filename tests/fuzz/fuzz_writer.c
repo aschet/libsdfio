@@ -125,7 +125,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 abort();
             }
             void *coded = read_status == SDFIO_OK
-                              ? sdfio_alloc_data(read, read->rows)
+                              ? sdfio_alloc_data(NULL, read, read->rows)
                               : NULL;
             if (coded != NULL)
             {
@@ -138,7 +138,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                 read_status =
                     sdfio_read_trailer(reader, &trailer, &trailer_size);
             }
-            sdfio_free(coded);
+            sdfio_free(NULL, coded);
         }
         sdfio_reader_free(reader);
         if (read_status != SDFIO_OK && read_status != SDFIO_ERR_MEMORY)
