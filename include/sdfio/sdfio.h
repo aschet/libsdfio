@@ -74,6 +74,15 @@
  * initializes. Changing one is an incompatible change and increments the major
  * version.
  *
+ * @par Standard
+ * The library follows ISO 25178-71:2026, and a reader checks what the standard
+ * defines: the magic, the data types of the revision, a compression and a
+ * checksum type of 0, the ranges of the counts and of the dates, a positive
+ * z-scale, the line ends and the string `BAD`. It deviates in two places, which
+ * files of MountainsMap need: the numbers of an ASCII file can be in any
+ * decimal or scientific form, and a manufacturer identifier in a binary file
+ * ends at its first 0 byte, where the standard fills it with spaces.
+ *
  * @par Limitations
  * Rows of a file can be read only in order.
  *

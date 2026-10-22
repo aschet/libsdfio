@@ -269,6 +269,28 @@ static void check_header_errors(void)
         reader = sdfio_reader_new(NULL);
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
+        /* The date, the z-scale and the first character of the magic. */
+        enum
+        {
+            DATES_AT = SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE,
+            Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATE_SIZE + 2 * sizeof(uint32_t)
+                         + 2 * sizeof(double)
+        };
+        memcpy(copy, data, size);
+        memset(copy + DATES_AT, '0', SDFIO_DATE_SIZE);
+        reader = sdfio_reader_new(NULL);
+        CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
+        sdfio_reader_free(reader);
+        memcpy(copy, data, size);
+        memset(copy + Z_SCALE_AT, 0, sizeof(double));
+        reader = sdfio_reader_new(NULL);
+        CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
+        sdfio_reader_free(reader);
+        memcpy(copy, data, size);
+        copy[0] = 'B';
+        reader = sdfio_reader_new(NULL);
+        CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
+        sdfio_reader_free(reader);
         free(copy);
 
         /* A byte order mark in front of the magic is not an SDF file. */
@@ -364,6 +386,7 @@ static void check_huge_count(void)
     header.data_type = SDFIO_DATA_BINARY64;
     header.columns = UINT32_MAX;
     header.rows = 1U << 29;
+    header.z_scale = 1.0;
     unsigned char bytes[SDFIO_BINARY_HEADER_MAX + 16] = {0};
     size_t size = 0;
     sdfio_message message = {0};
@@ -376,6 +399,98 @@ static void check_huge_count(void)
     size_t trailer_size = 0;
     CHECK(sdfio_read_trailer(reader, &trailer, &trailer_size) != SDFIO_OK);
     sdfio_reader_free(reader);
+}
+
+/* Appends a line to a text. */
+static void add_line(char *text, size_t capacity, const char *name,
+                     const char *value, const char *line_end)
+{
+    const size_t used = strlen(text);
+    const int written =
+        snprintf(text + used, capacity - used, "%s%s%s", name, value, line_end);
+    CHECK(written >= 0 && (size_t)written < capacity - used);
+}
+
+/* The status of opening an ASCII file whose header is as given. */
+static sdfio_status open_ascii(const char *magic, const char *id,
+                               const char *date, const char *points,
+                               const char *z_scale, const char *line_end)
+{
+    char text[512] = "";
+    add_line(text, sizeof text, magic, "", line_end);
+    add_line(text, sizeof text, "ManufacID = ", id, line_end);
+    add_line(text, sizeof text, "CreateDate = ", date, line_end);
+    add_line(text, sizeof text, "ModDate = ", date, line_end);
+    add_line(text, sizeof text, "NumPoints = ", points, line_end);
+    add_line(text, sizeof text, "NumProfiles = 1", "", line_end);
+    add_line(text, sizeof text, "Xscale = 1.00000000000000e-006", "", line_end);
+    add_line(text, sizeof text, "Yscale = 1.00000000000000e-006", "", line_end);
+    add_line(text, sizeof text, "Zscale = ", z_scale, line_end);
+    add_line(text, sizeof text, "Zresolution = -1", "", line_end);
+    add_line(text, sizeof text, "Compression = 0", "", line_end);
+    add_line(text, sizeof text, "DataType = 7", "", line_end);
+    add_line(text, sizeof text, "CheckType = 0", "", line_end);
+    add_line(text, sizeof text, "*", "", line_end);
+    add_line(text, sizeof text, "1.00000000000000e+000", "", line_end);
+    add_line(text, sizeof text, "*", "", line_end);
+    add_line(text, sizeof text, "*", "", line_end);
+    sdfio_reader *reader = sdfio_reader_new(NULL);
+    const sdfio_status status = sdfio_open_memory(reader, text, strlen(text));
+    sdfio_reader_free(reader);
+    return status;
+}
+
+/* What the standard demands of a header, and the reader holds to. */
+static void check_standard_rules(void)
+{
+    const char *const crlf = "\r\n";
+    const char *const good_z = "1.00000000000000e-009";
+    CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, crlf));
+    CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, "\n"));
+    /* The magic starts with a lower case a or b, and names a revision. */
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("AISO-2.0", "test", "010120261200", "1", good_z, crlf));
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("aBCR-1.0", "test", "010120261200", "1", good_z, crlf));
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("aISO-3.0", "test", "010120261200", "1", good_z, crlf));
+    /* A lone CR does not end a line. */
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, "\r"));
+    /* The z-scale is a non-zero positive number. */
+    CHECK_STATUS(SDFIO_ERR_FORMAT, open_ascii("aISO-2.0", "test",
+                                              "010120261200", "1", "0", crlf));
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("aISO-2.0", "test", "010120261200", "1", "-1.0e-009", crlf));
+    /* A date is DDMMYYYYhhmm with the ranges of the fields. */
+    const char *const bad_dates[] = {
+        "000000000000", "320120261200",  "310220261200",
+        "011320261200", "010120262400",  "010120261260",
+        "01012026120",  "0101202612000", "01-01-2026 12"};
+    for (size_t i = 0; i < sizeof bad_dates / sizeof bad_dates[0]; ++i)
+    {
+        CHECK_STATUS(
+            SDFIO_ERR_FORMAT,
+            open_ascii("aISO-2.0", "test", bad_dates[i], "1", good_z, crlf));
+    }
+    /* The identifier has 10 characters at most. */
+    CHECK_OK(open_ascii("aISO-2.0", "0123456789", "010120261200", "1", good_z,
+                        crlf));
+    CHECK_STATUS(SDFIO_ERR_FORMAT,
+                 open_ascii("aISO-2.0", "01234567890", "010120261200", "1",
+                            good_z, crlf));
+    /* The counts are 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
+    CHECK_STATUS(
+        SDFIO_ERR_FORMAT,
+        open_ascii("aISO-1.0", "test", "010120261200", "65536", good_z, crlf));
+    CHECK_STATUS(SDFIO_ERR_FORMAT,
+                 open_ascii("aISO-2.0", "test", "010120261200", "4294967296",
+                            good_z, crlf));
 }
 
 /* A sink that fails. */
@@ -422,5 +537,6 @@ int main(void)
     check_file();
     check_huge_count();
     check_failing_sink();
+    check_standard_rules();
     return finish_tests();
 }

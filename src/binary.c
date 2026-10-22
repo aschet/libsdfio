@@ -107,6 +107,13 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
     const unsigned char *at = bytes + SDFIO_MAGIC_SIZE;
     copy_identifier(header, at);
     at += SDFIO_ID_SIZE;
+    if (!sdfio_date_is_valid((const char *)at, SDFIO_DATE_SIZE)
+        || !sdfio_date_is_valid((const char *)at + SDFIO_DATE_SIZE,
+                                SDFIO_DATE_SIZE))
+    {
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "A date of the SDF header is not valid");
+    }
     const time_t created =
         sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision, zone);
     at += SDFIO_DATE_SIZE;

@@ -252,6 +252,15 @@ static sdfio_status header_coded(const sdfio_string *header_text,
                : invalid_value(message);
 }
 
+/* The characters of an identifier without the white space around them. */
+static size_t identifier_size(field_text identifier)
+{
+    const char *text = identifier.text;
+    size_t size = identifier.size;
+    sdfio_trim(&text, &size);
+    return size;
+}
+
 static void copy_identifier(sdfio_header *header, const char *text, size_t size)
 {
     sdfio_trim(&text, &size);
@@ -481,6 +490,28 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                          &modified, &resolution, message);
     if (status != SDFIO_OK)
     {
+        goto done;
+    }
+    if (!sdfio_date_is_valid(created.text, created.size)
+        || !sdfio_date_is_valid(modified.text, modified.size))
+    {
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "A date of the SDF header is not valid");
+        goto done;
+    }
+    if (header->columns > sdfio_max_count(revision)
+        || header->rows > sdfio_max_count(revision))
+    {
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "A count in the SDF header is out of range for the "
+                            "revision");
+        goto done;
+    }
+    if (identifier_size(identifier) > SDFIO_ID_SIZE)
+    {
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "The manufacturer identifier of the SDF header has "
+                            "more than 10 characters");
         goto done;
     }
     header->revision = revision;

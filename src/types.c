@@ -158,7 +158,7 @@ bool sdfio_revision_from_text(const char *text, size_t size,
     return false;
 }
 
-size_t sdfio_max_binary_count(sdfio_revision revision)
+size_t sdfio_max_count(sdfio_revision revision)
 {
     return revision == SDFIO_ISO_2_0 ? UINT32_MAX : UINT16_MAX;
 }

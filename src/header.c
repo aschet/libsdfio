@@ -12,10 +12,10 @@
 
 #include "internal.h"
 
-sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
-                               const sdfio_point *point,
-                               const sdfio_time_zone *zone,
-                               sdfio_message *message)
+static sdfio_status parse_header(sdfio_source *source, sdfio_header *header,
+                                 const sdfio_point *point,
+                                 const sdfio_time_zone *zone,
+                                 sdfio_message *message)
 {
     const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
     if (available < SDFIO_MAGIC_SIZE)
@@ -54,6 +54,24 @@ sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
                                            "SDF header");
     }
     return sdfio_binary_parse(bytes, header, zone, message);
+}
+
+sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
+                               const sdfio_point *point,
+                               const sdfio_time_zone *zone,
+                               sdfio_message *message)
+{
+    const sdfio_status status =
+        parse_header(source, header, point, zone, message);
+    /* The z-scale is a non-zero positive number. */
+    if (status == SDFIO_OK
+        && !(header->z_scale > 0.0 && isfinite(header->z_scale)))
+    {
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The z-scale of an SDF file has to be a positive "
+                          "number");
+    }
+    return status;
 }
 
 static bool is_ascii_text(const char *text, size_t size)
@@ -144,13 +162,12 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "columns times rows does not fit in size_t");
     }
-    if (header->representation == SDFIO_BINARY
-        && (header->columns > sdfio_max_binary_count(header->revision)
-            || header->rows > sdfio_max_binary_count(header->revision)))
+    if (header->columns > sdfio_max_count(header->revision)
+        || header->rows > sdfio_max_count(header->revision))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The columns or the rows do not fit the binary "
-                          "header of the SDF revision");
+                          "The columns or the rows do not fit the header of "
+                          "the SDF revision");
     }
     return SDFIO_OK;
 }

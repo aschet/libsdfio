@@ -351,11 +351,12 @@ static inline bool sdfio_requires_utc(sdfio_revision revision)
 }
 
 /**
- * Returns the largest number of columns or rows of a binary file.
+ * Returns the largest number of columns or rows of a revision: the header
+ * holds them as 2 bytes in ISO-1.0 and as 4 bytes in ISO-2.0.
  *
  * @param revision The revision.
  */
-size_t sdfio_max_binary_count(sdfio_revision revision);
+size_t sdfio_max_count(sdfio_revision revision);
 
 /**
  * Returns the size of the binary header of a revision.
@@ -634,14 +635,23 @@ bool sdfio_date_format(time_t time, sdfio_revision revision,
 bool sdfio_date_representable(time_t time);
 
 /**
+ * Tells whether a text is a date as the standard has it: DDMMYYYYhhmm with the
+ * ranges of the fields, and a day that the month has.
+ *
+ * @param text The field.
+ * @param size The length of the field.
+ */
+bool sdfio_date_is_valid(const char *text, size_t size);
+
+/**
  * Parses the field of a date.
  *
  * @param text The field.
  * @param size The length of the field.
  * @param revision The revision of the file.
  * @param zone The time zone of the caller. May be null.
- * @return The time in UTC, or SDFIO_NO_TIME if the field is not a date or the
- * time zone cannot convert it.
+ * @return The time in UTC, or SDFIO_NO_TIME if the field is not a valid date
+ * (see sdfio_date_is_valid()) or the time zone cannot convert it.
  */
 time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
                         const sdfio_time_zone *zone);

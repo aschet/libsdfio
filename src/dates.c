@@ -206,44 +206,68 @@ static int digits_at(const char *text, size_t at, size_t count)
     return number;
 }
 
-time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
-                        const sdfio_time_zone *zone)
+/** The fields of a date in the text DDMMYYYYhhmm. */
+typedef struct date_fields
+{
+    /** The year, 1 to 9999. */
+    int year;
+    /** The month, 1 to 12. */
+    int month;
+    /** The day of the month. */
+    int day;
+    /** The hour, 0 to 23. */
+    int hour;
+    /** The minute, 0 to 59. */
+    int minute;
+} date_fields;
+
+/* The fields of a date, if the text has the ranges of the standard and a day
+ * that the month has. */
+static bool read_date(const char *text, size_t size, date_fields *fields)
 {
     sdfio_trim(&text, &size);
     if (size != SDFIO_DATE_SIZE)
     {
-        return SDFIO_NO_TIME;
+        return false;
     }
-    bool all_zero = true;
     for (size_t i = 0; i < size; ++i)
     {
         if (!sdfio_is_digit(text[i]))
         {
-            return SDFIO_NO_TIME;
+            return false;
         }
-        all_zero = all_zero && text[i] == '0';
     }
-    if (all_zero)
+    fields->day = digits_at(text, DAY_AT, TWO_DIGITS);
+    fields->month = digits_at(text, MONTH_AT, TWO_DIGITS);
+    fields->year = digits_at(text, YEAR_AT, YEAR_DIGITS);
+    fields->hour = digits_at(text, HOUR_AT, TWO_DIGITS);
+    fields->minute = digits_at(text, MINUTE_AT, TWO_DIGITS);
+    return fields->year >= SDFIO_FIRST_YEAR && fields->month >= 1
+           && fields->month <= MONTHS_PER_YEAR && fields->day >= 1
+           && (unsigned)fields->day
+                  <= days_in_month(fields->year, (unsigned)fields->month)
+           && fields->hour < HOURS_PER_DAY && fields->minute < MINUTES_PER_HOUR;
+}
+
+bool sdfio_date_is_valid(const char *text, size_t size)
+{
+    date_fields fields;
+    return read_date(text, size, &fields);
+}
+
+time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
+                        const sdfio_time_zone *zone)
+{
+    date_fields fields;
+    if (!read_date(text, size, &fields))
     {
         return SDFIO_NO_TIME;
     }
-    const int day = digits_at(text, DAY_AT, TWO_DIGITS);
-    const int month = digits_at(text, MONTH_AT, TWO_DIGITS);
-    const int year = digits_at(text, YEAR_AT, YEAR_DIGITS);
-    const int hour = digits_at(text, HOUR_AT, TWO_DIGITS);
-    const int minute = digits_at(text, MINUTE_AT, TWO_DIGITS);
-    if (year < SDFIO_FIRST_YEAR || month < 1 || month > MONTHS_PER_YEAR
-        || day < 1 || hour >= HOURS_PER_DAY || minute >= MINUTES_PER_HOUR)
-    {
-        return SDFIO_NO_TIME;
-    }
-    if ((unsigned)day > days_in_month(year, (unsigned)month))
-    {
-        return SDFIO_NO_TIME;
-    }
-    const int64_t days = days_from_civil(year, (unsigned)month, (unsigned)day);
-    const int64_t clock =
-        days * MINUTES_PER_DAY + (int64_t)hour * MINUTES_PER_HOUR + minute;
+    const int64_t days = days_from_civil(fields.year, (unsigned)fields.month,
+                                         (unsigned)fields.day);
+    const int64_t clock = days * MINUTES_PER_DAY
+                          + (int64_t)fields.hour * MINUTES_PER_HOUR
+                          + fields.minute;
     time_t date = 0;
     if (!seconds_to_time(clock * SECONDS_PER_MINUTE, &date))
     {

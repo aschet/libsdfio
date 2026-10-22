@@ -595,7 +595,7 @@ static void check_rows_without_columns(void)
     sdfio_header header;
     describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY32);
     header.columns = 0;
-    header.rows = sdfio_max_binary_count(SDFIO_ISO_2_0);
+    header.rows = sdfio_max_count(SDFIO_ISO_2_0);
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
