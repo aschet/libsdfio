@@ -8,8 +8,8 @@
  * @file
  * Reading and writing of ISO 25178-71 SDF surface data files.
  *
- * The revisions ISO-1.0, ISO-2.0 and BCR-1.0 are supported, each in the ASCII
- * and in the binary representation. An SDF file consists of three records: the
+ * The revisions ISO-1.0 and ISO-2.0 are supported, each in the ASCII and in the
+ * binary representation. An SDF file consists of three records: the
  * header (record 1), the data area (record 2) and the trailer (record 3).
  *
  * @par Layers
@@ -75,9 +75,8 @@
  * version.
  *
  * @par Limitations
- * Compressed and checksummed data areas are not supported. Comments in BCR-1.0
- * files are discarded when a file is read. Rows of a binary file cannot be read
- * at random.
+ * Compressed and checksummed data areas are not supported. Rows of a file can
+ * be read only in order.
  *
  * @par Thread safety
  * The library has no global state. Distinct handles can be used concurrently by
@@ -160,9 +159,7 @@ typedef enum sdfio_revision
     /** Revision ISO-1.0. */
     SDFIO_ISO_1_0,
     /** Revision ISO-2.0. */
-    SDFIO_ISO_2_0,
-    /** Revision BCR-1.0. */
-    SDFIO_BCR_1_0
+    SDFIO_ISO_2_0
 } sdfio_revision;
 
 /** Representation of a file. */
@@ -317,7 +314,7 @@ typedef struct sdfio_header
      * A file that is read can have none (SDFIO_NO_TIME). A file that is written
      * requires one; sdfio_header_init() sets the current time.
      *
-     * ISO-2.0 files store UTC. ISO-1.0 and BCR-1.0 files store the local clock
+     * ISO-2.0 files store UTC. ISO-1.0 files store the local clock
      * of the writer, without a time zone. The library does not know the zone,
      * so it keeps such a clock reading as it is, as if it were UTC, unless
      * the configuration supplies an sdfio_time_zone.
@@ -346,61 +343,22 @@ typedef struct sdfio_header
 SDFIO_API void sdfio_header_init(sdfio_header *header);
 
 /**
- * Returns true if the first row stored in a file of a revision has the largest
- * y. This is the case for BCR-1.0. ISO-1.0 and ISO-2.0 store the row with y = 0
- * first.
- *
- * sdfio_read_heights() and sdfio_write_heights() always place y = 0 first and
- * reverse the rows as needed. sdfio_read_data() and sdfio_write_data() keep the
- * order of the file; the caller applies sdfio_row_y().
- *
- * @param[in] revision The revision.
- */
-SDFIO_API bool sdfio_rows_reversed(sdfio_revision revision);
-
-/**
- * Returns the y of the n-th row stored in a file, counting from 0: n for
- * ISO-1.0 and ISO-2.0, rows - 1 - n for BCR-1.0.
- *
- * A program that processes rows one at a time and obtains each y from this
- * function is correct for every revision:
- *
- * ~~~
- * for (size_t n = 0; n < header.rows; ++n)
- * {
- *     scan_row(sdfio_row_y(&header, n), row);
- *     sdfio_write_data(writer, row, 1);
- * }
- * ~~~
- *
- * @param[in] header The header of the file.
- * @param file_row The index of the row in the order of the file.
- */
-SDFIO_API size_t sdfio_row_y(const sdfio_header *header, size_t file_row);
-
-/**
  * Returns true if a value of the data area is the bad value, which labels a
- * point that is not measured or spurious. For the floating point data types of
- * BCR-1.0 the bad value is a threshold: every value at or above it is bad.
+ * point that is not measured or spurious.
  *
  * @param type The data type of the value.
- * @param revision The revision of the file.
  * @param value The value of the data area.
  */
-SDFIO_API bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
-                                  double value);
+SDFIO_API bool sdfio_is_bad_value(sdfio_data_type type, double value);
 
 /**
- * Returns the bad value of a data type in a revision: the number that labels a
- * point as not measured or spurious. In ISO-1.0 and ISO-2.0 it is the minimum
- * of the type, which the standard excludes for a valid height. In BCR-1.0 it is
- * the maximum. ASCII files of ISO-1.0 and ISO-2.0 denote it by the string
- * `BAD`.
+ * Returns the bad value of a data type: the number that labels a point as not
+ * measured or spurious. It is the minimum of the type, which the standard
+ * excludes for a valid height. ASCII files denote it by the string `BAD`.
  *
  * @param type The data type.
- * @param revision The revision.
  */
-SDFIO_API double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision);
+SDFIO_API double sdfio_bad_value(sdfio_data_type type);
 
 /* ---- Streams ------------------------------------------------------------ */
 
@@ -451,8 +409,8 @@ typedef struct sdfio_allocator
 } sdfio_allocator;
 
 /**
- * Conversion of the dates of ISO-1.0 and BCR-1.0 files between the local clock
- * of the writer and UTC.
+ * Conversion of the dates of ISO-1.0 files between the local clock of the
+ * writer and UTC.
  *
  * These files store the clock reading without a time zone, and only the
  * program can know the zone, including its rules for daylight saving time. The
@@ -507,7 +465,7 @@ typedef struct sdfio_config
      */
     size_t chunk_values;
     /**
-     * Conversion of the dates of ISO-1.0 and BCR-1.0 files. The structure is
+     * Conversion of the dates of ISO-1.0 files. The structure is
      * copied, so it need not outlive the call that receives it. Null selects no
      * conversion.
      */
@@ -651,8 +609,7 @@ SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
  * an ASCII file of binary32 values is rounded to single precision. Use
  * sdfio_decode_heights() to obtain heights in metres.
  *
- * The first row read is the first row stored in the file. In BCR-1.0 it has the
- * largest y; sdfio_row_y() gives the y of every row in every revision.
+ * The first row read is the first row stored in the file, the row with y = 0.
  *
  * After an error the reader rejects further reads.
  *
@@ -856,9 +813,8 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * byte order of the machine, in the order of the file. The bad value is written
  * unchanged.
  *
- * The first row written is the first row stored in the file. In BCR-1.0 it has
- * the largest y. A program that produces one row at a time obtains the y of
- * each row from sdfio_row_y() and is correct for every revision.
+ * The first row written is the first row stored in the file, the row with
+ * y = 0.
  *
  * @param writer The writer.
  * @param[in] src The values to write.
@@ -1005,12 +961,10 @@ SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
  * data type.
  *
  * @param type The data type.
- * @param revision The revision.
  * @param lowest The lowest height in metres.
  * @param highest The highest height in metres.
  */
-SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
-                                         sdfio_revision revision, double lowest,
+SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
                                          double highest);
 
 /**
@@ -1021,7 +975,6 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
  * integer data type.
  *
  * @param type The data type.
- * @param revision The revision.
  * @param format The format of the buffer.
  * @param[in] heights The heights.
  * @param rows The number of rows.
@@ -1030,7 +983,6 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  */
 SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
-                                             sdfio_revision revision,
                                              sdfio_format format,
                                              const void *heights, size_t rows,
                                              size_t columns, double *z_scale);

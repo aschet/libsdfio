@@ -113,11 +113,10 @@ static void check_the_text_is_written_as_given(void)
     const char *const trailers[] = {"free text, not a field",
                                     "Caf\xC3\xA9 = 1\xFF", "A = 1\n\n\nB",
                                     "no = field = twice"};
-    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
-                                        SDFIO_BCR_1_0};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     for (size_t t = 0; t < sizeof trailers / sizeof trailers[0]; ++t)
     {
-        for (size_t r = 0; r < 3; ++r)
+        for (size_t r = 0; r < 2; ++r)
         {
             sdfio_header header;
             sdfio_header_init(&header);

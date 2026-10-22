@@ -33,10 +33,10 @@
 
 /**
  * @example counts.c
- * Writes and reads the integer counts of a scanner as 16-bit values in an
- * ISO-2.0 file and in a BCR-1.0 file. The rows are written in the order of the
- * file with sdfio_row_y(), and the points that are not measured carry the bad
- * value, which sdfio_is_bad_value() recognizes when reading.
+ * Writes and reads the integer counts of a scanner as 16-bit values, row by
+ * row, with sdfio_write_data() and sdfio_read_data(). The points that are not
+ * measured carry the bad value, which sdfio_is_bad_value() recognizes when
+ * reading.
  */
 
 /**

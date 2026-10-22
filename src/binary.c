@@ -75,8 +75,8 @@ sdfio_status sdfio_binary_revision(const unsigned char *magic,
 }
 
 /* The identifier up to the first 0, without the white space at its end:
- * BCR-1.0 lets a string that is shorter than its field end in a 0, and some
- * ISO writers do the same instead of filling the field with spaces. */
+ * some writers end a string that is shorter than its field in a 0, instead of
+ * filling the field with spaces. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
     size_t size = 0;

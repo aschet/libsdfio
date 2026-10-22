@@ -402,9 +402,9 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
     if (header->z_scale == SDFIO_AUTO_Z_SCALE
         && !sdfio_is_floating(header->data_type))
     {
-        status = sdfio_suggest_z_scale(header->data_type, header->revision,
-                                       format, src, header->rows,
-                                       header->columns, &header->z_scale);
+        status =
+            sdfio_suggest_z_scale(header->data_type, format, src, header->rows,
+                                  header->columns, &header->z_scale);
         if (status != SDFIO_OK)
         {
             return status;
@@ -418,9 +418,8 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
     const size_t valued_rows = header->columns > 0 ? header->rows : 0;
     for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
-        const unsigned char *row =
-            (const unsigned char *)src
-            + (ptrdiff_t)sdfio_row_y(header, file_row) * format.row_stride;
+        const unsigned char *row = (const unsigned char *)src
+                                   + (ptrdiff_t)file_row * format.row_stride;
         for (size_t first = 0; first < header->columns;
              first += writer->chunk_values)
         {

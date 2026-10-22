@@ -41,7 +41,7 @@ static time_t read_creation_date(const sdfio_config *config, const char *path)
     return date;
 }
 
-/* The files of ISO-1.0 and BCR-1.0 hold the clock of the writer, whose time
+/* The files of ISO-1.0 hold the clock of the writer, whose time
  * zone they do not record. With a time zone the library converts the dates, and
  * without one the clock reading is the date. */
 int main(void)

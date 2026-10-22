@@ -283,9 +283,8 @@ static sdfio_status finish_data(sdfio_reader *reader)
     if (header->representation == SDFIO_ASCII)
     {
         const sdfio_status status =
-            all_read
-                ? sdfio_ascii_finish(&reader->source, header, &reader->message)
-                : sdfio_ascii_skip(&reader->source, header, &reader->message);
+            all_read ? sdfio_ascii_finish(&reader->source, &reader->message)
+                     : sdfio_ascii_skip(&reader->source, &reader->message);
         if (status != SDFIO_OK)
         {
             return status;
@@ -390,8 +389,7 @@ sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
     for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
         unsigned char *row =
-            (unsigned char *)dst
-            + (ptrdiff_t)sdfio_row_y(header, file_row) * format.row_stride;
+            (unsigned char *)dst + (ptrdiff_t)file_row * format.row_stride;
         for (size_t first = 0; first < header->columns;
              first += reader->chunk_values)
         {
@@ -445,9 +443,9 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
     if (status == SDFIO_OK)
     {
         status = reader->header.representation == SDFIO_ASCII
-                     ? sdfio_ascii_trailer(
-                           &reader->source, &reader->header, &reader->trailer,
-                           &reader->trailer_present, &reader->message)
+                     ? sdfio_ascii_trailer(&reader->source, &reader->trailer,
+                                           &reader->trailer_present,
+                                           &reader->message)
                      : sdfio_binary_trailer(&reader->source, &reader->trailer,
                                             &reader->trailer_present,
                                             &reader->message);

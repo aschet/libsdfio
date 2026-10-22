@@ -91,7 +91,7 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
         return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
                           "Text SDF files are not supported by this build");
     }
-    if ((unsigned)header->revision > (unsigned)SDFIO_BCR_1_0
+    if ((unsigned)header->revision > (unsigned)SDFIO_ISO_2_0
         || (header->representation != SDFIO_BINARY
             && header->representation != SDFIO_ASCII)
         || !sdfio_valid_data_type(header->data_type))

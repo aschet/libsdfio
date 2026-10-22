@@ -14,7 +14,6 @@
 #include "internal.h"
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
-#define BCR_SAMPLES SDFIO_TEST_DATA_DIR "/samples/bcr-1.0/"
 
 static unsigned char *load(const char *path, size_t *size)
 {
@@ -87,8 +86,7 @@ static void check_pipe(const char *path, size_t piece)
         double *heights =
             malloc(header->rows * header->columns * sizeof(double));
         CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT64, heights));
-        /* The same heights, in the same places, as from memory: also for
-         * BCR-1.0, whose rows are reversed in the file. */
+        /* The same heights, in the same places, as from memory. */
         sdfio_reader *in_memory = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
@@ -413,15 +411,15 @@ int main(void)
     {
         check_pipe(SAMPLES "iso2_surface_binary.sdf", pieces[i]);
         check_pipe(SAMPLES "iso2_surface_ascii.sdf", pieces[i]);
-        check_pipe(BCR_SAMPLES "bcr1_surface_ascii.sdf", pieces[i]);
-        check_pipe(BCR_SAMPLES "bcr1_surface_binary.sdf", pieces[i]);
+        check_pipe(SAMPLES "iso1_surface_ascii.sdf", pieces[i]);
+        check_pipe(SAMPLES "iso1_surface_binary.sdf", pieces[i]);
     }
     check_failing_stream();
     check_header_errors();
     check_damage(SAMPLES "iso2_surface_binary.sdf");
     check_damage(SAMPLES "iso1_surface_ascii.sdf");
-    check_damage(BCR_SAMPLES "bcr1_surface_ascii.sdf");
-    check_damage(BCR_SAMPLES "bcr1_surface_binary.sdf");
+    check_damage(SAMPLES "iso1_surface_binary.sdf");
+    check_damage(SAMPLES "iso2_surface_ascii.sdf");
     check_file();
     check_huge_count();
     check_failing_sink();

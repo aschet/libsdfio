@@ -95,14 +95,12 @@ static void check_utc(void)
     CHECK(strcmp(text, "311219692359") == 0);
 }
 
-/* The clock reading of ISO-1.0 and BCR-1.0 is kept as it is without a time
- * zone. */
+/* The clock reading of ISO-1.0 is kept as it is without a time zone. */
 static void check_without_zone(void)
 {
     char text[SDFIO_DATE_SIZE + 1];
-    static const sdfio_revision local_revisions[] = {SDFIO_ISO_1_0,
-                                                     SDFIO_BCR_1_0};
-    for (size_t i = 0; i < 2; ++i)
+    static const sdfio_revision local_revisions[] = {SDFIO_ISO_1_0};
+    for (size_t i = 0; i < 1; ++i)
     {
         CHECK(sdfio_date_parse("040320260506", SDFIO_DATE_SIZE,
                                local_revisions[i], NULL)
@@ -156,9 +154,8 @@ static void check_time_zone(void)
     const sdfio_time_zone zone = {NULL, central_europe_to_utc,
                                   central_europe_to_local};
     char text[SDFIO_DATE_SIZE + 1];
-    static const sdfio_revision local_revisions[] = {SDFIO_ISO_1_0,
-                                                     SDFIO_BCR_1_0};
-    for (size_t i = 0; i < 2; ++i)
+    static const sdfio_revision local_revisions[] = {SDFIO_ISO_1_0};
+    for (size_t i = 0; i < 1; ++i)
     {
         /* 12:00 on the clock is 10:00 UTC in summer and 11:00 UTC in winter. */
         CHECK(sdfio_date_parse("010720261200", SDFIO_DATE_SIZE,

@@ -27,28 +27,25 @@ static void scan(int16_t *row, size_t y, int16_t not_measured)
     }
 }
 
-static int write_counts(const char *path, sdfio_revision revision)
+static int write_counts(const char *path)
 {
     sdfio_header header;
     sdfio_header_init(&header);
-    header.revision = revision;
     header.data_type = SDFIO_DATA_INT16;
     header.columns = COLUMNS;
     header.rows = ROWS;
     header.x_scale = 2e-6;
     header.y_scale = 2e-6;
-    header.z_scale = sdfio_z_scale_for_range(header.data_type, header.revision,
-                                             -80e-6, 80e-6);
+    header.z_scale = sdfio_z_scale_for_range(header.data_type, -80e-6, 80e-6);
     header.z_resolution = header.z_scale;
 
-    const int16_t not_measured =
-        (int16_t)sdfio_bad_value(header.data_type, header.revision);
+    const int16_t not_measured = (int16_t)sdfio_bad_value(header.data_type);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
     for (size_t n = 0; n < header.rows && status == SDFIO_OK; ++n)
     {
-        scan(row, sdfio_row_y(&header, n), not_measured);
+        scan(row, n, not_measured);
         status = sdfio_write_data(writer, row, 1);
     }
     if (status == SDFIO_OK)
@@ -83,8 +80,7 @@ static int read_counts(const char *path)
     {
         status = SDFIO_ERR_MEMORY;
     }
-    const int16_t not_measured =
-        (int16_t)sdfio_bad_value(header->data_type, header->revision);
+    const int16_t not_measured = (int16_t)sdfio_bad_value(header->data_type);
     size_t unmeasured = 0;
     size_t measured = 0;
     size_t out_of_place = 0;
@@ -92,12 +88,12 @@ static int read_counts(const char *path)
     for (size_t n = 0; status == SDFIO_OK && n < header->rows; ++n)
     {
         status = sdfio_read_data(reader, row, 1);
-        scan(expected, sdfio_row_y(header, n), not_measured);
+        scan(expected, n, not_measured);
         out_of_place +=
             memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;
         for (size_t x = 0; status == SDFIO_OK && x < header->columns; ++x)
         {
-            if (sdfio_is_bad_value(header->data_type, header->revision, row[x]))
+            if (sdfio_is_bad_value(header->data_type, row[x]))
             {
                 ++unmeasured;
             }
@@ -131,9 +127,6 @@ static int read_counts(const char *path)
 
 int main(void)
 {
-    int failed = write_counts("counts.sdf", SDFIO_ISO_2_0);
-    failed = failed == EXIT_SUCCESS ? read_counts("counts.sdf") : failed;
-    failed = failed == EXIT_SUCCESS ? write_counts("bcr.sdf", SDFIO_BCR_1_0)
-                                    : failed;
-    return failed == EXIT_SUCCESS ? read_counts("bcr.sdf") : failed;
+    const int failed = write_counts("counts.sdf");
+    return failed == EXIT_SUCCESS ? read_counts("counts.sdf") : failed;
 }

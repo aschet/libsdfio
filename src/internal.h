@@ -354,48 +354,6 @@ static inline bool sdfio_requires_utc(sdfio_revision revision)
 }
 
 /**
- * Tells whether a revision marks a point that is not measured with the highest
- * number of a data type.
- *
- * @param revision The revision.
- */
-static inline bool sdfio_bad_is_maximum(sdfio_revision revision)
-{
-    return revision == SDFIO_BCR_1_0;
-}
-
-/**
- * Tells whether the header of an ASCII file of a revision may have comments.
- *
- * @param revision The revision.
- */
-static inline bool sdfio_allows_comments(sdfio_revision revision)
-{
-    return revision == SDFIO_BCR_1_0;
-}
-
-/**
- * Tells whether a revision lets the header of an ASCII file hold symbols.
- *
- * @param revision The revision.
- */
-static inline bool sdfio_allows_symbols(sdfio_revision revision)
-{
-    return revision == SDFIO_BCR_1_0;
-}
-
-/**
- * Tells whether an ASCII file of a revision writes BAD for a point that is not
- * measured.
- *
- * @param revision The revision.
- */
-static inline bool sdfio_has_bad_token(sdfio_revision revision)
-{
-    return revision != SDFIO_BCR_1_0;
-}
-
-/**
  * Returns the largest number of columns or rows of a binary file.
  *
  * @param revision The revision.
@@ -410,51 +368,6 @@ size_t sdfio_max_binary_count(sdfio_revision revision);
 size_t sdfio_binary_header_size(sdfio_revision revision);
 
 /* ---- Values -------------------------------------------------------------- */
-
-/**
- * A test for the number that marks a point as not measured.
- *
- * BCR-1.0 treats every floating point number from a threshold up as one.
- */
-typedef struct sdfio_bad_test
-{
-    /** True if every number from `value` up marks a point, false if only
-     * `value` does. */
-    bool at_least;
-    /** The number, or the threshold. */
-    double value;
-} sdfio_bad_test;
-
-/**
- * Returns the test for a point that is not measured.
- *
- * @param type The data type of the data area.
- * @param revision The revision.
- */
-sdfio_bad_test sdfio_bad_test_for(sdfio_data_type type,
-                                  sdfio_revision revision);
-
-/**
- * Tells whether a stored number marks a point that is not measured.
- *
- * The function is inline because every value of the data area is tested.
- *
- * @param test The test.
- * @param coded The number as stored.
- */
-static inline bool sdfio_matches(sdfio_bad_test test, double coded)
-{
-    return test.at_least ? coded >= test.value : coded == test.value;
-}
-
-/**
- * Returns the number that an ASCII file writes for a point that is not
- * measured, in BCR-1.0.
- *
- * @param type The data type of the data area.
- * @param revision The revision.
- */
-double sdfio_ascii_bad_value(sdfio_data_type type, sdfio_revision revision);
 
 /** Tells whether the machine stores the least significant byte first. */
 bool sdfio_host_is_little_endian(void);
@@ -702,7 +615,7 @@ time_t sdfio_now(void);
 /**
  * Formats the field of a date.
  *
- * A file of ISO-1.0 or BCR-1.0 holds the local clock of the writer: the time
+ * A file of ISO-1.0 holds the local clock of the writer: the time
  * zone of the caller converts it, and without one the clock reading is the
  * date.
  *
@@ -1213,37 +1126,30 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
  * Reads the closing "*" of a data area that all its values were read from.
  *
  * @param source The source.
- * @param header The header of the file.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The data area does not end here.
  */
-sdfio_status sdfio_ascii_finish(sdfio_source *source,
-                                const sdfio_header *header,
-                                sdfio_message *message);
+sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message);
 
 /**
  * Passes the values up to the closing "*".
  *
  * @param source The source.
- * @param header The header of the file.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The data area is damaged.
  */
-sdfio_status sdfio_ascii_skip(sdfio_source *source, const sdfio_header *header,
-                              sdfio_message *message);
+sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message);
 
 /**
  * Reads the trailer record of an ASCII file.
  *
  * @param source The source, after the data area.
- * @param header The header of the file.
  * @param[in,out] out Receives the trailer.
  * @param[out] present False if the file ends with the data.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The record is damaged.
  */
-sdfio_status sdfio_ascii_trailer(sdfio_source *source,
-                                 const sdfio_header *header, sdfio_string *out,
+sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
                                  bool *present, sdfio_message *message);
 
 /**

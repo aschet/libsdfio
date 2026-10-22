@@ -51,14 +51,14 @@ static void check_decode(void)
                                       sdfio_format_packed(SDFIO_FLOAT32), large,
                                       2, narrow));
 
-    /* In BCR-1.0 the maximum marks the point, and a float from a threshold. */
-    const sdfio_header bcr =
-        description(SDFIO_BCR_1_0, SDFIO_DATA_BINARY32, 1.0);
-    const float floats[] = {1.5f, 3.4e38f, FLT_MAX};
+    /* The minimum of a binary32 marks the point. */
+    const sdfio_header binary =
+        description(SDFIO_ISO_2_0, SDFIO_DATA_BINARY32, 1.0);
+    const float floats[] = {1.5f, -FLT_MAX, FLT_MAX};
     double back[3];
-    CHECK_OK(sdfio_decode_heights(&bcr, sdfio_format_packed(SDFIO_FLOAT64),
+    CHECK_OK(sdfio_decode_heights(&binary, sdfio_format_packed(SDFIO_FLOAT64),
                                   floats, 3, back));
-    CHECK(back[0] == 1.5 && isnan(back[1]) && isnan(back[2]));
+    CHECK(back[0] == 1.5 && isnan(back[1]) && back[2] == (double)FLT_MAX);
 
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_decode_heights(NULL, sdfio_format_packed(SDFIO_FLOAT64),
@@ -95,16 +95,11 @@ static void check_encode(void)
                                       sdfio_format_packed(SDFIO_FLOAT64),
                                       marker, 1, coded));
 
-    /* BCR-1.0 keeps the maximum, and the minimum is a height. */
-    const sdfio_header bcr = description(SDFIO_BCR_1_0, SDFIO_DATA_INT16, 1e-9);
+    /* The maximum is a height. */
     const double top[] = {32767e-9};
-    const double bottom[] = {-32768e-9};
-    CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
-                 sdfio_encode_heights(&bcr, sdfio_format_packed(SDFIO_FLOAT64),
-                                      top, 1, coded));
-    CHECK_OK(sdfio_encode_heights(&bcr, sdfio_format_packed(SDFIO_FLOAT64),
-                                  bottom, 1, coded));
-    CHECK(coded[0] == INT16_MIN);
+    CHECK_OK(sdfio_encode_heights(&header, sdfio_format_packed(SDFIO_FLOAT64),
+                                  top, 1, coded));
+    CHECK(coded[0] == INT16_MAX);
 
     /* Without a z-scale there is no way to a count. */
     const sdfio_header unscaled =
@@ -171,21 +166,21 @@ static void check_range(void)
     double z_scale = 0.0;
     /* Two rows of three, the second one read bottom up. */
     format.row_stride = -(ptrdiff_t)(3 * sizeof(float));
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0, format,
-                                   heights + 3, 2, 3, &z_scale));
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, format, heights + 3, 2, 3,
+                                   &z_scale));
     CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-12));
     /* Without the marker the large height sets the scale. */
     format.missing = NAN;
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0, format,
-                                   heights + 3, 2, 3, &z_scale));
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, format, heights + 3, 2, 3,
+                                   &z_scale));
     CHECK(z_scale > 0.3);
     const float none[] = {NAN, INFINITY};
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0,
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16,
                                    sdfio_format_packed(SDFIO_FLOAT32), none, 1,
                                    2, &z_scale));
     CHECK(z_scale == 1.0);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0,
+                 sdfio_suggest_z_scale(SDFIO_DATA_INT16,
                                        sdfio_format_packed(SDFIO_FLOAT32), none,
                                        1, 2, NULL));
 }
@@ -211,11 +206,10 @@ static void check_float_marker(void)
 
 static void check_tables(void)
 {
-    CHECK(sdfio_bad_value(SDFIO_DATA_INT16, SDFIO_ISO_2_0) == INT16_MIN);
-    CHECK(sdfio_bad_value(SDFIO_DATA_INT16, SDFIO_BCR_1_0) == INT16_MAX);
-    CHECK(sdfio_bad_value(SDFIO_DATA_BINARY64, SDFIO_ISO_1_0) == -DBL_MAX);
-    CHECK(sdfio_is_bad_value(SDFIO_DATA_BINARY64, SDFIO_BCR_1_0, 1.7e308));
-    CHECK(!sdfio_is_bad_value(SDFIO_DATA_BINARY64, SDFIO_ISO_2_0, 1.7e308));
+    CHECK(sdfio_bad_value(SDFIO_DATA_INT16) == INT16_MIN);
+    CHECK(sdfio_bad_value(SDFIO_DATA_BINARY64) == -DBL_MAX);
+    CHECK(sdfio_is_bad_value(SDFIO_DATA_BINARY64, -DBL_MAX));
+    CHECK(!sdfio_is_bad_value(SDFIO_DATA_BINARY64, 1.7e308));
     CHECK(sdfio_data_type_size(SDFIO_DATA_UINT8) == 1);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY32) == 4);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY64) == 8);
@@ -225,8 +219,8 @@ static void check_tables(void)
     CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT16));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT8));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_2_0, SDFIO_DATA_UINT16));
-    CHECK(sdfio_revision_allows(SDFIO_BCR_1_0, SDFIO_DATA_UINT32));
-    CHECK(strcmp(sdfio_revision_name(SDFIO_BCR_1_0), "BCR-1.0") == 0);
+    CHECK(strcmp(sdfio_revision_name(SDFIO_ISO_2_0), "ISO-2.0") == 0);
+    CHECK(strcmp(sdfio_revision_name((sdfio_revision)99), "") == 0);
     CHECK(strcmp(sdfio_data_type_name(SDFIO_DATA_BINARY64), "binary64") == 0);
     CHECK(strlen(sdfio_version()) > 0);
     for (int i = SDFIO_OK; i <= SDFIO_ERR_MEMORY; ++i)
@@ -278,8 +272,8 @@ static void check_element_stride(void)
     points[0].x = 1e30F;
     points[3].w = -1e30F;
     double z_scale = 0.0;
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, SDFIO_ISO_2_0, format,
-                                   &points[0].z, 1, 4, &z_scale));
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_DATA_INT16, format, &points[0].z, 1, 4,
+                                   &z_scale));
     CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-9));
 
     /* A negative stride runs backwards from the pointer. */
@@ -423,7 +417,7 @@ static void check_float_path(void)
     static const sdfio_data_type types[] = {SDFIO_DATA_INT8, SDFIO_DATA_UINT8,
                                             SDFIO_DATA_INT16, SDFIO_DATA_UINT16,
                                             SDFIO_DATA_BINARY32};
-    static const sdfio_revision revisions[] = {SDFIO_ISO_2_0, SDFIO_BCR_1_0};
+    static const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     static const double scales[] = {1.0, 1e-3, 3e-9, 0.25e-6, 7.0, 0.1, 1e-35};
     static unsigned char bytes[ALL_VALUES * sizeof(uint16_t)];
     static float singles[ALL_VALUES];

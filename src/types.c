@@ -13,7 +13,7 @@
 #include "internal.h"
 
 /* The spelling of a revision in the magic, in the order of the enumeration. */
-static const char *const revision_names[] = {"ISO-1.0", "ISO-2.0", "BCR-1.0"};
+static const char *const revision_names[] = {"ISO-1.0", "ISO-2.0"};
 enum
 {
     REVISION_COUNT = sizeof revision_names / sizeof revision_names[0]
@@ -31,8 +31,6 @@ static const bool allowed[REVISION_COUNT][8] = {
                        [SDFIO_DATA_INT32] = true,
                        [SDFIO_DATA_BINARY32] = true,
                        [SDFIO_DATA_BINARY64] = true},
-    /* BCR-1.0 allows them all. */
-    [SDFIO_BCR_1_0] = {true, true, true, true, true, true, true, true},
 };
 
 /** What the library knows of a data type. */
@@ -156,57 +154,14 @@ size_t sdfio_binary_header_size(sdfio_revision revision)
     return fixed + SDFIO_HEADER_COUNTS * count_size;
 }
 
-bool sdfio_rows_reversed(sdfio_revision revision)
+double sdfio_bad_value(sdfio_data_type type)
 {
-    return revision == SDFIO_BCR_1_0;
+    return sdfio_lowest(type);
 }
 
-size_t sdfio_row_y(const sdfio_header *header, size_t file_row)
+bool sdfio_is_bad_value(sdfio_data_type type, double value)
 {
-    return sdfio_rows_reversed(header->revision) ? header->rows - 1 - file_row
-                                                 : file_row;
-}
-
-/* The nominal maximum of a floating point type in BCR-1.0: a number at or
- * above it marks a point that is not measured. */
-static const double bcr_bad_binary32 = 3.4e38;
-static const double bcr_bad_binary64 = 1.7e308;
-
-double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision)
-{
-    return sdfio_bad_is_maximum(revision) ? sdfio_highest(type)
-                                          : sdfio_lowest(type);
-}
-
-double sdfio_ascii_bad_value(sdfio_data_type type, sdfio_revision revision)
-{
-    if (sdfio_bad_is_maximum(revision) && sdfio_is_floating(type))
-    {
-        return type == SDFIO_DATA_BINARY32 ? bcr_bad_binary32
-                                           : bcr_bad_binary64;
-    }
-    return sdfio_bad_value(type, revision);
-}
-
-sdfio_bad_test sdfio_bad_test_for(sdfio_data_type type, sdfio_revision revision)
-{
-    sdfio_bad_test test;
-    test.at_least = sdfio_bad_is_maximum(revision) && sdfio_is_floating(type);
-    test.value = test.at_least ? sdfio_ascii_bad_value(type, revision)
-                               : sdfio_bad_value(type, revision);
-    if (test.at_least && type == SDFIO_DATA_BINARY32)
-    {
-        /* The threshold in the precision of the type, so that a number
-         * compares as the binary32 it is stored as. */
-        test.value = (double)(float)test.value;
-    }
-    return test;
-}
-
-bool sdfio_is_bad_value(sdfio_data_type type, sdfio_revision revision,
-                        double value)
-{
-    return sdfio_matches(sdfio_bad_test_for(type, revision), value);
+    return value == sdfio_bad_value(type);
 }
 
 void sdfio_header_init(sdfio_header *header)

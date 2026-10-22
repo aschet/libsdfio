@@ -143,8 +143,7 @@ static void check_roundtrip(sdfio_revision revision,
 
 static void check_all_types(void)
 {
-    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
-                                        SDFIO_BCR_1_0};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < sizeof revisions / sizeof revisions[0]; ++r)
     {
@@ -167,8 +166,8 @@ static void check_all_types(void)
     }
 }
 
-/* The rows API moves the stored values as they are, in the order of the file,
- * which is reversed in BCR-1.0. */
+/* The rows API moves the stored values as they are, in the order of the
+ * file. */
 static void check_rows(sdfio_revision revision,
                        sdfio_representation representation)
 {
@@ -181,7 +180,7 @@ static void check_rows(sdfio_revision revision,
         counts[i] = (int16_t)((int)i * 37 - 100);
     }
     counts[3] = INT16_MIN; /* the marker of a point not measured in ISO */
-    counts[4] = INT16_MAX; /* the marker of BCR-1.0 */
+    counts[4] = INT16_MAX; /* an ordinary count */
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
@@ -205,20 +204,17 @@ static void check_rows(sdfio_revision revision,
     CHECK(representation == SDFIO_ASCII ? (trailer != NULL && size == 0)
                                         : (trailer == NULL && size == 0));
 
-    /* The heights are in the order of y in every revision. */
-    sdfio_header as_read = *sdfio_get_header(reader);
+    /* The heights are in the order of the file, which is the order of y. */
     reader = membuf_reopen(reader, &file);
     double heights[ROWS * COLUMNS];
     CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT64, heights));
     for (size_t file_row = 0; file_row < ROWS; ++file_row)
     {
-        const size_t y = sdfio_row_y(&as_read, file_row);
-        CHECK(y
-              == (revision == SDFIO_BCR_1_0 ? ROWS - 1 - file_row : file_row));
+        const size_t y = file_row;
         for (size_t column = 5; column < COLUMNS; ++column)
         {
             const int16_t count = counts[file_row * COLUMNS + column];
-            if (!sdfio_is_bad_value(SDFIO_DATA_INT16, revision, count))
+            if (!sdfio_is_bad_value(SDFIO_DATA_INT16, count))
             {
                 CHECK(near_relative(heights[y * COLUMNS + column], count * 1e-9,
                                     1e-12));
@@ -296,15 +292,10 @@ static void check_errors(void)
 static void check_z_scale(void)
 {
     const double scale =
-        sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_ISO_2_0, -80e-6, 80e-6);
+        sdfio_z_scale_for_range(SDFIO_DATA_INT16, -80e-6, 80e-6);
     CHECK(near_relative(scale, 80e-6 / 32767.0, 1e-12));
-    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_BINARY64, SDFIO_ISO_2_0, -1, 1)
-          == 1.0);
-    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_ISO_2_0, NAN, NAN)
-          == 1.0);
-    /* BCR-1.0 keeps the maximum for the marker. */
-    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_INT16, SDFIO_BCR_1_0, 0, 32767.0)
-          > 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_BINARY64, -1, 1) == 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_DATA_INT16, NAN, NAN) == 1.0);
 }
 
 /* A negative row stride, with the pointer at the last row, turns the matrix
@@ -749,7 +740,7 @@ static void check_trailer_line_ends(void)
 }
 
 /* A text file is read whatever ends its lines: CR LF as ISO has it, LF of Unix,
- * or the CR of old Macintosh files, which the BCR text allows. */
+ * or the CR of old Macintosh files. */
 static membuf with_line_ends(const membuf *file, const char *line_end)
 {
     membuf out = {0};
@@ -771,7 +762,7 @@ static membuf with_line_ends(const membuf *file, const char *line_end)
 
 static void check_read_line_ends(void)
 {
-    const sdfio_revision revisions[] = {SDFIO_ISO_2_0, SDFIO_BCR_1_0};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     const char *const line_ends[] = {"\n", "\r"};
     for (size_t r = 0; r < 2; ++r)
     {
@@ -833,7 +824,7 @@ int main(void)
     check_element_stride();
     check_stride();
     check_all_types();
-    for (int r = SDFIO_ISO_1_0; r <= SDFIO_BCR_1_0; ++r)
+    for (int r = SDFIO_ISO_1_0; r <= SDFIO_ISO_2_0; ++r)
     {
         check_rows((sdfio_revision)r, SDFIO_BINARY);
         check_rows((sdfio_revision)r, SDFIO_ASCII);

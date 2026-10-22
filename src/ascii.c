@@ -15,12 +15,10 @@
 #include <stdio.h>
 
 static const char crlf[] = "\r\n";
-static const char comment_marker = ';';
 static const char terminator = '*';
 static const char bad_token[] = "bad";
 static const char nan_token[] = "nan";
-/* Some writers write NaN for a point that is not measured, in every
- * revision. */
+/* Some writers write NaN for a point that is not measured. */
 
 /* The result of reading a line or a token. */
 enum
@@ -118,14 +116,9 @@ static bool starts_with_letter(char c)
     return lower >= 'a' && lower <= 'z';
 }
 
-static bool ends_token(char c, bool comments)
-{
-    return sdfio_is_space(c) || (comments && c == comment_marker);
-}
-
-/* The next white-space separated word, comments of BCR-1.0 skipped. */
-static int next_token(sdfio_source *source, bool comments, char *token,
-                      size_t capacity, size_t *size)
+/* The next white-space separated word. */
+static int next_token(sdfio_source *source, char *token, size_t capacity,
+                      size_t *size)
 {
     source->skip_lf = false;
     int c = 0;
@@ -140,22 +133,13 @@ static int next_token(sdfio_source *source, bool comments, char *token,
         {
             ++source->position;
         }
-        else if (comments && c == comment_marker)
-        {
-            while ((c = sdfio_source_peek(source)) >= 0 && c != '\n'
-                   && c != '\r')
-            {
-                ++source->position;
-            }
-        }
         else
         {
             break;
         }
     }
     *size = 0;
-    while ((c = sdfio_source_peek(source)) >= 0
-           && !ends_token((char)c, comments))
+    while ((c = sdfio_source_peek(source)) >= 0 && !sdfio_is_space((char)c))
     {
         if (*size + 1 >= capacity)
         {
@@ -166,16 +150,6 @@ static int next_token(sdfio_source *source, bool comments, char *token,
     }
     token[*size] = '\0';
     return GOT_ONE;
-}
-
-static const char *strip_comment(const char *line, size_t *size)
-{
-    const char *found = memchr(line, comment_marker, *size);
-    if (found != NULL)
-    {
-        *size = (size_t)(found - line);
-    }
-    return line;
 }
 
 /* A line that has only the character `*`, with white space around it. */
@@ -281,40 +255,15 @@ static sdfio_status header_count(const sdfio_string *header_text,
     return SDFIO_OK;
 }
 
-/* BCR-1.0 lets an ASCII header spell some fields as names instead of codes,
- * without regard to the case. The names of the data types are the short ones
- * that the specification suggests; "NULL" is what its own example uses for
- * "none". */
-/** The name of a code in a header and the number that it stands for. */
-typedef struct symbol
-{
-    /** The name, in lower case. */
-    const char *name;
-    /** The code. */
-    long long code;
-} symbol;
-
 enum
 {
     COMPRESSION_RLL = 1,
     CHECK_UINTTRACE = 1
 };
 
-static const symbol data_type_symbols[] = {
-    {"uchar", SDFIO_DATA_UINT8},     {"uinteger", SDFIO_DATA_UINT16},
-    {"ulongint", SDFIO_DATA_UINT32}, {"float", SDFIO_DATA_BINARY32},
-    {"char", SDFIO_DATA_INT8},       {"integer", SDFIO_DATA_INT16},
-    {"longint", SDFIO_DATA_INT32},   {"double", SDFIO_DATA_BINARY64},
-};
-static const symbol compression_symbols[] = {
-    {"null", SDFIO_NONE}, {"none", SDFIO_NONE}, {"rll", COMPRESSION_RLL}};
-static const symbol check_symbols[] = {
-    {"null", SDFIO_NONE}, {"none", SDFIO_NONE}, {"uinttrace", CHECK_UINTTRACE}};
-
 static sdfio_status header_coded(const sdfio_string *header_text,
-                                 const char *name, sdfio_revision revision,
-                                 const symbol *symbols, size_t symbol_count,
-                                 long long *out, sdfio_message *message)
+                                 const char *name, long long *out,
+                                 sdfio_message *message)
 {
     field_text value;
     const sdfio_status status = field(header_text, name, &value, message);
@@ -322,25 +271,9 @@ static sdfio_status header_coded(const sdfio_string *header_text,
     {
         return status;
     }
-    if (sdfio_parse_integer(value.text, value.size, out))
-    {
-        return SDFIO_OK;
-    }
-    if (sdfio_allows_symbols(revision))
-    {
-        const char *spelled = value.text;
-        size_t spelled_size = value.size;
-        sdfio_trim(&spelled, &spelled_size);
-        for (size_t i = 0; i < symbol_count; ++i)
-        {
-            if (sdfio_equals_nocase(spelled, spelled_size, symbols[i].name))
-            {
-                *out = symbols[i].code;
-                return SDFIO_OK;
-            }
-        }
-    }
-    return invalid_value(message);
+    return sdfio_parse_integer(value.text, value.size, out)
+               ? SDFIO_OK
+               : invalid_value(message);
 }
 
 static void copy_identifier(sdfio_header *header, const char *text, size_t size)
@@ -365,29 +298,22 @@ typedef struct codes
     long long check_type;
 } codes;
 
-static sdfio_status read_codes(const sdfio_string *header_text,
-                               sdfio_revision revision, codes *out,
+static sdfio_status read_codes(const sdfio_string *header_text, codes *out,
                                sdfio_message *message)
 {
     sdfio_status status =
-        header_coded(header_text, "DataType", revision, data_type_symbols,
-                     sizeof data_type_symbols / sizeof data_type_symbols[0],
-                     &out->type, message);
+        header_coded(header_text, "DataType", &out->type, message);
     if (status != SDFIO_OK)
     {
         return status;
     }
     status =
-        header_coded(header_text, "Compression", revision, compression_symbols,
-                     sizeof compression_symbols / sizeof compression_symbols[0],
-                     &out->compression, message);
+        header_coded(header_text, "Compression", &out->compression, message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    return header_coded(header_text, "CheckType", revision, check_symbols,
-                        sizeof check_symbols / sizeof check_symbols[0],
-                        &out->check_type, message);
+    return header_coded(header_text, "CheckType", &out->check_type, message);
 }
 
 /* The fields that are numbers or texts, into the description. */
@@ -475,8 +401,6 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     sdfio_trim(&magic_line, &magic_line_size);
     const char *magic = magic_line;
     size_t magic_size = magic_line_size;
-    strip_comment(magic, &magic_size);
-    sdfio_trim(&magic, &magic_size);
     if (!matches_magic(magic, magic_size))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -497,36 +421,21 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                             "Unknown or unsupported SDF revision in magic");
         goto done;
     }
-    const bool comments = sdfio_allows_comments(revision);
-    if (memchr(magic_line, comment_marker, magic_line_size) != NULL
-        && !comments)
-    {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Not an ASCII SDF file: unexpected magic");
-        goto done;
-    }
 
-    /* The records end with a line that has only a "*". With comments, a "*"
-     * followed by a comment still ends its record, and the comments are taken
-     * out of the header and the data. */
+    /* The records end with a line that has only a "*". */
     bool header_started = false;
     bool header_ended = false;
     while (next_line(source, &line, &ended, &done, SDFIO_MAX_HEADER_TEXT)
            == GOT_ONE)
     {
-        size_t bare_size = line.size;
-        const char *bare = sdfio_string_text(&line);
-        if (comments)
-        {
-            strip_comment(bare, &bare_size);
-        }
-        if (is_terminator(bare, bare_size))
+        const char *text = sdfio_string_text(&line);
+        if (is_terminator(text, line.size))
         {
             header_ended = true;
             break;
         }
         if ((header_started && !sdfio_string_append(&header_text, "\n", 1))
-            || !sdfio_string_append(&header_text, bare, bare_size))
+            || !sdfio_string_append(&header_text, text, line.size))
         {
             status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
             goto done;
@@ -554,7 +463,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     }
 
     codes parsed_codes;
-    status = read_codes(&header_text, revision, &parsed_codes, message);
+    status = read_codes(&header_text, &parsed_codes, message);
     if (status != SDFIO_OK)
     {
         goto done;
@@ -632,10 +541,9 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
                                size_t index, sdfio_message *message)
 {
-    const bool comments = sdfio_allows_comments(header->revision);
     char token[SDFIO_TOKEN_CAPACITY];
     size_t size = 0;
-    const int got = next_token(source, comments, token, sizeof token, &size);
+    const int got = next_token(source, token, sizeof token, &size);
     if (got == GOT_NONE)
     {
         return ended_early(source, message);
@@ -658,9 +566,8 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
         && (sdfio_equals_nocase(token, size, bad_token)
             || sdfio_equals_nocase(token, size, nan_token)))
     {
-        return sdfio_put_real(
-            header->data_type, dst, index,
-            sdfio_bad_value(header->data_type, header->revision));
+        return sdfio_put_real(header->data_type, dst, index,
+                              sdfio_bad_value(header->data_type));
     }
     sdfio_status status = SDFIO_ERR_FORMAT;
     if (sdfio_is_floating(header->data_type))
@@ -689,14 +596,11 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_ascii_finish(sdfio_source *source,
-                                const sdfio_header *header,
-                                sdfio_message *message)
+sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message)
 {
-    const bool comments = sdfio_allows_comments(header->revision);
     char token[SDFIO_TOKEN_CAPACITY];
     size_t size = 0;
-    if (next_token(source, comments, token, sizeof token, &size) != GOT_ONE)
+    if (next_token(source, token, sizeof token, &size) != GOT_ONE)
     {
         return ended_early(source, message);
     }
@@ -711,13 +615,11 @@ sdfio_status sdfio_ascii_finish(sdfio_source *source,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_ascii_skip(sdfio_source *source, const sdfio_header *header,
-                              sdfio_message *message)
+sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message)
 {
-    const bool comments = sdfio_allows_comments(header->revision);
     char token[SDFIO_TOKEN_CAPACITY];
     size_t size = 0;
-    while (next_token(source, comments, token, sizeof token, &size) == GOT_ONE)
+    while (next_token(source, token, sizeof token, &size) == GOT_ONE)
     {
         if (size == 1 && token[0] == terminator)
         {
@@ -728,11 +630,9 @@ sdfio_status sdfio_ascii_skip(sdfio_source *source, const sdfio_header *header,
     return ended_early(source, message);
 }
 
-sdfio_status sdfio_ascii_trailer(sdfio_source *source,
-                                 const sdfio_header *header, sdfio_string *out,
+sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
                                  bool *present, sdfio_message *message)
 {
-    const bool comments = sdfio_allows_comments(header->revision);
     sdfio_string line = {.allocator = source->allocator};
     sdfio_string part = {.allocator = source->allocator};
     sdfio_status status = SDFIO_OK;
@@ -752,12 +652,8 @@ sdfio_status sdfio_ascii_trailer(sdfio_source *source,
             goto done;
         }
         first = false;
-        size_t bare_size = line.size;
         const char *bare = sdfio_string_text(&line);
-        if (comments)
-        {
-            strip_comment(bare, &bare_size);
-        }
+        const size_t bare_size = line.size;
         if (is_terminator(bare, bare_size))
         {
             /* The parts are joined with a "*". */
@@ -926,15 +822,11 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
 {
     const sdfio_data_type type = header->data_type;
     double value = sdfio_get_real(type, coded, index);
-    if (sdfio_matches(sdfio_bad_test_for(type, header->revision), value))
+    if (value == sdfio_bad_value(type))
     {
-        if (sdfio_has_bad_token(header->revision))
-        {
-            static const char bad[] = "BAD";
-            memcpy(out, bad, sizeof bad);
-            return sizeof bad - 1;
-        }
-        value = sdfio_ascii_bad_value(type, header->revision);
+        static const char bad[] = "BAD";
+        memcpy(out, bad, sizeof bad);
+        return sizeof bad - 1;
     }
     if (!sdfio_is_floating(type))
     {

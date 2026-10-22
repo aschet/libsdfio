@@ -183,9 +183,8 @@ typedef enum float_result
                    sizeof stored);                                             \
             const float number = (float)stored;                                \
             float height =                                                     \
-                (is_missing.at_least ? number >= bad : number == bad)          \
-                    ? NAN                                                      \
-                    : fmaf(number, scale.head, number * scale.tail);           \
+                number == bad ? NAN                                            \
+                              : fmaf(number, scale.head, number * scale.tail); \
             if (float_is_infinite(height) && !float_is_infinite(number))       \
             {                                                                  \
                 return FLOAT_RANGE;                                            \
@@ -210,9 +209,7 @@ static float_result decode_float(const sdfio_header *header, const void *coded,
     {
         return FLOAT_UNHANDLED;
     }
-    const sdfio_bad_test is_missing =
-        sdfio_bad_test_for(header->data_type, header->revision);
-    const float bad = (float)is_missing.value;
+    const float bad = (float)sdfio_bad_value(header->data_type);
     if (!isnan(marker) && fabs(marker) > (double)FLT_MAX)
     {
         return FLOAT_UNHANDLED;
@@ -238,8 +235,7 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const sdfio_data_type type = header->data_type;
-    const sdfio_bad_test is_missing =
-        sdfio_bad_test_for(type, header->revision);
+    const double bad = sdfio_bad_value(type);
     const size_t coded_size = sdfio_data_type_size(type);
     const ptrdiff_t element = sdfio_element_stride(format);
     const double marker = marker_of(format);
@@ -266,9 +262,8 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
         for (size_t i = 0; i < n; ++i)
         {
             /* NaN before scaling: a huge marker could overflow when scaled. */
-            double height = sdfio_matches(is_missing, values[i])
-                                ? NAN
-                                : values[i] * header->z_scale;
+            double height =
+                values[i] == bad ? NAN : values[i] * header->z_scale;
             if (isnan(height) && !isnan(marker))
             {
                 height = marker;
@@ -301,18 +296,18 @@ typedef struct coder
     double lowest;
     /** The highest value of the data type. */
     double highest;
-    /** The test for a point that is not measured. */
-    sdfio_bad_test bad;
+    /** The number that labels a point as not measured. */
+    double bad;
 } coder;
 
-static coder coder_for(sdfio_data_type type, sdfio_revision revision)
+static coder coder_for(sdfio_data_type type)
 {
     coder result;
     result.floating = sdfio_is_floating(type);
     result.binary32 = type == SDFIO_DATA_BINARY32;
     result.lowest = sdfio_lowest(type);
     result.highest = sdfio_highest(type);
-    result.bad = sdfio_bad_test_for(type, revision);
+    result.bad = sdfio_bad_value(type);
     return result;
 }
 
@@ -343,7 +338,7 @@ static sdfio_status checked_coded(const coder *checks, double value,
             return SDFIO_ERR_RANGE;
         }
     }
-    if (sdfio_matches(checks->bad, candidate))
+    if (candidate == checks->bad)
     {
         return SDFIO_ERR_BAD_VALUE;
     }
@@ -405,7 +400,7 @@ static sdfio_status checked_coded(const coder *checks, double value,
                 {                                                              \
                     return FLOAT_RANGE;                                        \
                 }                                                              \
-                if (is_bad.at_least ? number >= bad : number == bad)           \
+                if (number == bad)                                             \
                 {                                                              \
                     return FLOAT_BAD_VALUE;                                    \
                 }                                                              \
@@ -427,11 +422,8 @@ static float_result encode_float(const sdfio_header *header,
     {
         return FLOAT_UNHANDLED;
     }
-    const sdfio_bad_test is_bad =
-        sdfio_bad_test_for(header->data_type, header->revision);
-    const float bad = (float)is_bad.value;
-    const float not_measured =
-        (float)sdfio_bad_value(header->data_type, header->revision);
+    const float bad = (float)sdfio_bad_value(header->data_type);
+    const float not_measured = bad;
     if (!isnan(marker) && fabs(marker) > (double)FLT_MAX)
     {
         return FLOAT_UNHANDLED;
@@ -458,7 +450,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const sdfio_data_type type = header->data_type;
-    const double marker = sdfio_bad_value(type, header->revision);
+    const double marker = sdfio_bad_value(type);
     const size_t coded_size = sdfio_data_type_size(type);
     const ptrdiff_t element = sdfio_element_stride(format);
     const double marker_height = marker_of(format);
@@ -480,7 +472,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
             return SDFIO_OK;
         }
     }
-    const coder checks = coder_for(type, header->revision);
+    const coder checks = coder_for(type);
     double values[SDFIO_STACK_CHUNK];
     for (size_t first = 0; first < count; first += SDFIO_STACK_CHUNK)
     {
@@ -519,21 +511,18 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
  * count. */
 static const double one_count = 1.0;
 
-double sdfio_z_scale_for_range(sdfio_data_type type, sdfio_revision revision,
-                               double lowest, double highest)
+double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
+                               double highest)
 {
     if (!sdfio_valid_data_type(type) || sdfio_is_floating(type)
         || !(lowest <= highest))
     {
         return 1.0;
     }
-    /* The bound that the revision keeps for the bad value is one step towards
-     * zero, as that exact value is not usable for a height. */
-    const bool bad_is_maximum = sdfio_bad_is_maximum(revision);
-    const double usable_max =
-        sdfio_highest(type) - (bad_is_maximum ? one_count : 0.0);
-    const double usable_min =
-        sdfio_lowest(type) + (bad_is_maximum ? 0.0 : one_count);
+    /* The minimum is the bad value, so the lowest height is one step above
+     * it. */
+    const double usable_max = sdfio_highest(type);
+    const double usable_min = sdfio_lowest(type) + one_count;
     double z_scale = 0.0;
     if (highest > 0.0)
     {
@@ -591,8 +580,7 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
-                                   sdfio_revision revision, sdfio_format format,
+sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_format format,
                                    const void *heights, size_t rows,
                                    size_t columns, double *z_scale)
 {
@@ -606,7 +594,7 @@ sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
         find_range(format, heights, rows, columns, &lowest, &highest);
     if (status == SDFIO_OK)
     {
-        *z_scale = sdfio_z_scale_for_range(type, revision, lowest, highest);
+        *z_scale = sdfio_z_scale_for_range(type, lowest, highest);
     }
     return status;
 }

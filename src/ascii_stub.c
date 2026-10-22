@@ -38,9 +38,9 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                       const sdfio_time_zone *zone,
                                       sdfio_message *message)
 {
+    (void)header;
     (void)zone;
     (void)source;
-    (void)header;
     (void)point;
     return unsupported(message);
 }
@@ -49,37 +49,30 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
                                size_t index, sdfio_message *message)
 {
-    (void)source;
     (void)header;
+    (void)source;
     (void)point;
     (void)dst;
     (void)index;
     return unsupported(message);
 }
 
-sdfio_status sdfio_ascii_finish(sdfio_source *source,
-                                const sdfio_header *header,
-                                sdfio_message *message)
+sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message)
 {
     (void)source;
-    (void)header;
     return unsupported(message);
 }
 
-sdfio_status sdfio_ascii_skip(sdfio_source *source, const sdfio_header *header,
-                              sdfio_message *message)
+sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message)
 {
     (void)source;
-    (void)header;
     return unsupported(message);
 }
 
-sdfio_status sdfio_ascii_trailer(sdfio_source *source,
-                                 const sdfio_header *header, sdfio_string *out,
+sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
                                  bool *present, sdfio_message *message)
 {
     (void)source;
-    (void)header;
     (void)out;
     (void)present;
     return unsupported(message);
@@ -90,8 +83,8 @@ sdfio_status sdfio_ascii_header(const sdfio_header *header,
                                 const sdfio_time_zone *zone, sdfio_string *out,
                                 sdfio_message *message)
 {
-    (void)zone;
     (void)header;
+    (void)zone;
     (void)point;
     (void)out;
     return unsupported(message);

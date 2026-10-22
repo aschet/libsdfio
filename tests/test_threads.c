@@ -15,7 +15,6 @@
 #include <pthread.h>
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
-#define BCR_SAMPLES SDFIO_TEST_DATA_DIR "/samples/bcr-1.0/"
 
 enum
 {
@@ -29,8 +28,8 @@ static const char *const files[] = {
     SAMPLES "iso1_surface_binary.sdf",
     SAMPLES "iso2_surface_ascii.sdf",
     SAMPLES "iso2_surface_binary32_binary.sdf",
-    BCR_SAMPLES "bcr1_surface_ascii.sdf",
-    BCR_SAMPLES "bcr1_surface_binary.sdf",
+    SAMPLES "iso1_surface_ascii.sdf",
+    SAMPLES "iso2_surface_binary.sdf",
     SAMPLES "iso1_profile_ascii.sdf",
 };
 #define FILE_COUNT (sizeof files / sizeof files[0])
@@ -93,13 +92,12 @@ static void *read_files(void *argument)
 static void *write_and_read(void *argument)
 {
     job *self = argument;
-    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0,
-                                        SDFIO_BCR_1_0};
+    const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     for (int round = 0; round < ROUNDS; ++round)
     {
         sdfio_header header;
         sdfio_header_init(&header);
-        header.revision = revisions[(self->id + (size_t)round) % 3];
+        header.revision = revisions[(self->id + (size_t)round) % 2];
         header.representation =
             (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY : SDFIO_ASCII;
         header.data_type = SDFIO_DATA_INT32;
