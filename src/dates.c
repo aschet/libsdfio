@@ -33,28 +33,16 @@ enum
     MINUTE_AT = 10
 };
 
-/* The proleptic Gregorian calendar by the algorithm of Howard Hinnant
- * (chrono-Compatible Low-Level Date Algorithms): eras of 400 years, with the
- * year starting on 1 March so that the leap day is the last day. */
+/* The proleptic Gregorian calendar. Days are counted from 1970-01-01. */
 enum
 {
-    YEARS_PER_ERA = 400,
-    DAYS_PER_ERA = 146097,
     DAYS_PER_YEAR = 365,
-    DAYS_PER_FOUR_YEARS = 1461,
-    DAYS_PER_CENTURY = 36524,
-    /* From 0000-03-01 to 1970-01-01 */
-    ERA_START_TO_EPOCH = 719468,
-    /* The months from March repeat their lengths every five months: 153
-     * days. */
-    DAYS_PER_FIVE_MONTHS = 153,
-    MONTHS_PER_CYCLE = 5,
-    CYCLE_ROUNDING = 2,
-    MARCH = 3,
-    FEBRUARY = 2,
-    /* The months that follow December in a year that starts with March. */
-    MONTHS_BEFORE_MARCH = 9,
-    LAST_MONTH_FROM_MARCH_IN_YEAR = 10
+    /* The leap days of 400 years: 100 by four, less 4 by 100, plus 1 by 400. */
+    DAYS_PER_400_YEARS = 400 * DAYS_PER_YEAR + 97,
+    YEARS_PER_400_YEARS = 400,
+    /* From 0001-01-01 to 1970-01-01 */
+    YEAR_ONE_TO_EPOCH = 719162,
+    FEBRUARY = 2
 };
 
 static int64_t floor_div(int64_t a, int64_t b)
@@ -67,50 +55,63 @@ static int64_t floor_div(int64_t a, int64_t b)
     return q;
 }
 
-static int64_t day_of_year_at_month_start(int64_t month_from_march)
+static bool is_leap_year(int64_t year)
 {
-    return (DAYS_PER_FIVE_MONTHS * month_from_march + CYCLE_ROUNDING)
-           / MONTHS_PER_CYCLE;
+    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+static unsigned days_in_month(int64_t year, unsigned month)
+{
+    static const unsigned days[MONTHS_PER_YEAR] = {31, 28, 31, 30, 31, 30,
+                                                   31, 31, 30, 31, 30, 31};
+    return days[month - 1] + (month == FEBRUARY && is_leap_year(year) ? 1 : 0);
+}
+
+/* The days from 0001-01-01 to the first day of a year. */
+static int64_t days_before_year(int64_t year)
+{
+    const int64_t past = year - 1;
+    return past * DAYS_PER_YEAR + floor_div(past, 4) - floor_div(past, 100)
+           + floor_div(past, 400);
 }
 
 /* Days since 1970-01-01 of a date of the calendar. */
 static int64_t days_from_civil(int64_t year, unsigned month, unsigned day)
 {
-    year -= month <= FEBRUARY ? 1 : 0;
-    const int64_t era = floor_div(year, YEARS_PER_ERA);
-    const int64_t year_of_era = year - era * YEARS_PER_ERA;
-    const int64_t month_from_march = month >= MARCH
-                                         ? (int64_t)month - MARCH
-                                         : (int64_t)month + MONTHS_BEFORE_MARCH;
-    const int64_t day_of_year =
-        day_of_year_at_month_start(month_from_march) + (int64_t)day - 1;
-    const int64_t day_of_era = year_of_era * DAYS_PER_YEAR + year_of_era / 4
-                               - year_of_era / 100 + day_of_year;
-    return era * DAYS_PER_ERA + day_of_era - ERA_START_TO_EPOCH;
+    int64_t days =
+        days_before_year(year) - YEAR_ONE_TO_EPOCH + (int64_t)day - 1;
+    for (unsigned before = 1; before < month; ++before)
+    {
+        days += days_in_month(year, before);
+    }
+    return days;
 }
 
 static void civil_from_days(int64_t days, int64_t *year, unsigned *month,
                             unsigned *day)
 {
-    days += ERA_START_TO_EPOCH;
-    const int64_t era = floor_div(days, DAYS_PER_ERA);
-    const int64_t day_of_era = days - era * DAYS_PER_ERA;
-    const int64_t year_of_era =
-        (day_of_era - day_of_era / (DAYS_PER_FOUR_YEARS - 1)
-         + day_of_era / DAYS_PER_CENTURY - day_of_era / (DAYS_PER_ERA - 1))
-        / DAYS_PER_YEAR;
-    const int64_t day_of_year =
-        day_of_era
-        - (DAYS_PER_YEAR * year_of_era + year_of_era / 4 - year_of_era / 100);
-    const int64_t month_from_march =
-        (MONTHS_PER_CYCLE * day_of_year + CYCLE_ROUNDING)
-        / DAYS_PER_FIVE_MONTHS;
-    *day = (unsigned)(day_of_year - day_of_year_at_month_start(month_from_march)
-                      + 1);
-    *month = (unsigned)(month_from_march <= LAST_MONTH_FROM_MARCH_IN_YEAR - 1
-                            ? month_from_march + MARCH
-                            : month_from_march - MONTHS_BEFORE_MARCH);
-    *year = year_of_era + era * YEARS_PER_ERA + (*month <= FEBRUARY ? 1 : 0);
+    const int64_t since_year_one = days + YEAR_ONE_TO_EPOCH;
+    /* The mean length of a year gives the year, or one off. */
+    int64_t guess =
+        floor_div(since_year_one * YEARS_PER_400_YEARS, DAYS_PER_400_YEARS) + 1;
+    while (days_before_year(guess) > since_year_one)
+    {
+        --guess;
+    }
+    while (days_before_year(guess + 1) <= since_year_one)
+    {
+        ++guess;
+    }
+    int64_t left = since_year_one - days_before_year(guess);
+    unsigned count = 1;
+    while (left >= days_in_month(guess, count))
+    {
+        left -= days_in_month(guess, count);
+        ++count;
+    }
+    *year = guess;
+    *month = count;
+    *day = (unsigned)left + 1;
 }
 
 static int64_t minutes_of(time_t time)
@@ -236,17 +237,11 @@ time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
     {
         return SDFIO_NO_TIME;
     }
-    /* A day that the month does not have comes back as another date. */
-    const int64_t days = days_from_civil(year, (unsigned)month, (unsigned)day);
-    int64_t back_year = 0;
-    unsigned back_month = 0;
-    unsigned back_day = 0;
-    civil_from_days(days, &back_year, &back_month, &back_day);
-    if (back_year != year || back_month != (unsigned)month
-        || back_day != (unsigned)day)
+    if ((unsigned)day > days_in_month(year, (unsigned)month))
     {
         return SDFIO_NO_TIME;
     }
+    const int64_t days = days_from_civil(year, (unsigned)month, (unsigned)day);
     const int64_t clock =
         days * MINUTES_PER_DAY + (int64_t)hour * MINUTES_PER_HOUR + minute;
     time_t date = 0;
