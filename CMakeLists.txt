@@ -34,7 +34,7 @@ set(SDFIO_WARNINGS
 
 set(SDFIO_SANITIZER_FLAGS "")
 if(SDFIO_SANITIZE)
-    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined -fno-omit-frame-pointer)
+    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
 endif()
 if(SDFIO_BUILD_FUZZERS)
     list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined,fuzzer-no-link -fno-omit-frame-pointer)

@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The characters of text, whatever the locale. */
+/**
+ * @file numbers.c
+ * @brief The characters of text, whatever the locale.
+ */
 
 #include "internal.h"
 

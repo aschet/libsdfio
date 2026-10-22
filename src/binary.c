@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The binary representation: the fixed header, and the trailer that follows
- * the data. Little endian, whatever the machine is. */
+/**
+ * @file binary.c
+ * @brief The binary representation: the fixed header, and the trailer that
+ * follows the data.
+ *
+ * Little endian, whatever the machine is.
+ */
 
 #include "internal.h"
 

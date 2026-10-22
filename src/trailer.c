@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Assembling a trailer: the lines `field name = value` in memory of the caller.
+/**
+ * @file trailer.c
+ * @brief Assembling a trailer: the lines `field name = value` in memory of
+ * the caller.
  */
 
 #include "internal.h"

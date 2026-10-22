@@ -4,11 +4,16 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The date field of the header: DDMMYYYYhhmm. ISO-2.0 holds UTC and the other
- * revisions the local clock of the writer, whose time zone is not known to the
- * library: the time zone of the caller converts it, and without one the clock
- * reading is kept as it is. The calendar is computed here, with no function of
- * the C library that has a time zone or a shared result. */
+/**
+ * @file dates.c
+ * @brief The date field of the header: DDMMYYYYhhmm.
+ *
+ * ISO-2.0 holds UTC and the other revisions the local clock of the writer,
+ * whose time zone is not known to the library: the time zone of the caller
+ * converts it, and without one the clock reading is kept as it is. The
+ * calendar is computed here, with no function of the C library that has a
+ * time zone or a shared result.
+ */
 
 #include "internal.h"
 

@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Numbers in memory: the samples of a buffer and the stored values, converted
- * through double, which holds every integer type of the format exactly. */
+/**
+ * @file values.c
+ * @brief Numbers in memory: the samples of a buffer and the stored values,
+ * converted through double, which holds every integer type of the format
+ * exactly.
+ */
 
 #include "internal.h"
 
@@ -43,6 +47,7 @@ static bool in_range(double value, double low, double high)
     return value >= low && value <= high;
 }
 
+/** A case of the conversion of a sample to double, for SDFIO_SCALARS(). */
 #define LOAD_CASE(sample, data, name, type, bits, low, high, floating)         \
     case sample:                                                               \
         for (size_t i = 0; i < count; ++i)                                     \
@@ -70,6 +75,8 @@ void sdfio_load_samples(sdfio_sample sample, const void *src, size_t count,
                        out);
 }
 
+/** A case of the conversion of a stored value to double, for SDFIO_SCALARS().
+ */
 #define LOAD_STORED_CASE(sample, data, name, type, bits, low, high, floating)  \
     case data:                                                                 \
         sdfio_load_samples(sample, src, count, out);                           \
@@ -84,8 +91,10 @@ void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
     }
 }
 
-/* A number into the type of a sample or of a stored value: the integers round
- * to the nearest, and NaN is 0 where there is no NaN. */
+/**
+ * A case of the conversion of a double to a sample, for SDFIO_SCALARS(): the
+ * integers round to the nearest, and NaN is 0 where there is no NaN.
+ */
 #define STORE_CASE(sample, data, name, type, bits, low, high, floating)        \
     case sample:                                                               \
         for (size_t i = 0; i < count; ++i)                                     \
@@ -133,6 +142,8 @@ sdfio_status sdfio_store_samples(sdfio_sample sample, void *dst,
         sample, dst, (ptrdiff_t)sdfio_sample_size(sample), values, count);
 }
 
+/** A case of the conversion of double to a stored value, for SDFIO_SCALARS().
+ */
 #define STORE_STORED_CASE(sample, data, name, type, bits, low, high, floating) \
     case data:                                                                 \
         return sdfio_store_samples(sample, dst, values, count);

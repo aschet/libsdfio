@@ -2,14 +2,15 @@
 #
 # SPDX-License-Identifier: MIT
 
-# The API reference of the public headers: configured by CMake, built with the
-# target `docs`.
+# The reference of the public headers and of the internal source: configured by
+# CMake, built with the target `docs`.
 PROJECT_NAME           = "libsdfio"
 PROJECT_NUMBER         = @PROJECT_VERSION@
 PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
 INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
+                         @PROJECT_SOURCE_DIR@/src \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox \
                          @PROJECT_SOURCE_DIR@/README.md
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
@@ -19,7 +20,12 @@ USE_MDFILE_AS_MAINPAGE = @PROJECT_SOURCE_DIR@/README.md
 OPTIMIZE_OUTPUT_FOR_C  = YES
 JAVADOC_AUTOBRIEF      = YES
 MARKDOWN_SUPPORT       = YES
-PREDEFINED             = "SDFIO_API="
+FILE_PATTERNS          = *.c *.h *.dox *.md
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = "SDFIO_API=" \
+                         "SDFIO_STATIC_ASSERT(condition,message)=" \
+                         _WIN32
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
 QUIET                  = YES

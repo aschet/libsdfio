@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Files of Windows by a path of wide characters. The functions are those of
- * file.c with the functions of the C library for wide paths. */
+/**
+ * @file file_windows.c
+ * @brief Files of Windows by a path of wide characters.
+ *
+ * The functions are those of file.c with the functions of the C library for
+ * wide paths.
+ */
 
 #include <sdfio/file.h>
 
@@ -13,8 +18,10 @@
 
 #include <wchar.h>
 
+/** The file that a reader opened by a wide path and closes. */
 typedef struct wide_reading
 {
+    /** The file. */
     FILE *file;
 } wide_reading;
 
@@ -61,8 +68,10 @@ sdfio_status sdfio_open_file_w(sdfio_reader *reader, const wchar_t *path)
     return SDFIO_OK;
 }
 
+/** The file that a writer created by a wide path and closes. */
 typedef struct wide_writing
 {
+    /** The file. */
     FILE *file;
 } wide_writing;
 

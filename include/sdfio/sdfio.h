@@ -418,6 +418,9 @@ SDFIO_API double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision);
 /** Return value of a read callback that failed. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)
 
+/** Return value of a seek callback that failed. */
+#define SDFIO_SEEK_ERROR UINT64_MAX
+
 /**
  * Callbacks that provide or accept the bytes of a file.
  *
@@ -440,11 +443,16 @@ typedef struct sdfio_stream
      */
     size_t (*write)(void *user, const void *data, size_t size);
     /**
-     * Repositions the stream like `lseek`. `whence` is SEEK_SET, SEEK_CUR or
-     * SEEK_END. Returns the new position measured from the start of the stream,
-     * or -1 on failure.
+     * Repositions the stream like `lseek`, with an offset that is never
+     * negative. `whence` is SEEK_SET, SEEK_CUR or SEEK_END. Returns the new
+     * position measured from the start of the stream, or SDFIO_SEEK_ERROR on
+     * failure.
+     *
+     * The library moves to a position with SEEK_SET. It asks for the current
+     * position with SEEK_CUR and for the size of the stream with SEEK_END, both
+     * with the offset 0.
      */
-    int64_t (*seek)(void *user, int64_t offset, int whence);
+    uint64_t (*seek)(void *user, uint64_t offset, int whence);
 } sdfio_stream;
 
 /**

@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @file common.c
+ * @brief The version, the names of the status codes, the allocation through
+ * a configuration, and the growable string.
+ */
+
 #include "internal.h"
 
 #include <stdio.h>

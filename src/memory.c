@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @file memory.c
+ * @brief The memory for the data and the heights that the library allocates
+ * for the caller.
+ */
+
 #include "internal.h"
 
 /* The room for `rows` rows of `columns` elements, or null if the size does not

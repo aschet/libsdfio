@@ -365,6 +365,36 @@ static void check_file(void)
     sdfio_writer_free(writer);
 }
 
+/* A header that claims more bytes of data than a signed 64-bit offset holds, on
+ * a stream that cannot seek: the trailer is found by reading through. */
+static void check_huge_count(void)
+{
+    if (sizeof(size_t) < sizeof(uint64_t))
+    {
+        /* The count does not fit in size_t, so the file is refused. */
+        return;
+    }
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.revision = SDFIO_ISO_2_0;
+    header.representation = SDFIO_BINARY;
+    header.data_type = SDFIO_DATA_BINARY64;
+    header.columns = UINT32_MAX;
+    header.rows = 1U << 29;
+    unsigned char bytes[SDFIO_BINARY_HEADER_MAX + 16] = {0};
+    size_t size = 0;
+    sdfio_message message = {0};
+    CHECK_OK(sdfio_binary_header(&header, NULL, bytes, &size, &message));
+    pipe_source pipe = {bytes, size + 16, 0, SIZE_MAX, SIZE_MAX};
+    const sdfio_stream stream = pipe_stream(&pipe);
+    sdfio_reader *reader = sdfio_reader_new(NULL);
+    CHECK_OK(sdfio_open_stream(reader, &stream));
+    const char *trailer = NULL;
+    size_t trailer_size = 0;
+    CHECK(sdfio_read_trailer(reader, &trailer, &trailer_size) != SDFIO_OK);
+    sdfio_reader_free(reader);
+}
+
 /* A sink that fails. */
 static size_t refusing_write(void *user, const void *data, size_t size)
 {
@@ -408,6 +438,7 @@ int main(void)
     check_damage(BCR_SAMPLES "bcr1_surface_ascii.sdf");
     check_damage(BCR_SAMPLES "bcr1_surface_binary.sdf");
     check_file();
+    check_huge_count();
     check_failing_sink();
     return finish_tests();
 }

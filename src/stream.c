@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The bytes of a file: a buffered source and a buffered sink over the
- * callbacks of sdfio_stream. */
+/**
+ * @file stream.c
+ * @brief The bytes of a file: a buffered source and a buffered sink over the
+ * callbacks of sdfio_stream.
+ */
 
 #include "internal.h"
 
@@ -38,11 +41,11 @@ void sdfio_source_init(sdfio_source *source, const sdfio_stream *io)
     if (io->seek != NULL)
     {
         /* A stream that answers where it is can seek. */
-        const int64_t here = io->seek(io->user, 0, SEEK_CUR);
-        if (here >= 0)
+        const uint64_t here = io->seek(io->user, 0, SEEK_CUR);
+        if (here != SDFIO_SEEK_ERROR)
         {
             source->seekable = true;
-            source->base = (uint64_t)here;
+            source->base = here;
         }
     }
 }
@@ -144,12 +147,8 @@ uint64_t sdfio_source_tell(const sdfio_source *source)
 
 bool sdfio_source_seek(sdfio_source *source, uint64_t position)
 {
-    if (!source->seekable || position > INT64_MAX)
-    {
-        return false;
-    }
-    const int64_t target = (int64_t)position;
-    if (source->io.seek(source->io.user, target, SEEK_SET) != target)
+    if (!source->seekable || position == SDFIO_SEEK_ERROR
+        || source->io.seek(source->io.user, position, SEEK_SET) != position)
     {
         return false;
     }
@@ -169,12 +168,12 @@ bool sdfio_source_size(sdfio_source *source, uint64_t *size)
         return false;
     }
     const uint64_t here = sdfio_source_tell(source);
-    const int64_t end = source->io.seek(source->io.user, 0, SEEK_END);
-    if (end < 0 || !sdfio_source_seek(source, here))
+    const uint64_t end = source->io.seek(source->io.user, 0, SEEK_END);
+    if (end == SDFIO_SEEK_ERROR || !sdfio_source_seek(source, here))
     {
         return false;
     }
-    *size = (uint64_t)end;
+    *size = end;
     return true;
 }
 

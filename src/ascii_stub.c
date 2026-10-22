@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The build without text files: only binary files are read and written. */
+/**
+ * @file ascii_stub.c
+ * @brief The build without text files: only binary files are read and
+ * written.
+ */
 
 #include "internal.h"
 

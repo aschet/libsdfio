@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Files of the C library: the stdio stream, and a reader and a writer that
- * own a file. */
+/**
+ * @file file.c
+ * @brief Files of the C library: the stdio stream, and a reader and a writer
+ * that own a file.
+ */
 
 #include <sdfio/file.h>
 
@@ -27,27 +30,26 @@ static size_t stdio_write(void *user, const void *data, size_t size)
     return fwrite(data, 1, size, (FILE *)user);
 }
 
-static int64_t stdio_seek(void *user, int64_t offset, int whence)
+static uint64_t stdio_seek(void *user, uint64_t offset, int whence)
 {
     FILE *file = user;
 #if defined(_WIN32)
-    if (_fseeki64(file, offset, whence) != 0)
+    if (offset > INT64_MAX || _fseeki64(file, (int64_t)offset, whence) != 0)
     {
-        return -1;
+        return SDFIO_SEEK_ERROR;
     }
-    return _ftelli64(file);
+    const int64_t position = _ftelli64(file);
 #else
     /* Standard C seeks by a long: a file or an offset beyond what a long
      * holds cannot be addressed, which is the case above 2 GiB where long has
      * 32 bits. */
-    const long narrow = (long)offset;
-    if ((int64_t)narrow != offset || fseek(file, narrow, whence) != 0)
+    if (offset > LONG_MAX || fseek(file, (long)offset, whence) != 0)
     {
-        return -1;
+        return SDFIO_SEEK_ERROR;
     }
     const long position = ftell(file);
-    return position < 0 ? -1 : (int64_t)position;
 #endif
+    return position < 0 ? SDFIO_SEEK_ERROR : (uint64_t)position;
 }
 
 sdfio_stream sdfio_stdio_stream(FILE *file)
@@ -60,8 +62,10 @@ sdfio_stream sdfio_stdio_stream(FILE *file)
     return stream;
 }
 
+/** The file that a reader opened and closes. */
 typedef struct reading_file
 {
+    /** The file. */
     FILE *file;
 } reading_file;
 
@@ -108,8 +112,10 @@ sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path)
     return SDFIO_OK;
 }
 
+/** The file that a writer created and closes. */
 typedef struct writing_file
 {
+    /** The file. */
     FILE *file;
 } writing_file;
 

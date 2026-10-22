@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @file types.c
+ * @brief The tables of the types and revisions, and the rules that depend on
+ * them.
+ */
+
 #include "internal.h"
 
 /* The spelling of a revision in the magic, in the order of the enumeration. */
@@ -29,16 +35,24 @@ static const bool allowed[REVISION_COUNT][8] = {
     [SDFIO_BCR_1_0] = {true, true, true, true, true, true, true, true},
 };
 
+/** What the library knows of a data type. */
 typedef struct scalar_info
 {
+    /** The name in a header. */
     const char *name;
+    /** The size in bytes. */
     size_t size;
+    /** The lowest value. */
     double lowest;
+    /** The highest value. */
     double highest;
+    /** The sample type of the same size and kind. */
     sdfio_sample sample;
+    /** Whether the type is a floating point type. */
     bool floating;
 } scalar_info;
 
+/** A row of the table of the data types, for SDFIO_SCALARS(). */
 #define SCALAR_ROW(sample, data, name, type, bits, low, high, floating)        \
     [data] = {name,           sizeof(type), (double)(low),                     \
               (double)(high), sample,       floating},

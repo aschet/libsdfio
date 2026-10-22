@@ -4,9 +4,14 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Numbers as text, whatever the locale: the C functions that print and parse
- * numbers use the decimal point of the locale, and the files always have a
- * dot. They are for text files, and a build without those leaves them out. */
+/**
+ * @file decimal.c
+ * @brief Numbers as text, whatever the locale: the C functions that print
+ * and parse numbers use the decimal point of the locale, and the files
+ * always have a dot.
+ *
+ * They are for text files, and a build without those leaves them out.
+ */
 
 #include "internal.h"
 

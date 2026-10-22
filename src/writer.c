@@ -4,34 +4,60 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @file writer.c
+ * @brief The writer: the header, the heights and the trailer of a file
+ * written to a stream.
+ */
+
 #include "internal.h"
 
+/** Where a writer is in the life of a file. */
 typedef enum writer_state
 {
+    /** No file is created. */
     STATE_NEW,
+    /** A file is created and not ended. */
     STATE_CREATED,
+    /** The file is ended. */
     STATE_ENDED,
+    /** An error ended the writing. */
     STATE_FAILED
 } writer_state;
 
+/** The state of a writer. */
 struct sdfio_writer
 {
+    /** The text of the last failure. */
     sdfio_message message;
+    /** The header of the file. */
     sdfio_header header;
+    /** The buffered stream. */
     sdfio_sink sink;
+    /** The decimal point of the locale, measured when the file was created. */
     sdfio_point point;
+    /** Where the writer is in the life of a file. */
     writer_state state;
+    /** Whether the header went to the sink. */
     bool header_written;
+    /** The index of the next row to write. */
     size_t next_row;
-    /* The column of the next value in a text file. */
+    /** The column of the next value in an ASCII file. */
     size_t column;
+    /** The allocator of the configuration. */
     sdfio_allocator allocator;
+    /** The time zone of the configuration. */
     sdfio_time_zone zone;
+    /** What a file adds to the writer. */
     sdfio_owner owner;
+    /** The number of values converted at a time. */
     size_t chunk_values;
-    /* Made when the file is created, for what its representation needs. */
+    /** The room for a chunk of values in the data type of the file, made when
+     * the file is created. */
     unsigned char *coded;
+    /** The room for the same values in file byte order, if the host differs. */
     unsigned char *swapped;
+    /** The room for the text of a chunk of values in an ASCII file. */
     char *text;
 };
 

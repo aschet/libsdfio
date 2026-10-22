@@ -4,8 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Stored values to heights in metres and back. These functions need no handle:
- * they take the description of a file and memory. */
+/**
+ * @file heights.c
+ * @brief Stored values to heights in metres and back.
+ *
+ * These functions need no handle: they take the description of a file and
+ * memory.
+ */
 
 #include "internal.h"
 
@@ -153,14 +158,21 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     return SDFIO_OK;
 }
 
-/* What the check of a height needs of the data area, found once for all
- * heights. */
+/**
+ * What the check of a height needs of the data area, found once for all
+ * heights.
+ */
 typedef struct coder
 {
+    /** Whether the data type is a floating point type. */
     bool floating;
+    /** Whether the data type is a binary32. */
     bool binary32;
+    /** The lowest value of the data type. */
     double lowest;
+    /** The highest value of the data type. */
     double highest;
+    /** The test for a point that is not measured. */
     sdfio_bad_test bad;
 } coder;
 

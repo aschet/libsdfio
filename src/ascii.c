@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The text representation: the header lines, the values and the trailer. */
+/**
+ * @file ascii.c
+ * @brief The text representation: the header lines, the values and the
+ * trailer.
+ */
 
 #include "internal.h"
 
@@ -209,9 +213,12 @@ static bool matches_magic(const char *magic, size_t size)
 /* ---- The header -----------------------------------------------------------
  */
 
+/** The value of a field in the text of a header, not copied. */
 typedef struct field_text
 {
+    /** The first character of the value. */
     const char *text;
+    /** The length of the value. */
     size_t size;
 } field_text;
 
@@ -278,9 +285,12 @@ static sdfio_status header_count(const sdfio_string *header_text,
  * without regard to the case. The names of the data types are the short ones
  * that the specification suggests; "NULL" is what its own example uses for
  * "none". */
+/** The name of a code in a header and the number that it stands for. */
 typedef struct symbol
 {
+    /** The name, in lower case. */
     const char *name;
+    /** The code. */
     long long code;
 } symbol;
 
@@ -344,10 +354,14 @@ static void copy_identifier(sdfio_header *header, const char *text, size_t size)
     header->manufacturer_id[size] = '\0';
 }
 
+/** The codes of the header of an ASCII file that describe its data area. */
 typedef struct codes
 {
+    /** The data type. */
     long long type;
+    /** The compression. */
     long long compression;
+    /** The checksum type. */
     long long check_type;
 } codes;
 

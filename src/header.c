@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The header of a file: finding the representation, and the rules a header has
- * to follow to be written. */
+/**
+ * @file header.c
+ * @brief The header of a file: finding the representation, and the rules a
+ * header has to follow to be written.
+ */
 
 #include "internal.h"
 

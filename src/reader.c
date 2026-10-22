@@ -4,39 +4,67 @@
  * SPDX-License-Identifier: MIT
  */
 
+/**
+ * @file reader.c
+ * @brief The reader: opening a stream, reading the header, the heights and
+ * the trailer.
+ */
+
 #include "internal.h"
 
+/** A stream over memory of the caller, for sdfio_open_memory(). */
 typedef struct memory_stream
 {
+    /** The bytes. */
     const unsigned char *data;
+    /** The number of bytes. */
     size_t size;
+    /** The index of the next byte. */
     size_t position;
 } memory_stream;
 
+/** The state of a reader. */
 struct sdfio_reader
 {
+    /** The text of the last failure. */
     sdfio_message message;
+    /** The header of the open file. */
     sdfio_header header;
+    /** The buffered stream. */
     sdfio_source source;
+    /** The decimal point of the locale, measured when the file was opened. */
     sdfio_point point;
+    /** The allocator of the configuration. */
     sdfio_allocator allocator;
+    /** The time zone of the configuration. */
     sdfio_time_zone zone;
+    /** What a file adds to the reader. */
     sdfio_owner owner;
+    /** The stream over memory, if the file is in memory. */
     memory_stream memory;
+    /** Whether a file is open. */
     bool opened;
-    /* Where the data area begins, if the source can seek. */
+    /** Where the data area begins, if the source can seek. */
     uint64_t data_start;
+    /** The number of values of the data area. */
     size_t value_count;
-    /* How much of the data area is read. */
+    /** The index of the next row to read. */
     size_t next_row;
+    /** The index of the next value to read. */
     size_t next_value;
+    /** Whether the end of the data area was passed. */
     bool data_done;
-    /* After an error in the middle of the data the position is lost. */
+    /** Whether an error in the middle of the data lost the position. */
     bool failed;
+    /** Whether the trailer was read. */
     bool trailer_read;
+    /** Whether the file has a trailer. */
     bool trailer_present;
+    /** The trailer. */
     sdfio_string trailer;
+    /** The room for a chunk of values. */
     unsigned char *chunk;
+    /** The number of values in a chunk. */
     size_t chunk_values;
 };
 
@@ -53,29 +81,28 @@ static size_t memory_read(void *user, void *data, size_t size)
     return count;
 }
 
-static int64_t memory_seek(void *user, int64_t offset, int whence)
+static uint64_t memory_seek(void *user, uint64_t offset, int whence)
 {
     memory_stream *memory = user;
-    int64_t origin = 0;
+    size_t origin = 0;
     if (whence == SEEK_CUR)
     {
-        origin = (int64_t)memory->position;
+        origin = memory->position;
     }
     else if (whence == SEEK_END)
     {
-        origin = (int64_t)memory->size;
+        origin = memory->size;
     }
     else if (whence != SEEK_SET)
     {
-        return -1;
+        return SDFIO_SEEK_ERROR;
     }
-    const int64_t target = origin + offset;
-    if (target < 0 || (uint64_t)target > memory->size)
+    if (offset > memory->size - origin)
     {
-        return -1;
+        return SDFIO_SEEK_ERROR;
     }
-    memory->position = (size_t)target;
-    return target;
+    memory->position = origin + (size_t)offset;
+    return memory->position;
 }
 
 sdfio_reader *sdfio_reader_new(const sdfio_config *config)

@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The lines of the form `Name = Value` of a header and of the trailer of
- * ISO-2.0. */
+/**
+ * @file tagged.c
+ * @brief The lines of the form `Name = Value` of a header and of the trailer
+ * of ISO-2.0.
+ */
 
 #include "internal.h"
 
