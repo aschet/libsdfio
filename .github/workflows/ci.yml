@@ -125,31 +125,34 @@ jobs:
       - name: Cortex-M4 firmware
         if: ${{ !cancelled() }}
         run: |
+          flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs --specs=nosys.specs"
           cmake -S . -B build/cortex-m -G Ninja \
             -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_C_COMPILER=arm-none-eabi-gcc \
-            "-DCMAKE_C_FLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections" \
-            "-DCMAKE_EXE_LINKER_FLAGS=--specs=nano.specs --specs=nosys.specs" \
+            -DCMAKE_C_COMPILER=arm-none-eabi-gcc "-DCMAKE_C_FLAGS=$flags" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
-            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_WITH_ASCII_FORMAT=OFF
           cmake --build build/cortex-m
-          arm-none-eabi-size build/cortex-m/tests/embedded/firmware
+          arm-none-eabi-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
+            -Iinclude -Ibuild/cortex-m/generated/include -DSDFIO_STATIC_DEFINE \
+            tests/embedded/main.c build/cortex-m/libsdfio.a -o build/cortex-m/firmware
+          arm-none-eabi-size build/cortex-m/firmware
 
       - name: RISC-V firmware
         if: ${{ !cancelled() }}
         run: |
+          flags="-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections --specs=picolibc.specs"
           cmake -S . -B build/riscv -G Ninja \
             -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32 \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc \
-            "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 --specs=picolibc.specs -ffunction-sections -fdata-sections" \
+            -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc "-DCMAKE_C_FLAGS=$flags" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
-            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_WITH_ASCII_FORMAT=OFF
           cmake --build build/riscv
-          riscv64-unknown-elf-size build/riscv/tests/embedded/firmware
+          riscv64-unknown-elf-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
+            -Iinclude -Ibuild/riscv/generated/include -DSDFIO_STATIC_DEFINE \
+            tests/embedded/main.c build/riscv/libsdfio.a -o build/riscv/firmware
+          riscv64-unknown-elf-size build/riscv/firmware
 
       - name: Static analysis
         if: ${{ !cancelled() }}

@@ -18,7 +18,6 @@ include(GNUInstallDirs)
 
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
-option(SDFIO_BUILD_FIRMWARE "Build the firmware that links the library for a target without an operating system" OFF)
 option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 # For a small program: a build can leave out what it does not use. Each option
 # swaps one file for a stub with the same functions, so that nothing is
@@ -154,10 +153,6 @@ endif()
 if(SDFIO_BUILD_INTEGRATIONS)
     enable_language(CXX)
     add_subdirectory(examples/integrations)
-endif()
-
-if(SDFIO_BUILD_FIRMWARE)
-    add_subdirectory(tests/embedded)
 endif()
 
 if(SDFIO_BUILD_FUZZERS)
