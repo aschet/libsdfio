@@ -418,14 +418,11 @@ SDFIO_API double sdfio_bad_value(sdfio_data_type type, sdfio_revision revision);
 /** Return value of a read callback that failed. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)
 
-/** Return value of a seek callback that failed. */
-#define SDFIO_SEEK_ERROR UINT64_MAX
-
 /**
  * Callbacks that provide or accept the bytes of a file.
  *
- * A reader uses `read` and, optionally, `seek`. A writer uses `write`. Without
- * `seek` the bytes are processed once and in order, as for a pipe.
+ * A reader uses `read`. A writer uses `write`. The bytes are processed once and
+ * in order, as for a pipe.
  */
 typedef struct sdfio_stream
 {
@@ -442,17 +439,6 @@ typedef struct sdfio_stream
      * count smaller than `size` indicates a failure.
      */
     size_t (*write)(void *user, const void *data, size_t size);
-    /**
-     * Repositions the stream like `lseek`, with an offset that is never
-     * negative. `whence` is SEEK_SET, SEEK_CUR or SEEK_END. Returns the new
-     * position measured from the start of the stream, or SDFIO_SEEK_ERROR on
-     * failure.
-     *
-     * The library moves to a position with SEEK_SET. It asks for the current
-     * position with SEEK_CUR and for the size of the stream with SEEK_END, both
-     * with the offset 0.
-     */
-    uint64_t (*seek)(void *user, uint64_t offset, int whence);
 } sdfio_stream;
 
 /**
@@ -627,8 +613,7 @@ SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
 /**
  * Opens a stream as the source and reads the header. The structure is copied,
  * and the callbacks and the object that `user` refers to must remain valid
- * while the reader is in use. A stream without `seek` can be read once, from
- * the start.
+ * while the reader is in use. The stream is read once, from the start.
  *
  * @param reader The reader.
  * @param[in] stream The stream; `read` is required.
@@ -663,8 +648,7 @@ SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
  * The first row read is the first row stored in the file. In BCR-1.0 it has the
  * largest y; sdfio_row_y() gives the y of every row in every revision.
  *
- * After an error the reader rejects further reads until sdfio_rewind()
- * succeeds.
+ * After an error the reader rejects further reads.
  *
  * @param reader The reader.
  * @param[out] dst The buffer for the values.
@@ -728,8 +712,8 @@ static inline sdfio_format sdfio_metres(sdfio_sample sample)
  * negative row stride, with `dst` at the first sample of the row y = 0, which
  * is the last row in memory, stores the matrix upside down.
  *
- * The function reads from the first row of the data area. After other reads,
- * call sdfio_rewind() first.
+ * The function reads from the first row of the data area, so no rows may have
+ * been read before.
  *
  * @param reader The reader.
  * @param format The format of the buffer.
@@ -749,12 +733,11 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
 /**
  * Reads the trailer (record 3), the free text after the data area.
  *
- * Rows of the data area that have not been read are skipped. A stream that
- * cannot seek reads and discards them. `*trailer` receives a pointer to the
- * text, or null if the file has no trailer, and `*size` its length in bytes.
- * The text is followed by a null character, which the size does not count. It
- * remains valid until the reader is freed. A repeated call returns the same
- * trailer.
+ * Rows of the data area that have not been read are read and discarded.
+ * `*trailer` receives a pointer to the text, or null if the file has no
+ * trailer, and `*size` its length in bytes. The text is followed by a null
+ * character, which the size does not count. It remains valid until the reader
+ * is freed. A repeated call returns the same trailer.
  *
  * In memory every line end is LF, whichever of CRLF, CR or LF the file
  * contains, in ASCII and in binary files. The end of the last line is not part
@@ -772,16 +755,6 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  */
 SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
                                           const char **trailer, size_t *size);
-
-/**
- * Repositions the reader at the first row of the data area and clears the
- * error state of a failed read. The source must be able to seek.
- *
- * @param reader The reader.
- * @retval SDFIO_ERR_ARGUMENT The reader is null.
- * @retval SDFIO_ERR_STATE No file is open, or the source cannot seek.
- */
-SDFIO_API sdfio_status sdfio_rewind(sdfio_reader *reader);
 
 /**
  * Returns a description of the most recent failure of the reader, or an empty

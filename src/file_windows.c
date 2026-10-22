@@ -18,86 +18,18 @@
 
 #include <wchar.h>
 
-/** The file that a reader opened by a wide path and closes. */
-typedef struct wide_reading
-{
-    /** The file. */
-    FILE *file;
-} wide_reading;
-
-static void close_reading(void *user)
-{
-    wide_reading *state = user;
-    fclose(state->file);
-    free(state);
-}
-
 sdfio_status sdfio_open_file_w(sdfio_reader *reader, const wchar_t *path)
 {
     if (reader == NULL || path == NULL)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    if (sdfio_reader_is_open(reader))
+    const sdfio_status ready = sdfio_file_check_reader(reader);
+    if (ready != SDFIO_OK)
     {
-        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_STATE,
-                          "The reader is open already");
+        return ready;
     }
-    FILE *file = _wfopen(path, L"rb");
-    if (file == NULL)
-    {
-        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_IO,
-                          "The file cannot be opened");
-    }
-    wide_reading *state = malloc(sizeof *state);
-    if (state == NULL)
-    {
-        fclose(file);
-        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_MEMORY,
-                          "Out of memory");
-    }
-    state->file = file;
-    const sdfio_stream stream = sdfio_stdio_stream(file);
-    const sdfio_status status = sdfio_open_stream(reader, &stream);
-    if (status != SDFIO_OK)
-    {
-        close_reading(state);
-        return status;
-    }
-    sdfio_reader_own(reader, (sdfio_owner){NULL, close_reading, state});
-    return SDFIO_OK;
-}
-
-/** The file that a writer created by a wide path and closes. */
-typedef struct wide_writing
-{
-    /** The file. */
-    FILE *file;
-} wide_writing;
-
-/* A file that was not ended is closed as it is. */
-static void close_writing(void *user)
-{
-    wide_writing *state = user;
-    if (state->file != NULL)
-    {
-        fclose(state->file);
-    }
-    free(state);
-}
-
-static sdfio_status finish_writing(void *user, sdfio_message *message)
-{
-    wide_writing *state = user;
-    const bool flushed = fflush(state->file) == 0;
-    const bool closed = fclose(state->file) == 0;
-    state->file = NULL;
-    if (!flushed || !closed)
-    {
-        return sdfio_fail(message, SDFIO_ERR_IO,
-                          "The file could not be written");
-    }
-    return SDFIO_OK;
+    return sdfio_file_adopt_reader(reader, _wfopen(path, L"rb"));
 }
 
 sdfio_status sdfio_create_file_w(sdfio_writer *writer, const wchar_t *path,
@@ -107,39 +39,10 @@ sdfio_status sdfio_create_file_w(sdfio_writer *writer, const wchar_t *path,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    if (!sdfio_writer_is_new(writer))
+    const sdfio_status ready = sdfio_file_check_writer(writer, header);
+    if (ready != SDFIO_OK)
     {
-        return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_STATE,
-                          "The writer has created a file already");
+        return ready;
     }
-    /* A header that cannot be written does not create a file. */
-    const sdfio_status valid =
-        sdfio_validate(header, sdfio_writer_message(writer));
-    if (valid != SDFIO_OK)
-    {
-        return valid;
-    }
-    wide_writing *state = malloc(sizeof *state);
-    if (state == NULL)
-    {
-        return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_MEMORY,
-                          "Out of memory");
-    }
-    state->file = _wfopen(path, L"wb");
-    if (state->file == NULL)
-    {
-        free(state);
-        return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_IO,
-                          "The file cannot be written");
-    }
-    const sdfio_stream stream = sdfio_stdio_stream(state->file);
-    const sdfio_status status = sdfio_create_stream(writer, &stream, header);
-    if (status != SDFIO_OK)
-    {
-        close_writing(state);
-        return status;
-    }
-    sdfio_writer_own(writer,
-                     (sdfio_owner){finish_writing, close_writing, state});
-    return SDFIO_OK;
+    return sdfio_file_adopt_writer(writer, _wfopen(path, L"wb"), header);
 }

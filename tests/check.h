@@ -94,6 +94,17 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
     return stream;
 }
 
+/* Frees a reader and opens the file in memory again, to read it from the
+ * start. */
+static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
+                                          const membuf *file)
+{
+    sdfio_reader_free(reader);
+    reader = sdfio_reader_new(NULL);
+    CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
+    return reader;
+}
+
 static inline int finish_tests(void)
 {
     if (failures != 0)

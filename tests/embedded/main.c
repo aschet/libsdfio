@@ -94,7 +94,7 @@ int main(void)
     header.x_scale = 1.0e-6;
     header.y_scale = 1.0e-6;
     header.z_scale = 1.0e-9;
-    const sdfio_stream stream = {NULL, NULL, store, NULL};
+    const sdfio_stream stream = {NULL, NULL, store};
     sdfio_status status = sdfio_create_stream(writer, &stream, &header);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {

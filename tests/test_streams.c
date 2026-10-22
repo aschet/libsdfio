@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Sources that cannot seek, sources that give a byte at a time, files that
- * are damaged, and the file that a writer leaves. */
+/* Streams that give a few bytes at a time, files that are damaged, and the
+ * file that a writer leaves. */
 
 #include "check.h"
 
@@ -34,7 +34,7 @@ static unsigned char *load(const char *path, size_t *size)
     return data;
 }
 
-/* A source that has no seek, and gives at most `piece` bytes at a time. */
+/* A stream that gives at most `piece` bytes at a time. */
 typedef struct pipe_source
 {
     const unsigned char *data;
@@ -91,12 +91,12 @@ static void check_pipe(const char *path, size_t piece)
                                (ptrdiff_t)(header->columns * sizeof(double))));
         /* The same heights, in the same places, as from memory: also for
          * BCR-1.0, whose rows are reversed in the file. */
-        sdfio_reader *seekable = sdfio_reader_new(NULL);
-        CHECK_OK(sdfio_open_memory(seekable, data, size));
+        sdfio_reader *in_memory = sdfio_reader_new(NULL);
+        CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
             malloc(header->rows * header->columns * sizeof(double));
         CHECK_OK(
-            sdfio_read_heights(seekable, sdfio_metres(SDFIO_FLOAT64), expected,
+            sdfio_read_heights(in_memory, sdfio_metres(SDFIO_FLOAT64), expected,
                                (ptrdiff_t)(header->columns * sizeof(double))));
         for (size_t i = 0; i < header->rows * header->columns; ++i)
         {
@@ -104,7 +104,7 @@ static void check_pipe(const char *path, size_t piece)
                                      : heights[i] == expected[i]);
         }
         free(expected);
-        sdfio_reader_free(seekable);
+        sdfio_reader_free(in_memory);
         const char *trailer = NULL;
         size_t trailer_size = 0;
         CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
@@ -113,7 +113,6 @@ static void check_pipe(const char *path, size_t piece)
         size_t again_size = 0;
         CHECK_OK(sdfio_read_trailer(reader, &again, &again_size));
         CHECK(again == trailer && again_size == trailer_size);
-        CHECK_STATUS(SDFIO_ERR_STATE, sdfio_rewind(reader));
         CHECK_STATUS(
             SDFIO_ERR_STATE,
             sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
@@ -365,8 +364,8 @@ static void check_file(void)
     sdfio_writer_free(writer);
 }
 
-/* A header that claims more bytes of data than a signed 64-bit offset holds, on
- * a stream that cannot seek: the trailer is found by reading through. */
+/* A header that claims more bytes of data than any stream has: the trailer is
+ * looked for by reading through the data area, which ends first. */
 static void check_huge_count(void)
 {
     if (sizeof(size_t) < sizeof(uint64_t))
@@ -409,7 +408,7 @@ static void check_failing_sink(void)
     sdfio_header_init(&header);
     header.columns = 4;
     header.rows = 4;
-    const sdfio_stream stream = {NULL, NULL, refusing_write, NULL};
+    const sdfio_stream stream = {NULL, NULL, refusing_write};
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     double heights[16] = {0};

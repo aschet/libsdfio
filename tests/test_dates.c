@@ -244,7 +244,7 @@ static void check_file(void)
     header.modification_date = 1768474800;
 
     memory_sink sink = {NULL, 0};
-    const sdfio_stream stream = {&sink, NULL, sink_write, NULL};
+    const sdfio_stream stream = {&sink, NULL, sink_write};
     const float height = 1.0F;
     sdfio_writer *writer = sdfio_writer_new(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
@@ -273,7 +273,7 @@ static void check_file(void)
     const sdfio_time_zone refusing = {NULL, refuse, refuse};
     const sdfio_config refusing_config = {NULL, 0, 0, &refusing};
     memory_sink refused = {NULL, 0};
-    const sdfio_stream refused_stream = {&refused, NULL, sink_write, NULL};
+    const sdfio_stream refused_stream = {&refused, NULL, sink_write};
     writer = sdfio_writer_new(&refusing_config);
     CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,

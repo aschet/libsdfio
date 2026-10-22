@@ -209,7 +209,7 @@ static void check_rows(sdfio_revision revision,
 
     /* The heights are in the order of y in every revision. */
     sdfio_header as_read = *sdfio_get_header(reader);
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &file);
     double heights[ROWS * COLUMNS];
     CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
                                 COLUMNS * sizeof(double)));
@@ -339,7 +339,7 @@ static void check_stride(void)
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     CHECK_OK(
         sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), up, stride));
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &file);
     CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
                                 down + (ROWS - 1) * COLUMNS, -stride));
     for (size_t row = 0; row < ROWS; ++row)
@@ -356,7 +356,7 @@ static void check_stride(void)
         }
     }
     /* A stride smaller than a row would overwrite the memory. */
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &file);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), up,
                                     (ptrdiff_t)sizeof(double)));
@@ -441,11 +441,11 @@ static void check_element_stride(void)
     sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
     format.element_stride = ROWS * sizeof(double);
     CHECK_OK(sdfio_read_heights(reader, format, read_columns, sizeof(double)));
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &from_plain);
     format.element_stride = sizeof(point);
     CHECK_OK(sdfio_read_heights(reader, format, &read_points[0].z,
                                 COLUMNS * sizeof(point)));
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &from_plain);
     format.element_stride = -(ptrdiff_t)sizeof(double);
     CHECK_OK(sdfio_read_heights(reader, format, mirrored + COLUMNS - 1,
                                 COLUMNS * sizeof(double)));
@@ -469,7 +469,7 @@ static void check_element_stride(void)
      * written. */
     double scratch[ROWS * COLUMNS] = {0};
     format = sdfio_metres(SDFIO_FLOAT64);
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &from_plain);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_read_heights(reader, format, scratch, sizeof(double)));
     CHECK(scratch[0] == 0.0 && scratch[ROWS * COLUMNS - 1] == 0.0);

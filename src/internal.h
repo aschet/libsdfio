@@ -831,8 +831,7 @@ bool sdfio_tagged_find(const char *text, size_t size, const char *name,
  * A buffered stream for reading.
  *
  * The functions of the source work with the buffer, so a stream that gives a
- * byte at a time costs one call for the buffer. A source can seek if the stream
- * can.
+ * byte at a time costs one call for the buffer.
  */
 typedef struct sdfio_source
 {
@@ -848,10 +847,6 @@ typedef struct sdfio_source
     size_t position;
     /** The index after the last byte in the buffer. */
     size_t end;
-    /** Where buffer[0] is in the stream, if the stream can seek. */
-    uint64_t base;
-    /** Whether the stream can seek. */
-    bool seekable;
     /** Whether the stream gave no more bytes. */
     bool at_end;
     /** Whether the stream failed. */
@@ -883,8 +878,6 @@ void sdfio_source_destroy(sdfio_source *source);
 
 /**
  * Attaches a stream to a source, and starts at its current position.
- *
- * A stream that answers where it is can seek.
  *
  * @param source The source, with a buffer.
  * @param io The stream.
@@ -944,32 +937,6 @@ static inline int sdfio_source_getc(sdfio_source *source)
  * failure.
  */
 size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size);
-
-/**
- * Returns the position in the stream.
- *
- * @param source The source.
- */
-uint64_t sdfio_source_tell(const sdfio_source *source);
-
-/**
- * Moves to a position in the stream.
- *
- * @param source The source.
- * @param position The position from the start.
- * @return False if the stream cannot seek, the position is beyond what the
- * stream can address, or the seek failed.
- */
-bool sdfio_source_seek(sdfio_source *source, uint64_t position);
-
-/**
- * Returns the size of the stream, and keeps the position.
- *
- * @param source The source.
- * @param[out] size Receives the size in bytes.
- * @return False if the stream cannot seek or tell its size.
- */
-bool sdfio_source_size(sdfio_source *source, uint64_t *size);
 
 /** A buffered stream for writing. */
 typedef struct sdfio_sink
@@ -1062,9 +1029,10 @@ bool sdfio_append_crlf_lines(sdfio_string *out, const char *text, size_t size);
  */
 typedef struct sdfio_owner
 {
-    /** Ends the file of a writer. Null for a reader. */
+    /** Ends the file of a writer, after which `close` is not called. Null for a
+     * reader. */
     sdfio_status (*finish)(void *user, sdfio_message *message);
-    /** Ends a reader, or closes the file of a writer that was not ended. */
+    /** Closes the file of a reader, or of a writer that was not ended. */
     void (*close)(void *user);
     /** The state that the functions get. */
     void *user;
@@ -1113,6 +1081,49 @@ bool sdfio_reader_is_open(const sdfio_reader *reader);
  * @param writer The writer.
  */
 bool sdfio_writer_is_new(const sdfio_writer *writer);
+
+/**
+ * Checks that a reader can open a file.
+ *
+ * @param reader The reader.
+ * @retval SDFIO_ERR_STATE The reader is open already.
+ */
+sdfio_status sdfio_file_check_reader(sdfio_reader *reader);
+
+/**
+ * Checks that a writer can create a file, before the file is created.
+ *
+ * @param writer The writer.
+ * @param header The header of the file.
+ * @retval SDFIO_ERR_STATE The writer has created a file already.
+ * @retval SDFIO_ERR_ARGUMENT The header cannot be written.
+ * @retval SDFIO_ERR_UNSUPPORTED The header is ASCII and the build has no
+ * support for it.
+ */
+sdfio_status sdfio_file_check_writer(sdfio_writer *writer,
+                                     const sdfio_header *header);
+
+/**
+ * Opens a file that is open already as the source of a reader. The reader
+ * closes the file, also if this fails.
+ *
+ * @param reader The reader.
+ * @param file The file, or null if it could not be opened.
+ * @retval SDFIO_ERR_IO The file is null.
+ */
+sdfio_status sdfio_file_adopt_reader(sdfio_reader *reader, FILE *file);
+
+/**
+ * Creates the file of a writer from a file that is open already. The writer
+ * closes the file, also if this fails.
+ *
+ * @param writer The writer.
+ * @param file The file, or null if it could not be created.
+ * @param header The header of the file.
+ * @retval SDFIO_ERR_IO The file is null.
+ */
+sdfio_status sdfio_file_adopt_writer(sdfio_writer *writer, FILE *file,
+                                     const sdfio_header *header);
 
 /* ---- The formats ----------------------------------------------------------
  */

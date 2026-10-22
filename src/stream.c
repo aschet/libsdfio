@@ -32,22 +32,10 @@ void sdfio_source_init(sdfio_source *source, const sdfio_stream *io)
     source->io = *io;
     source->position = 0;
     source->end = 0;
-    source->base = 0;
     source->at_end = false;
     source->failed = false;
     source->no_memory = false;
     source->skip_lf = false;
-    source->seekable = false;
-    if (io->seek != NULL)
-    {
-        /* A stream that answers where it is can seek. */
-        const uint64_t here = io->seek(io->user, 0, SEEK_CUR);
-        if (here != SDFIO_SEEK_ERROR)
-        {
-            source->seekable = true;
-            source->base = here;
-        }
-    }
 }
 
 size_t sdfio_source_fill(sdfio_source *source, size_t want)
@@ -65,7 +53,6 @@ size_t sdfio_source_fill(sdfio_source *source, size_t want)
     {
         memmove(source->buffer, source->buffer + source->position,
                 source->end - source->position);
-        source->base += source->position;
         source->end -= source->position;
         source->position = 0;
     }
@@ -113,7 +100,6 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
         if (size - done >= source->capacity)
         {
             /* A large piece goes straight to its place. */
-            source->base += source->end;
             source->position = 0;
             source->end = 0;
             const size_t count =
@@ -128,7 +114,6 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
                 source->at_end = true;
                 break;
             }
-            source->base += count;
             done += count;
             continue;
         }
@@ -138,43 +123,6 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
         }
     }
     return done;
-}
-
-uint64_t sdfio_source_tell(const sdfio_source *source)
-{
-    return source->base + source->position;
-}
-
-bool sdfio_source_seek(sdfio_source *source, uint64_t position)
-{
-    if (!source->seekable || position == SDFIO_SEEK_ERROR
-        || source->io.seek(source->io.user, position, SEEK_SET) != position)
-    {
-        return false;
-    }
-    source->position = 0;
-    source->end = 0;
-    source->base = position;
-    source->at_end = false;
-    source->failed = false;
-    source->skip_lf = false;
-    return true;
-}
-
-bool sdfio_source_size(sdfio_source *source, uint64_t *size)
-{
-    if (!source->seekable)
-    {
-        return false;
-    }
-    const uint64_t here = sdfio_source_tell(source);
-    const uint64_t end = source->io.seek(source->io.user, 0, SEEK_END);
-    if (end == SDFIO_SEEK_ERROR || !sdfio_source_seek(source, here))
-    {
-        return false;
-    }
-    *size = end;
-    return true;
 }
 
 bool sdfio_sink_create(sdfio_sink *sink, size_t capacity,

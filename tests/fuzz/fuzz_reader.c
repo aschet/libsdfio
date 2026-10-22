@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Reads any bytes as an SDF file, through memory and through a stream that
- * cannot seek, with handles of the usual and of a tiny configuration. The
- * library must answer with a status and never fail otherwise. */
+/* Reads any bytes as an SDF file, through memory and through a stream, with
+ * handles of the usual and of a tiny configuration. The library must answer
+ * with a status and never fail otherwise. */
 
 #include <sdfio/sdfio.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +22,7 @@ enum
     CONTROL_STREAM = 1,
     CONTROL_SMALL = 2,
     CONTROL_TINY = 4,
+    CONTROL_HEIGHTS = 8,
     /* What is read as a whole matrix, and as rows. */
     MATRIX_LIMIT = 1U << 16,
     ROW_LIMIT = 1U << 16
@@ -47,17 +49,33 @@ static size_t source_read(void *user, void *out, size_t size)
     return count;
 }
 
-static void read_everything(sdfio_reader *reader)
+/* The data area as rows in the data type of the file, or as a whole matrix of
+ * heights, and then the trailer. */
+static void read_everything(sdfio_reader *reader, bool as_heights)
 {
     const sdfio_header *header = sdfio_get_header(reader);
     if (header == NULL)
     {
         return;
     }
-    const sdfio_format format = sdfio_metres(SDFIO_FLOAT32);
-    if (header->columns <= ROW_LIMIT)
+    if (as_heights)
     {
-        /* Row by row, in the data type of the file. */
+        if (header->columns <= ROW_LIMIT && header->rows <= ROW_LIMIT
+            && header->columns * header->rows <= MATRIX_LIMIT)
+        {
+            float *heights =
+                sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
+            if (heights != NULL)
+            {
+                (void)sdfio_read_heights(
+                    reader, sdfio_metres(SDFIO_FLOAT32), heights,
+                    (ptrdiff_t)(header->columns * sizeof *heights));
+                sdfio_free(heights);
+            }
+        }
+    }
+    else if (header->columns <= ROW_LIMIT)
+    {
         void *row = sdfio_alloc_data(header, 1);
         if (row != NULL)
         {
@@ -74,21 +92,6 @@ static void read_everything(sdfio_reader *reader)
     const char *trailer = NULL;
     size_t trailer_size = 0;
     (void)sdfio_read_trailer(reader, &trailer, &trailer_size);
-
-    if (header->columns <= ROW_LIMIT && header->rows <= ROW_LIMIT
-        && header->columns * header->rows <= MATRIX_LIMIT
-        && sdfio_rewind(reader) == SDFIO_OK)
-    {
-        float *heights =
-            sdfio_alloc_heights(header, SDFIO_FLOAT32, header->rows);
-        if (heights != NULL)
-        {
-            (void)sdfio_read_heights(
-                reader, format, heights,
-                (ptrdiff_t)(header->columns * sizeof *heights));
-            sdfio_free(heights);
-        }
-    }
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
@@ -114,7 +117,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     sdfio_status status = SDFIO_ERR_ARGUMENT;
     if (control & CONTROL_STREAM)
     {
-        const sdfio_stream stream = {&input, source_read, NULL, NULL};
+        const sdfio_stream stream = {&input, source_read, NULL};
         status = sdfio_open_stream(reader, &stream);
     }
     else
@@ -123,7 +126,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     if (status == SDFIO_OK)
     {
-        read_everything(reader);
+        read_everything(reader, (control & CONTROL_HEIGHTS) != 0);
     }
     sdfio_reader_free(reader);
     return 0;

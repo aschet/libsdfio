@@ -25,9 +25,9 @@
 
 /**
  * @example streaming.c
- * Reads a file from a stream that cannot seek, here standard input, one row at
- * a time with sdfio_read_data() and sdfio_decode_heights(), and prints the
- * lowest and the highest height. The program holds one row in memory, not the
+ * Reads a file from a stream, here standard input, one row at a time with
+ * sdfio_read_data() and sdfio_decode_heights(), and prints the lowest and the
+ * highest height. The program holds one row in memory, not the
  * matrix.
  */
 
@@ -52,7 +52,8 @@
  * @example image.cpp
  * A C++ image class over the C interface: the handles belong to objects that
  * release them, a failed call is an exception that carries the message of the
- * library, and the heights are read into a two-dimensional array that is indexed as `image[y][x]`.
+ * library, and the heights are read into a two-dimensional array that is
+ * indexed as `image[y][x]`.
  */
 
 /**

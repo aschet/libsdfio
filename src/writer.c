@@ -498,9 +498,13 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     {
         return write_failed(writer);
     }
-    status = writer->owner.finish != NULL
-                 ? writer->owner.finish(writer->owner.user, &writer->message)
-                 : SDFIO_OK;
+    status = SDFIO_OK;
+    if (writer->owner.finish != NULL)
+    {
+        status = writer->owner.finish(writer->owner.user, &writer->message);
+        /* The file is ended, whatever the result. */
+        writer->owner.close = NULL;
+    }
     if (status != SDFIO_OK)
     {
         return fail_writing(writer, status);

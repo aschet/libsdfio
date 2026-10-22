@@ -111,7 +111,7 @@ static sdfio_status round_trip(const sdfio_config *config,
     sdfio_writer *writer = sdfio_writer_new(config);
     if (writer != NULL)
     {
-        const sdfio_stream stream = {&sink, NULL, sink_write, NULL};
+        const sdfio_stream stream = {&sink, NULL, sink_write};
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
@@ -292,7 +292,7 @@ static void check_arguments(void)
     header.creation_date = SDFIO_NO_TIME;
     sdfio_writer *writer = sdfio_writer_new(NULL);
     memory_sink sink = {0};
-    const sdfio_stream stream = {&sink, NULL, sink_write, NULL};
+    const sdfio_stream stream = {&sink, NULL, sink_write};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
     CHECK(strstr(sdfio_writer_error_message(writer), "SDFIO_NO_TIME") != NULL);

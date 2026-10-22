@@ -94,7 +94,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     sdfio_status status = SDFIO_ERR_MEMORY;
     if (writer != NULL)
     {
-        const sdfio_stream stream = {&output, NULL, sink_write, NULL};
+        const sdfio_stream stream = {&output, NULL, sink_write};
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {

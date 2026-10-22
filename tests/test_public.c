@@ -91,7 +91,8 @@ int main(void)
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     CHECK(size == strlen("Note = public\nAverages = 16")
           && memcmp(trailer, "Note = public\nAverages = 16", size) == 0);
-    CHECK_OK(sdfio_rewind(reader));
+    reader = membuf_reopen(reader, &file);
+    read = sdfio_get_header(reader);
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));
     CHECK(sdfio_is_bad_value(read->data_type, read->revision, counts[2]));

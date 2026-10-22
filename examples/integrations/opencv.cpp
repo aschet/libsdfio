@@ -89,16 +89,16 @@ void write_depth(const char *path, sdfio_header header, const cv::Mat &depth)
 
 // A region of interest is read into without a copy; the rest of the image is
 // left alone.
-cv::Mat read_into_region(sdfio_reader *reader)
+cv::Mat read_into_region(const char *path)
 {
-    const sdfio_header *header = sdfio_get_header(reader);
+    const Reader reader = open(path);
+    const sdfio_header *header = sdfio_get_header(reader.get());
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
                                      static_cast<int>(header->rows)));
-    check(sdfio_rewind(reader), sdfio_reader_error_message(reader));
-    check(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32),
+    check(sdfio_read_heights(reader.get(), sdfio_metres(SDFIO_FLOAT32),
                              region.ptr(region.rows - 1), stride_up(region)),
-          sdfio_reader_error_message(reader));
+          sdfio_reader_error_message(reader.get()));
     return canvas;
 }
 
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
         const cv::Mat blurred = smooth(depth);
         save_preview(blurred, "preview.png");
         write_depth("smooth.sdf", *sdfio_get_header(reader.get()), blurred);
-        const cv::Mat canvas = read_into_region(reader.get());
+        const cv::Mat canvas = read_into_region(path);
         std::cout << "OpenCV " << CV_VERSION << ": " << depth.cols << " x "
                   << depth.rows << ", canvas " << canvas.cols << " x "
                   << canvas.rows << "\n";
