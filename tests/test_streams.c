@@ -86,18 +86,16 @@ static void check_pipe(const char *path, size_t piece)
     {
         double *heights =
             malloc(header->rows * header->columns * sizeof(double));
-        CHECK_OK(
-            sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                               (ptrdiff_t)(header->columns * sizeof(double))));
+        CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                    heights, 0));
         /* The same heights, in the same places, as from memory: also for
          * BCR-1.0, whose rows are reversed in the file. */
         sdfio_reader *in_memory = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
             malloc(header->rows * header->columns * sizeof(double));
-        CHECK_OK(
-            sdfio_read_heights(in_memory, sdfio_metres(SDFIO_FLOAT64), expected,
-                               (ptrdiff_t)(header->columns * sizeof(double))));
+        CHECK_OK(sdfio_read_heights(in_memory, sdfio_metres(SDFIO_FLOAT64),
+                                    expected, 0));
         for (size_t i = 0; i < header->rows * header->columns; ++i)
         {
             CHECK(isnan(expected[i]) ? isnan(heights[i])
@@ -113,10 +111,9 @@ static void check_pipe(const char *path, size_t piece)
         size_t again_size = 0;
         CHECK_OK(sdfio_read_trailer(reader, &again, &again_size));
         CHECK(again == trailer && again_size == trailer_size);
-        CHECK_STATUS(
-            SDFIO_ERR_STATE,
-            sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                               (ptrdiff_t)(header->columns * sizeof(double))));
+        CHECK_STATUS(SDFIO_ERR_STATE,
+                     sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                        heights, 0));
         free(heights);
     }
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_open_stream(reader, &stream));
@@ -158,9 +155,8 @@ static void check_failing_stream(void)
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
                 malloc(header->rows * header->columns * sizeof(double));
-            status = sdfio_read_heights(
-                reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                (ptrdiff_t)(header->columns * sizeof(double)));
+            status = sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                        heights, 0);
             free(heights);
         }
         CHECK(status == SDFIO_ERR_IO);
@@ -196,8 +192,7 @@ static void check_damage(const char *path)
             double *heights =
                 malloc(header->rows * header->columns * sizeof(double) + 1);
             const sdfio_status status = sdfio_read_heights(
-                reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                (ptrdiff_t)(header->columns * sizeof(double)));
+                reader, sdfio_metres(SDFIO_FLOAT64), heights, 0);
             if (length < size / 2)
             {
                 CHECK(status != SDFIO_OK);
@@ -232,9 +227,8 @@ static void check_damage(const char *path)
             if (count < (size_t)1 << 20)
             {
                 double *heights = malloc(count * sizeof(double) + 1);
-                (void)sdfio_read_heights(
-                    reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                    (ptrdiff_t)(header->columns * sizeof(double)));
+                (void)sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64),
+                                         heights, 0);
                 free(heights);
             }
             const char *trailer = NULL;

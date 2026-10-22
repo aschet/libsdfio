@@ -67,6 +67,24 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
     return (count - 1) * stride + size;
 }
 
+sdfio_status sdfio_resolve_row_stride(sdfio_format format, size_t columns,
+                                      ptrdiff_t *row_stride,
+                                      sdfio_message *message)
+{
+    if (*row_stride != 0 || !sdfio_valid_sample(format.sample))
+    {
+        return SDFIO_OK;
+    }
+    const size_t element = magnitude(sdfio_element_stride(format));
+    if (columns != 0 && element > (size_t)PTRDIFF_MAX / columns)
+    {
+        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
+                          "The matrix is larger than memory");
+    }
+    *row_stride = (ptrdiff_t)(columns * element);
+    return SDFIO_OK;
+}
+
 sdfio_status sdfio_check_layout(sdfio_format format, size_t rows,
                                 size_t columns, ptrdiff_t row_stride,
                                 sdfio_message *message)
@@ -314,6 +332,8 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
 {
     if (!sdfio_valid_sample(format.sample) || lowest == NULL || highest == NULL
         || (rows > 0 && columns > 0 && heights == NULL)
+        || sdfio_resolve_row_stride(format, columns, &row_stride, NULL)
+               != SDFIO_OK
         || sdfio_check_layout(format, rows, columns, row_stride, NULL)
                != SDFIO_OK)
     {

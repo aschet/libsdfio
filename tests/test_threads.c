@@ -53,8 +53,7 @@ static double read_sum(const char *path, sdfio_reader *reader)
     double *heights = malloc(count * sizeof *heights);
     double sum = NAN;
     if (heights != NULL
-        && sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                              (ptrdiff_t)(header->columns * sizeof(double)))
+        && sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights, 0)
                == SDFIO_OK)
     {
         sum = 0.0;
@@ -170,9 +169,8 @@ static void *read_shared(void *argument)
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
                 malloc(header->rows * header->columns * sizeof *heights);
-            if (sdfio_read_heights(
-                    reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                    (ptrdiff_t)(header->columns * sizeof(double)))
+            if (sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
+                                   0)
                 != SDFIO_OK)
             {
                 ++self->errors;

@@ -38,17 +38,14 @@
  * This header does not include `<stdio.h>`.
  *
  * @par Memory
- * The library allocates no memory for heights. sdfio_alloc_data() and
- * sdfio_alloc_heights() allocate zero-initialized buffers whose size is derived
- * from a header, with a check for arithmetic overflow, and sdfio_free()
- * releases them. They use an sdfio_allocator, or malloc and free if none is
- * given. Buffers allocated by the caller are equally valid. A reader or a
- * writer obtains its internal memory through the allocator of its
- * sdfio_config.
+ * The library allocates no memory for heights. The buffers of the caller are
+ * allocated by the caller, who obtains their size from sdfio_data_size() and
+ * sdfio_heights_size(), with a check for arithmetic overflow. A reader or a
+ * writer obtains its own memory through the allocator of its sdfio_config.
  *
  * @par Error handling
  * A function that can fail returns an sdfio_status, or a null pointer where it
- * returns a handle or a buffer. sdfio_reader_error_message() and
+ * returns a handle. sdfio_reader_error_message() and
  * sdfio_writer_error_message() describe the most recent failure of a handle.
  *
  * @par Points that are not measured
@@ -529,48 +526,36 @@ typedef struct sdfio_config
 /* ---- Memory ------------------------------------------------------------- */
 
 /**
- * Allocates zero-initialized memory for rows of the data area: `rows` times
+ * Returns the size in bytes of `rows` rows of the data area: `rows` times
  * `header->columns` values of `header->data_type`. The size is checked for
- * arithmetic overflow. The memory is suitable for sdfio_read_data() and
- * sdfio_decode_heights(). Release it with sdfio_free(), and the same allocator.
+ * arithmetic overflow. A buffer of this size is suitable for sdfio_read_data()
+ * and sdfio_decode_heights(). The caller allocates it.
  *
- * @param[in] allocator The allocator, or null for malloc.
  * @param[in] header The header of the file.
  * @param rows The number of rows.
- * @return The memory, or null if the header is invalid, the size cannot be
- * represented or the allocation fails.
+ * @param[out] bytes The size, which is 0 for an empty matrix.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the data type is invalid.
+ * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
  */
-SDFIO_API void *sdfio_alloc_data(const sdfio_allocator *allocator,
-                                 const sdfio_header *header, size_t rows);
+SDFIO_API sdfio_status sdfio_data_size(const sdfio_header *header, size_t rows,
+                                       size_t *bytes);
 
 /**
- * Allocates zero-initialized memory for `rows` rows of `header->columns`
- * samples of a sample type. With `rows` equal to `header->rows` it holds the
- * matrix for sdfio_read_heights() and sdfio_write_heights(). Release it with
- * sdfio_free(), and the same allocator.
+ * Returns the size in bytes of `rows` rows of `header->columns` samples of a
+ * sample type. With `rows` equal to `header->rows` a buffer of this size holds
+ * the matrix for sdfio_read_heights() and sdfio_write_heights(). The caller
+ * allocates it.
  *
- * @param[in] allocator The allocator, or null for malloc.
  * @param[in] header The header of the file.
  * @param sample The sample type of the heights.
  * @param rows The number of rows.
- * @return The memory, or null as for sdfio_alloc_data().
+ * @param[out] bytes The size, which is 0 for an empty matrix.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the sample type is invalid.
+ * @retval SDFIO_ERR_RANGE The size cannot be represented in a size_t.
  */
-SDFIO_API void *sdfio_alloc_heights(const sdfio_allocator *allocator,
-                                    const sdfio_header *header,
-                                    sdfio_sample sample, size_t rows);
-
-/**
- * Releases memory returned by sdfio_alloc_data() or sdfio_alloc_heights().
- *
- * The memory must be released with this function, because with a shared
- * library on Windows the allocating runtime is not necessarily that of the
- * program. A null pointer is ignored.
- *
- * @param[in] allocator The allocator that allocated the memory, or null for
- * free.
- * @param memory The memory to release.
- */
-SDFIO_API void sdfio_free(const sdfio_allocator *allocator, void *memory);
+SDFIO_API sdfio_status sdfio_heights_size(const sdfio_header *header,
+                                          sdfio_sample sample, size_t rows,
+                                          size_t *bytes);
 
 /* ---- Reading ------------------------------------------------------------ */
 
@@ -725,7 +710,9 @@ static inline sdfio_format sdfio_metres(sdfio_sample sample)
  * @param reader The reader.
  * @param format The format of the buffer.
  * @param[out] dst The buffer for the heights.
- * @param row_stride The distance in bytes between rows in the buffer.
+ * @param row_stride The distance in bytes between rows in the buffer. 0 selects
+ * rows that follow each other, each holding the columns of the matrix at
+ * `format.element_stride`.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
  * or rows were read already.
@@ -853,7 +840,9 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
  * @param writer The writer.
  * @param format The format of the buffer.
  * @param[in] src The heights.
- * @param row_stride The distance in bytes between rows in the buffer.
+ * @param row_stride The distance in bytes between rows in the buffer. 0 selects
+ * rows that follow each other, each holding the columns of the matrix at
+ * `format.element_stride`.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
  * writing, or rows were written already.
@@ -971,7 +960,9 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type,
  * @param[in] heights The heights.
  * @param rows The number of rows.
  * @param columns The number of columns.
- * @param row_stride The distance in bytes between rows in the buffer.
+ * @param row_stride The distance in bytes between rows in the buffer. 0 selects
+ * rows that follow each other, each holding the columns of the matrix at
+ * `format.element_stride`.
  * @param[out] z_scale The z-scale.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  */

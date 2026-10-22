@@ -59,7 +59,7 @@ set(SDFIO_SOURCES
     src/file.c
     src/header.c
     src/heights.c
-    src/memory.c
+    src/sizes.c
     src/numbers.c
     src/reader.c
     src/stream.c

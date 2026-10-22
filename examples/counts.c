@@ -74,8 +74,15 @@ static int read_counts(const char *path)
         sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
-    int16_t *row = sdfio_alloc_data(NULL, header, 1);
-    int16_t *expected = sdfio_alloc_data(NULL, header, 1);
+    size_t row_size = 0;
+    status = sdfio_data_size(header, 1, &row_size);
+    int16_t *row = status == SDFIO_OK ? malloc(row_size) : NULL;
+    int16_t *expected = status == SDFIO_OK ? malloc(row_size) : NULL;
+    if (status == SDFIO_OK
+        && ((row == NULL || expected == NULL) && row_size > 0))
+    {
+        status = SDFIO_ERR_MEMORY;
+    }
     const int16_t not_measured =
         (int16_t)sdfio_bad_value(header->data_type, header->revision);
     size_t unmeasured = 0;
@@ -103,7 +110,8 @@ static int read_counts(const char *path)
     }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
+        fprintf(stderr, "%s: %s\n", sdfio_status_string(status),
+                sdfio_reader_error_message(reader));
     }
     else
     {
@@ -114,8 +122,8 @@ static int read_counts(const char *path)
                header->rows, unmeasured, mean, mean * header->z_scale,
                out_of_place);
     }
-    sdfio_free(NULL, row);
-    sdfio_free(NULL, expected);
+    free(row);
+    free(expected);
     sdfio_reader_free(reader);
     return status == SDFIO_OK && out_of_place == 0 ? EXIT_SUCCESS
                                                    : EXIT_FAILURE;

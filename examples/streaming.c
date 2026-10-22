@@ -29,8 +29,21 @@ int main(void)
     }
 
     const sdfio_header *header = sdfio_get_header(reader);
-    void *coded = sdfio_alloc_data(NULL, header, 1);
-    double *heights = sdfio_alloc_heights(NULL, header, SDFIO_FLOAT64, 1);
+    size_t coded_size = 0;
+    size_t heights_size = 0;
+    status = sdfio_data_size(header, 1, &coded_size);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_heights_size(header, SDFIO_FLOAT64, 1, &heights_size);
+    }
+    void *coded = status == SDFIO_OK ? malloc(coded_size) : NULL;
+    double *heights = status == SDFIO_OK ? malloc(heights_size) : NULL;
+    if (status == SDFIO_OK
+        && ((coded == NULL && coded_size > 0)
+            || (heights == NULL && heights_size > 0)))
+    {
+        status = SDFIO_ERR_MEMORY;
+    }
     double lowest = INFINITY;
     double highest = -INFINITY;
     for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
@@ -53,14 +66,15 @@ int main(void)
     }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
+        fprintf(stderr, "%s: %s\n", sdfio_status_string(status),
+                sdfio_reader_error_message(reader));
     }
     else
     {
         printf("from %g m to %g m\n", lowest, highest);
     }
-    sdfio_free(NULL, coded);
-    sdfio_free(NULL, heights);
+    free(coded);
+    free(heights);
     sdfio_reader_free(reader);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }

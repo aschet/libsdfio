@@ -380,8 +380,13 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_format format,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "Rows were written already");
     }
-    status = sdfio_check_layout(format, header->rows, header->columns,
-                                row_stride, &writer->message);
+    status = sdfio_resolve_row_stride(format, header->columns, &row_stride,
+                                      &writer->message);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_check_layout(format, header->rows, header->columns,
+                                    row_stride, &writer->message);
+    }
     if (status != SDFIO_OK)
     {
         return status;

@@ -152,8 +152,8 @@ static void check_against(const expectation *e)
     const size_t count = header->rows * header->columns;
     double *heights = malloc(count * sizeof *heights);
     CHECK(heights != NULL);
-    CHECK_OK(sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights,
-                                (ptrdiff_t)(header->columns * sizeof(double))));
+    CHECK_OK(
+        sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT64), heights, 0));
 
     const char *trailer = NULL;
     size_t trailer_size = 0;

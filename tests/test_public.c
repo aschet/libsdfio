@@ -18,34 +18,26 @@ static void check_memory(void)
     header.columns = 5;
     header.rows = 3;
 
-    float *heights =
-        sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT32, header.rows);
-    CHECK(heights != NULL);
-    if (heights != NULL)
-    {
-        for (size_t i = 0; i < 15; ++i)
-        {
-            CHECK(heights[i] == 0.0F);
-        }
-        heights[14] = 1.0F;
-    }
-    sdfio_free(NULL, heights);
-    int16_t *coded = sdfio_alloc_data(NULL, &header, 1);
-    CHECK(coded != NULL);
-    sdfio_free(NULL, coded);
-    sdfio_free(NULL, NULL);
+    size_t bytes = 0;
+    CHECK_OK(sdfio_heights_size(&header, SDFIO_FLOAT32, header.rows, &bytes));
+    CHECK(bytes == 15 * sizeof(float));
+    CHECK_OK(sdfio_data_size(&header, 1, &bytes));
+    CHECK(bytes == 5 * sizeof(int16_t));
 
     header.columns = 0;
-    void *empty = sdfio_alloc_data(NULL, &header, 4);
-    CHECK(empty != NULL);
-    sdfio_free(NULL, empty);
+    CHECK_OK(sdfio_data_size(&header, 4, &bytes));
+    CHECK(bytes == 0);
 
     header.columns = SIZE_MAX / 2;
-    CHECK(sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT64, 3) == NULL);
+    CHECK_STATUS(SDFIO_ERR_RANGE,
+                 sdfio_heights_size(&header, SDFIO_FLOAT64, 3, &bytes));
     header.columns = SIZE_MAX / 4;
-    CHECK(sdfio_alloc_heights(NULL, &header, SDFIO_FLOAT64, 2) == NULL);
-    CHECK(sdfio_alloc_heights(NULL, &header, (sdfio_sample)99, 1) == NULL);
-    CHECK(sdfio_alloc_data(NULL, NULL, 1) == NULL);
+    CHECK_STATUS(SDFIO_ERR_RANGE,
+                 sdfio_heights_size(&header, SDFIO_FLOAT64, 2, &bytes));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_heights_size(&header, (sdfio_sample)99, 1, &bytes));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(NULL, 1, &bytes));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(&header, 1, NULL));
 }
 
 int main(void)
@@ -92,6 +84,15 @@ int main(void)
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     CHECK(size == strlen("Note = public\nAverages = 16")
           && memcmp(trailer, "Note = public\nAverages = 16", size) == 0);
+    /* A row stride of 0 means rows that follow each other. */
+    reader = membuf_reopen(reader, &file);
+    float packed[6];
+    CHECK_OK(
+        sdfio_read_heights(reader, sdfio_metres(SDFIO_FLOAT32), packed, 0));
+    for (size_t i = 0; i < 6; ++i)
+    {
+        CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
+    }
     reader = membuf_reopen(reader, &file);
     read = sdfio_get_header(reader);
     int16_t counts[6];

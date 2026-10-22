@@ -368,8 +368,13 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_format format,
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Rows were read already");
     }
-    status = sdfio_check_layout(format, header->rows, header->columns,
-                                row_stride, &reader->message);
+    status = sdfio_resolve_row_stride(format, header->columns, &row_stride,
+                                      &reader->message);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_check_layout(format, header->rows, header->columns,
+                                    row_stride, &reader->message);
+    }
     if (status != SDFIO_OK)
     {
         return status;
