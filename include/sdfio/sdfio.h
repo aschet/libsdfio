@@ -74,7 +74,7 @@
  * The library has no global state. Distinct handles can be used concurrently by
  * distinct threads, including over the same memory when it is only read. A
  * single handle must not be used by more than one thread at a time. The locale
- * and the time zone must not be changed while a call is in progress.
+ * must not be changed while a call is in progress.
  */
 
 #ifndef SDFIO_SDFIO_H
@@ -323,13 +323,15 @@ typedef struct sdfio_header
      */
     double z_resolution;
     /**
-     * Original creation date and time, in UTC with a resolution of one minute.
+     * Original creation date and time, with a resolution of one minute.
      *
      * A file that is read can have none (SDFIO_NO_TIME). A file that is written
-     * requires one; sdfio_header_init() sets the current time. The files of
-     * ISO-1.0 and BCR-1.0 store the local clock of the writer. The library
-     * converts it, so that a date that is read back equals the date that was
-     * written.
+     * requires one; sdfio_header_init() sets the current time.
+     *
+     * ISO-2.0 files store UTC. ISO-1.0 and BCR-1.0 files store the local clock
+     * of the writer, without a time zone. The library does not know the zone,
+     * so it keeps such a clock reading as it is, as if it were UTC, unless
+     * the configuration supplies an sdfio_time_zone.
      */
     time_t creation_date;
     /** Last modification date and time. The rules of creation_date apply. */
@@ -466,6 +468,36 @@ typedef struct sdfio_allocator
 } sdfio_allocator;
 
 /**
+ * Conversion of the dates of ISO-1.0 and BCR-1.0 files between the local clock
+ * of the writer and UTC.
+ *
+ * These files store the clock reading without a time zone, and only the
+ * program can know the zone, including its rules for daylight saving time. The
+ * callbacks receive and return times in the form of a time_t, with a resolution
+ * of one minute. A clock reading is expressed as if it were UTC. A callback
+ * returns SDFIO_NO_TIME if it cannot convert the time. A callback that is null
+ * performs no conversion. ISO-2.0 files store UTC and are not affected. The
+ * callbacks are called by the thread that uses the handle.
+ */
+typedef struct sdfio_time_zone
+{
+    /** Opaque pointer passed as the first argument of both callbacks. */
+    void *user;
+    /**
+     * Converts the clock reading `local` of a file to the UTC time. Called when
+     * a reader parses a date. If it returns SDFIO_NO_TIME, the date reads as
+     * not recorded.
+     */
+    time_t (*local_to_utc)(void *user, time_t local);
+    /**
+     * Converts the UTC time `utc` to the clock reading to store. Called when a
+     * writer formats a date. If it returns SDFIO_NO_TIME, the file cannot be
+     * created.
+     */
+    time_t (*utc_to_local)(void *user, time_t utc);
+} sdfio_time_zone;
+
+/**
  * Configuration of a reader or a writer.
  *
  * A field that is zero selects its default. A null pointer in place of a
@@ -491,6 +523,12 @@ typedef struct sdfio_config
      * representation occupies more.
      */
     size_t chunk_values;
+    /**
+     * Conversion of the dates of ISO-1.0 and BCR-1.0 files. The structure is
+     * copied, so it need not outlive the call that receives it. Null selects no
+     * conversion.
+     */
+    const sdfio_time_zone *time_zone;
 } sdfio_config;
 
 /* ---- Memory ------------------------------------------------------------- */
@@ -781,6 +819,8 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * written: a data type that the revision does not permit, a scale that is not
  * positive, a date that is not set, or a count that the binary header cannot
  * hold.
+ * @retval SDFIO_ERR_RANGE The time zone of the configuration cannot convert a
+ * date. It is reported when the header is written, with the first rows.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_UNSUPPORTED The representation is ASCII and the library was
  * built without it.

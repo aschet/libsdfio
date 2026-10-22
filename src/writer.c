@@ -26,6 +26,7 @@ struct sdfio_writer
     /* The column of the next value in a text file. */
     size_t column;
     sdfio_allocator allocator;
+    sdfio_time_zone zone;
     sdfio_owner owner;
     size_t chunk_values;
     /* Made when the file is created, for what its representation needs. */
@@ -37,9 +38,10 @@ struct sdfio_writer
 sdfio_writer *sdfio_writer_new(const sdfio_config *config)
 {
     sdfio_allocator allocator;
+    sdfio_time_zone zone;
     size_t buffer = 0;
     size_t chunk = 0;
-    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk))
+    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk, &zone))
     {
         return NULL;
     }
@@ -48,7 +50,8 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
     {
         return NULL;
     }
-    *writer = (sdfio_writer){.allocator = allocator, .chunk_values = chunk};
+    *writer = (sdfio_writer){
+        .allocator = allocator, .zone = zone, .chunk_values = chunk};
     writer->coded =
         sdfio_allocate(&writer->allocator, chunk * SDFIO_LARGEST_SAMPLE);
     if (writer->coded == NULL
@@ -189,7 +192,8 @@ static sdfio_status start_data(sdfio_writer *writer)
     {
         unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
         size_t size = 0;
-        status = sdfio_binary_header(header, bytes, &size, &writer->message);
+        status = sdfio_binary_header(header, &writer->zone, bytes, &size,
+                                     &writer->message);
         if (status == SDFIO_OK && !sdfio_sink_write(&writer->sink, bytes, size))
         {
             return write_failed(writer);
@@ -198,8 +202,8 @@ static sdfio_status start_data(sdfio_writer *writer)
     else
     {
         sdfio_string text = {.allocator = &writer->allocator};
-        status =
-            sdfio_ascii_header(header, &writer->point, &text, &writer->message);
+        status = sdfio_ascii_header(header, &writer->point, &writer->zone,
+                                    &text, &writer->message);
         if (status == SDFIO_OK
             && !sdfio_sink_write(&writer->sink, sdfio_string_text(&text),
                                  text.size))

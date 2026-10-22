@@ -29,7 +29,5 @@ cmake --build build
 ctest --test-dir build
 ```
 
-`SDFIO_WITH_ASCII_FORMAT=OFF` removes ASCII support: ASCII files return
-`SDFIO_ERR_UNSUPPORTED`. `SDFIO_WITH_TIME_ZONE=OFF` removes the time zone
-conversion: ISO-1.0 and BCR-1.0 dates are treated as UTC. Both reduce the size
-of the library.
+`SDFIO_WITH_ASCII_FORMAT=OFF` removes ASCII support and reduces the size of
+the library: ASCII files return `SDFIO_ERR_UNSUPPORTED`.

@@ -173,7 +173,7 @@ static void check_counted(void)
         counting state = {-1, 0, 0, 0};
         const sdfio_allocator allocator = {&state, counting_allocate,
                                            counting_release};
-        const sdfio_config config = {&allocator, 0, 0};
+        const sdfio_config config = {&allocator, 0, 0, NULL};
         bool equal = false;
         CHECK_OK(
             round_trip(&config, representations[i], SDFIO_DATA_INT16, &equal));
@@ -188,7 +188,8 @@ static void check_counted(void)
             counting failing = {allow, 0, 0, 0};
             const sdfio_allocator failing_allocator = {
                 &failing, counting_allocate, counting_release};
-            const sdfio_config failing_config = {&failing_allocator, 0, 0};
+            const sdfio_config failing_config = {&failing_allocator, 0, 0,
+                                                 NULL};
             const sdfio_status status = round_trip(
                 &failing_config, representations[i], SDFIO_DATA_INT16, &equal);
             CHECK_STATUS(SDFIO_ERR_MEMORY, status);
@@ -200,8 +201,10 @@ static void check_counted(void)
 /* A handle that is small: a buffer of a few bytes, a chunk of a few values. */
 static void check_small(void)
 {
-    static const sdfio_config small[] = {
-        {NULL, 1, 1}, {NULL, 64, 3}, {NULL, 100, 7}, {NULL, 0, 1}};
+    static const sdfio_config small[] = {{NULL, 1, 1, NULL},
+                                         {NULL, 64, 3, NULL},
+                                         {NULL, 100, 7, NULL},
+                                         {NULL, 0, 1, NULL}};
     static const sdfio_data_type types[] = {SDFIO_DATA_INT16,
                                             SDFIO_DATA_BINARY32};
     for (size_t i = 0; i < sizeof small / sizeof small[0]; ++i)
@@ -260,7 +263,7 @@ static void check_arena(void)
 {
     static arena state;
     const sdfio_allocator allocator = {&state, arena_allocate, arena_release};
-    const sdfio_config config = {&allocator, 256, 16};
+    const sdfio_config config = {&allocator, 256, 16, NULL};
     bool equal = false;
     CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_DATA_BINARY32, &equal));
     CHECK(equal);
@@ -272,12 +275,12 @@ static void check_arguments(void)
 {
     /* An allocator needs both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
-    sdfio_config config = {&broken, 0, 0};
+    sdfio_config config = {&broken, 0, 0, NULL};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 
     /* A chunk that cannot be counted in bytes. */
-    config = (sdfio_config){NULL, 0, (size_t)-1};
+    config = (sdfio_config){NULL, 0, (size_t)-1, NULL};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 

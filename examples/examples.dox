@@ -40,10 +40,19 @@
  */
 
 /**
+ * @example time_zone.c
+ * Writes and reads an ISO-1.0 file with an sdfio_time_zone. The file holds the
+ * clock of the writer, and the callbacks convert the creation date between the
+ * clock and UTC. The program prints the date as written, as read with the time
+ * zone, and as read without it, where the clock reading of the file is the
+ * date.
+ */
+
+/**
  * @example image.cpp
  * A C++ image class over the C interface: the handles belong to objects that
  * release them, a failed call is an exception that carries the message of the
- * library, and the heights are read into a `std::vector`.
+ * library, and the heights are read into a two-dimensional array that is indexed as `image[y][x]`.
  */
 
 /**

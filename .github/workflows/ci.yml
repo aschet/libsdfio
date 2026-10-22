@@ -72,7 +72,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           CC=gcc cmake -S . -B build/minimal -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_SANITIZE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF -DSDFIO_WITH_TIME_ZONE=OFF
+            -DSDFIO_SANITIZE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
           cmake --build build/minimal
           ctest --test-dir build/minimal --output-on-failure --no-tests=error
 
@@ -133,7 +133,7 @@ jobs:
             "-DCMAKE_EXE_LINKER_FLAGS=--specs=nano.specs --specs=nosys.specs" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
-            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF -DSDFIO_WITH_TIME_ZONE=OFF
+            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
           cmake --build build/cortex-m
           arm-none-eabi-size build/cortex-m/tests/embedded/firmware
 
@@ -147,7 +147,7 @@ jobs:
             "-DCMAKE_C_FLAGS=-march=rv32imac -mabi=ilp32 --specs=picolibc.specs -ffunction-sections -fdata-sections" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF \
-            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF -DSDFIO_WITH_TIME_ZONE=OFF
+            -DSDFIO_BUILD_FIRMWARE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
           cmake --build build/riscv
           riscv64-unknown-elf-size build/riscv/tests/embedded/firmware
 

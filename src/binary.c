@@ -88,7 +88,9 @@ static void copy_identifier(sdfio_header *header, const unsigned char *field)
 }
 
 sdfio_status sdfio_binary_parse(const unsigned char *bytes,
-                                sdfio_header *header, sdfio_message *message)
+                                sdfio_header *header,
+                                const sdfio_time_zone *zone,
+                                sdfio_message *message)
 {
     sdfio_revision revision = SDFIO_ISO_2_0;
     sdfio_status status = sdfio_binary_revision(bytes, &revision, message);
@@ -100,10 +102,10 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
     copy_identifier(header, at);
     at += SDFIO_ID_SIZE;
     const time_t created =
-        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision);
+        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision, zone);
     at += SDFIO_DATE_SIZE;
     const time_t modified =
-        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision);
+        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision, zone);
     at += SDFIO_DATE_SIZE;
     const size_t count_size =
         revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
@@ -167,10 +169,11 @@ static unsigned char *put_text(unsigned char *out, const char *text,
     return out + width;
 }
 
-sdfio_status sdfio_binary_header(const sdfio_header *header, unsigned char *out,
-                                 size_t *size, sdfio_message *message)
+sdfio_status sdfio_binary_header(const sdfio_header *header,
+                                 const sdfio_time_zone *zone,
+                                 unsigned char *out, size_t *size,
+                                 sdfio_message *message)
 {
-    (void)message;
     unsigned char *at = out;
     char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
     const char *revision_name = sdfio_revision_name(header->revision);
@@ -181,9 +184,18 @@ sdfio_status sdfio_binary_header(const sdfio_header *header, unsigned char *out,
     at = put_text(at, magic, SDFIO_MAGIC_SIZE);
     at = put_text(at, header->manufacturer_id, SDFIO_ID_SIZE);
     char date[SDFIO_DATE_SIZE + 1] = {0};
-    sdfio_date_format(header->creation_date, header->revision, date);
+    if (!sdfio_date_format(header->creation_date, header->revision, zone, date))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the creation date");
+    }
     at = put_text(at, date, SDFIO_DATE_SIZE);
-    sdfio_date_format(header->modification_date, header->revision, date);
+    if (!sdfio_date_format(header->modification_date, header->revision, zone,
+                           date))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the modification date");
+    }
     at = put_text(at, date, SDFIO_DATE_SIZE);
     const size_t count_size =
         header->revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);

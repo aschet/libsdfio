@@ -433,6 +433,7 @@ bool sdfio_has_text(void)
 sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                       sdfio_header *header,
                                       const sdfio_point *point,
+                                      const sdfio_time_zone *zone,
                                       sdfio_message *message)
 {
     sdfio_string line = {.allocator = source->allocator};
@@ -591,9 +592,9 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                : SDFIO_NO_RESOLUTION;
     copy_identifier(header, identifier.text, identifier.size);
     header->creation_date =
-        sdfio_date_parse(created.text, created.size, revision);
+        sdfio_date_parse(created.text, created.size, revision, zone);
     header->modification_date =
-        sdfio_date_parse(modified.text, modified.size, revision);
+        sdfio_date_parse(modified.text, modified.size, revision, zone);
 
 done:
     sdfio_string_free(&line);
@@ -831,7 +832,8 @@ static bool append_scale(sdfio_string *out, const sdfio_point *point,
 }
 
 sdfio_status sdfio_ascii_header(const sdfio_header *header,
-                                const sdfio_point *point, sdfio_string *out,
+                                const sdfio_point *point,
+                                const sdfio_time_zone *zone, sdfio_string *out,
                                 sdfio_message *message)
 {
     char magic[SDFIO_MAGIC_SIZE + 1];
@@ -840,9 +842,18 @@ sdfio_status sdfio_ascii_header(const sdfio_header *header,
     char date[SDFIO_DATE_SIZE + 1] = {0};
     bool ok = append_text(out, magic) && append_text(out, crlf)
               && append_field(out, "ManufacID", header->manufacturer_id);
-    sdfio_date_format(header->creation_date, header->revision, date);
+    if (!sdfio_date_format(header->creation_date, header->revision, zone, date))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the creation date");
+    }
     ok = ok && append_field(out, "CreateDate", date);
-    sdfio_date_format(header->modification_date, header->revision, date);
+    if (!sdfio_date_format(header->modification_date, header->revision, zone,
+                           date))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the modification date");
+    }
     ok = ok && append_field(out, "ModDate", date);
     snprintf(text, sizeof text, "%zu", header->columns);
     ok = ok && append_field(out, "NumPoints", text);

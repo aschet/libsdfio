@@ -24,7 +24,6 @@ option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitize
 # swaps one file for a stub with the same functions, so that nothing is
 # conditional in the code.
 option(SDFIO_WITH_ASCII_FORMAT "Support for ASCII format" ON)
-option(SDFIO_WITH_TIME_ZONE "Convert ISO-1.0 and BCR-1.0 dates between local clock and UTC" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
@@ -80,11 +79,6 @@ if(SDFIO_WITH_ASCII_FORMAT)
 else()
     list(APPEND SDFIO_SOURCES src/ascii_stub.c)
 endif()
-if(SDFIO_WITH_TIME_ZONE)
-    list(APPEND SDFIO_SOURCES src/localtime.c)
-else()
-    list(APPEND SDFIO_SOURCES src/localtime_stub.c)
-endif()
 
 # The code is compiled once. The tests link the objects, which have the
 # internal functions that the library hides.
@@ -98,11 +92,9 @@ target_include_directories(sdfio_objects
 )
 target_compile_features(sdfio_objects PUBLIC c_std_11)
 target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
-# fseeko and localtime_r, and files above 2 GiB on 32-bit systems
+# The library is standard C11, with no feature macros. fopen is a function of
+# the standard, and the file functions of Windows use it.
 target_compile_definitions(sdfio_objects PRIVATE
-    $<$<NOT:$<PLATFORM_ID:Windows>>:_POSIX_C_SOURCE=200809L>
-    $<$<NOT:$<PLATFORM_ID:Windows>>:_FILE_OFFSET_BITS=64>
-    # fopen is the C function of the standard, and the file functions use it
     $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>
 )
 set_target_properties(sdfio_objects PROPERTIES

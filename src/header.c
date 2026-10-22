@@ -13,7 +13,9 @@
 static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
 
 sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
-                               const sdfio_point *point, sdfio_message *message)
+                               const sdfio_point *point,
+                               const sdfio_time_zone *zone,
+                               sdfio_message *message)
 {
     size_t available = sdfio_source_fill(source, sizeof byte_order_mark);
     if (available >= sizeof byte_order_mark
@@ -35,7 +37,7 @@ sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
     const char prefix = sdfio_lower((char)magic[0]);
     if (prefix == 'a')
     {
-        return sdfio_ascii_parse_header(source, header, point, message);
+        return sdfio_ascii_parse_header(source, header, point, zone, message);
     }
     if (prefix != 'b')
     {
@@ -59,7 +61,7 @@ sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
                                            "File is too short to contain an "
                                            "SDF header");
     }
-    return sdfio_binary_parse(bytes, header, message);
+    return sdfio_binary_parse(bytes, header, zone, message);
 }
 
 static bool is_ascii_text(const char *text, size_t size)

@@ -31,8 +31,10 @@ bool sdfio_has_text(void)
 sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                       sdfio_header *header,
                                       const sdfio_point *point,
+                                      const sdfio_time_zone *zone,
                                       sdfio_message *message)
 {
+    (void)zone;
     (void)source;
     (void)header;
     (void)point;
@@ -80,9 +82,11 @@ sdfio_status sdfio_ascii_trailer(sdfio_source *source,
 }
 
 sdfio_status sdfio_ascii_header(const sdfio_header *header,
-                                const sdfio_point *point, sdfio_string *out,
+                                const sdfio_point *point,
+                                const sdfio_time_zone *zone, sdfio_string *out,
                                 sdfio_message *message)
 {
+    (void)zone;
     (void)header;
     (void)point;
     (void)out;

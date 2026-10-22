@@ -5,9 +5,10 @@
  */
 
 /* The date field of the header: DDMMYYYYhhmm. ISO-2.0 holds UTC and the other
- * revisions the local clock of the writer; the library has UTC time points.
- * Only localtime_r is used for the local clock, which is safe to call from
- * several threads, and the calendar is computed here. */
+ * revisions the local clock of the writer, whose time zone is not known to the
+ * library: the time zone of the caller converts it, and without one the clock
+ * reading is kept as it is. The calendar is computed here, with no function of
+ * the C library that has a time zone or a shared result. */
 
 #include "internal.h"
 
@@ -24,10 +25,7 @@ enum
     MONTH_AT = 2,
     YEAR_AT = 4,
     HOUR_AT = 8,
-    MINUTE_AT = 10,
-    /* What struct tm counts from. */
-    TM_YEAR_BASE = 1900,
-    TM_MONTH_BASE = 1
+    MINUTE_AT = 10
 };
 
 /* The proleptic Gregorian calendar by the algorithm of Howard Hinnant
@@ -138,44 +136,6 @@ time_t sdfio_now(void)
     return (time_t)(minutes_of(now) * SECONDS_PER_MINUTE);
 }
 
-/* The minutes of the local clock at a UTC time, counted as if it were UTC. */
-static bool local_clock_of(int64_t utc_minutes, int64_t *clock)
-{
-    struct tm local;
-    time_t instant = 0;
-    if (!seconds_to_time(utc_minutes * SECONDS_PER_MINUTE, &instant)
-        || !sdfio_local_time(instant, &local))
-    {
-        return false;
-    }
-    *clock = days_from_civil(local.tm_year + (int64_t)TM_YEAR_BASE,
-                             (unsigned)(local.tm_mon + TM_MONTH_BASE),
-                             (unsigned)local.tm_mday)
-                 * MINUTES_PER_DAY
-             + (int64_t)local.tm_hour * MINUTES_PER_HOUR + local.tm_min;
-    return true;
-}
-
-/* The UTC time at which the local clock shows `clock`: the offset is looked up
- * at the guess and again at the corrected one, which settles it except in the
- * hour that a change of the clock repeats or skips. */
-static int64_t utc_of_local_clock(int64_t clock)
-{
-    int64_t shown = 0;
-    if (!local_clock_of(clock, &shown))
-    {
-        return clock;
-    }
-    const int64_t first_offset = shown - clock;
-    int64_t guess = clock - first_offset;
-    if (!local_clock_of(guess, &shown))
-    {
-        return guess;
-    }
-    const int64_t second_offset = shown - guess;
-    return second_offset == first_offset ? guess : clock - second_offset;
-}
-
 bool sdfio_date_representable(time_t time)
 {
     int64_t year = 0;
@@ -196,23 +156,24 @@ static void put_digits(char *out, int value, size_t width)
     }
 }
 
-void sdfio_date_format(time_t time, sdfio_revision revision,
-                       char out[SDFIO_DATE_SIZE])
+bool sdfio_date_format(time_t time, sdfio_revision revision,
+                       const sdfio_time_zone *zone, char out[SDFIO_DATE_SIZE])
 {
     if (time == SDFIO_NO_TIME)
     {
         memset(out, '0', SDFIO_DATE_SIZE);
-        return;
+        return true;
     }
-    int64_t clock = minutes_of(time);
-    if (!sdfio_requires_utc(revision))
+    if (!sdfio_requires_utc(revision) && zone != NULL
+        && zone->utc_to_local != NULL)
     {
-        int64_t local = 0;
-        if (local_clock_of(clock, &local))
+        time = zone->utc_to_local(zone->user, time);
+        if (time == SDFIO_NO_TIME || !sdfio_date_representable(time))
         {
-            clock = local;
+            return false;
         }
     }
+    const int64_t clock = minutes_of(time);
     const int64_t days = floor_div(clock, MINUTES_PER_DAY);
     const int64_t minute_of_day = clock - days * MINUTES_PER_DAY;
     int64_t year = 0;
@@ -226,6 +187,7 @@ void sdfio_date_format(time_t time, sdfio_revision revision,
                TWO_DIGITS);
     put_digits(out + MINUTE_AT, (int)(minute_of_day % MINUTES_PER_HOUR),
                TWO_DIGITS);
+    return true;
 }
 
 static int digits_at(const char *text, size_t at, size_t count)
@@ -238,7 +200,8 @@ static int digits_at(const char *text, size_t at, size_t count)
     return number;
 }
 
-time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision)
+time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
+                        const sdfio_time_zone *zone)
 {
     sdfio_trim(&text, &size);
     if (size != SDFIO_DATE_SIZE)
@@ -279,13 +242,17 @@ time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision)
     {
         return SDFIO_NO_TIME;
     }
-    int64_t clock =
+    const int64_t clock =
         days * MINUTES_PER_DAY + (int64_t)hour * MINUTES_PER_HOUR + minute;
-    if (!sdfio_requires_utc(revision))
-    {
-        clock = utc_of_local_clock(clock);
-    }
     time_t date = 0;
-    return seconds_to_time(clock * SECONDS_PER_MINUTE, &date) ? date
-                                                              : SDFIO_NO_TIME;
+    if (!seconds_to_time(clock * SECONDS_PER_MINUTE, &date))
+    {
+        return SDFIO_NO_TIME;
+    }
+    if (!sdfio_requires_utc(revision) && zone != NULL
+        && zone->local_to_utc != NULL)
+    {
+        date = zone->local_to_utc(zone->user, date);
+    }
+    return date;
 }

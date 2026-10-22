@@ -23,7 +23,7 @@ endfunction()
 
 # The tests of the whole library need all of it. A build without text
 # or the local clock runs the tests of what is left.
-if(SDFIO_WITH_ASCII_FORMAT AND SDFIO_WITH_TIME_ZONE)
+if(SDFIO_WITH_ASCII_FORMAT)
     sdfio_add_test(test_samples)
     sdfio_add_test(test_roundtrip)
     sdfio_add_test(test_streams)

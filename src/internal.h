@@ -116,7 +116,7 @@ void sdfio_release(const sdfio_allocator *allocator, void *memory);
  * means; false if the allocator is not complete. */
 bool sdfio_config_resolve(const sdfio_config *config,
                           sdfio_allocator *allocator, size_t *buffer,
-                          size_t *chunk);
+                          size_t *chunk, sdfio_time_zone *zone);
 
 bool sdfio_string_append(sdfio_string *string, const char *text, size_t size);
 void sdfio_string_clear(sdfio_string *string);
@@ -316,11 +316,16 @@ size_t sdfio_format_scientific(const sdfio_point *point, char *out,
  */
 
 time_t sdfio_now(void);
-void sdfio_date_format(time_t time, sdfio_revision revision,
-                       char out[SDFIO_DATE_SIZE]);
+/* The field of a date. A file of ISO-1.0 or BCR-1.0 holds the local clock of
+ * the writer: the time zone of the caller converts it, and without one the
+ * clock reading is the date. Returns false if the time zone cannot convert the
+ * date. */
+bool sdfio_date_format(time_t time, sdfio_revision revision,
+                       const sdfio_time_zone *zone, char out[SDFIO_DATE_SIZE]);
 /* Whether `year` is a year the field can hold. */
 bool sdfio_date_representable(time_t time);
-time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision);
+time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
+                        const sdfio_time_zone *zone);
 
 /* ---- Tagged fields: the lines `Name = Value` ------------------------------
  */
@@ -443,6 +448,7 @@ bool sdfio_writer_is_new(const sdfio_writer *writer);
  * the source at the data area. */
 sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
                                const sdfio_point *point,
+                               const sdfio_time_zone *zone,
                                sdfio_message *message);
 
 /* The binary header: the revision of a magic, and the fields. */
@@ -450,9 +456,13 @@ sdfio_status sdfio_binary_revision(const unsigned char *magic,
                                    sdfio_revision *revision,
                                    sdfio_message *message);
 sdfio_status sdfio_binary_parse(const unsigned char *bytes,
-                                sdfio_header *header, sdfio_message *message);
-sdfio_status sdfio_binary_header(const sdfio_header *header, unsigned char *out,
-                                 size_t *size, sdfio_message *message);
+                                sdfio_header *header,
+                                const sdfio_time_zone *zone,
+                                sdfio_message *message);
+sdfio_status sdfio_binary_header(const sdfio_header *header,
+                                 const sdfio_time_zone *zone,
+                                 unsigned char *out, size_t *size,
+                                 sdfio_message *message);
 /* The rest of the source, nothing if it is empty. */
 sdfio_status sdfio_binary_trailer(sdfio_source *source, sdfio_string *out,
                                   bool *present, sdfio_message *message);
@@ -461,6 +471,7 @@ sdfio_status sdfio_binary_trailer(sdfio_source *source, sdfio_string *out,
 sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
                                       sdfio_header *header,
                                       const sdfio_point *point,
+                                      const sdfio_time_zone *zone,
                                       sdfio_message *message);
 /* One value of the data type is parsed into `dst` at `index`. */
 sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
@@ -480,7 +491,8 @@ sdfio_status sdfio_ascii_trailer(sdfio_source *source,
                                  bool *present, sdfio_message *message);
 
 sdfio_status sdfio_ascii_header(const sdfio_header *header,
-                                const sdfio_point *point, sdfio_string *out,
+                                const sdfio_point *point,
+                                const sdfio_time_zone *zone, sdfio_string *out,
                                 sdfio_message *message);
 /* The text of the value at `index`: a number, or BAD. Returns its length. */
 size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
@@ -489,10 +501,6 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
 /* The closing "*" of the data area, the trailer record and its "*". */
 sdfio_status sdfio_ascii_tail(const char *trailer, size_t size,
                               sdfio_string *out, sdfio_message *message);
-
-/* The calendar time on the local clock of the machine, false if the machine
- * has none. */
-bool sdfio_local_time(time_t time, struct tm *out);
 
 /* Whether the build reads and writes text files. */
 bool sdfio_has_text(void);

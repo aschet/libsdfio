@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: 0BSD
 
-foreach(example writing reading streaming counts)
+foreach(example writing reading streaming counts time_zone)
     add_executable(${example} ${example}.c)
     target_link_libraries(${example} PRIVATE sdfio)
     target_compile_options(${example} PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
@@ -14,6 +14,7 @@ if(BUILD_TESTING AND PROJECT_IS_TOP_LEVEL)
     add_test(NAME example_writing COMMAND writing WORKING_DIRECTORY "${work}")
     add_test(NAME example_reading COMMAND reading integer.sdf WORKING_DIRECTORY "${work}")
     add_test(NAME example_counts COMMAND counts WORKING_DIRECTORY "${work}")
+    add_test(NAME example_time_zone COMMAND time_zone WORKING_DIRECTORY "${work}")
     set_tests_properties(example_reading PROPERTIES DEPENDS example_writing)
     # A pipe through a shell: not for a program that needs an emulator
     if(UNIX AND NOT CMAKE_CROSSCOMPILING)

@@ -66,9 +66,10 @@ void sdfio_release(const sdfio_allocator *allocator, void *memory)
 
 bool sdfio_config_resolve(const sdfio_config *config,
                           sdfio_allocator *allocator, size_t *buffer,
-                          size_t *chunk)
+                          size_t *chunk, sdfio_time_zone *zone)
 {
     *allocator = (sdfio_allocator){0};
+    *zone = (sdfio_time_zone){0};
     *buffer = SDFIO_DEFAULT_BUFFER;
     *chunk = SDFIO_DEFAULT_CHUNK;
     if (config == NULL)
@@ -83,6 +84,10 @@ bool sdfio_config_resolve(const sdfio_config *config,
             return false;
         }
         *allocator = *config->allocator;
+    }
+    if (config->time_zone != NULL)
+    {
+        *zone = *config->time_zone;
     }
     if (config->buffer_size != 0)
     {

@@ -20,6 +20,7 @@ struct sdfio_reader
     sdfio_source source;
     sdfio_point point;
     sdfio_allocator allocator;
+    sdfio_time_zone zone;
     sdfio_owner owner;
     memory_stream memory;
     bool opened;
@@ -80,9 +81,10 @@ static int64_t memory_seek(void *user, int64_t offset, int whence)
 sdfio_reader *sdfio_reader_new(const sdfio_config *config)
 {
     sdfio_allocator allocator;
+    sdfio_time_zone zone;
     size_t buffer = 0;
     size_t chunk = 0;
-    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk))
+    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk, &zone))
     {
         return NULL;
     }
@@ -91,7 +93,8 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
     {
         return NULL;
     }
-    *reader = (sdfio_reader){.allocator = allocator, .chunk_values = chunk};
+    *reader = (sdfio_reader){
+        .allocator = allocator, .zone = zone, .chunk_values = chunk};
     reader->trailer.allocator = &reader->allocator;
     reader->chunk =
         sdfio_allocate(&reader->allocator, chunk * SDFIO_LARGEST_SAMPLE);
@@ -160,8 +163,9 @@ static sdfio_status check_size(sdfio_reader *reader)
     const int64_t size = sdfio_source_size(&reader->source);
     if (size < 0)
     {
-        return sdfio_fail(&reader->message, SDFIO_ERR_IO,
-                          "The stream cannot seek to its end");
+        /* A stream that cannot tell its size, such as a file beyond what a
+         * long holds, is read without this early check. */
+        return SDFIO_OK;
     }
     const uint64_t room = (uint64_t)size > (uint64_t)reader->data_start
                               ? (uint64_t)size - (uint64_t)reader->data_start
@@ -195,8 +199,9 @@ static sdfio_status open_source(sdfio_reader *reader,
     }
     sdfio_source_init(&reader->source, stream);
     reader->point = sdfio_point_now();
-    sdfio_status status = sdfio_read_header(&reader->source, &reader->header,
-                                            &reader->point, &reader->message);
+    sdfio_status status =
+        sdfio_read_header(&reader->source, &reader->header, &reader->point,
+                          &reader->zone, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -334,19 +339,12 @@ static sdfio_status finish_data(sdfio_reader *reader)
     {
         const size_t size = sdfio_data_type_size(header->data_type);
         const size_t left = (reader->value_count - reader->next_value) * size;
-        if (reader->source.seekable)
+        const int64_t end =
+            reader->data_start + (int64_t)reader->value_count * (int64_t)size;
+        if (!reader->source.seekable
+            || !sdfio_source_seek(&reader->source, end))
         {
-            const int64_t end = reader->data_start
-                                + (int64_t)reader->value_count * (int64_t)size;
-            if (!sdfio_source_seek(&reader->source, end))
-            {
-                return sdfio_fail(&reader->message, SDFIO_ERR_IO,
-                                  "The stream cannot seek to the trailer");
-            }
-        }
-        else
-        {
-            /* A stream that cannot seek is read through. */
+            /* A stream that cannot seek to the trailer is read through. */
             const size_t piece = reader->chunk_values * SDFIO_LARGEST_SAMPLE;
             for (size_t done = 0; done < left;)
             {
