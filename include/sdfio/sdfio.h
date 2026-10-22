@@ -197,21 +197,9 @@ typedef enum sdfio_data_type
     SDFIO_DATA_BINARY64 = 7
 } sdfio_data_type;
 
-/** Element type of a buffer of the caller. */
+/** Element type of a buffer of heights of the caller. */
 typedef enum sdfio_sample
 {
-    /** Signed 8-bit integer. */
-    SDFIO_INT8,
-    /** Unsigned 8-bit integer. */
-    SDFIO_UINT8,
-    /** Signed 16-bit integer. */
-    SDFIO_INT16,
-    /** Unsigned 16-bit integer. */
-    SDFIO_UINT16,
-    /** Signed 32-bit integer. */
-    SDFIO_INT32,
-    /** Unsigned 32-bit integer. */
-    SDFIO_UINT32,
     /** 32-bit floating point number, `float`. */
     SDFIO_FLOAT32,
     /** 64-bit floating point number, `double`. */
@@ -248,14 +236,6 @@ SDFIO_API size_t sdfio_data_type_size(sdfio_data_type type);
  * @param[in] sample The sample type.
  */
 SDFIO_API size_t sdfio_sample_size(sdfio_sample sample);
-
-/**
- * Returns the sample type that represents the values of a data type without
- * conversion, for example SDFIO_FLOAT32 for SDFIO_DATA_BINARY32.
- *
- * @param[in] type The data type.
- */
-SDFIO_API sdfio_sample sdfio_sample_of(sdfio_data_type type);
 
 /**
  * Returns true if a revision permits a data type.

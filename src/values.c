@@ -7,8 +7,7 @@
 /**
  * @file values.c
  * @brief Numbers in memory: the samples of a buffer and the stored values,
- * converted through double, which holds every integer type of the format
- * exactly.
+ * converted through double, which holds every type of the format exactly.
  */
 
 #include "internal.h"
@@ -47,39 +46,62 @@ static bool in_range(double value, double low, double high)
     return value >= low && value <= high;
 }
 
-/** A case of the conversion of a sample to double, for SDFIO_SCALARS(). */
-#define LOAD_CASE(sample, data, name, type, bits, low, high, floating)         \
-    case sample:                                                               \
-        for (size_t i = 0; i < count; ++i)                                     \
-        {                                                                      \
-            type value;                                                        \
-            memcpy(&value, (const unsigned char *)src + (ptrdiff_t)i * stride, \
-                   sizeof value);                                              \
-            out[i] = (double)value;                                            \
-        }                                                                      \
-        break;
-
 void sdfio_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
                         size_t count, double *out)
 {
-    switch (sample)
+    for (size_t i = 0; i < count; ++i)
     {
-        SDFIO_SCALARS(LOAD_CASE)
+        const unsigned char *at =
+            (const unsigned char *)src + (ptrdiff_t)i * stride;
+        if (sample == SDFIO_FLOAT32)
+        {
+            float value;
+            memcpy(&value, at, sizeof value);
+            out[i] = (double)value;
+        }
+        else
+        {
+            memcpy(&out[i], at, sizeof out[i]);
+        }
     }
 }
 
-void sdfio_load_samples(sdfio_sample sample, const void *src, size_t count,
-                        double *out)
+sdfio_status sdfio_store_strided(sdfio_sample sample, void *dst,
+                                 ptrdiff_t stride, const double *values,
+                                 size_t count)
 {
-    sdfio_load_strided(sample, src, (ptrdiff_t)sdfio_sample_size(sample), count,
-                       out);
+    for (size_t i = 0; i < count; ++i)
+    {
+        unsigned char *at = (unsigned char *)dst + (ptrdiff_t)i * stride;
+        if (sample == SDFIO_FLOAT32)
+        {
+            if (isfinite(values[i])
+                && !in_range(values[i], -(double)FLT_MAX, (double)FLT_MAX))
+            {
+                return SDFIO_ERR_RANGE;
+            }
+            const float converted = (float)values[i];
+            memcpy(at, &converted, sizeof converted);
+        }
+        else
+        {
+            memcpy(at, &values[i], sizeof values[i]);
+        }
+    }
+    return SDFIO_OK;
 }
 
 /** A case of the conversion of a stored value to double, for SDFIO_SCALARS().
  */
-#define LOAD_STORED_CASE(sample, data, name, type, bits, low, high, floating)  \
+#define LOAD_CASE(data, name, type, bits, low, high, floating)                 \
     case data:                                                                 \
-        sdfio_load_samples(sample, src, count, out);                           \
+        for (size_t i = 0; i < count; ++i)                                     \
+        {                                                                      \
+            type value;                                                        \
+            memcpy(&value, (const unsigned char *)src + i * sizeof value,      \
+                   sizeof value);                                              \
+            out[i] = (double)value;                                            \
+        }                                                                      \
         break;
 
 void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
@@ -87,16 +109,16 @@ void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
 {
     switch (type)
     {
-        SDFIO_SCALARS(LOAD_STORED_CASE)
+        SDFIO_SCALARS(LOAD_CASE)
     }
 }
 
 /**
- * A case of the conversion of a double to a sample, for SDFIO_SCALARS(): the
- * integers round to the nearest, and NaN is 0 where there is no NaN.
+ * A case of the conversion of a double to a stored value, for SDFIO_SCALARS():
+ * the integers round to the nearest, and NaN is 0 where there is no NaN.
  */
-#define STORE_CASE(sample, data, name, type, bits, low, high, floating)        \
-    case sample:                                                               \
+#define STORE_CASE(data, name, type, bits, low, high, floating)                \
+    case data:                                                                 \
         for (size_t i = 0; i < count; ++i)                                     \
         {                                                                      \
             type converted;                                                    \
@@ -119,41 +141,17 @@ void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
                 }                                                              \
                 converted = (type)rounded;                                     \
             }                                                                  \
-            memcpy((unsigned char *)dst + (ptrdiff_t)i * stride, &converted,   \
+            memcpy((unsigned char *)dst + i * sizeof converted, &converted,    \
                    sizeof converted);                                          \
         }                                                                      \
-        break;
-
-sdfio_status sdfio_store_strided(sdfio_sample sample, void *dst,
-                                 ptrdiff_t stride, const double *values,
-                                 size_t count)
-{
-    switch (sample)
-    {
-        SDFIO_SCALARS(STORE_CASE)
-    }
-    return SDFIO_OK;
-}
-
-sdfio_status sdfio_store_samples(sdfio_sample sample, void *dst,
-                                 const double *values, size_t count)
-{
-    return sdfio_store_strided(
-        sample, dst, (ptrdiff_t)sdfio_sample_size(sample), values, count);
-}
-
-/** A case of the conversion of double to a stored value, for SDFIO_SCALARS().
- */
-#define STORE_STORED_CASE(sample, data, name, type, bits, low, high, floating) \
-    case data:                                                                 \
-        return sdfio_store_samples(sample, dst, values, count);
+        return SDFIO_OK;
 
 sdfio_status sdfio_store_coded(sdfio_data_type type, void *dst,
                                const double *values, size_t count)
 {
     switch (type)
     {
-        SDFIO_SCALARS(STORE_STORED_CASE)
+        SDFIO_SCALARS(STORE_CASE)
     }
     return SDFIO_ERR_ARGUMENT;
 }

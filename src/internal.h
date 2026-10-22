@@ -247,39 +247,34 @@ const char *sdfio_string_text(const sdfio_string *string);
 /* ---- The tables of the types -------------------------------------------- */
 
 /**
- * The scalar types of the format and of the buffers, as a list for X-macros.
+ * The data types of the format as a list for X-macros.
  *
- * For each type the list has the sample, the data type that stores it, its
- * name, its C type, an unsigned type of the same size, its lowest and highest
- * value, and whether it is a floating point type.
+ * For each type the list has the data type, its name, its C type, an unsigned
+ * type of the same size, its lowest and highest value, and whether it is a
+ * floating point type.
  *
  * @param X The macro that is called for each type.
  */
 #define SDFIO_SCALARS(X)                                                       \
-    X(SDFIO_INT8, SDFIO_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN,          \
-      INT8_MAX, false)                                                         \
-    X(SDFIO_UINT8, SDFIO_DATA_UINT8, "uint8", uint8_t, uint8_t, 0, UINT8_MAX,  \
+    X(SDFIO_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)     \
+    X(SDFIO_DATA_UINT8, "uint8", uint8_t, uint8_t, 0, UINT8_MAX, false)        \
+    X(SDFIO_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX,      \
       false)                                                                   \
-    X(SDFIO_INT16, SDFIO_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN,    \
-      INT16_MAX, false)                                                        \
-    X(SDFIO_UINT16, SDFIO_DATA_UINT16, "uint16", uint16_t, uint16_t, 0,        \
-      UINT16_MAX, false)                                                       \
-    X(SDFIO_INT32, SDFIO_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN,    \
-      INT32_MAX, false)                                                        \
-    X(SDFIO_UINT32, SDFIO_DATA_UINT32, "uint32", uint32_t, uint32_t, 0,        \
-      UINT32_MAX, false)                                                       \
-    X(SDFIO_FLOAT32, SDFIO_DATA_BINARY32, "binary32", float, uint32_t,         \
-      -FLT_MAX, FLT_MAX, true)                                                 \
-    X(SDFIO_FLOAT64, SDFIO_DATA_BINARY64, "binary64", double, uint64_t,        \
-      -DBL_MAX, DBL_MAX, true)
+    X(SDFIO_DATA_UINT16, "uint16", uint16_t, uint16_t, 0, UINT16_MAX, false)   \
+    X(SDFIO_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX,      \
+      false)                                                                   \
+    X(SDFIO_DATA_UINT32, "uint32", uint32_t, uint32_t, 0, UINT32_MAX, false)   \
+    X(SDFIO_DATA_BINARY32, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX,     \
+      true)                                                                    \
+    X(SDFIO_DATA_BINARY64, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX,    \
+      true)
 
 /**
  * The checks of the sizes of the data types, as the file stores them: the type
  * of the program and the unsigned type that holds its bytes are of one size,
- * and no sample is larger than the largest that a buffer is made for.
+ * and no value is larger than the largest that a buffer is made for.
  */
-#define SDFIO_CHECK_SCALAR(sample, data, name, ctype, stored, low, high,       \
-                           floating)                                           \
+#define SDFIO_CHECK_SCALAR(data, name, ctype, stored, low, high, floating)     \
     SDFIO_STATIC_ASSERT(sizeof(ctype) == sizeof(stored), name                  \
                         ": the type and its stored bytes differ in size");     \
     SDFIO_STATIC_ASSERT(sizeof(ctype) <= SDFIO_LARGEST_SAMPLE,                 \
@@ -472,31 +467,6 @@ bool sdfio_host_is_little_endian(void);
  * @param size The size of a value in bytes.
  */
 void sdfio_fix_endianness(void *values, size_t count, size_t size);
-
-/**
- * Converts samples of a buffer of the caller to doubles.
- *
- * @param sample The sample type of the buffer.
- * @param src The samples.
- * @param count The number of samples.
- * @param[out] out Receives `count` doubles.
- */
-void sdfio_load_samples(sdfio_sample sample, const void *src, size_t count,
-                        double *out);
-
-/**
- * Converts doubles to samples of a buffer of the caller.
- *
- * The integers are rounded, and NaN becomes 0 in an integer type.
- *
- * @param sample The sample type of the buffer.
- * @param[out] dst Receives `count` samples.
- * @param values The doubles.
- * @param count The number of values.
- * @retval SDFIO_ERR_RANGE A number does not fit the sample type.
- */
-sdfio_status sdfio_store_samples(sdfio_sample sample, void *dst,
-                                 const double *values, size_t count);
 
 /**
  * Converts samples that are `stride` bytes apart to doubles.

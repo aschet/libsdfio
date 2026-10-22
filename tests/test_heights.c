@@ -34,24 +34,21 @@ static void check_decode(void)
     CHECK(isnan(heights[2]));
     CHECK(heights[3] == 0.0f);
 
-    /* A marker of the caller instead of NaN, 0 in an integer type. */
+    /* A marker of the caller instead of NaN. */
     sdfio_format format = sdfio_metres(SDFIO_FLOAT64);
     format.missing = -9999.0;
     double doubles[4];
     CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, doubles));
     CHECK(doubles[2] == -9999.0);
-    int32_t counts[4];
-    const sdfio_header scaled =
-        description(SDFIO_ISO_2_0, SDFIO_DATA_INT16, 1.0);
-    CHECK_OK(sdfio_decode_heights(&scaled, sdfio_metres(SDFIO_INT32), coded, 4,
-                                  counts));
-    CHECK(counts[0] == 100 && counts[1] == -200 && counts[2] == 0);
 
-    /* A height that does not fit the sample type. */
-    int8_t small[4];
+    /* A height that does not fit a float. */
+    const sdfio_header scaled =
+        description(SDFIO_ISO_2_0, SDFIO_DATA_INT32, 1e300);
+    const int32_t large[2] = {1, 2};
+    float narrow[2];
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_decode_heights(&scaled, sdfio_metres(SDFIO_INT8), coded,
-                                      4, small));
+                 sdfio_decode_heights(&scaled, sdfio_metres(SDFIO_FLOAT32),
+                                      large, 2, narrow));
 
     /* In BCR-1.0 the maximum marks the point, and a float from a threshold. */
     const sdfio_header bcr =
@@ -203,15 +200,6 @@ static void check_float_marker(void)
     CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, back));
     CHECK(back[0] == 1.0f && back[1] == -9999.1f && back[2] == -9999.1f
           && back[3] == 2.0f);
-
-    /* A marker in an integer buffer is a whole number. */
-    format = sdfio_metres(SDFIO_INT16);
-    format.missing = -7.2;
-    const sdfio_header counts =
-        description(SDFIO_ISO_2_0, SDFIO_DATA_INT16, 1.0);
-    int16_t out[4];
-    CHECK_OK(sdfio_decode_heights(&counts, format, coded, 4, out));
-    CHECK(out[1] == -7);
 }
 
 static void check_tables(void)
@@ -224,8 +212,9 @@ static void check_tables(void)
     CHECK(sdfio_data_type_size(SDFIO_DATA_UINT8) == 1);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY32) == 4);
     CHECK(sdfio_data_type_size(SDFIO_DATA_BINARY64) == 8);
-    CHECK(sdfio_sample_size(SDFIO_INT16) == 2);
-    CHECK(sdfio_sample_of(SDFIO_DATA_BINARY32) == SDFIO_FLOAT32);
+    CHECK(sdfio_sample_size(SDFIO_FLOAT32) == 4);
+    CHECK(sdfio_sample_size(SDFIO_FLOAT64) == 8);
+    CHECK(sdfio_sample_size((sdfio_sample)99) == 0);
     CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT16));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_DATA_INT8));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_2_0, SDFIO_DATA_UINT16));
@@ -338,6 +327,153 @@ static void check_layout(void)
                                                         PTRDIFF_MAX, NULL));
 }
 
+/* A generator of numbers that does not depend on the library of the C
+ * compiler. */
+static uint32_t next_random(uint32_t *state)
+{
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    return *state;
+}
+
+static bool same_float(float a, float b)
+{
+    return isnan(a) ? isnan(b) : a == b;
+}
+
+enum
+{
+    ALL_VALUES = 1U << 16,
+    RANDOM_HEIGHTS = 20000
+};
+
+/* The stored values of a data type that a float holds exactly: every one of
+ * the small integer types, and random numbers of a binary32. */
+static size_t stored_values(sdfio_data_type type, uint32_t *state,
+                            unsigned char *bytes)
+{
+    size_t count = 0;
+    switch (type)
+    {
+    case SDFIO_DATA_INT8:
+    case SDFIO_DATA_UINT8:
+        for (unsigned v = 0; v < 256; ++v)
+        {
+            bytes[count++] = (unsigned char)v;
+        }
+        return count;
+    case SDFIO_DATA_INT16:
+    case SDFIO_DATA_UINT16:
+        for (unsigned v = 0; v < ALL_VALUES; ++v)
+        {
+            const uint16_t value = (uint16_t)v;
+            memcpy(bytes + count * sizeof value, &value, sizeof value);
+            ++count;
+        }
+        return count;
+    default:
+        for (size_t i = 0; i < RANDOM_HEIGHTS; ++i)
+        {
+            const float value =
+                i % 97 == 0
+                    ? NAN
+                    : ((float)(next_random(state) % 2000001) - 1e6F) * 1e-3F;
+            memcpy(bytes + i * sizeof value, &value, sizeof value);
+        }
+        return RANDOM_HEIGHTS;
+    }
+}
+
+/* Stored values are the same, or are two binary32 numbers beside each other:
+ * a quotient between two numbers that is half way, within the accuracy of the
+ * scale, falls to either. */
+static bool same_coded(sdfio_data_type type, const unsigned char *a,
+                       const unsigned char *b)
+{
+    if (type != SDFIO_DATA_BINARY32)
+    {
+        return memcmp(a, b, sdfio_data_type_size(type)) == 0;
+    }
+    float x;
+    float y;
+    memcpy(&x, a, sizeof x);
+    memcpy(&y, b, sizeof y);
+    return x == y || nextafterf(x, INFINITY) == y
+           || nextafterf(x, -INFINITY) == y;
+}
+
+/* The calculation in float gives the heights, and the data, that the
+ * calculation in double gives. */
+static void check_float_path(void)
+{
+    static const sdfio_data_type types[] = {SDFIO_DATA_INT8, SDFIO_DATA_UINT8,
+                                            SDFIO_DATA_INT16, SDFIO_DATA_UINT16,
+                                            SDFIO_DATA_BINARY32};
+    static const sdfio_revision revisions[] = {SDFIO_ISO_2_0, SDFIO_BCR_1_0};
+    static const double scales[] = {1.0, 1e-3, 3e-9, 0.25e-6, 7.0, 0.1, 1e-35};
+    static unsigned char bytes[ALL_VALUES * sizeof(uint16_t)];
+    static float singles[ALL_VALUES];
+    static double doubles[ALL_VALUES];
+    uint32_t state = 2463534242U;
+    for (size_t t = 0; t < sizeof types / sizeof types[0]; ++t)
+    {
+        for (size_t r = 0; r < sizeof revisions / sizeof revisions[0]; ++r)
+        {
+            for (size_t s = 0; s < sizeof scales / sizeof scales[0]; ++s)
+            {
+                const sdfio_header header =
+                    description(revisions[r], types[t], scales[s]);
+                const size_t count = stored_values(types[t], &state, bytes);
+                const sdfio_status decoded_single =
+                    sdfio_decode_heights(&header, sdfio_metres(SDFIO_FLOAT32),
+                                         bytes, count, singles);
+                const sdfio_status decoded_double =
+                    sdfio_decode_heights(&header, sdfio_metres(SDFIO_FLOAT64),
+                                         bytes, count, doubles);
+                CHECK(decoded_double == SDFIO_OK);
+                CHECK(decoded_single == SDFIO_OK);
+                size_t different = 0;
+                for (size_t i = 0; i < count && decoded_single == SDFIO_OK; ++i)
+                {
+                    different +=
+                        same_float(singles[i], (float)doubles[i]) ? 0 : 1;
+                }
+                CHECK(different == 0);
+
+                /* The heights back to the data, one at a time, so that a
+                 * failure belongs to its height. */
+                const double top = sdfio_highest(types[t]) * scales[s];
+                size_t disagree = 0;
+                unsigned char coded_single[sizeof(uint32_t)] = {0};
+                unsigned char coded_double[sizeof(uint32_t)] = {0};
+                for (size_t i = 0; i < RANDOM_HEIGHTS; ++i)
+                {
+                    const double fraction =
+                        ((double)(next_random(&state) % 2400001) / 1e6 - 1.2);
+                    const float height =
+                        i % 101 == 0 ? INFINITY : (float)(fraction * top);
+                    const double widened = height;
+                    const sdfio_status single = sdfio_encode_heights(
+                        &header, sdfio_metres(SDFIO_FLOAT32), &height, 1,
+                        coded_single);
+                    const sdfio_status wide = sdfio_encode_heights(
+                        &header, sdfio_metres(SDFIO_FLOAT64), &widened, 1,
+                        coded_double);
+                    disagree +=
+                        single != wide
+                                || (single == SDFIO_OK
+                                    && !same_coded(types[t], coded_single,
+                                                   coded_double))
+                            ? 1
+                            : 0;
+                }
+                CHECK(disagree == 0);
+            }
+        }
+    }
+}
+
 int main(void)
 {
     check_decode();
@@ -348,5 +484,6 @@ int main(void)
     check_element_stride();
     check_layout();
     check_tables();
+    check_float_path();
     return finish_tests();
 }

@@ -23,21 +23,13 @@ static bool in_range(double value, double low, double high)
  * so that it equals the points that were set to it. NaN is no marker. */
 static double marker_of(sdfio_format format)
 {
-    if (isnan(format.missing))
+    if (isnan(format.missing) || format.sample == SDFIO_FLOAT64)
     {
-        return NAN;
-    }
-    switch (format.sample)
-    {
-    case SDFIO_FLOAT32:
-        return fabs(format.missing) > (double)FLT_MAX
-                   ? format.missing
-                   : (double)(float)format.missing;
-    case SDFIO_FLOAT64:
         return format.missing;
-    default:
-        return nearbyint(format.missing);
     }
+    return fabs(format.missing) > (double)FLT_MAX
+               ? format.missing
+               : (double)(float)format.missing;
 }
 
 ptrdiff_t sdfio_element_stride(sdfio_format format)
@@ -129,6 +121,114 @@ static bool usable_description(const sdfio_header *header, sdfio_format format)
            && sdfio_valid_sample(format.sample);
 }
 
+/* The tests of a float that stay in float: the generic tests of the C library
+ * may convert to double, which a chip without a double FPU does in software. */
+static bool float_is_nan(float value)
+{
+    return value != value; // NOLINT(misc-redundant-expression)
+}
+
+static bool float_is_infinite(float value)
+{
+    return fabsf(value) > FLT_MAX;
+}
+
+static bool float_is_finite(float value)
+{
+    return fabsf(value) <= FLT_MAX;
+}
+
+/** Whether a float holds every value of a type exactly. */
+#define EXACT_IN_FLOAT(type, floating)                                         \
+    (sizeof(type) <= 2 || ((floating) && sizeof(type) == 4))
+
+/*
+ * The z-scale as two floats, which add up to it more closely than one does, so
+ * that a float calculation rounds as the one in double would. The scales that
+ * are far from 1 are left to the calculation in double.
+ */
+typedef struct scale_pair
+{
+    float head;
+    float tail;
+} scale_pair;
+
+static bool split_scale(double scale, scale_pair *pair)
+{
+    pair->head = (float)scale;
+    pair->tail = (float)(scale - (double)pair->head);
+    return pair->head >= 1e-30F && pair->head <= 1e30F;
+}
+
+/** Whether a float is a status of the decoding or encoding in float. */
+typedef enum float_result
+{
+    FLOAT_DONE,
+    FLOAT_UNHANDLED,
+    FLOAT_RANGE,
+    FLOAT_BAD_VALUE
+} float_result;
+
+/**
+ * A case of the decoding into floats, for SDFIO_SCALARS(): the types that a
+ * float holds exactly are converted and scaled in float, with no double.
+ */
+#define DECODE_FLOAT_CASE(data, name, type, bits, low, high, floating)         \
+    case data:                                                                 \
+        if (!EXACT_IN_FLOAT(type, floating))                                   \
+        {                                                                      \
+            return FLOAT_UNHANDLED;                                            \
+        }                                                                      \
+        for (size_t i = 0; i < count; ++i)                                     \
+        {                                                                      \
+            type stored;                                                       \
+            memcpy(&stored, (const unsigned char *)coded + i * sizeof stored,  \
+                   sizeof stored);                                             \
+            const float number = (float)stored;                                \
+            float height =                                                     \
+                (is_missing.at_least ? number >= bad : number == bad)          \
+                    ? NAN                                                      \
+                    : fmaf(number, scale.head, number * scale.tail);           \
+            if (float_is_infinite(height) && !float_is_infinite(number))       \
+            {                                                                  \
+                return FLOAT_RANGE;                                            \
+            }                                                                  \
+            if (float_is_nan(height) && has_marker)                            \
+            {                                                                  \
+                height = marker_float;                                         \
+            }                                                                  \
+            memcpy((unsigned char *)heights + (ptrdiff_t)i * element, &height, \
+                   sizeof height);                                             \
+        }                                                                      \
+        return FLOAT_DONE;
+
+/* The decoding into a buffer of floats without a double, for the data types
+ * that a float holds exactly and the scales that two floats hold. */
+static float_result decode_float(const sdfio_header *header, const void *coded,
+                                 size_t count, void *heights, ptrdiff_t element,
+                                 double marker)
+{
+    scale_pair scale;
+    if (!split_scale(header->z_scale, &scale))
+    {
+        return FLOAT_UNHANDLED;
+    }
+    const sdfio_bad_test is_missing =
+        sdfio_bad_test_for(header->data_type, header->revision);
+    const float bad = (float)is_missing.value;
+    if (!isnan(marker) && fabs(marker) > (double)FLT_MAX)
+    {
+        return FLOAT_UNHANDLED;
+    }
+    const float marker_float = (float)marker;
+    const bool has_marker = !float_is_nan(marker_float);
+    switch (header->data_type)
+    {
+        SDFIO_SCALARS(DECODE_FLOAT_CASE)
+    }
+    return FLOAT_UNHANDLED;
+}
+
 sdfio_status sdfio_decode_heights(const sdfio_header *header,
                                   sdfio_format format, const void *data,
                                   size_t count, void *heights)
@@ -145,6 +245,19 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     const size_t coded_size = sdfio_data_type_size(type);
     const ptrdiff_t element = sdfio_element_stride(format);
     const double marker = marker_of(format);
+    if (format.sample == SDFIO_FLOAT32)
+    {
+        const float_result result =
+            decode_float(header, data, count, heights, element, marker);
+        if (result == FLOAT_RANGE)
+        {
+            return SDFIO_ERR_RANGE;
+        }
+        if (result == FLOAT_DONE)
+        {
+            return SDFIO_OK;
+        }
+    }
     double values[SDFIO_STACK_CHUNK];
     for (size_t first = 0; first < count; first += SDFIO_STACK_CHUNK)
     {
@@ -240,6 +353,100 @@ static sdfio_status checked_coded(const coder *checks, double value,
     return SDFIO_OK;
 }
 
+/**
+ * A case of the encoding from floats, for SDFIO_SCALARS(): the types that a
+ * float holds exactly are scaled and rounded in float, with no double. The
+ * quotient is corrected with the rest of the division, so that the rounding to
+ * a whole number is that of the calculation in double.
+ */
+#define ENCODE_FLOAT_CASE(data, name, type, bits, low, high, floating)         \
+    case data:                                                                 \
+        if (!EXACT_IN_FLOAT(type, floating))                                   \
+        {                                                                      \
+            return FLOAT_UNHANDLED;                                            \
+        }                                                                      \
+        for (size_t i = 0; i < count; ++i)                                     \
+        {                                                                      \
+            float height;                                                      \
+            memcpy(&height,                                                    \
+                   (const unsigned char *)heights + (ptrdiff_t)i * element,    \
+                   sizeof height);                                             \
+            type stored;                                                       \
+            if (!float_is_finite(height)                                       \
+                || (has_marker && height == marker_float))                     \
+            {                                                                  \
+                stored = (type)not_measured;                                   \
+            }                                                                  \
+            else                                                               \
+            {                                                                  \
+                const float quotient = height / scale.head;                    \
+                if (!float_is_finite(quotient))                                \
+                {                                                              \
+                    return FLOAT_RANGE;                                        \
+                }                                                              \
+                const float rest = fmaf(-quotient, scale.head, height);        \
+                const float correction =                                       \
+                    fmaf(-quotient, scale.tail, rest) / scale.head;            \
+                float number = quotient + correction;                          \
+                if (!(floating))                                               \
+                {                                                              \
+                    number = nearbyintf(quotient);                             \
+                    const float difference = (quotient - number) + correction; \
+                    number += difference > 0.5F    ? 1.0F                      \
+                              : difference < -0.5F ? -1.0F                     \
+                                                   : 0.0F;                     \
+                    const double lowest_value = (double)(low);                 \
+                    const double highest_value = (double)(high);               \
+                    if (number < (float)lowest_value                           \
+                        || number > (float)highest_value)                      \
+                    {                                                          \
+                        return FLOAT_RANGE;                                    \
+                    }                                                          \
+                }                                                              \
+                else if (!float_is_finite(number))                             \
+                {                                                              \
+                    return FLOAT_RANGE;                                        \
+                }                                                              \
+                if (is_bad.at_least ? number >= bad : number == bad)           \
+                {                                                              \
+                    return FLOAT_BAD_VALUE;                                    \
+                }                                                              \
+                stored = (type)number;                                         \
+            }                                                                  \
+            memcpy((unsigned char *)coded + i * sizeof stored, &stored,        \
+                   sizeof stored);                                             \
+        }                                                                      \
+        return FLOAT_DONE;
+
+/* The encoding from a buffer of floats without a double, for the data types
+ * that a float holds exactly and the scales that two floats hold. */
+static float_result encode_float(const sdfio_header *header,
+                                 const void *heights, ptrdiff_t element,
+                                 size_t count, void *coded, double marker)
+{
+    scale_pair scale;
+    if (!split_scale(header->z_scale, &scale))
+    {
+        return FLOAT_UNHANDLED;
+    }
+    const sdfio_bad_test is_bad =
+        sdfio_bad_test_for(header->data_type, header->revision);
+    const float bad = (float)is_bad.value;
+    const float not_measured =
+        (float)sdfio_bad_value(header->data_type, header->revision);
+    if (!isnan(marker) && fabs(marker) > (double)FLT_MAX)
+    {
+        return FLOAT_UNHANDLED;
+    }
+    const float marker_float = (float)marker;
+    const bool has_marker = !float_is_nan(marker_float);
+    switch (header->data_type)
+    {
+        SDFIO_SCALARS(ENCODE_FLOAT_CASE)
+    }
+    return FLOAT_UNHANDLED;
+}
+
 sdfio_status sdfio_encode_heights(const sdfio_header *header,
                                   sdfio_format format, const void *heights,
                                   size_t count, void *data)
@@ -257,6 +464,23 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(format);
     const double marker_height = marker_of(format);
     const bool has_marker = !isnan(marker_height);
+    if (format.sample == SDFIO_FLOAT32)
+    {
+        const float_result result =
+            encode_float(header, heights, element, count, data, marker_height);
+        if (result == FLOAT_RANGE)
+        {
+            return SDFIO_ERR_RANGE;
+        }
+        if (result == FLOAT_BAD_VALUE)
+        {
+            return SDFIO_ERR_BAD_VALUE;
+        }
+        if (result == FLOAT_DONE)
+        {
+            return SDFIO_OK;
+        }
+    }
     const coder checks = coder_for(type, header->revision);
     double values[SDFIO_STACK_CHUNK];
     for (size_t first = 0; first < count; first += SDFIO_STACK_CHUNK)

@@ -46,16 +46,13 @@ typedef struct scalar_info
     double lowest;
     /** The highest value. */
     double highest;
-    /** The sample type of the same size and kind. */
-    sdfio_sample sample;
     /** Whether the type is a floating point type. */
     bool floating;
 } scalar_info;
 
 /** A row of the table of the data types, for SDFIO_SCALARS(). */
-#define SCALAR_ROW(sample, data, name, type, bits, low, high, floating)        \
-    [data] = {name,           sizeof(type), (double)(low),                     \
-              (double)(high), sample,       floating},
+#define SCALAR_ROW(data, name, type, bits, low, high, floating)                \
+    [data] = {name, sizeof(type), (double)(low), (double)(high), floating},
 
 static const scalar_info scalars[] = {SDFIO_SCALARS(SCALAR_ROW)};
 enum
@@ -63,22 +60,9 @@ enum
     SCALAR_COUNT = sizeof scalars / sizeof scalars[0]
 };
 
-/* The samples are listed in their own order, which the table by data type
- * does not follow. */
-static const sdfio_data_type data_of[SCALAR_COUNT] = {
-    [SDFIO_INT8] = SDFIO_DATA_INT8,
-    [SDFIO_UINT8] = SDFIO_DATA_UINT8,
-    [SDFIO_INT16] = SDFIO_DATA_INT16,
-    [SDFIO_UINT16] = SDFIO_DATA_UINT16,
-    [SDFIO_INT32] = SDFIO_DATA_INT32,
-    [SDFIO_UINT32] = SDFIO_DATA_UINT32,
-    [SDFIO_FLOAT32] = SDFIO_DATA_BINARY32,
-    [SDFIO_FLOAT64] = SDFIO_DATA_BINARY64,
-};
-
 bool sdfio_valid_sample(sdfio_sample sample)
 {
-    return (size_t)sample < SCALAR_COUNT;
+    return sample == SDFIO_FLOAT32 || sample == SDFIO_FLOAT64;
 }
 
 bool sdfio_valid_data_type(sdfio_data_type type)
@@ -108,12 +92,14 @@ size_t sdfio_data_type_size(sdfio_data_type type)
 
 size_t sdfio_sample_size(sdfio_sample sample)
 {
-    return sdfio_valid_sample(sample) ? scalars[data_of[sample]].size : 0;
-}
-
-sdfio_sample sdfio_sample_of(sdfio_data_type type)
-{
-    return sdfio_valid_data_type(type) ? scalars[type].sample : SDFIO_FLOAT64;
+    switch (sample)
+    {
+    case SDFIO_FLOAT32:
+        return sizeof(float);
+    case SDFIO_FLOAT64:
+        return sizeof(double);
+    }
+    return 0;
 }
 
 bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
