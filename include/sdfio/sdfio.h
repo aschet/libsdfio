@@ -292,7 +292,10 @@ typedef struct sdfio_header
     size_t rows;
     /** Sampling interval along x in metres (X-scale factor). */
     double x_scale;
-    /** Sampling interval along y in metres (Y-scale factor). */
+    /**
+     * Sampling interval along y in metres (Y-scale factor). It is meaningless
+     * for a profile, and any finite value is written.
+     */
     double y_scale;
     /**
      * Z-scale factor: the height of one count of the data area in metres.

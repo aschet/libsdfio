@@ -124,10 +124,12 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "z_resolution must be a finite number");
     }
-    if (!positive(header->x_scale) || !positive(header->y_scale))
+    /* The standard puts no limit on the scales: the y_scale of a profile is
+     * meaningless. */
+    if (!isfinite(header->x_scale) || !isfinite(header->y_scale))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "x_scale and y_scale must be positive numbers");
+                          "x_scale and y_scale must be finite numbers");
     }
     const char *terminator =
         memchr(header->manufacturer_id, '\0', sizeof header->manufacturer_id);

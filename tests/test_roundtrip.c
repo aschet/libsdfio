@@ -222,6 +222,33 @@ static void check_rows(sdfio_revision revision,
     free(file.data);
 }
 
+/* The y-scale of a profile is meaningless: whatever it is, the file is
+ * written. */
+static void check_profile_scale(void)
+{
+    static const double scales[] = {0.0, -1.0, 1e-6, 1e300};
+    for (size_t i = 0; i < sizeof scales / sizeof scales[0]; ++i)
+    {
+        sdfio_header header;
+        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DATA_BINARY64);
+        header.rows = 1;
+        header.y_scale = scales[i];
+        const double heights[COLUMNS] = {1e-6};
+        membuf file = {0};
+        const sdfio_stream stream = membuf_stream(&file);
+        sdfio_writer *writer = sdfio_writer_new(NULL);
+        CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+        CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT64, heights));
+        CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+        sdfio_writer_free(writer);
+        sdfio_reader *reader = sdfio_reader_new(NULL);
+        CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+        CHECK(sdfio_get_header(reader)->y_scale == scales[i]);
+        sdfio_reader_free(reader);
+        free(file.data);
+    }
+}
+
 static void check_errors(void)
 {
     sdfio_header header;
@@ -826,6 +853,7 @@ int main(void)
         check_rows((sdfio_revision)r, SDFIO_ASCII);
     }
     check_errors();
+    check_profile_scale();
     check_z_scale();
     return finish_tests();
 }
