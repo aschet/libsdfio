@@ -6,7 +6,8 @@
 
 /**
  * @file settings.c
- * @brief A configuration with its defaults filled in.
+ * @brief Implements the resolution of a configuration into settings with every
+ * default filled in.
  */
 
 #include "settings.h"

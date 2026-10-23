@@ -6,7 +6,8 @@
 
 /**
  * @file text.c
- * @brief The characters of text, whatever the locale.
+ * @brief Implements classification and comparison of ASCII text without
+ * dependence on the locale.
  */
 
 #include "text.h"

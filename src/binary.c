@@ -6,10 +6,11 @@
 
 /**
  * @file binary.c
- * @brief The binary representation and its codec: the fixed header, the
- * values, and the trailer that follows the data.
+ * @brief Implements the codecs of the binary representation: the fixed header,
+ * the values and the trailer that follows the data area.
  *
- * Little endian, whatever the machine is.
+ * The files store values in little-endian byte order, regardless of the byte
+ * order of the host.
  */
 
 #include "binary.h"

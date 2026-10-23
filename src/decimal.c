@@ -6,11 +6,13 @@
 
 /**
  * @file decimal.c
- * @brief Numbers as text, whatever the locale: the C functions that print
- * and parse numbers use the decimal point of the locale, and the files
- * always have a dot.
+ * @brief Implements the conversion between numbers and text without dependence
+ * on the locale.
  *
- * They are for text files, and a build without those leaves them out.
+ * The functions of the C library that print and parse numbers use the decimal
+ * point of the current locale, whereas the files always use `.`. Only the ASCII
+ * codec uses this code, so a program that does not list that codec does not
+ * contain it.
  */
 
 #include "decimal.h"

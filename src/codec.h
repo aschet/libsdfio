@@ -6,8 +6,9 @@
 
 /**
  * @file codec.h
- * @brief The codecs: the functions that read and write a representation of the
- * files.
+ * @brief Defines the interfaces that a representation implements to read and
+ * write the header, the data area and the trailer of a file, and the state that
+ * their calls share.
  */
 
 #ifndef SDFIO_SRC_CODEC_H

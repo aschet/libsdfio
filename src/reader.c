@@ -6,8 +6,8 @@
 
 /**
  * @file reader.c
- * @brief The reader: opening a stream, reading the header, the heights and
- * the trailer.
+ * @brief Implements the reader: opening a stream, and reading the header, the
+ * data area, the heights and the trailer.
  */
 
 #include "codec.h"

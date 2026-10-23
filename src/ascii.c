@@ -6,8 +6,8 @@
 
 /**
  * @file ascii.c
- * @brief The text representation: the header lines, the values and the
- * trailer.
+ * @brief Implements the codecs of the ASCII representation: reading and writing
+ * the header lines, the values and the trailer.
  */
 
 #include "codec.h"

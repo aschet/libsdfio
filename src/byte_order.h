@@ -6,7 +6,8 @@
 
 /**
  * @file byte_order.h
- * @brief The byte order of the machine and of the files.
+ * @brief Declares the functions that determine the byte order of the host and
+ * convert values between host order and the little-endian order of the files.
  */
 
 #ifndef SDFIO_SRC_BYTE_ORDER_H

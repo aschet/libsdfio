@@ -6,9 +6,9 @@
 
 /**
  * @file common.h
- * @brief What every part of the library uses: the checks at compile time, the
- * text of a failure, the allocation through the allocator of a handle, and the
- * growable string.
+ * @brief Declares the facilities that all modules share: compile-time checks of
+ * the platform, error messages, allocation through the allocator of a handle,
+ * and a growable string.
  */
 
 #ifndef SDFIO_SRC_COMMON_H

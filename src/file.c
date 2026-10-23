@@ -6,8 +6,8 @@
 
 /**
  * @file file.c
- * @brief Files of the C library: the stdio stream, and a reader and a writer
- * that own a file.
+ * @brief Implements file access through the C library: the stdio stream, and
+ * the readers and writers that own a file.
  */
 
 #include <sdfio/file.h>

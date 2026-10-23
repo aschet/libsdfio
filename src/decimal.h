@@ -6,7 +6,8 @@
 
 /**
  * @file decimal.h
- * @brief The numbers of ASCII files, whatever the locale.
+ * @brief Declares the conversion between numbers and text without dependence on
+ * the locale, using the dot as the decimal point that the files require.
  */
 
 #ifndef SDFIO_SRC_DECIMAL_H

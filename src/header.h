@@ -6,8 +6,8 @@
 
 /**
  * @file header.h
- * @brief Reading the header with a codec, and the rules a header has to follow
- * to be written.
+ * @brief Declares the functions that read a header through a codec and that
+ * validate a header before it is written.
  */
 
 #ifndef SDFIO_SRC_HEADER_H

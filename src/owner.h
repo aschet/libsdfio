@@ -6,8 +6,8 @@
 
 /**
  * @file owner.h
- * @brief What a file adds to a reader or a writer, and the functions of the
- * files that use the handles.
+ * @brief Declares the hooks by which a reader or a writer takes ownership of an
+ * underlying file, and the file functions that operate on handles.
  */
 
 #ifndef SDFIO_SRC_OWNER_H

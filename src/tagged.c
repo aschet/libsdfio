@@ -6,8 +6,8 @@
 
 /**
  * @file tagged.c
- * @brief The lines of the form `Name = Value` of a header and of the trailer
- * of ISO-2.0.
+ * @brief Implements the handling of the `Name = Value` lines in the header and
+ * in the trailer of ISO-2.0.
  */
 
 #include "tagged.h"

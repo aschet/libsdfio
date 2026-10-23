@@ -6,10 +6,10 @@
 
 /**
  * @file file_win32.c
- * @brief Files of Windows by a path of wide characters.
+ * @brief Implements file access for paths of wide characters on Windows.
  *
- * The functions are those of file.c with the functions of the C library for
- * wide paths.
+ * The functions correspond to those of file.c and open files with the functions
+ * of the C library that take wide-character paths.
  */
 
 #include <sdfio/file.h>

@@ -6,8 +6,8 @@
 
 /**
  * @file header.c
- * @brief The header of a file: finding the representation, and the rules a
- * header has to follow to be written.
+ * @brief Implements the selection of a codec by the magic of a file and the
+ * validation of a header before it is written.
  */
 
 #include "header.h"

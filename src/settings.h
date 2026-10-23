@@ -6,8 +6,8 @@
 
 /**
  * @file settings.h
- * @brief A configuration with its defaults filled in, for the reader and the
- * writer.
+ * @brief Defines the settings of a handle, which are a configuration with every
+ * default filled in and the codec lists validated.
  */
 
 #ifndef SDFIO_SRC_SETTINGS_H

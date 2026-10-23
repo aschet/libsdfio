@@ -6,8 +6,8 @@
 
 /**
  * @file writer.c
- * @brief The writer: the header, the heights and the trailer of a file
- * written to a stream.
+ * @brief Implements the writer: writing the header, the data area, the heights
+ * and the trailer of a file to a stream.
  */
 
 #include "codec.h"

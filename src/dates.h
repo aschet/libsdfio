@@ -6,7 +6,8 @@
 
 /**
  * @file dates.h
- * @brief The date fields of the headers.
+ * @brief Declares the functions that format, parse and validate the date fields
+ * of the header and that obtain the current time.
  */
 
 #ifndef SDFIO_SRC_DATES_H

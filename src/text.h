@@ -6,7 +6,8 @@
 
 /**
  * @file text.h
- * @brief The characters of text, whatever the locale.
+ * @brief Defines classification, case folding and trimming of ASCII characters
+ * without dependence on the locale.
  */
 
 #ifndef SDFIO_SRC_TEXT_H

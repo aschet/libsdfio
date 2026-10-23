@@ -6,8 +6,8 @@
 
 /**
  * @file stream.c
- * @brief The bytes of a file: a buffered source and a buffered sink over the
- * callbacks of sdfio_stream.
+ * @brief Implements the buffered source and sink over the callbacks of
+ * sdfio_stream.
  */
 
 #include "stream.h"

@@ -6,8 +6,8 @@
 
 /**
  * @file heights_real.h
- * @brief The conversion between the values of the data area and heights, for
- * one type of heights.
+ * @brief Implements the conversion between the stored values and the heights
+ * for one floating-point type.
  *
  * This file is included twice by heights.c, once for `float` and once for
  * `double`, so that heights of a type are calculated in that type and a program

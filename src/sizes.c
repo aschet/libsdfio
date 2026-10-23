@@ -6,8 +6,8 @@
 
 /**
  * @file sizes.c
- * @brief The size of the buffers that the caller allocates for the data and
- * the heights.
+ * @brief Implements the computation of the sizes of the buffers that the caller
+ * allocates for the data and the heights.
  */
 
 #include "types.h"

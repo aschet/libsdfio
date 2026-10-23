@@ -6,7 +6,8 @@
 
 /**
  * @file heights.c
- * @brief Stored values to heights in metres and back.
+ * @brief Implements the conversion of stored values to heights in metres and
+ * back.
  *
  * These functions need no handle: they take the description of a file and
  * memory. Heights of a type are calculated in that type: the conversion is

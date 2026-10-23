@@ -6,7 +6,8 @@
 
 /**
  * @file dates.c
- * @brief The date field of the header: DDMMYYYYhhmm.
+ * @brief Implements the formatting and parsing of the date field of the header,
+ * DDMMYYYYhhmm.
  *
  * ISO-2.0 holds UTC and the other revisions the local clock of the writer,
  * whose time zone is not known to the library: the time zone of the caller
