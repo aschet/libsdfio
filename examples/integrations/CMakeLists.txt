@@ -14,9 +14,6 @@ function(sdfio_integration name)
     set_target_properties(integration_${name} PROPERTIES CXX_EXTENSIONS OFF)
 endfunction()
 
-# A C++ class over the C interface needs no other library.
-sdfio_integration(image SOURCE image.cpp)
-
 find_package(OpenCV QUIET COMPONENTS core imgproc)
 if(OpenCV_FOUND)
     sdfio_integration(opencv SOURCE opencv.cpp LIBS ${OpenCV_LIBS})

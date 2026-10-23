@@ -49,14 +49,6 @@
  */
 
 /**
- * @example image.cpp
- * A C++ image class over the C interface: the handles belong to objects that
- * release them, a failed call is an exception that carries the message of the
- * library, and the heights are read into a two-dimensional array that is
- * indexed as `image[y][x]`.
- */
-
-/**
  * @example opencv.cpp
  * A surface as an OpenCV image of heights. A negative row stride turns the surface
  * into an image without a copy, and a region of interest is read.
