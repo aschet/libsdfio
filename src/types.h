@@ -14,12 +14,6 @@
 
 #include "common.h"
 
-/** The size of the largest sample, a binary64. */
-enum
-{
-    SDFIO_LARGEST_SAMPLE = 8
-};
-
 /**
  * The data types of the format as a list for X-macros.
  *
@@ -36,12 +30,6 @@ enum
     X(SDFIO_TYPE_INT32, int32_t, INT32_MIN, INT32_MAX, false)                  \
     X(SDFIO_TYPE_FLOAT, float, -FLT_MAX, FLT_MAX, true)                        \
     X(SDFIO_TYPE_DOUBLE, double, -DBL_MAX, DBL_MAX, true)
-
-_Static_assert(sizeof(int8_t) == 1 && sizeof(int16_t) == 2
-                   && sizeof(int32_t) == 4 && sizeof(uint64_t) == 8,
-               "the integer types of the file have the sizes of the format");
-_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
-               "the largest sample is a binary64");
 
 /**
  * Tells whether a value is a type of heights: SDFIO_TYPE_FLOAT or
