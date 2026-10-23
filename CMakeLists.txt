@@ -53,8 +53,12 @@ endif()
 set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 set(SDFIO_SOURCES
-    src/ascii.c
-    src/binary.c
+    src/ascii.h
+    src/ascii_reader.c
+    src/ascii_writer.c
+    src/binary.h
+    src/binary_reader.c
+    src/binary_writer.c
     src/byte_order.c
     src/byte_order.h
     src/data_type.c
