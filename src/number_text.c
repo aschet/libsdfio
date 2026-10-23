@@ -20,6 +20,7 @@
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -205,6 +206,41 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
         value = value * base + digit;
     }
     *out = negative ? (long long)(0ULL - value) : (long long)value;
+    return true;
+}
+
+bool sdfio_parse_int32(const char *text, size_t size, int32_t low, int32_t high,
+                       int32_t *out)
+{
+    bool negative = false;
+    if (size > 0 && (text[0] == '+' || text[0] == '-'))
+    {
+        negative = text[0] == '-';
+        ++text;
+        --size;
+    }
+    if (size == 0)
+    {
+        return false;
+    }
+    /* The magnitude of the bound, which for the lowest value of a type is one
+     * more than the highest. */
+    const uint32_t limit =
+        negative ? UINT32_C(0) - (uint32_t)low : (uint32_t)high;
+    const uint32_t limit_tens = limit / 10U;
+    const uint32_t limit_ones = limit % 10U;
+    uint32_t value = 0;
+    for (size_t i = 0; i < size; ++i)
+    {
+        const uint32_t digit = (uint32_t)(unsigned char)text[i] - (uint32_t)'0';
+        if (digit > 9U || value > limit_tens
+            || (value == limit_tens && digit > limit_ones))
+        {
+            return false;
+        }
+        value = value * 10U + digit;
+    }
+    *out = negative ? (int32_t)(UINT32_C(0) - value) : (int32_t)value;
     return true;
 }
 

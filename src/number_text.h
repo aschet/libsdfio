@@ -86,6 +86,21 @@ bool sdfio_parse_float(const sdfio_decimal_point *decimal_point,
 bool sdfio_parse_integer(const char *text, size_t size, long long *out);
 
 /**
+ * Parses an integer in decimal digits, with an optional sign, that lies within
+ * bounds. The text has no white space around it. The function is meant for the
+ * values of a data area, which are many: it calculates in 32 bits.
+ *
+ * @param text The text.
+ * @param size The length of the text.
+ * @param low The lowest value that is accepted, at most 0.
+ * @param high The highest value that is accepted, at least 0.
+ * @param[out] out Receives the integer.
+ * @return False if the text is not an integer or lies outside the bounds.
+ */
+bool sdfio_parse_int32(const char *text, size_t size, int32_t low, int32_t high,
+                       int32_t *out);
+
+/**
  * Writes a number as 1.5e+000.
  *
  * @param decimal_point The decimal point of the locale.

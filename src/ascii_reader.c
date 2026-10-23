@@ -545,29 +545,35 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
 }
 
 /**
- * A case of the storing of an integer, for SDFIO_SCALARS(): false if the type
- * is not an integer type or the integer does not fit.
+ * A case of the parsing and storing of an integer, for
+ * SDFIO_INTEGER_SCALARS(): false if the text is not an integer of the type. An
+ * integer type does not take a fraction, which would be truncated.
  */
 #define STORE_INTEGER_CASE(data, type, low, high, floating)                    \
     case data:                                                                 \
     {                                                                          \
-        if ((floating) || (double)value < (double)(low)                        \
-            || (double)value > (double)(high))                                 \
+        _Static_assert(sizeof(type) <= sizeof(int32_t),                        \
+                       "the integer is parsed in 32 bits");                    \
+        int32_t parsed = 0;                                                    \
+        if (!sdfio_parse_int32(token, size, (low), (high), &parsed))           \
         {                                                                      \
             return false;                                                      \
         }                                                                      \
-        const type stored = (type)value;                                       \
+        const type stored = (type)parsed;                                      \
         memcpy((unsigned char *)dst + index * sizeof stored, &stored,          \
                sizeof stored);                                                 \
         return true;                                                           \
     }
 
-static bool store_integer(sdfio_data_type type, void *dst, size_t index,
-                          long long value)
+static bool store_integer(sdfio_data_type type, const char *token, size_t size,
+                          void *dst, size_t index)
 {
     switch (type)
     {
-        SDFIO_SCALARS(STORE_INTEGER_CASE)
+        SDFIO_INTEGER_SCALARS(STORE_INTEGER_CASE)
+    case SDFIO_TYPE_FLOAT:
+    case SDFIO_TYPE_DOUBLE:
+        break;
     }
     return false;
 }
@@ -636,15 +642,9 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     }
     else
     {
-        /* An integer type does not take a fraction, which would be
-         * truncated. */
-        long long value = 0;
-        if (sdfio_parse_integer(token, size, &value))
-        {
-            status = store_integer(header->data_type, dst, index, value)
-                         ? SDFIO_OK
-                         : SDFIO_ERR_FORMAT;
-        }
+        status = store_integer(header->data_type, token, size, dst, index)
+                     ? SDFIO_OK
+                     : SDFIO_ERR_FORMAT;
     }
     if (status != SDFIO_OK)
     {

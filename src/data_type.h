@@ -32,10 +32,25 @@ enum
  *
  * @param X The macro that is called for each type.
  */
-#define SDFIO_SCALARS(X)                                                       \
+#define SDFIO_SCALARS(X) SDFIO_INTEGER_SCALARS(X) SDFIO_REAL_SCALARS(X)
+
+/**
+ * The integer data types of SDFIO_SCALARS(), for code that has no use for the
+ * bounds of the floating-point types, which an integer cannot hold.
+ *
+ * @param X The macro that is called for each type.
+ */
+#define SDFIO_INTEGER_SCALARS(X)                                               \
     X(SDFIO_TYPE_INT8, int8_t, INT8_MIN, INT8_MAX, false)                      \
     X(SDFIO_TYPE_INT16, int16_t, INT16_MIN, INT16_MAX, false)                  \
-    X(SDFIO_TYPE_INT32, int32_t, INT32_MIN, INT32_MAX, false)                  \
+    X(SDFIO_TYPE_INT32, int32_t, INT32_MIN, INT32_MAX, false)
+
+/**
+ * The floating-point data types of SDFIO_SCALARS().
+ *
+ * @param X The macro that is called for each type.
+ */
+#define SDFIO_REAL_SCALARS(X)                                                  \
     X(SDFIO_TYPE_FLOAT, float, -FLT_MAX, FLT_MAX, true)                        \
     X(SDFIO_TYPE_DOUBLE, double, -DBL_MAX, DBL_MAX, true)
 
