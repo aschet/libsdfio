@@ -14,7 +14,7 @@
 
 #include <sdfio/file.h>
 
-#include "dates.h"
+#include "datetime.h"
 #include "fields.h"
 
 enum
@@ -168,12 +168,12 @@ static void check_against(const expectation *e)
     CHECK(header->y_scale == e->y_scale);
     CHECK(header->z_scale == e->z_scale);
     CHECK(strcmp(header->manufacturer_id, e->manufacturer_id) == 0);
-    char date[SDFIO_DATE_SIZE + 1] = {0};
-    CHECK(
-        sdfio_date_format(header->creation_date, header->revision, NULL, date));
+    char date[SDFIO_DATETIME_SIZE + 1] = {0};
+    CHECK(sdfio_datetime_format(header->creation_date, header->revision, NULL,
+                                date));
     CHECK(strcmp(date, e->creation_date) == 0);
-    CHECK(sdfio_date_format(header->modification_date, header->revision, NULL,
-                            date));
+    CHECK(sdfio_datetime_format(header->modification_date, header->revision,
+                                NULL, date));
     CHECK(strcmp(date, e->modification_date) == 0);
 
     const size_t count = header->rows * header->columns;

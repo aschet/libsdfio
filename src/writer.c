@@ -9,9 +9,9 @@
  * @brief Life of a writer: creation, file start and release.
  */
 
+#include "allocation.h"
 #include "data_type.h"
 #include "header.h"
-#include "memory.h"
 #include "settings.h"
 #include "writer_file.h"
 #include "writer_state.h"
@@ -38,7 +38,7 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
         writer->codecs[i] = settings.writer_codecs[i];
     }
     writer->coded = sdfio_allocate(&writer->allocator,
-                                   settings.chunk * SDFIO_LARGEST_SAMPLE);
+                                   settings.chunk * SDFIO_LARGEST_DATA_ENTRY);
     if (writer->coded == NULL
         || !sdfio_sink_create(&writer->sink, settings.buffer,
                               &writer->allocator))
@@ -117,7 +117,8 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "The writer has created a file already");
     }
-    const sdfio_status status = sdfio_validate(header, &writer->message);
+    const sdfio_status status =
+        sdfio_header_validate_for_writing(header, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;

@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "decimal.h"
+#include "number_text.h"
 
 #include <locale.h>
 

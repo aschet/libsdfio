@@ -22,8 +22,8 @@ _Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
                "float has to be IEEE 754 binary32");
 _Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
                "double has to be IEEE 754 binary64");
-_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
-               "the largest sample has to be a binary64");
+_Static_assert(SDFIO_LARGEST_DATA_ENTRY == sizeof(double),
+               "the largest data entry has to be a binary64");
 
 bool sdfio_valid_height_type(sdfio_data_type type)
 {

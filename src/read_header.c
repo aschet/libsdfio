@@ -15,7 +15,7 @@
 #include "source.h"
 #include <sdfio/sdfio.h>
 
-/* The reader codec whose magics start with a byte. */
+/* The reader codec whose version numbers start with a byte. */
 static const sdfio_reader_codec *
 find_codec(const sdfio_reader_codec *const *codecs, char prefix)
 {
@@ -34,17 +34,18 @@ sdfio_status sdfio_select_reader_codec(sdfio_source *source,
                                        const sdfio_reader_codec **codec,
                                        sdfio_message *message)
 {
-    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
-    if (available < SDFIO_MAGIC_SIZE)
+    const size_t available =
+        sdfio_source_fill(source, SDFIO_VERSION_NUMBER_SIZE);
+    if (available < SDFIO_VERSION_NUMBER_SIZE)
     {
-        return sdfio_source_failure(source, message,
-                                    "Not an SDF file, unexpected magic");
+        return sdfio_source_failure(
+            source, message, "Not an SDF file, unexpected version number");
     }
     const char prefix = (char)source->buffer[source->position];
     if (prefix != 'a' && prefix != 'b')
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Not an SDF file, unexpected magic");
+                          "Not an SDF file, unexpected version number");
     }
     *codec = find_codec(codecs, prefix);
     if (*codec == NULL)

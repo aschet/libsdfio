@@ -11,7 +11,7 @@
 
 #include "header.h"
 #include "data_type.h"
-#include "dates.h"
+#include "datetime.h"
 #include "message.h"
 #include "revision.h"
 #include "text.h"
@@ -33,13 +33,13 @@ void sdfio_header_init(sdfio_header *header)
     memcpy(header->manufacturer_id, producer, sizeof producer);
 }
 
-bool sdfio_matrix_elements(const sdfio_header *header, size_t *elements)
+bool sdfio_data_entries(const sdfio_header *header, size_t *entries)
 {
     if (header->columns != 0 && header->rows > SIZE_MAX / header->columns)
     {
         return false;
     }
-    *elements = header->columns * header->rows;
+    *entries = header->columns * header->rows;
     return true;
 }
 
@@ -60,7 +60,8 @@ static bool positive(double value)
     return value > 0.0 && isfinite(value);
 }
 
-sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
+sdfio_status sdfio_header_validate_for_writing(const sdfio_header *header,
+                                               sdfio_message *message)
 {
     if ((unsigned)header->revision > (unsigned)SDFIO_ISO_2_0
         || (header->representation != SDFIO_BINARY
@@ -115,21 +116,21 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
                           "A file needs a creation date and a modification "
                           "date: SDFIO_NO_TIME cannot be written");
     }
-    if (!sdfio_date_representable(header->creation_date)
-        || !sdfio_date_representable(header->modification_date))
+    if (!sdfio_datetime_representable(header->creation_date)
+        || !sdfio_datetime_representable(header->modification_date))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The year of a date is out of the range of the "
                           "SDF files");
     }
-    size_t elements = 0;
-    if (!sdfio_matrix_elements(header, &elements))
+    size_t entries = 0;
+    if (!sdfio_data_entries(header, &entries))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "columns times rows does not fit in size_t");
     }
-    if (header->columns > sdfio_max_extent(header->revision)
-        || header->rows > sdfio_max_extent(header->revision))
+    if (header->columns > sdfio_max_columns_and_rows(header->revision)
+        || header->rows > sdfio_max_columns_and_rows(header->revision))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The columns or the rows do not fit the header of "

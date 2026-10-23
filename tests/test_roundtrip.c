@@ -107,7 +107,7 @@ static void check_roundtrip(sdfio_revision revision,
 
     double back[ROWS * COLUMNS];
     CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
-    /* An integer type is as exact as one count; text and binary32 keep
+    /* An integer type is as exact as one coded value; text and binary32 keep
      * about as many digits as they print. */
     double tolerance = 1e-13;
     if (type == SDFIO_TYPE_FLOAT)
@@ -176,20 +176,20 @@ static void check_rows(sdfio_revision revision,
     sdfio_header header;
     describe(&header, revision, representation, SDFIO_TYPE_INT16);
     header.z_scale = 1e-9;
-    int16_t counts[ROWS * COLUMNS];
+    int16_t coded[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
     {
-        counts[i] = (int16_t)((int)i * 37 - 100);
+        coded[i] = (int16_t)((int)i * 37 - 100);
     }
-    counts[3] = INT16_MIN; /* the marker of a point not measured in ISO */
-    counts[4] = INT16_MAX; /* an ordinary count */
+    coded[3] = INT16_MIN; /* the marker of a point not measured in ISO */
+    coded[4] = INT16_MAX; /* an ordinary coded value */
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_data(writer, counts, 3));
-    CHECK_OK(sdfio_write_data(writer, counts + 3 * COLUMNS, ROWS - 3));
+    CHECK_OK(sdfio_write_data(writer, coded, 3));
+    CHECK_OK(sdfio_write_data(writer, coded + 3 * COLUMNS, ROWS - 3));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
@@ -198,7 +198,7 @@ static void check_rows(sdfio_revision revision,
     int16_t back[ROWS * COLUMNS];
     CHECK_OK(sdfio_read_data(reader, back, 2));
     CHECK_OK(sdfio_read_data(reader, back + 2 * COLUMNS, ROWS - 2));
-    CHECK(memcmp(counts, back, sizeof counts) == 0);
+    CHECK(memcmp(coded, back, sizeof coded) == 0);
     const char *trailer = (const char *)1;
     size_t size = 1;
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
@@ -215,10 +215,10 @@ static void check_rows(sdfio_revision revision,
         const size_t y = file_row;
         for (size_t column = 5; column < COLUMNS; ++column)
         {
-            const int16_t count = counts[file_row * COLUMNS + column];
-            if (count != SDFIO_BAD_INT16)
+            const int16_t value = coded[file_row * COLUMNS + column];
+            if (value != SDFIO_BAD_INT16)
             {
-                CHECK(near_relative(heights[y * COLUMNS + column], count * 1e-9,
+                CHECK(near_relative(heights[y * COLUMNS + column], value * 1e-9,
                                     1e-12));
             }
         }
@@ -234,16 +234,16 @@ static void check_typed_rows(void)
     sdfio_header header;
     describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
     header.z_scale = 1e-9;
-    const int16_t counts[ROWS * COLUMNS] = {1, 2, 3};
+    const int16_t coded[ROWS * COLUMNS] = {1, 2, 3};
     const float floats[ROWS * COLUMNS] = {0};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_codecs());
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_data_int16(writer, counts, 1));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_data_int16(writer, coded, 1));
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data_float(writer, floats, 1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data_int8(writer, NULL, 1));
-    CHECK_OK(sdfio_write_data_int16(writer, counts, ROWS));
+    CHECK_OK(sdfio_write_data_int16(writer, coded, ROWS));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
@@ -255,7 +255,7 @@ static void check_typed_rows(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_data_float(reader, wrong, 1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_data_double(reader, NULL, 1));
     CHECK_OK(sdfio_read_data_int16(reader, back, ROWS));
-    CHECK(memcmp(counts, back, sizeof counts) == 0);
+    CHECK(memcmp(coded, back, sizeof coded) == 0);
     sdfio_reader_free(reader);
     free(file.data);
 }
@@ -298,9 +298,9 @@ static void check_errors(void)
 
     /* Counts need a z-scale: the writer cannot know what they mean. */
     sdfio_writer *writer = sdfio_writer_new(all_codecs());
-    int16_t counts[ROWS * COLUMNS] = {0};
+    int16_t coded[ROWS * COLUMNS] = {0};
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data(writer, counts, 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data(writer, coded, 1));
     CHECK(strstr(sdfio_writer_error_message(writer), "z-scale") != NULL);
     sdfio_writer_free(writer);
 
@@ -662,7 +662,7 @@ static void check_rows_without_columns(void)
     sdfio_header header;
     describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_FLOAT);
     header.columns = 0;
-    header.rows = sdfio_max_extent(SDFIO_ISO_2_0);
+    header.rows = sdfio_max_columns_and_rows(SDFIO_ISO_2_0);
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);

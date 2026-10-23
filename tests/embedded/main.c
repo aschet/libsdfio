@@ -82,7 +82,7 @@ static size_t store(void *user, const void *data, size_t size)
 
 int main(void)
 {
-    static int16_t counts[COLUMNS];
+    static int16_t coded[COLUMNS];
     const sdfio_allocator allocator = {NULL, take, give};
     const sdfio_config config = {.allocator = &allocator,
                                  .buffer_size = 128,
@@ -103,9 +103,9 @@ int main(void)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
         {
-            counts[column] = (int16_t)(row * COLUMNS + column);
+            coded[column] = (int16_t)(row * COLUMNS + column);
         }
-        status = sdfio_write_data(writer, counts, 1);
+        status = sdfio_write_data(writer, coded, 1);
     }
     if (status == SDFIO_OK)
     {

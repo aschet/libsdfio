@@ -15,7 +15,7 @@
 #include "binary.h"
 #include "byte_order.h"
 #include "data_type.h"
-#include "dates.h"
+#include "datetime.h"
 #include "dynstring.h"
 #include "fields.h"
 #include "message.h"
@@ -52,31 +52,22 @@ static double get_double(const unsigned char *bytes)
     return value;
 }
 
-/* The revision of a magic, or the reason why it is not one of a binary file. */
-static sdfio_status revision_of_magic(const unsigned char *magic,
-                                      sdfio_revision *revision,
-                                      sdfio_message *message)
+/* The revision whose version number the bytes are, according to the version
+ * numbers that the codec lists. */
+static bool revision_of(const unsigned char *version_number,
+                        sdfio_revision *revision)
 {
-    const char *text = (const char *)magic;
-    const char prefix = text[0];
-    if ((prefix != 'a' && prefix != 'b') || text[SDFIO_MAGIC_DASH_AT] != '-')
+    for (size_t i = 0; i < SDFIO_REVISION_COUNT; ++i)
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Not an SDF file: unexpected magic");
+        if (memcmp(version_number, sdfio_binary_reader_codec.version_numbers[i],
+                   SDFIO_VERSION_NUMBER_SIZE)
+            == 0)
+        {
+            *revision = (sdfio_revision)i;
+            return true;
+        }
     }
-    if (!sdfio_revision_from_text(text + SDFIO_MAGIC_NAME_AT,
-                                  SDFIO_MAGIC_SIZE - SDFIO_MAGIC_NAME_AT,
-                                  revision))
-    {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown or unsupported SDF revision in magic");
-    }
-    if (prefix != 'b')
-    {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "ASCII magic found while parsing a binary SDF file");
-    }
-    return SDFIO_OK;
+    return false;
 }
 
 /* The identifier up to the first 0, without the white space at its end. The
@@ -105,11 +96,6 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
     size_t count = 0;
     while ((count = sdfio_source_read(source, piece, sizeof piece)) > 0)
     {
-        if (out->size + count > SDFIO_MAX_TRAILER)
-        {
-            return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "The SDF trailer is too long");
-        }
         if (!sdfio_string_append(out, piece, count))
         {
             return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
@@ -135,22 +121,22 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 sdfio_message *message)
 {
     (void)state;
-    unsigned char magic[SDFIO_MAGIC_SIZE];
-    if (!take(source, magic, sizeof magic))
+    unsigned char version_number[SDFIO_VERSION_NUMBER_SIZE];
+    if (!take(source, version_number, sizeof version_number))
     {
-        return sdfio_source_failure(source, message,
-                                    "Not an SDF file, unexpected magic");
+        return sdfio_source_failure(
+            source, message, "Not an SDF file, unexpected version number");
     }
     sdfio_revision revision = SDFIO_ISO_2_0;
-    sdfio_status status = revision_of_magic(magic, &revision, message);
-    if (status != SDFIO_OK)
+    if (!revision_of(version_number, &revision))
     {
-        return status;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "Unknown or unsupported SDF version number");
     }
-    const size_t extent_size = sdfio_binary_extent_size(revision);
+    const size_t columns_rows_size = sdfio_binary_columns_rows_size(revision);
     unsigned char identifier[SDFIO_ID_SIZE];
-    unsigned char created_text[SDFIO_DATE_SIZE];
-    unsigned char modified_text[SDFIO_DATE_SIZE];
+    unsigned char created_text[SDFIO_DATETIME_SIZE];
+    unsigned char modified_text[SDFIO_DATETIME_SIZE];
     unsigned char columns_field[sizeof(uint32_t)];
     unsigned char rows_field[sizeof(uint32_t)];
     unsigned char scales[SDFIO_BINARY_REAL_FIELDS][sizeof(double)];
@@ -158,8 +144,8 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     bool complete = take(source, identifier, sizeof identifier)
                     && take(source, created_text, sizeof created_text)
                     && take(source, modified_text, sizeof modified_text)
-                    && take(source, columns_field, extent_size)
-                    && take(source, rows_field, extent_size);
+                    && take(source, columns_field, columns_rows_size)
+                    && take(source, rows_field, columns_rows_size);
     for (size_t i = 0; complete && i < SDFIO_BINARY_REAL_FIELDS; ++i)
     {
         complete = take(source, scales[i], sizeof scales[i]);
@@ -171,18 +157,20 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                     "header");
     }
     copy_identifier(header, identifier);
-    if (!sdfio_date_is_valid((const char *)created_text, SDFIO_DATE_SIZE)
-        || !sdfio_date_is_valid((const char *)modified_text, SDFIO_DATE_SIZE))
+    if (!sdfio_datetime_is_valid((const char *)created_text,
+                                 SDFIO_DATETIME_SIZE)
+        || !sdfio_datetime_is_valid((const char *)modified_text,
+                                    SDFIO_DATETIME_SIZE))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "A date of the SDF header is not valid");
     }
-    const time_t created = sdfio_date_parse((const char *)created_text,
-                                            SDFIO_DATE_SIZE, revision, zone);
-    const time_t modified = sdfio_date_parse((const char *)modified_text,
-                                             SDFIO_DATE_SIZE, revision, zone);
-    header->columns = (size_t)get_le(columns_field, extent_size);
-    header->rows = (size_t)get_le(rows_field, extent_size);
+    const time_t created = sdfio_datetime_parse(
+        (const char *)created_text, SDFIO_DATETIME_SIZE, revision, zone);
+    const time_t modified = sdfio_datetime_parse(
+        (const char *)modified_text, SDFIO_DATETIME_SIZE, revision, zone);
+    header->columns = (size_t)get_le(columns_field, columns_rows_size);
+    header->rows = (size_t)get_le(rows_field, columns_rows_size);
     header->x_scale = get_double(scales[0]);
     header->y_scale = get_double(scales[1]);
     header->z_scale = get_double(scales[2]);
@@ -264,7 +252,7 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
 
 const sdfio_reader_codec sdfio_binary_reader_codec = {
     .prefix = 'b',
-    .magics = {"bISO-1.0", "bISO-2.0"},
+    .version_numbers = {"bISO-1.0", "bISO-2.0"},
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

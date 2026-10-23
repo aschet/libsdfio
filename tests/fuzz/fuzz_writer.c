@@ -117,7 +117,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     {
         /* A file that was written is a file that can be read: the rows as
          * they are coded, and the trailer. Heights in metres may overflow the
-         * sample type, which is not a fault of the file. */
+         * element type, which is not a fault of the file. */
         sdfio_reader *reader = sdfio_reader_new(&config);
         sdfio_status read_status = SDFIO_ERR_MEMORY;
         if (reader != NULL)

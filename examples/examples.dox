@@ -32,8 +32,8 @@
  */
 
 /**
- * @example counts.c
- * Writes and reads the integer counts of a scanner as 16-bit values, row by
+ * @example coded_values.c
+ * Writes and reads the coded height information of a scanner as 16-bit values, row by
  * row, with sdfio_write_data() and sdfio_read_data(). The points that are not
  * measured carry the bad value SDFIO_BAD_INT16, which is recognized when
  * reading.

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file decimal.c
+ * @file number_text.c
  * @brief Locale-independent number conversion.
  *
  * The functions of the C library that print and parse numbers use the decimal
@@ -14,7 +14,7 @@
  * contain it.
  */
 
-#include "decimal.h"
+#include "number_text.h"
 #include "text.h"
 #include <limits.h>
 #include <stdlib.h>

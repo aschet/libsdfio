@@ -66,14 +66,14 @@ static inline bool near_relative(double a, double b, double relative)
 
 /* A file in memory that a writer fills. */
 /** The size of the binary header of ISO-2.0, as the standard lays it out: the
- * magic of 8 bytes, the identifier of 10, two dates of 12, the number of
- * points and of profiles of 4 each, four binary64 numbers, and 3 bytes of
- * codes. */
+ * version number of 8 bytes, the identifier of 10, two datetimes of 12, the
+ * numbers of columns and of rows of 4 each, four binary64 numbers, and 3 bytes
+ * of codes. */
 enum
 {
     ISO_2_0_BINARY_HEADER_SIZE = 8 + 10 + 2 * 12 + 2 * 4 + 4 * 8 + 3,
-    /** Where the number of points and the number of profiles start. */
-    ISO_2_0_EXTENTS_AT = 8 + 10 + 2 * 12
+    /** Where the number of columns and the number of rows start. */
+    ISO_2_0_COLUMNS_AT = 8 + 10 + 2 * 12
 };
 
 typedef struct membuf

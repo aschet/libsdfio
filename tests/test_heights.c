@@ -115,7 +115,7 @@ static void check_encode(void)
                                       sdfio_format_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
 
-    /* A float sample holds a float file, and is checked against its range. */
+    /* A float element holds a float file, and is checked against its range. */
     const sdfio_header single =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT, 1.0);
     const double large[] = {1e300};
@@ -223,8 +223,6 @@ static void check_tables(void)
     CHECK(sdfio_data_type_size((sdfio_data_type)99) == 0);
     CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT16));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT8));
-    CHECK(strcmp(sdfio_revision_text(SDFIO_ISO_2_0), "ISO-2.0") == 0);
-    CHECK(strcmp(sdfio_revision_text((sdfio_revision)99), "") == 0);
     CHECK(strlen(sdfio_version()) > 0);
     for (int i = SDFIO_OK; i <= SDFIO_ERR_MEMORY; ++i)
     {
@@ -232,7 +230,7 @@ static void check_tables(void)
     }
 }
 
-/* The samples of the caller need not follow each other: the z of a point, one
+/* The elements of the caller need not follow each other: the z of a point, one
  * channel, a row that runs backwards. */
 typedef struct point
 {
@@ -287,7 +285,7 @@ static void check_element_stride(void)
     CHECK(mirrored[3] == 1.0F && isnan(mirrored[2]) && mirrored[1] == -2.0F
           && mirrored[0] == 3.0F);
 
-    /* A stride that is smaller than a sample would overwrite itself. */
+    /* A stride that is smaller than a element would overwrite itself. */
     format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
     format.element_stride = 2;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -318,7 +316,7 @@ static void check_layout(void)
     /* Mirrored. */
     format.element_stride = -size;
     CHECK_OK(layout_with(format, 3, 4, -4 * size));
-    /* Overlapping: both strides a sample. */
+    /* Overlapping: both strides a element. */
     format.element_stride = 0;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(format, 3, 4, size));
     /* Rows that interleave but do not fit: a stride between. */

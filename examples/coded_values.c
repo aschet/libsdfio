@@ -27,7 +27,7 @@ static void scan(int16_t *row, size_t y, int16_t not_measured)
     }
 }
 
-static int write_counts(const char *path)
+static int write_coded_values(const char *path)
 {
     sdfio_header header;
     sdfio_header_init(&header);
@@ -61,7 +61,7 @@ static int write_counts(const char *path)
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-static int read_counts(const char *path)
+static int read_coded_values(const char *path)
 {
     const sdfio_config config = {.reader_codecs = {&sdfio_binary_reader_codec}};
     sdfio_reader *reader = sdfio_reader_new(&config);
@@ -69,7 +69,7 @@ static int read_counts(const char *path)
     const sdfio_header *header = sdfio_get_header(reader);
     if (status == SDFIO_OK && header->data_type != SDFIO_TYPE_INT16)
     {
-        fprintf(stderr, "the file does not hold int16 counts\n");
+        fprintf(stderr, "the file does not hold int16 coded values\n");
         sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }
@@ -114,7 +114,8 @@ static int read_counts(const char *path)
     else
     {
         const double mean = sum / (double)measured;
-        printf("%s %zu x %zu, %zu points not measured, mean %g counts = %g m, "
+        printf("%s %zu x %zu, %zu points not measured, mean %g coded value = "
+               "%g m, "
                "%zu rows out of place\n",
                header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
                header->columns, header->rows, unmeasured, mean,
@@ -129,6 +130,7 @@ static int read_counts(const char *path)
 
 int main(void)
 {
-    const int failed = write_counts("counts.sdf");
-    return failed == EXIT_SUCCESS ? read_counts("counts.sdf") : failed;
+    const int failed = write_coded_values("coded_values.sdf");
+    return failed == EXIT_SUCCESS ? read_coded_values("coded_values.sdf")
+                                  : failed;
 }

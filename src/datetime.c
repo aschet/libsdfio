@@ -5,7 +5,7 @@
  */
 
 /**
- * @file dates.c
+ * @file datetime.c
  * @brief Date field of the header, DDMMYYYYhhmm.
  *
  * ISO-2.0 holds UTC and the other revisions the local clock of the writer,
@@ -15,7 +15,7 @@
  * time zone or a shared result.
  */
 
-#include "dates.h"
+#include "datetime.h"
 #include "fields.h"
 #include "revision.h"
 #include "text.h"
@@ -154,7 +154,7 @@ time_t sdfio_now(void)
     return (time_t)(minutes_of(now) * SECONDS_PER_MINUTE);
 }
 
-bool sdfio_date_representable(time_t time)
+bool sdfio_datetime_representable(time_t time)
 {
     int64_t year = 0;
     unsigned month = 0;
@@ -174,19 +174,20 @@ static void put_digits(char *out, int value, size_t width)
     }
 }
 
-bool sdfio_date_format(time_t time, sdfio_revision revision,
-                       const sdfio_time_zone *zone, char out[SDFIO_DATE_SIZE])
+bool sdfio_datetime_format(time_t time, sdfio_revision revision,
+                           const sdfio_time_zone *zone,
+                           char out[SDFIO_DATETIME_SIZE])
 {
     if (time == SDFIO_NO_TIME)
     {
-        memset(out, '0', SDFIO_DATE_SIZE);
+        memset(out, '0', SDFIO_DATETIME_SIZE);
         return true;
     }
     if (!sdfio_requires_utc(revision) && zone != NULL
         && zone->utc_to_local != NULL)
     {
         time = zone->utc_to_local(zone->user, time);
-        if (time == SDFIO_NO_TIME || !sdfio_date_representable(time))
+        if (time == SDFIO_NO_TIME || !sdfio_datetime_representable(time))
         {
             return false;
         }
@@ -238,7 +239,7 @@ typedef struct date_fields
 static bool read_date(const char *text, size_t size, date_fields *fields)
 {
     sdfio_trim(&text, &size);
-    if (size != SDFIO_DATE_SIZE)
+    if (size != SDFIO_DATETIME_SIZE)
     {
         return false;
     }
@@ -261,14 +262,15 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
            && fields->hour < HOURS_PER_DAY && fields->minute < MINUTES_PER_HOUR;
 }
 
-bool sdfio_date_is_valid(const char *text, size_t size)
+bool sdfio_datetime_is_valid(const char *text, size_t size)
 {
     date_fields fields;
     return read_date(text, size, &fields);
 }
 
-time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
-                        const sdfio_time_zone *zone)
+time_t sdfio_datetime_parse(const char *text, size_t size,
+                            sdfio_revision revision,
+                            const sdfio_time_zone *zone)
 {
     date_fields fields;
     if (!read_date(text, size, &fields))

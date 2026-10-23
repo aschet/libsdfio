@@ -99,12 +99,12 @@ int main(void)
     }
     reader = membuf_reopen(reader, &file);
     read = sdfio_get_header(reader);
-    int16_t counts[6];
-    CHECK_OK(sdfio_read_data(reader, counts, 2));
-    CHECK(counts[2] == SDFIO_BAD_INT16);
+    int16_t coded[6];
+    CHECK_OK(sdfio_read_data(reader, coded, 2));
+    CHECK(coded[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
                                read, sdfio_format_packed(SDFIO_TYPE_FLOAT),
-                               counts, 6, back));
+                               coded, 6, back));
     sdfio_reader_free(reader);
     free(file.data);
     return finish_tests();

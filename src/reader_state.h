@@ -78,8 +78,9 @@ struct sdfio_reader
 };
 
 /**
- * Records that an error in the middle of the data lost the position of the
- * reader.
+ * Marks the reader as failed after an error in the data area, because the
+ * position in the file is no longer known. The reader refuses further read
+ * operations.
  *
  * @param reader The reader.
  * @param status The status of the error.
@@ -88,7 +89,8 @@ struct sdfio_reader
 sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status);
 
 /**
- * Checks that the reader can be read from.
+ * Verifies the precondition of every read operation: a file is open and no
+ * error has ended the reading.
  *
  * @param reader The reader. May be null.
  * @retval SDFIO_ERR_ARGUMENT The reader is null.
@@ -97,7 +99,8 @@ sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status);
 sdfio_status sdfio_reader_require_readable(sdfio_reader *reader);
 
 /**
- * Reads the next values of the data area, as the file stores them.
+ * Reads the next values of the data area through the codec of the file. The
+ * values are delivered in the data type of the file.
  *
  * @param reader The reader.
  * @param[out] dst Receives the values.
@@ -107,7 +110,9 @@ sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
                                       size_t count);
 
 /**
- * Reads or skips to the end of the data area.
+ * Completes the data area. The function discards the values that were not
+ * requested and consumes what terminates the data area in the representation
+ * of the file.
  *
  * @param reader The reader.
  */

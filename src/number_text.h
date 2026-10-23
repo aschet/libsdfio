@@ -5,12 +5,12 @@
  */
 
 /**
- * @file decimal.h
+ * @file number_text.h
  * @brief Locale-independent number conversion.
  */
 
-#ifndef SDFIO_SRC_DECIMAL_H
-#define SDFIO_SRC_DECIMAL_H
+#ifndef SDFIO_SRC_NUMBER_TEXT_H
+#define SDFIO_SRC_NUMBER_TEXT_H
 
 #include <sdfio/sdfio.h>
 
@@ -86,4 +86,4 @@ size_t sdfio_format_scientific(const sdfio_point *point, char *out,
                                size_t capacity, double value, int digits,
                                int exponent_width);
 
-#endif /* SDFIO_SRC_DECIMAL_H */
+#endif /* SDFIO_SRC_NUMBER_TEXT_H */

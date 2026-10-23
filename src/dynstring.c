@@ -10,7 +10,7 @@
  */
 
 #include "dynstring.h"
-#include "memory.h"
+#include "allocation.h"
 #include <stdint.h>
 #include <string.h>
 

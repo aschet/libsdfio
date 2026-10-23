@@ -270,15 +270,16 @@ static void check_header_errors(void)
         reader = sdfio_reader_new(all_codecs());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
-        /* The date, the z-scale and the first character of the magic. */
+        /* The date, the z-scale and the first character of the version number.
+         */
         enum
         {
-            DATES_AT = SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE,
-            Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATE_SIZE + 2 * sizeof(uint32_t)
-                         + 2 * sizeof(double)
+            DATES_AT = SDFIO_VERSION_NUMBER_SIZE + SDFIO_ID_SIZE,
+            Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATETIME_SIZE
+                         + 2 * sizeof(uint32_t) + 2 * sizeof(double)
         };
         memcpy(copy, data, size);
-        memset(copy + DATES_AT, '0', SDFIO_DATE_SIZE);
+        memset(copy + DATES_AT, '0', SDFIO_DATETIME_SIZE);
         reader = sdfio_reader_new(all_codecs());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
@@ -294,7 +295,8 @@ static void check_header_errors(void)
         sdfio_reader_free(reader);
         free(copy);
 
-        /* A byte order mark in front of the magic is not an SDF file. */
+        /* A byte order mark in front of the version number is not an SDF file.
+         */
         unsigned char *marked = malloc(size + 3);
         const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
         memcpy(marked, mark, 3);
@@ -373,7 +375,7 @@ static void check_file(void)
 
 /* A header that claims more bytes of data than any stream has: the trailer is
  * looked for by reading through the data area, which ends first. */
-static void check_huge_extent(void)
+static void check_huge_matrix(void)
 {
     if (sizeof(size_t) < sizeof(uint64_t))
     {
@@ -396,14 +398,14 @@ static void check_huge_extent(void)
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
-    /* The numbers of points and profiles, 4 bytes each in little endian. */
-    const uint32_t extents[] = {UINT32_MAX, 1U << 29};
+    /* The numbers of columns and rows, 4 bytes each in little endian. */
+    const uint32_t sizes[] = {UINT32_MAX, 1U << 29};
     for (size_t i = 0; i < 2; ++i)
     {
         for (size_t byte = 0; byte < sizeof(uint32_t); ++byte)
         {
-            file.data[ISO_2_0_EXTENTS_AT + i * sizeof(uint32_t) + byte] =
-                (unsigned char)(extents[i] >> (8 * byte));
+            file.data[ISO_2_0_COLUMNS_AT + i * sizeof(uint32_t) + byte] =
+                (unsigned char)(sizes[i] >> (8 * byte));
         }
     }
     pipe_source pipe = {file.data, file.size, 0, SIZE_MAX, SIZE_MAX};
@@ -428,12 +430,12 @@ static void add_line(char *text, size_t capacity, const char *name,
 }
 
 /* The status of opening an ASCII file whose header is as given. */
-static sdfio_status open_ascii(const char *magic, const char *id,
+static sdfio_status open_ascii(const char *version_number, const char *id,
                                const char *date, const char *points,
                                const char *z_scale, const char *line_end)
 {
     char text[512] = "";
-    add_line(text, sizeof text, magic, "", line_end);
+    add_line(text, sizeof text, version_number, "", line_end);
     add_line(text, sizeof text, "ManufacID = ", id, line_end);
     add_line(text, sizeof text, "CreateDate = ", date, line_end);
     add_line(text, sizeof text, "ModDate = ", date, line_end);
@@ -463,7 +465,8 @@ static void check_standard_rules(void)
     const char *const good_z = "1.00000000000000e-009";
     CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, crlf));
     CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, "\n"));
-    /* The magic starts with a lower case a or b, and names a revision. */
+    /* The version number starts with a lower case a or b, and names a revision.
+     */
     CHECK_STATUS(
         SDFIO_ERR_FORMAT,
         open_ascii("AISO-2.0", "test", "010120261200", "1", good_z, crlf));
@@ -500,7 +503,7 @@ static void check_standard_rules(void)
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  open_ascii("aISO-2.0", "01234567890", "010120261200", "1",
                             good_z, crlf));
-    /* The number of points is 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
+    /* The number of columns is 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
     CHECK_STATUS(
         SDFIO_ERR_FORMAT,
         open_ascii("aISO-1.0", "test", "010120261200", "65536", good_z, crlf));
@@ -551,7 +554,7 @@ int main(void)
     check_damage(SAMPLES "iso1_surface_binary.sdf");
     check_damage(SAMPLES "iso2_surface_ascii.sdf");
     check_file();
-    check_huge_extent();
+    check_huge_matrix();
     check_failing_sink();
     check_standard_rules();
     return finish_tests();

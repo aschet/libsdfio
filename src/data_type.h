@@ -15,19 +15,20 @@
 #include <float.h>
 #include <sdfio/sdfio.h>
 
-/** The size of the largest sample of the data area, a binary64. */
+/** The size in bytes of the largest data entry of the data area, which is a
+ * binary64 number. */
 enum
 {
-    SDFIO_LARGEST_SAMPLE = 8
+    SDFIO_LARGEST_DATA_ENTRY = 8
 };
 
 /**
- * The data types of the format as a list for X-macros.
+ * Table of the data types of the format, for use as an X macro.
  *
- * For each type the list has the data type, its C type, its lowest and highest
- * value, and whether it is a floating point type. The lowest value is also the
- * bad value, which marks a point that is not measured. The highest value is
- * not special.
+ * Each entry lists the data type, the corresponding C type, the lowest and the
+ * highest representable value, and whether the type is a floating-point type.
+ * The lowest value is the bad value, which labels a non-measured or spurious
+ * point. The highest value has no special meaning.
  *
  * @param X The macro that is called for each type.
  */
@@ -39,31 +40,33 @@ enum
     X(SDFIO_TYPE_DOUBLE, double, -DBL_MAX, DBL_MAX, true)
 
 /**
- * Tells whether a value is a type of heights: SDFIO_TYPE_FLOAT or
- * SDFIO_TYPE_DOUBLE.
+ * Tells whether a data type can serve as the type of heights: SDFIO_TYPE_FLOAT
+ * or SDFIO_TYPE_DOUBLE.
  *
  * @param type The value to test.
  */
 bool sdfio_valid_height_type(sdfio_data_type type);
 
 /**
- * Returns the size in bytes of one value of a type, or 0 for an invalid value.
+ * Returns the size in bytes of one data entry of a data type, or 0 if the value
+ * is not a data type.
  *
  * @param type The type.
  */
 size_t sdfio_data_type_size(sdfio_data_type type);
 
 /**
- * Tells whether a value is a data type.
+ * Tells whether a value is one of the data types of the format.
  *
  * @param type The value to test.
  */
 bool sdfio_valid_data_type(sdfio_data_type type);
 
 /**
- * Tells whether a data type is a floating point type.
+ * Tells whether a data type is a floating-point type.
  *
- * @param type The data type. An invalid value is not one.
+ * @param type The data type. A value that is not a data type is not a
+ * floating-point type.
  */
 bool sdfio_is_floating(sdfio_data_type type);
 

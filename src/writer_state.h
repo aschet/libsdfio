@@ -70,7 +70,8 @@ struct sdfio_writer
 };
 
 /**
- * Ends the writing after an error.
+ * Marks the writer as failed after an error. The writer refuses further write
+ * operations.
  *
  * @param writer The writer.
  * @param status The status of the error.
@@ -79,7 +80,8 @@ struct sdfio_writer
 sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status);
 
 /**
- * Ends the writing because the stream failed.
+ * Marks the writer as failed because the sink reported an output error, and
+ * records the reason.
  *
  * @param writer The writer.
  * @return SDFIO_ERR_IO.
@@ -87,7 +89,8 @@ sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status);
 sdfio_status sdfio_writer_sink_failed(sdfio_writer *writer);
 
 /**
- * Checks that the writer can be written to.
+ * Verifies the precondition of every write operation: a file is created and
+ * neither ended nor failed.
  *
  * @param writer The writer. May be null.
  * @retval SDFIO_ERR_ARGUMENT The writer is null.
@@ -97,14 +100,17 @@ sdfio_status sdfio_writer_sink_failed(sdfio_writer *writer);
 sdfio_status sdfio_writer_require_writable(sdfio_writer *writer);
 
 /**
- * Writes the header, if that is not done, when the z-scale is known.
+ * Writes the header unless it was written already. The writing is deferred to
+ * the first data so that sdfio_write_heights() can determine the z-scale
+ * beforehand.
  *
  * @param writer The writer.
  */
 sdfio_status sdfio_writer_start_data(sdfio_writer *writer);
 
 /**
- * Writes values of the data area, as the file stores them.
+ * Writes values of the data area through the codec of the file. The values
+ * must be in the data type of the file.
  *
  * @param writer The writer.
  * @param values The values in the data type of the file.

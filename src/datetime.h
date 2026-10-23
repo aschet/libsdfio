@@ -5,12 +5,12 @@
  */
 
 /**
- * @file dates.h
+ * @file datetime.h
  * @brief Date handling for the header fields.
  */
 
-#ifndef SDFIO_SRC_DATES_H
-#define SDFIO_SRC_DATES_H
+#ifndef SDFIO_SRC_DATETIME_H
+#define SDFIO_SRC_DATETIME_H
 
 #include "fields.h"
 #include <sdfio/sdfio.h>
@@ -36,15 +36,16 @@ time_t sdfio_now(void);
  * @return False if the time zone cannot convert the date, or the date is not
  * one that the field can hold.
  */
-bool sdfio_date_format(time_t time, sdfio_revision revision,
-                       const sdfio_time_zone *zone, char out[SDFIO_DATE_SIZE]);
+bool sdfio_datetime_format(time_t time, sdfio_revision revision,
+                           const sdfio_time_zone *zone,
+                           char out[SDFIO_DATETIME_SIZE]);
 
 /**
  * Tells whether the year of a time is one that the field can hold.
  *
  * @param time The time.
  */
-bool sdfio_date_representable(time_t time);
+bool sdfio_datetime_representable(time_t time);
 
 /**
  * Tells whether a text is a date as the standard has it: DDMMYYYYhhmm with the
@@ -53,7 +54,7 @@ bool sdfio_date_representable(time_t time);
  * @param text The field.
  * @param size The length of the field.
  */
-bool sdfio_date_is_valid(const char *text, size_t size);
+bool sdfio_datetime_is_valid(const char *text, size_t size);
 
 /**
  * Parses the field of a date.
@@ -63,9 +64,10 @@ bool sdfio_date_is_valid(const char *text, size_t size);
  * @param revision The revision of the file.
  * @param zone The time zone of the caller. May be null.
  * @return The time in UTC, or SDFIO_NO_TIME if the field is not a valid date
- * (see sdfio_date_is_valid()) or the time zone cannot convert it.
+ * (see sdfio_datetime_is_valid()) or the time zone cannot convert it.
  */
-time_t sdfio_date_parse(const char *text, size_t size, sdfio_revision revision,
-                        const sdfio_time_zone *zone);
+time_t sdfio_datetime_parse(const char *text, size_t size,
+                            sdfio_revision revision,
+                            const sdfio_time_zone *zone);
 
-#endif /* SDFIO_SRC_DATES_H */
+#endif /* SDFIO_SRC_DATETIME_H */

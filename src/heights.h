@@ -16,12 +16,12 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Returns the distance in bytes between the samples of a row of the heights of
+ * Returns the distance in bytes between the elements of a row of the heights of
  * the caller.
  *
  * @param format The format of the buffer.
- * @return The element stride of the format, or the size of a sample if that is
- * 0.
+ * @return The element stride of the format, or the size of an element if that
+ * is 0.
  */
 ptrdiff_t sdfio_element_stride(sdfio_format format);
 
@@ -29,7 +29,7 @@ ptrdiff_t sdfio_element_stride(sdfio_format format);
  * Checks that the strides of a matrix of heights keep its elements apart.
  *
  * The rows lie beside each other, or the columns do (a column-major matrix),
- * and the samples do not overlap. A row stride of 0 becomes the stride of rows
+ * and the elements do not overlap. A row stride of 0 becomes the stride of rows
  * that follow each other: the number of columns times the distance between the
  * elements.
  *

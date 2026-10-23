@@ -5,15 +5,15 @@
  */
 
 /**
- * @file magic.c
- * @brief Magics of the listed codecs.
+ * @file version_numbers.c
+ * @brief Version numbers that the listed reader codecs accept.
  */
 
 #include "reader_codec.h"
 #include "revision.h"
 #include "settings.h"
 
-size_t sdfio_magic_count(const sdfio_config *config)
+size_t sdfio_version_number_count(const sdfio_config *config)
 {
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings))
@@ -28,14 +28,14 @@ size_t sdfio_magic_count(const sdfio_config *config)
     return count * SDFIO_REVISION_COUNT;
 }
 
-const char *sdfio_magic(const sdfio_config *config, size_t index)
+const char *sdfio_version_number(const sdfio_config *config, size_t index)
 {
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings)
-        || index >= sdfio_magic_count(config))
+        || index >= sdfio_version_number_count(config))
     {
         return NULL;
     }
     return settings.reader_codecs[index / SDFIO_REVISION_COUNT]
-        ->magics[index % SDFIO_REVISION_COUNT];
+        ->version_numbers[index % SDFIO_REVISION_COUNT];
 }

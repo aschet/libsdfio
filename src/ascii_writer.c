@@ -11,11 +11,11 @@
 
 #include "ascii.h"
 #include "data_type.h"
-#include "dates.h"
-#include "decimal.h"
+#include "datetime.h"
 #include "dynstring.h"
 #include "fields.h"
 #include "message.h"
+#include "number_text.h"
 #include "revision.h"
 #include "sink.h"
 #include "tagged.h"
@@ -102,21 +102,22 @@ static sdfio_status format_header(const sdfio_header *header,
                                   const sdfio_time_zone *zone,
                                   sdfio_string *out, sdfio_message *message)
 {
-    char magic[SDFIO_MAGIC_SIZE + 1];
-    snprintf(magic, sizeof magic, "a%s", sdfio_revision_text(header->revision));
+    const char *version_number =
+        sdfio_ascii_writer_codec.version_numbers[header->revision];
     char text[SDFIO_NUMBER_CAPACITY];
-    char date[SDFIO_DATE_SIZE + 1] = {0};
-    bool ok = append_text(out, magic) && append_text(out, crlf)
+    char date[SDFIO_DATETIME_SIZE + 1] = {0};
+    bool ok = append_text(out, version_number) && append_text(out, crlf)
               && append_field(out, SDFIO_ASCII_MANUFACTURER_ID,
                               header->manufacturer_id);
-    if (!sdfio_date_format(header->creation_date, header->revision, zone, date))
+    if (!sdfio_datetime_format(header->creation_date, header->revision, zone,
+                               date))
     {
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the creation date");
     }
     ok = ok && append_field(out, SDFIO_ASCII_CREATE_DATE, date);
-    if (!sdfio_date_format(header->modification_date, header->revision, zone,
-                           date))
+    if (!sdfio_datetime_format(header->modification_date, header->revision,
+                               zone, date))
     {
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the modification date");
@@ -273,6 +274,7 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
 }
 
 const sdfio_writer_codec sdfio_ascii_writer_codec = {
+    .version_numbers = {"aISO-1.0", "aISO-2.0"},
     .state_size = sizeof(struct writing),
     .representation = SDFIO_ASCII,
     .scratch_size = scratch_size,

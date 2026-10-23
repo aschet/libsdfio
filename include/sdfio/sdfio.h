@@ -85,9 +85,9 @@
  *
  * @par Standard
  * The library follows ISO 25178-71:2026, and a reader checks what the standard
- * defines: the magic, the data types of the revision, a compression and a
- * checksum type of 0, the ranges of the numbers of points and profiles and of
- * the dates, a positive z-scale, the line ends and the string `BAD`. It
+ * defines: the version number, the data types of the revision, a compression
+ * and a checksum type of 0, the ranges of the numbers of columns and rows
+ * and of the dates, a positive z-scale, the line ends and the string `BAD`. It
  * deviates in two places, which files of MountainsMap need: the numbers of an
  * ASCII file can be in any decimal or scientific form, and a manufacturer
  * identifier in a binary file ends at its first 0 byte, where the standard
@@ -205,11 +205,11 @@ typedef enum sdfio_representation
  * | SDFIO_TYPE_INT32   | `int32_t` | both      | no                  |
  *
  * A file of floating point values holds the heights in metres and has the
- * z-scale 1. A file of integers holds counts, which the z-scale multiplies to
- * the heights in metres. sdfio_read_data() and sdfio_write_data() transfer the
- * values as they are in the file, in the C type of the header's data type.
- * sdfio_read_heights() and sdfio_write_heights() transfer heights, in a buffer
- * of `float` or `double`.
+ * z-scale 1. A file of integers holds the coded height information, which the
+ * z-scale multiplies to the heights in metres. sdfio_read_data() and
+ * sdfio_write_data() transfer the values as they are in the file, in the C type
+ * of the header's data type. sdfio_read_heights() and sdfio_write_heights()
+ * transfer heights, in a buffer of `float` or `double`.
  */
 typedef enum sdfio_data_type
 {
@@ -287,7 +287,8 @@ typedef struct sdfio_header
      */
     double y_scale;
     /**
-     * Z-scale factor: the height of one count of the data area in metres.
+     * Z-scale factor: the height in metres that a coded value of 1 in the data
+     * area stands for.
      *
      * A reader always sets it. A writer treats SDFIO_AUTO_Z_SCALE as 1 for the
      * floating point data types. For the integer data types,
@@ -354,8 +355,8 @@ SDFIO_API void sdfio_header_init(sdfio_header *header);
 #define SDFIO_BAD_DOUBLE (-DBL_MAX)
 /** @} */
 
-/** The size of the magic that starts every file, in bytes. */
-#define SDFIO_MAGIC_SIZE 8
+/** The size of the version number that starts every file, in bytes. */
+#define SDFIO_VERSION_NUMBER_SIZE 8
 
 /* ---- Streams ------------------------------------------------------------ */
 
@@ -450,16 +451,17 @@ typedef struct sdfio_writer_codec sdfio_writer_codec;
 /** The number of codecs of a direction that a configuration can list. */
 #define SDFIO_CODEC_MAX 2
 
-/** Reads the binary representation, the magics `bISO-1.0` and `bISO-2.0`. */
+/** Reads the binary representation, the version numbers `bISO-1.0` and
+ * `bISO-2.0`. */
 SDFIO_API extern const sdfio_reader_codec sdfio_binary_reader_codec;
 
 /** Writes the binary representation. */
 SDFIO_API extern const sdfio_writer_codec sdfio_binary_writer_codec;
 
 /**
- * Reads the ASCII representation, the magics `aISO-1.0` and `aISO-2.0`. The
- * code to parse numbers is part of it, so a program that does not list it does
- * not contain that code.
+ * Reads the ASCII representation, the version numbers `aISO-1.0` and
+ * `aISO-2.0`. The code to parse numbers is part of it, so a program that does
+ * not list it does not contain that code.
  */
 SDFIO_API extern const sdfio_reader_codec sdfio_ascii_reader_codec;
 
@@ -504,8 +506,8 @@ typedef struct sdfio_config
     const sdfio_time_zone *time_zone;
     /**
      * The codecs that a reader uses, without gaps and in the order in which
-     * sdfio_magic() lists their magics. A reader needs at least one, and a
-     * codec is listed once. A writer ignores them.
+     * sdfio_version_number() lists their version numbers. A reader needs at
+     * least one, and a codec is listed once. A writer ignores them.
      */
     const sdfio_reader_codec *reader_codecs[SDFIO_CODEC_MAX];
     /**
@@ -516,25 +518,26 @@ typedef struct sdfio_config
 } sdfio_config;
 
 /**
- * Returns the number of magics that a file can start with for the reader
- * codecs of a configuration: two for each codec, one for each revision.
+ * Returns the number of version numbers that a file can start with for the
+ * reader codecs of a configuration: two for each codec, one for each revision.
  *
  * @param[in] config The configuration.
  */
-SDFIO_API size_t sdfio_magic_count(const sdfio_config *config);
+SDFIO_API size_t sdfio_version_number_count(const sdfio_config *config);
 
 /**
- * Returns a magic that a file can start with, for example "bISO-2.0": the
- * letter b or a for the binary or the ASCII representation, and the revision.
- * The text has SDFIO_MAGIC_SIZE characters and a terminator. A program can
- * compare the first bytes of a file with each magic to find out whether a
- * reader with this configuration reads it.
+ * Returns a version number that a file can start with, for example "bISO-2.0":
+ * the letter b or a for the binary or the ASCII representation, and the
+ * revision. The text has SDFIO_VERSION_NUMBER_SIZE characters and a terminator.
+ * A program can compare the first bytes of a file with each version number to
+ * find out whether a reader with this configuration reads it.
  *
  * @param[in] config The configuration.
- * @param index A number below sdfio_magic_count().
- * @return The magic, or null if the index is not below the count.
+ * @param index A number below sdfio_version_number_count().
+ * @return The version number, or null if the index is not below the count.
  */
-SDFIO_API const char *sdfio_magic(const sdfio_config *config, size_t index);
+SDFIO_API const char *sdfio_version_number(const sdfio_config *config,
+                                           size_t index);
 
 /* ---- Memory ------------------------------------------------------------- */
 
@@ -836,7 +839,7 @@ static inline sdfio_format sdfio_format_packed(sdfio_data_type type)
 
 /**
  * Reads the remaining rows as heights in metres into a plain array of
- * `header->rows` rows of `header->columns` samples. A point that is not
+ * `header->rows` rows of `header->columns` elements. A point that is not
  * measured is NaN. The row y = 0 is the first row.
  *
  * The function reads from the first row of the data area, so no rows may have
@@ -862,9 +865,9 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * Reads the remaining rows as heights in metres into a buffer that lies in
  * memory as the format describes.
  *
- * The sample (y, x) is stored at `dst + y * format.row_stride + x *
+ * The element (y, x) is stored at `dst + y * format.row_stride + x *
  * format.element_stride`. The row y = 0 is the first row. A negative row
- * stride, with `dst` at the first sample of the row y = 0, which is the last
+ * stride, with `dst` at the first element of the row y = 0, which is the last
  * row in memory, stores the matrix upside down.
  *
  * The function reads from the first row of the data area, so no rows may have
@@ -1075,7 +1078,7 @@ SDFIO_API sdfio_status sdfio_write_data_double(sdfio_writer *writer,
 
 /**
  * Writes the whole data area from a plain array of heights in metres: the
- * `header->rows` rows of `header->columns` samples follow each other, and the
+ * `header->rows` rows of `header->columns` elements follow each other, and the
  * row y = 0 is the first. For an integer data type with SDFIO_AUTO_Z_SCALE the
  * z-scale is selected from the heights. NaN and infinity label points that are
  * not measured. Call sdfio_end_trailer() afterwards.
@@ -1102,7 +1105,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * Writes the whole data area from a matrix of heights in metres that lies in
  * memory as the format describes.
  *
- * The layout is that of sdfio_read_heights_strided(): the sample (y, x) is at
+ * The layout is that of sdfio_read_heights_strided(): the element (y, x) is at
  * `src + y * format.row_stride + x * format.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
  * z-scale is selected from the heights. NaN, infinity and `format.missing`

@@ -323,14 +323,16 @@ static void check_arguments(void)
     free(sink.data);
 
     /* A file is read only if its codec is listed. */
-    static const char ascii_magic[] = "aISO-2.0\r\n";
+    static const char ascii_version_number[] = "aISO-2.0\r\n";
     sdfio_reader *reader = sdfio_reader_new(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
-                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
+                 sdfio_open_memory(reader, ascii_version_number,
+                                   sizeof ascii_version_number));
     sdfio_reader_free(reader);
     reader = sdfio_reader_new(all_codecs());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
+                 sdfio_open_memory(reader, ascii_version_number,
+                                   sizeof ascii_version_number));
     sdfio_reader_free(reader);
 
     /* A handle needs a codec of its direction, each only once and without a
@@ -356,35 +358,39 @@ static void check_arguments(void)
     CHECK(sdfio_reader_new(&gap) == NULL);
 }
 
-/* The magics of a configuration: those of its codecs, in their order. */
-static void check_magics(void)
+/* The version numbers of a configuration: those of its codecs, in their order.
+ */
+static void check_version_numbers(void)
 {
-    CHECK(sdfio_magic_count(all_codecs()) == 4U);
-    CHECK(strcmp(sdfio_magic(all_codecs(), 0), "bISO-1.0") == 0);
-    CHECK(strcmp(sdfio_magic(all_codecs(), 1), "bISO-2.0") == 0);
-    CHECK(strcmp(sdfio_magic(all_codecs(), 2), "aISO-1.0") == 0);
-    CHECK(strcmp(sdfio_magic(all_codecs(), 3), "aISO-2.0") == 0);
-    for (size_t i = 0; i < sdfio_magic_count(all_codecs()); ++i)
+    CHECK(sdfio_version_number_count(all_codecs()) == 4U);
+    CHECK(strcmp(sdfio_version_number(all_codecs(), 0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_codecs(), 1), "bISO-2.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_codecs(), 2), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_codecs(), 3), "aISO-2.0") == 0);
+    for (size_t i = 0; i < sdfio_version_number_count(all_codecs()); ++i)
     {
-        CHECK(strlen(sdfio_magic(all_codecs(), i)) == SDFIO_MAGIC_SIZE);
+        CHECK(strlen(sdfio_version_number(all_codecs(), i))
+              == SDFIO_VERSION_NUMBER_SIZE);
     }
-    CHECK(sdfio_magic(all_codecs(), sdfio_magic_count(all_codecs())) == NULL);
+    CHECK(sdfio_version_number(all_codecs(),
+                               sdfio_version_number_count(all_codecs()))
+          == NULL);
 
     const sdfio_config ascii_first = {
         .reader_codecs = {&sdfio_ascii_reader_codec,
                           &sdfio_binary_reader_codec}};
-    CHECK(strcmp(sdfio_magic(&ascii_first, 0), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_version_number(&ascii_first, 0), "aISO-1.0") == 0);
     const sdfio_config binary_only = {
         .reader_codecs = {&sdfio_binary_reader_codec}};
-    CHECK(sdfio_magic_count(&binary_only) == 2U);
-    CHECK(sdfio_magic(&binary_only, 2) == NULL);
-    CHECK(sdfio_magic_count(NULL) == 0U);
-    CHECK(sdfio_magic(NULL, 0) == NULL);
+    CHECK(sdfio_version_number_count(&binary_only) == 2U);
+    CHECK(sdfio_version_number(&binary_only, 2) == NULL);
+    CHECK(sdfio_version_number_count(NULL) == 0U);
+    CHECK(sdfio_version_number(NULL, 0) == NULL);
 }
 
 int main(void)
 {
-    check_magics();
+    check_version_numbers();
     check_counted();
     check_small();
     check_arena();

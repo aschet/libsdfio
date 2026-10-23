@@ -9,9 +9,9 @@
  * @brief Life of a reader: creation, opening and release.
  */
 
+#include "allocation.h"
 #include "data_type.h"
 #include "header.h"
-#include "memory.h"
 #include "read_header.h"
 #include "reader_file.h"
 #include "reader_state.h"
@@ -53,7 +53,7 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
     }
     reader->trailer.allocator = &reader->allocator;
     reader->chunk = sdfio_allocate(&reader->allocator,
-                                   settings.chunk * SDFIO_LARGEST_SAMPLE);
+                                   settings.chunk * SDFIO_LARGEST_DATA_ENTRY);
     if (reader->chunk == NULL
         || !sdfio_source_create(&reader->source, settings.buffer,
                                 &reader->allocator))
@@ -151,7 +151,7 @@ static sdfio_status open_source(sdfio_reader *reader,
     }
     const sdfio_header *header = &reader->header;
     const size_t type_size = sdfio_data_type_size(header->data_type);
-    if (!sdfio_matrix_elements(header, &reader->value_count)
+    if (!sdfio_data_entries(header, &reader->value_count)
         || reader->value_count > SIZE_MAX / type_size)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,

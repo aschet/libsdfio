@@ -15,7 +15,9 @@
 #include <sdfio/sdfio.h>
 #include <stdint.h>
 
-/** The parts of the header that follow the dates. */
+/** Layout of the binary header after the fields of the number of columns and
+ * the number of rows: four binary64 numbers followed by three bytes of codes.
+ */
 enum
 {
     /** The number of binary64 numbers: the scales of x, y and z, and the
@@ -33,12 +35,13 @@ enum
 };
 
 /**
- * Returns the size in bytes of the number of points and of the number of
- * profiles in the header: 2 in ISO-1.0 and 4 in ISO-2.0.
+ * Returns the size in bytes of each of the two header fields that hold the
+ * number of columns and the number of rows of the data matrix. The size is 2 in
+ * ISO-1.0 and 4 in ISO-2.0.
  *
  * @param revision The revision.
  */
-static inline size_t sdfio_binary_extent_size(sdfio_revision revision)
+static inline size_t sdfio_binary_columns_rows_size(sdfio_revision revision)
 {
     return revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
 }

@@ -14,6 +14,7 @@
 
 #include "dynstring.h"
 #include "message.h"
+#include "revision.h"
 #include "source.h"
 
 /**
@@ -28,10 +29,13 @@ struct sdfio_reader_codec
     /** The size of what the codec keeps for a file between its calls, which
      * the reader allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
-    /** The first byte of the magics. */
+    /** The first character of the version numbers, which identifies the
+     * representation. */
     char prefix;
-    /** The magics, one for each revision in the order of the enumeration. */
-    const char *magics[2];
+    /** The version numbers that the codec reads, one for each revision in the
+     * order of the enumeration. The codec determines the revision of a file by
+     * comparing the version number of the file with these. */
+    const char *version_numbers[SDFIO_REVISION_COUNT];
 
     /**
      * Reads the header at the start of the source and leaves the source at the
@@ -92,7 +96,7 @@ struct sdfio_reader_codec
      * @param[in,out] out Receives the trailer.
      * @param[out] present False if the file ends with the data.
      * @param[out] message Receives the reason of a failure.
-     * @retval SDFIO_ERR_FORMAT The trailer is damaged or too long.
+     * @retval SDFIO_ERR_FORMAT The trailer is damaged.
      * @retval SDFIO_ERR_MEMORY There is no memory.
      * @retval SDFIO_ERR_IO The stream failed.
      */

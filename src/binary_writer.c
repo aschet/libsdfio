@@ -15,7 +15,7 @@
 #include "binary.h"
 #include "byte_order.h"
 #include "data_type.h"
-#include "dates.h"
+#include "datetime.h"
 #include "fields.h"
 #include "message.h"
 #include "revision.h"
@@ -25,21 +25,22 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-_Static_assert(SDFIO_MAGIC_SIZE <= SDFIO_DATE_SIZE
-                   && SDFIO_ID_SIZE <= SDFIO_DATE_SIZE,
+_Static_assert(SDFIO_VERSION_NUMBER_SIZE <= SDFIO_DATETIME_SIZE
+                   && SDFIO_ID_SIZE <= SDFIO_DATETIME_SIZE,
                "a text field of the header fits the buffer of put_text");
 
 static size_t scratch_size(size_t chunk_values)
 {
-    return sdfio_host_is_little_endian() ? 0
-                                         : chunk_values * SDFIO_LARGEST_SAMPLE;
+    return sdfio_host_is_little_endian()
+               ? 0
+               : chunk_values * SDFIO_LARGEST_DATA_ENTRY;
 }
 
 /* Writes a text in a field of a width: a text that is too long is cut, and one
  * that is too short is filled with spaces. */
 static bool put_text(sdfio_sink *sink, const char *text, size_t width)
 {
-    unsigned char field[SDFIO_DATE_SIZE];
+    unsigned char field[SDFIO_DATETIME_SIZE];
     const size_t size = strlen(text);
     for (size_t i = 0; i < width; ++i)
     {
@@ -73,27 +74,24 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 {
     (void)state;
     (void)allocator;
-    char created[SDFIO_DATE_SIZE + 1] = {0};
-    char modified[SDFIO_DATE_SIZE + 1] = {0};
-    if (!sdfio_date_format(header->creation_date, header->revision, zone,
-                           created))
+    char created[SDFIO_DATETIME_SIZE + 1] = {0};
+    char modified[SDFIO_DATETIME_SIZE + 1] = {0};
+    if (!sdfio_datetime_format(header->creation_date, header->revision, zone,
+                               created))
     {
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the creation date");
     }
-    if (!sdfio_date_format(header->modification_date, header->revision, zone,
-                           modified))
+    if (!sdfio_datetime_format(header->modification_date, header->revision,
+                               zone, modified))
     {
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the modification date");
     }
-    char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
-    const char *revision_name = sdfio_revision_text(header->revision);
-    const size_t revision_size = strlen(revision_name);
-    memcpy(magic + 1, revision_name,
-           revision_size < SDFIO_MAGIC_SIZE ? revision_size
-                                            : SDFIO_MAGIC_SIZE - 1);
-    const size_t extent_size = sdfio_binary_extent_size(header->revision);
+    const char *version_number =
+        sdfio_binary_writer_codec.version_numbers[header->revision];
+    const size_t columns_rows_size =
+        sdfio_binary_columns_rows_size(header->revision);
     const double resolution =
         header->z_resolution > 0.0 ? header->z_resolution : SDFIO_NO_RESOLUTION;
     const unsigned char codes[SDFIO_BINARY_CODE_FIELDS] = {
@@ -101,12 +99,12 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         [SDFIO_BINARY_CODE_DATA_TYPE] = (unsigned char)header->data_type,
         [SDFIO_BINARY_CODE_CHECKSUM] = SDFIO_NONE};
     const bool written =
-        put_text(sink, magic, SDFIO_MAGIC_SIZE)
+        put_text(sink, version_number, SDFIO_VERSION_NUMBER_SIZE)
         && put_text(sink, header->manufacturer_id, SDFIO_ID_SIZE)
-        && put_text(sink, created, SDFIO_DATE_SIZE)
-        && put_text(sink, modified, SDFIO_DATE_SIZE)
-        && put_le(sink, extent_size, header->columns)
-        && put_le(sink, extent_size, header->rows)
+        && put_text(sink, created, SDFIO_DATETIME_SIZE)
+        && put_text(sink, modified, SDFIO_DATETIME_SIZE)
+        && put_le(sink, columns_rows_size, header->columns)
+        && put_le(sink, columns_rows_size, header->rows)
         && put_double(sink, header->x_scale)
         && put_double(sink, header->y_scale)
         && put_double(sink, header->z_scale) && put_double(sink, resolution)
@@ -156,6 +154,7 @@ static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
 }
 
 const sdfio_writer_codec sdfio_binary_writer_codec = {
+    .version_numbers = {"bISO-1.0", "bISO-2.0"},
     .representation = SDFIO_BINARY,
     .scratch_size = scratch_size,
     .write_header = write_header,

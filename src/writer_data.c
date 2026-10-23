@@ -23,18 +23,20 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     sdfio_header *header = &writer->header;
     if (header->z_scale == SDFIO_AUTO_Z_SCALE)
     {
-        size_t elements = 0;
-        sdfio_matrix_elements(header, &elements);
-        if (sdfio_is_floating(header->data_type) || elements == 0)
+        size_t entries = 0;
+        sdfio_data_entries(header, &entries);
+        if (sdfio_is_floating(header->data_type) || entries == 0)
         {
             header->z_scale = 1.0;
         }
         else
         {
-            return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                              "Stored integer values need a z-scale, the "
-                              "height of one count: use sdfio_write_heights() "
-                              "to have one chosen");
+            return sdfio_fail(
+                &writer->message, SDFIO_ERR_ARGUMENT,
+                "Stored integer values need a z-scale, the "
+                "height in metres that a coded value of 1 stands for: use "
+                "sdfio_write_heights() "
+                "to have one chosen");
         }
     }
     const sdfio_status status = writer->codec->write_header(

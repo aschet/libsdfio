@@ -5,11 +5,11 @@
  */
 
 /**
- * @file memory.c
+ * @file allocation.c
  * @brief Allocation through the allocator of a configuration.
  */
 
-#include "memory.h"
+#include "allocation.h"
 #include <stdlib.h>
 
 void *sdfio_allocate(const sdfio_allocator *allocator, size_t size)

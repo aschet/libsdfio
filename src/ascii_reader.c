@@ -11,11 +11,11 @@
 
 #include "ascii.h"
 #include "data_type.h"
-#include "dates.h"
-#include "decimal.h"
+#include "datetime.h"
 #include "dynstring.h"
 #include "fields.h"
 #include "message.h"
+#include "number_text.h"
 #include "reader_codec.h"
 #include "revision.h"
 #include "source.h"
@@ -139,29 +139,21 @@ static bool is_terminator(const char *line, size_t size)
     return size == 1 && line[0] == terminator;
 }
 
-static bool matches_magic(const char *magic, size_t size)
+/* The revision whose version number the text is, according to the version
+ * numbers that the codec lists. */
+static bool revision_of(const char *version_number, size_t size,
+                        sdfio_revision *revision)
 {
-    if (size != SDFIO_MAGIC_SIZE)
+    for (size_t i = 0; i < SDFIO_REVISION_COUNT; ++i)
     {
-        return false;
-    }
-    const char prefix = magic[0];
-    if (prefix != 'a' && prefix != 'b')
-    {
-        return false;
-    }
-    for (size_t i = SDFIO_MAGIC_NAME_AT;
-         i < SDFIO_MAGIC_NAME_AT + SDFIO_MAGIC_NAME_SIZE; ++i)
-    {
-        if (magic[i] < 'A' || magic[i] > 'Z')
+        const char *listed = sdfio_ascii_reader_codec.version_numbers[i];
+        if (strlen(listed) == size && memcmp(listed, version_number, size) == 0)
         {
-            return false;
+            *revision = (sdfio_revision)i;
+            return true;
         }
     }
-    return magic[SDFIO_MAGIC_DASH_AT] == '-'
-           && sdfio_is_digit(magic[SDFIO_MAGIC_MAJOR_AT])
-           && magic[SDFIO_MAGIC_DOT_AT] == '.'
-           && sdfio_is_digit(magic[SDFIO_MAGIC_MINOR_AT]);
+    return false;
 }
 
 /* ---- The header -----------------------------------------------------------
@@ -377,7 +369,8 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
-            source, message, "The first line of the file is not a magic");
+            source, message,
+            "The first line of the file is not a version number");
         goto done;
     }
     if (got != GOT_ONE || !ended)
@@ -387,29 +380,14 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         goto done;
     }
 
-    const char *magic_line = sdfio_string_text(&line);
-    size_t magic_line_size = line.size;
-    sdfio_trim(&magic_line, &magic_line_size);
-    const char *magic = magic_line;
-    size_t magic_size = magic_line_size;
-    if (!matches_magic(magic, magic_size))
-    {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Not an ASCII SDF file: unexpected magic");
-        goto done;
-    }
-    if (magic[0] != 'a')
-    {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Binary magic found while parsing an ASCII SDF "
-                            "file");
-        goto done;
-    }
+    const char *version_number_line = sdfio_string_text(&line);
+    size_t version_number_line_size = line.size;
+    sdfio_trim(&version_number_line, &version_number_line_size);
     sdfio_revision revision = SDFIO_ISO_2_0;
-    if (!sdfio_revision_from_text(magic + 1, magic_size - 1, &revision))
+    if (!revision_of(version_number_line, version_number_line_size, &revision))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Unknown or unsupported SDF revision in magic");
+                            "Unknown or unsupported SDF version number");
         goto done;
     }
 
@@ -499,15 +477,15 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     {
         goto done;
     }
-    if (!sdfio_date_is_valid(created.text, created.size)
-        || !sdfio_date_is_valid(modified.text, modified.size))
+    if (!sdfio_datetime_is_valid(created.text, created.size)
+        || !sdfio_datetime_is_valid(modified.text, modified.size))
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
                             "A date of the SDF header is not valid");
         goto done;
     }
-    if (header->columns > sdfio_max_extent(revision)
-        || header->rows > sdfio_max_extent(revision))
+    if (header->columns > sdfio_max_columns_and_rows(revision)
+        || header->rows > sdfio_max_columns_and_rows(revision))
     {
         status =
             sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -530,9 +508,9 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                : SDFIO_NO_RESOLUTION;
     copy_identifier(header, identifier.text, identifier.size);
     header->creation_date =
-        sdfio_date_parse(created.text, created.size, revision, zone);
+        sdfio_datetime_parse(created.text, created.size, revision, zone);
     header->modification_date =
-        sdfio_date_parse(modified.text, modified.size, revision, zone);
+        sdfio_datetime_parse(modified.text, modified.size, revision, zone);
 
 done:
     sdfio_string_free(&line);
@@ -766,8 +744,7 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
     size_t parts = 0;
     *present = true;
     int got = GOT_ONE;
-    while ((got = next_line(source, &line, &ended, &done, SDFIO_MAX_TRAILER))
-           == GOT_ONE)
+    while ((got = next_line(source, &line, &ended, &done, SIZE_MAX)) == GOT_ONE)
     {
         if (first && line.size == 0 && !ended)
         {
@@ -802,17 +779,11 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
             }
             part_started = true;
         }
-        if (out->size + part.size > SDFIO_MAX_TRAILER)
-        {
-            status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                "The SDF trailer is too long");
-            goto done;
-        }
     }
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(source, message,
-                                      "The SDF trailer is too long");
+                                      "The SDF trailer cannot be read");
         goto done;
     }
     /* The trailer is itself ended by its own "*": the empty part that follows
@@ -848,7 +819,7 @@ done:
 const sdfio_reader_codec sdfio_ascii_reader_codec = {
     .state_size = sizeof(struct reading),
     .prefix = 'a',
-    .magics = {"aISO-1.0", "aISO-2.0"},
+    .version_numbers = {"aISO-1.0", "aISO-2.0"},
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

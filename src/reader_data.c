@@ -37,7 +37,7 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
         &reader->source, &reader->header,
         reader->next_row == reader->header.rows,
         reader->value_count - reader->next_value, reader->chunk,
-        reader->chunk_values * SDFIO_LARGEST_SAMPLE, &reader->message);
+        reader->chunk_values * SDFIO_LARGEST_DATA_ENTRY, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;

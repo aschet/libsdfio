@@ -5,12 +5,12 @@
  */
 
 /**
- * @file memory.h
+ * @file allocation.h
  * @brief Allocation through the allocator of a configuration.
  */
 
-#ifndef SDFIO_SRC_MEMORY_H
-#define SDFIO_SRC_MEMORY_H
+#ifndef SDFIO_SRC_ALLOCATION_H
+#define SDFIO_SRC_ALLOCATION_H
 
 #include <sdfio/sdfio.h>
 
@@ -32,4 +32,4 @@ void *sdfio_allocate(const sdfio_allocator *allocator, size_t size);
  */
 void sdfio_release(const sdfio_allocator *allocator, void *memory);
 
-#endif /* SDFIO_SRC_MEMORY_H */
+#endif /* SDFIO_SRC_ALLOCATION_H */

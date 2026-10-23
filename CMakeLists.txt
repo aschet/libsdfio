@@ -63,10 +63,10 @@ set(SDFIO_SOURCES
     src/byte_order.h
     src/data_type.c
     src/data_type.h
-    src/dates.c
-    src/dates.h
-    src/decimal.c
-    src/decimal.h
+    src/datetime.c
+    src/datetime.h
+    src/number_text.c
+    src/number_text.h
     src/dynstring.c
     src/dynstring.h
     src/fields.h
@@ -76,9 +76,9 @@ set(SDFIO_SOURCES
     src/heights.c
     src/heights.h
     src/heights_real.h
-    src/magic.c
-    src/memory.c
-    src/memory.h
+    src/version_numbers.c
+    src/allocation.c
+    src/allocation.h
     src/message.h
     src/owner.h
     src/read_header.c

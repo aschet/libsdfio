@@ -74,6 +74,6 @@ bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
     bool listed = true;
     COPY_CODECS(config->reader_codecs, settings->reader_codecs, listed);
     COPY_CODECS(config->writer_codecs, settings->writer_codecs, listed);
-    return listed && settings->chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
+    return listed && settings->chunk <= SIZE_MAX / SDFIO_LARGEST_DATA_ENTRY
            && settings->chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
 }
