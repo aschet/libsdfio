@@ -393,14 +393,17 @@ static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
     return SDFIO_OK;
 }
 
-const sdfio_codec sdfio_binary_codec = {
-    .representation = SDFIO_BINARY,
+const sdfio_reader_codec sdfio_binary_reader_codec = {
     .prefix = 'b',
     .magics = {"bISO-1.0", "bISO-2.0"},
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,
     .read_trailer = read_trailer,
+};
+
+const sdfio_writer_codec sdfio_binary_writer_codec = {
+    .representation = SDFIO_BINARY,
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,

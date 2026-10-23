@@ -87,7 +87,7 @@ int main(void)
     const sdfio_config config = {.allocator = &allocator,
                                  .buffer_size = 128,
                                  .chunk_values = 16,
-                                 .codecs = {&sdfio_binary_codec}};
+                                 .writer_codecs = {&sdfio_binary_writer_codec}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_header header;
     sdfio_header_init(&header);

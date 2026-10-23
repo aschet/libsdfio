@@ -111,16 +111,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
     const uint8_t control = data[0];
-    const sdfio_config tiny = {
-        .buffer_size = 1,
-        .chunk_values = 1,
-        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
-    const sdfio_config small = {
-        .buffer_size = 100,
-        .chunk_values = 7,
-        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+    const sdfio_config tiny = {.buffer_size = 1,
+                               .chunk_values = 1,
+                               .reader_codecs = {&sdfio_binary_reader_codec,
+                                                 &sdfio_ascii_reader_codec}};
+    const sdfio_config small = {.buffer_size = 100,
+                                .chunk_values = 7,
+                                .reader_codecs = {&sdfio_binary_reader_codec,
+                                                  &sdfio_ascii_reader_codec}};
     const sdfio_config defaults = {
-        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+        .reader_codecs = {&sdfio_binary_reader_codec,
+                          &sdfio_ascii_reader_codec}};
     const sdfio_config *config = (control & CONTROL_TINY)    ? &tiny
                                  : (control & CONTROL_SMALL) ? &small
                                                              : &defaults;

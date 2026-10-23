@@ -18,8 +18,10 @@
 #include <sdfio/sdfio.h>
 
 /* The configuration of a handle that reads and writes both representations. */
-#define ALL_CODECS {&sdfio_binary_codec, &sdfio_ascii_codec}
-static const sdfio_config all_codecs = {.codecs = ALL_CODECS};
+#define ALL_CODECS                                                             \
+    .reader_codecs = {&sdfio_binary_reader_codec, &sdfio_ascii_reader_codec},  \
+    .writer_codecs = {&sdfio_binary_writer_codec, &sdfio_ascii_writer_codec}
+static const sdfio_config all_codecs = {ALL_CODECS};
 
 static int failures = 0;
 static int checks = 0;

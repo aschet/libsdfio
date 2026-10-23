@@ -28,8 +28,10 @@ using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 sdfio_config make_config()
 {
     sdfio_config config = {};
-    config.codecs[0] = &sdfio_binary_codec;
-    config.codecs[1] = &sdfio_ascii_codec;
+    config.reader_codecs[0] = &sdfio_binary_reader_codec;
+    config.reader_codecs[1] = &sdfio_ascii_reader_codec;
+    config.writer_codecs[0] = &sdfio_binary_writer_codec;
+    config.writer_codecs[1] = &sdfio_ascii_writer_codec;
     return config;
 }
 

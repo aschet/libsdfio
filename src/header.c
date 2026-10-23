@@ -12,8 +12,23 @@
 
 #include "internal.h"
 
+/* The reader codec whose magics start with a byte. */
+static const sdfio_reader_codec *
+find_codec(const sdfio_reader_codec *const *codecs, char prefix)
+{
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
+    {
+        if (codecs[i]->prefix == prefix)
+        {
+            return codecs[i];
+        }
+    }
+    return NULL;
+}
+
 sdfio_status sdfio_read_header(sdfio_source *source,
-                               const sdfio_codec *const *codecs,
+                               const sdfio_reader_codec *const *codecs,
+                               const sdfio_reader_codec **codec,
                                sdfio_header *header, sdfio_codec_state *state,
                                const sdfio_time_zone *zone,
                                sdfio_message *message)
@@ -30,15 +45,15 @@ sdfio_status sdfio_read_header(sdfio_source *source,
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Not an SDF file, unexpected magic");
     }
-    const sdfio_codec *codec = sdfio_codec_for_prefix(codecs, prefix);
-    if (codec == NULL)
+    *codec = find_codec(codecs, prefix);
+    if (*codec == NULL)
     {
         return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "The codec of this SDF file is not registered in the "
+                          "The codec of this SDF file is not listed in the "
                           "configuration");
     }
     const sdfio_status status =
-        codec->read_header(source, header, state, zone, message);
+        (*codec)->read_header(source, header, state, zone, message);
     /* The z-scale is a non-zero positive number. */
     if (status == SDFIO_OK
         && !(header->z_scale > 0.0 && isfinite(header->z_scale)))

@@ -87,8 +87,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(&heights[i], rest + i * sizeof(float), sizeof(float));
     }
 
-    const sdfio_config config = {
-        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+    const sdfio_config config = {.reader_codecs = {&sdfio_binary_reader_codec,
+                                                   &sdfio_ascii_reader_codec},
+                                 .writer_codecs = {&sdfio_binary_writer_codec,
+                                                   &sdfio_ascii_writer_codec}};
     sink output = {NULL, 0};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = SDFIO_ERR_MEMORY;

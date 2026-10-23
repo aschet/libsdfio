@@ -70,6 +70,33 @@ void sdfio_release(const sdfio_allocator *allocator, void *memory)
     }
 }
 
+/**
+ * Copies a list of codecs of the configuration, of either direction, and
+ * clears `ok` if the list has a gap or names a codec twice.
+ *
+ * @param from The list of the configuration.
+ * @param to The list of the settings.
+ * @param ok The flag to clear.
+ */
+#define COPY_CODECS(from, to, ok)                                              \
+    do                                                                         \
+    {                                                                          \
+        size_t listed_count = 0;                                               \
+        for (; listed_count < SDFIO_CODEC_MAX && (from)[listed_count] != NULL; \
+             ++listed_count)                                                   \
+        {                                                                      \
+            for (size_t before = 0; before < listed_count; ++before)           \
+            {                                                                  \
+                (ok) = (ok) && (from)[before] != (from)[listed_count];         \
+            }                                                                  \
+            (to)[listed_count] = (from)[listed_count];                         \
+        }                                                                      \
+        for (size_t gap = listed_count; gap < SDFIO_CODEC_MAX; ++gap)          \
+        {                                                                      \
+            (ok) = (ok) && (from)[gap] == NULL;                                \
+        }                                                                      \
+    } while (0)
+
 bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
 {
     *settings = (sdfio_settings){.buffer = SDFIO_DEFAULT_BUFFER,
@@ -101,46 +128,16 @@ bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
     {
         settings->chunk = config->chunk_values;
     }
-    /* The codecs are listed without gaps, and each is listed once. */
-    size_t count = 0;
-    for (; count < SDFIO_CODEC_MAX && config->codecs[count] != NULL; ++count)
-    {
-        for (size_t before = 0; before < count; ++before)
-        {
-            if (config->codecs[before] == config->codecs[count])
-            {
-                return false;
-            }
-        }
-        settings->codecs[count] = config->codecs[count];
-    }
-    for (size_t gap = count; gap < SDFIO_CODEC_MAX; ++gap)
-    {
-        if (config->codecs[gap] != NULL)
-        {
-            return false;
-        }
-    }
-    return count > 0 && settings->chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
+    bool listed = true;
+    COPY_CODECS(config->reader_codecs, settings->reader_codecs, listed);
+    COPY_CODECS(config->writer_codecs, settings->writer_codecs, listed);
+    return listed && settings->chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
            && settings->chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
 }
 
-const sdfio_codec *sdfio_codec_for_prefix(const sdfio_codec *const *codecs,
-                                          char prefix)
-{
-    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
-    {
-        if (codecs[i]->prefix == prefix)
-        {
-            return codecs[i];
-        }
-    }
-    return NULL;
-}
-
-const sdfio_codec *
-sdfio_codec_for_representation(const sdfio_codec *const *codecs,
-                               sdfio_representation representation)
+const sdfio_writer_codec *
+sdfio_writer_codec_for(const sdfio_writer_codec *const *codecs,
+                       sdfio_representation representation)
 {
     for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
     {

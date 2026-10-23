@@ -1066,14 +1066,17 @@ static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
     return status;
 }
 
-const sdfio_codec sdfio_ascii_codec = {
-    .representation = SDFIO_ASCII,
+const sdfio_reader_codec sdfio_ascii_reader_codec = {
     .prefix = 'a',
     .magics = {"aISO-1.0", "aISO-2.0"},
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,
     .read_trailer = read_trailer,
+};
+
+const sdfio_writer_codec sdfio_ascii_writer_codec = {
+    .representation = SDFIO_ASCII,
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,

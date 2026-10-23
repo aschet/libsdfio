@@ -202,17 +202,20 @@ typedef struct sdfio_settings
     size_t buffer;
     /** The number of values converted at a time. */
     size_t chunk;
-    /** The registered codecs without the gaps, null after the last. */
-    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    /** The reader codecs without the gaps, null after the last. */
+    const sdfio_reader_codec *reader_codecs[SDFIO_CODEC_MAX];
+    /** The writer codecs without the gaps, null after the last. */
+    const sdfio_writer_codec *writer_codecs[SDFIO_CODEC_MAX];
 } sdfio_settings;
 
 /**
  * Resolves a configuration with the defaults for what it does not set.
  *
- * @param config The configuration. May be null, which registers no codec.
+ * @param config The configuration. May be null, which lists no codec.
  * @param[out] settings Receives the settings.
- * @return False if the allocator is not complete, no codec is registered, or
- * the chunk is too large for its buffers.
+ * @return False if the allocator is not complete, a list of codecs has a gap or
+ * a codec twice, or the chunk is too large for its buffers. A list may be
+ * empty: the reader and the writer check the one they use.
  */
 bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings);
 
@@ -906,8 +909,8 @@ sdfio_status sdfio_file_check_reader(sdfio_reader *reader);
  * @param header The header of the file.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_ARGUMENT The header cannot be written.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the representation is not
- * registered.
+ * @retval SDFIO_ERR_UNSUPPORTED The writer codec of the representation is not
+ * listed.
  */
 sdfio_status sdfio_writer_check(sdfio_writer *writer,
                                 const sdfio_header *header);
@@ -951,16 +954,14 @@ typedef struct sdfio_codec_state
 } sdfio_codec_state;
 
 /**
- * A codec: the functions of a representation of the files.
+ * A reader codec: the functions that read a representation of the files.
  *
- * The reader and the writer know nothing of the representations. They call the
- * codecs that the configuration registers, so that the code of a codec that
- * no program names is not linked.
+ * The reader knows nothing of the representations. It calls the codecs that
+ * the configuration lists, so that the code of a codec that no program names
+ * is not linked.
  */
-struct sdfio_codec
+struct sdfio_reader_codec
 {
-    /** The representation that the codec reads and writes. */
-    sdfio_representation representation;
     /** The first byte of the magics. */
     char prefix;
     /** The magics, one for each revision in the order of the enumeration. */
@@ -1031,6 +1032,16 @@ struct sdfio_codec
      */
     sdfio_status (*read_trailer)(sdfio_source *source, sdfio_string *out,
                                  bool *present, sdfio_message *message);
+};
+
+/**
+ * A writer codec: the functions that write a representation of the files.
+ * The writer knows nothing of the representations, as the reader does not.
+ */
+struct sdfio_writer_codec
+{
+    /** The representation that the codec writes. */
+    sdfio_representation representation;
 
     /**
      * Returns the bytes that the writer has to provide for write_values().
@@ -1093,25 +1104,15 @@ struct sdfio_codec
 };
 
 /**
- * Finds the registered codec whose magics start with a byte.
+ * Finds the writer codec of a representation.
  *
- * @param codecs The registered codecs.
- * @param prefix The first byte of a file.
- * @return The codec, or null if none is registered for it.
- */
-const sdfio_codec *sdfio_codec_for_prefix(const sdfio_codec *const *codecs,
-                                          char prefix);
-
-/**
- * Finds the registered codec of a representation.
- *
- * @param codecs The registered codecs.
+ * @param codecs The listed writer codecs.
  * @param representation The representation.
- * @return The codec, or null if none is registered for it.
+ * @return The codec, or null if none is listed for it.
  */
-const sdfio_codec *
-sdfio_codec_for_representation(const sdfio_codec *const *codecs,
-                               sdfio_representation representation);
+const sdfio_writer_codec *
+sdfio_writer_codec_for(const sdfio_writer_codec *const *codecs,
+                       sdfio_representation representation);
 
 /**
  * Why a read of a source failed: the memory, the stream, or the damaged file,
@@ -1138,17 +1139,19 @@ sdfio_status sdfio_sink_failure(sdfio_message *message);
  * Reads the header at the start of the source with the codec of its magic.
  *
  * @param source The source.
- * @param codecs The registered codecs.
+ * @param codecs The listed reader codecs.
+ * @param[out] codec Receives the codec that read the header.
  * @param[out] header Receives the header.
  * @param[out] state Receives what the codec keeps for the file.
  * @param zone The time zone of the caller. May be null.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The header is damaged.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not registered.
+ * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not listed.
  * @retval SDFIO_ERR_IO The stream failed.
  */
 sdfio_status sdfio_read_header(sdfio_source *source,
-                               const sdfio_codec *const *codecs,
+                               const sdfio_reader_codec *const *codecs,
+                               const sdfio_reader_codec **codec,
                                sdfio_header *header, sdfio_codec_state *state,
                                const sdfio_time_zone *zone,
                                sdfio_message *message);

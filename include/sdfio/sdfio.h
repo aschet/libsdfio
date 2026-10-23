@@ -55,10 +55,12 @@
  * memory through the allocator of its sdfio_config.
  *
  * @par Formats
- * A reader or a writer handles the representations that its configuration
- * registers: sdfio_binary_codec and sdfio_ascii_codec. A program that links the
- * library statically contains the code of the codecs that it names and no
- * other. The library registers nothing by itself.
+ * A reader reads the representations whose reader codecs its configuration
+ * lists, and a writer writes those whose writer codecs it lists. The library
+ * lists nothing by itself. A program that links the library statically
+ * contains the code of the codecs that it names and no other: a program that
+ * only writes binary files names sdfio_binary_writer_codec and contains no
+ * code to read files or to handle ASCII.
  *
  * @par Error handling
  * A function that can fail returns an sdfio_status, or a null pointer where it
@@ -146,7 +148,7 @@ typedef enum sdfio_status
     SDFIO_ERR_FORMAT,
     /**
      * The file needs a codec that the configuration of the handle does not
-     * register.
+     * list.
      */
     SDFIO_ERR_UNSUPPORTED,
     /** A number does not fit the type that has to hold it. */
@@ -432,31 +434,45 @@ typedef struct sdfio_time_zone
 } sdfio_time_zone;
 
 /**
- * A representation of the files: how the header, the values of the data area
- * and the trailer are written to a stream and read from it. Opaque.
+ * The reading of a representation of the files: the header, the values of the
+ * data area and the trailer. Opaque.
  */
-typedef struct sdfio_codec sdfio_codec;
-
-/** The number of codecs that a configuration can register. */
-#define SDFIO_CODEC_MAX 2
-
-/** The codec of the binary representation, the magics `bISO-1.0` and
- * `bISO-2.0`. */
-SDFIO_API extern const sdfio_codec sdfio_binary_codec;
+typedef struct sdfio_reader_codec sdfio_reader_codec;
 
 /**
- * The codec of the ASCII representation, the magics `aISO-1.0` and `aISO-2.0`.
- * The code to parse and print numbers is part of it, so a program that does not
- * register it does not contain that code.
+ * The writing of a representation of the files: the header, the values of the
+ * data area and the trailer. Opaque.
  */
-SDFIO_API extern const sdfio_codec sdfio_ascii_codec;
+typedef struct sdfio_writer_codec sdfio_writer_codec;
+
+/** The number of codecs of a direction that a configuration can list. */
+#define SDFIO_CODEC_MAX 2
+
+/** Reads the binary representation, the magics `bISO-1.0` and `bISO-2.0`. */
+SDFIO_API extern const sdfio_reader_codec sdfio_binary_reader_codec;
+
+/** Writes the binary representation. */
+SDFIO_API extern const sdfio_writer_codec sdfio_binary_writer_codec;
+
+/**
+ * Reads the ASCII representation, the magics `aISO-1.0` and `aISO-2.0`. The
+ * code to parse numbers is part of it, so a program that does not list it does
+ * not contain that code.
+ */
+SDFIO_API extern const sdfio_reader_codec sdfio_ascii_reader_codec;
+
+/**
+ * Writes the ASCII representation. The code to print numbers is part of it,
+ * so a program that does not list it does not contain that code.
+ */
+SDFIO_API extern const sdfio_writer_codec sdfio_ascii_writer_codec;
 
 /**
  * Configuration of a reader or a writer.
  *
  * A field that is zero selects its default, except the codecs, which the
- * program lists. A null pointer in place of a configuration registers no codec
- * and so is invalid.
+ * program lists. A null pointer in place of a configuration lists no codec and
+ * so is invalid.
  */
 typedef struct sdfio_config
 {
@@ -485,16 +501,21 @@ typedef struct sdfio_config
      */
     const sdfio_time_zone *time_zone;
     /**
-     * The codecs that the handle registers, without gaps and in the order in
-     * which sdfio_magic() lists their magics. At least one is required, and a
-     * codec is registered once.
+     * The codecs that a reader uses, without gaps and in the order in which
+     * sdfio_magic() lists their magics. A reader needs at least one, and a
+     * codec is listed once. A writer ignores them.
      */
-    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    const sdfio_reader_codec *reader_codecs[SDFIO_CODEC_MAX];
+    /**
+     * The codecs that a writer uses, without gaps. A writer needs at least
+     * one, and a codec is listed once. A reader ignores them.
+     */
+    const sdfio_writer_codec *writer_codecs[SDFIO_CODEC_MAX];
 } sdfio_config;
 
 /**
- * Returns the number of magics that a file can start with for the codecs of a
- * configuration: two for each codec, one for each revision.
+ * Returns the number of magics that a file can start with for the reader
+ * codecs of a configuration: two for each codec, one for each revision.
  *
  * @param[in] config The configuration.
  */
@@ -586,9 +607,9 @@ typedef struct sdfio_reader sdfio_reader;
  * function. Memory for a trailer is allocated when the trailer is read.
  * Release the reader with sdfio_reader_free().
  *
- * @param[in] config The configuration, with at least one codec.
+ * @param[in] config The configuration, with at least one reader codec.
  * @return The reader, or null if an allocation fails, the allocator of the
- * configuration lacks a callback, or no codec is registered.
+ * configuration lacks a callback, or no reader codec is listed.
  */
 SDFIO_API sdfio_reader *sdfio_reader_new(const sdfio_config *config);
 
@@ -610,7 +631,7 @@ SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not registered.
+ * @retval SDFIO_ERR_UNSUPPORTED The reader codec of the file is not listed.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
@@ -627,7 +648,7 @@ SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not registered.
+ * @retval SDFIO_ERR_UNSUPPORTED The reader codec of the file is not listed.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
@@ -905,8 +926,9 @@ typedef struct sdfio_writer sdfio_writer;
  * buffer is allocated by this function, the remaining memory when the file is
  * created. Release the writer with sdfio_writer_free().
  *
- * @param[in] config The configuration, with at least one codec.
- * @return The writer, or null under the conditions of sdfio_reader_new().
+ * @param[in] config The configuration, with at least one writer codec.
+ * @return The writer, or null if an allocation fails, the allocator of the
+ * configuration lacks a callback, or no writer codec is listed.
  */
 SDFIO_API sdfio_writer *sdfio_writer_new(const sdfio_config *config);
 
@@ -934,8 +956,8 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * @retval SDFIO_ERR_RANGE The time zone of the configuration cannot convert a
  * date. It is reported when the header is written, with the first rows.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the representation is not
- * registered.
+ * @retval SDFIO_ERR_UNSUPPORTED The writer codec of the representation is not
+ * listed.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,

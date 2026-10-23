@@ -9,7 +9,7 @@ which a C11 compiler checks at compile time.
 
 ```c
 const sdfio_config config = {
-    .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+    .reader_codecs = {&sdfio_binary_reader_codec, &sdfio_ascii_reader_codec}};
 sdfio_reader *reader = sdfio_reader_new(&config);
 if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 {

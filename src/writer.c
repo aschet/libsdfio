@@ -36,10 +36,10 @@ struct sdfio_writer
     sdfio_sink sink;
     /** What the codec of the file keeps for it. */
     sdfio_codec_state codec_state;
-    /** The registered codecs. */
-    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    /** The listed codecs. */
+    const sdfio_writer_codec *codecs[SDFIO_CODEC_MAX];
     /** The codec of the file. */
-    const sdfio_codec *codec;
+    const sdfio_writer_codec *codec;
     /** Where the writer is in the life of a file. */
     writer_state state;
     /** Whether the header went to the sink. */
@@ -64,7 +64,8 @@ struct sdfio_writer
 sdfio_writer *sdfio_writer_new(const sdfio_config *config)
 {
     sdfio_settings settings;
-    if (!sdfio_config_resolve(config, &settings))
+    if (!sdfio_config_resolve(config, &settings)
+        || settings.writer_codecs[0] == NULL)
     {
         return NULL;
     }
@@ -78,7 +79,7 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
                              .chunk_values = settings.chunk};
     for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
     {
-        writer->codecs[i] = settings.codecs[i];
+        writer->codecs[i] = settings.writer_codecs[i];
     }
     writer->coded = sdfio_allocate(&writer->allocator,
                                    settings.chunk * SDFIO_LARGEST_SAMPLE);
@@ -149,12 +150,11 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     {
         return status;
     }
-    if (sdfio_codec_for_representation(writer->codecs, header->representation)
-        == NULL)
+    if (sdfio_writer_codec_for(writer->codecs, header->representation) == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
-                          "The codec of the representation is not registered "
-                          "in the configuration");
+                          "The codec of the representation is not listed in "
+                          "the configuration");
     }
     return SDFIO_OK;
 }
@@ -168,8 +168,8 @@ static sdfio_status start_stream(sdfio_writer *writer,
     {
         return status;
     }
-    const sdfio_codec *codec =
-        sdfio_codec_for_representation(writer->codecs, header->representation);
+    const sdfio_writer_codec *codec =
+        sdfio_writer_codec_for(writer->codecs, header->representation);
     const size_t scratch = codec->scratch_size(writer->chunk_values);
     if (scratch > 0)
     {

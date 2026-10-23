@@ -34,10 +34,10 @@ struct sdfio_reader
     sdfio_source source;
     /** What the codec of the file keeps for it. */
     sdfio_codec_state codec_state;
-    /** The registered codecs. */
-    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    /** The listed codecs. */
+    const sdfio_reader_codec *codecs[SDFIO_CODEC_MAX];
     /** The codec of the open file. */
-    const sdfio_codec *codec;
+    const sdfio_reader_codec *codec;
     /** The allocator of the configuration. */
     sdfio_allocator allocator;
     /** The time zone of the configuration. */
@@ -86,7 +86,8 @@ static size_t memory_read(void *user, void *data, size_t size)
 sdfio_reader *sdfio_reader_new(const sdfio_config *config)
 {
     sdfio_settings settings;
-    if (!sdfio_config_resolve(config, &settings))
+    if (!sdfio_config_resolve(config, &settings)
+        || settings.reader_codecs[0] == NULL)
     {
         return NULL;
     }
@@ -100,7 +101,7 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
                              .chunk_values = settings.chunk};
     for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
     {
-        reader->codecs[i] = settings.codecs[i];
+        reader->codecs[i] = settings.reader_codecs[i];
     }
     reader->trailer.allocator = &reader->allocator;
     reader->chunk = sdfio_allocate(&reader->allocator,
@@ -175,15 +176,13 @@ static sdfio_status open_source(sdfio_reader *reader,
     sdfio_source_init(&reader->source, stream);
     reader->codec_state = (sdfio_codec_state){0};
     const sdfio_status status = sdfio_read_header(
-        &reader->source, reader->codecs, &reader->header, &reader->codec_state,
-        &reader->zone, &reader->message);
+        &reader->source, reader->codecs, &reader->codec, &reader->header,
+        &reader->codec_state, &reader->zone, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
     const sdfio_header *header = &reader->header;
-    reader->codec =
-        sdfio_codec_for_representation(reader->codecs, header->representation);
     const size_t type_size = sdfio_data_type_size(header->data_type);
     if (!sdfio_count(header, &reader->value_count)
         || reader->value_count > SIZE_MAX / type_size)

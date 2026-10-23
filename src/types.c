@@ -41,7 +41,7 @@ size_t sdfio_magic_count(const sdfio_config *config)
         return 0;
     }
     size_t count = 0;
-    while (count < SDFIO_CODEC_MAX && settings.codecs[count] != NULL)
+    while (count < SDFIO_CODEC_MAX && settings.reader_codecs[count] != NULL)
     {
         ++count;
     }
@@ -56,7 +56,7 @@ const char *sdfio_magic(const sdfio_config *config, size_t index)
     {
         return NULL;
     }
-    return settings.codecs[index / REVISION_COUNT]
+    return settings.reader_codecs[index / REVISION_COUNT]
         ->magics[index % REVISION_COUNT];
 }
 
