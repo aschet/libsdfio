@@ -17,6 +17,7 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
+/* The next line of a text without its end, LF or CRLF; false at the end. */
 static bool next_line(const char *text, size_t size, size_t *position,
                       const char **line, size_t *line_size)
 {

@@ -30,7 +30,7 @@ bool sdfio_valid_heights_type(sdfio_data_type type)
     return type == SDFIO_TYPE_FLOAT || type == SDFIO_TYPE_DOUBLE;
 }
 
-/** A case of the search for a data type by its code. */
+/* A case of the search for a data type by its code. */
 #define CODE_CASE(data, ctype, low, high, floating)                            \
     if (code == (long long)(data))                                             \
     {                                                                          \

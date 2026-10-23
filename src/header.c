@@ -55,6 +55,7 @@ static bool is_ascii_text(const char *text, size_t size)
     return true;
 }
 
+/* Whether a number is greater than 0 and finite. */
 static bool positive(double value)
 {
     return value > 0.0 && isfinite(value);

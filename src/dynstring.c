@@ -16,7 +16,7 @@
 
 enum
 {
-    /** The room that a string starts with. */
+    /* The room that a string starts with. */
     SDFIO_STRING_MINIMUM = 64
 };
 

@@ -163,7 +163,7 @@ static bool revision_of(const char *version_number, size_t size,
     return false;
 }
 
-/** The fields of the header, in the order of their ASCII field names. */
+/* The fields of the header, in the order of their ASCII field names. */
 enum field
 {
     MANUFACTURER_ID,
@@ -195,37 +195,38 @@ static const char *const field_names[FIELD_COUNT] = {
     [DATA_TYPE] = SDFIO_ASCII_DATA_TYPE,
     [CHECK_TYPE] = SDFIO_ASCII_CHECK_TYPE};
 
-/** The values of the fields of a header, as the file gives them. */
+/* The values of the fields of a header, as the file gives them. */
 typedef struct header_fields
 {
-    /** Whether the file has the field. */
+    /* Whether the file has the field. */
     bool found[FIELD_COUNT];
-    /** The manufacturer's ID, terminated. */
+    /* The manufacturer's ID, terminated. */
     char identifier[SDFIO_ID_SIZE + 1];
-    /** The creation date and time. */
+    /* The creation date and time. */
     char created[SDFIO_DATETIME_SIZE];
-    /** The last modification date and time. */
+    /* The last modification date and time. */
     char modified[SDFIO_DATETIME_SIZE];
-    /** The number of columns in the data matrix. */
+    /* The number of columns in the data matrix. */
     size_t columns;
-    /** The number of rows in the data matrix. */
+    /* The number of rows in the data matrix. */
     size_t rows;
-    /** The X-scale factor. */
+    /* The X-scale factor. */
     double x_scale;
-    /** The Y-scale factor. */
+    /* The Y-scale factor. */
     double y_scale;
-    /** The Z-scale factor. */
+    /* The Z-scale factor. */
     double z_scale;
-    /** The Z-resolution. */
+    /* The Z-resolution. */
     double resolution;
-    /** The compression type. */
+    /* The compression type. */
     long long compression;
-    /** The code of the data type. */
+    /* The code of the data type. */
     long long data_type;
-    /** The checksum type. */
+    /* The checksum type. */
     long long check_type;
 } header_fields;
 
+/* Whether a name in the file is the name of a field, whatever the case. */
 static bool same_name(const char *name, size_t size, const char *field_name)
 {
     if (strlen(field_name) != size)
@@ -242,6 +243,7 @@ static bool same_name(const char *name, size_t size, const char *field_name)
     return true;
 }
 
+/* A number of columns or of rows: a non-negative integer that fits size_t. */
 static bool parse_extent(const char *value, size_t size, size_t *out)
 {
     long long number = 0;
@@ -345,10 +347,10 @@ static sdfio_status store_field(header_fields *fields, enum field field,
                               "A field of the SDF header has an invalid value");
 }
 
-/** What the reader of this format keeps for a file. */
+/* What the reader of this format keeps for a file. */
 struct reading
 {
-    /** The decimal point of the locale, measured when the file was opened. */
+    /* The decimal point of the locale, measured when the file was opened. */
     sdfio_decimal_point decimal_point;
 };
 
@@ -523,6 +525,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     return SDFIO_OK;
 }
 
+/* The failure of a text that ends before the three records are complete. */
 static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 {
     return sdfio_source_failure(source, message,
@@ -533,7 +536,7 @@ static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 /* The values of the data area are stored in the type of the data type; the
  * functions below convert the text of the file to it. */
 
-/** A case of the storing of the bad value, for SDFIO_SCALARS(). */
+/* A case of the storing of the bad value, for SDFIO_SCALARS(). */
 #define STORE_BAD_CASE(data, type, low, high, floating)                        \
     case data:                                                                 \
     {                                                                          \
@@ -550,7 +553,7 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
     }
 }
 
-/**
+/*
  * A case of the parsing and storing of an integer, for
  * SDFIO_INTEGER_SCALARS(): false if the text is not an integer of the type. An
  * integer type does not take a fraction, which would be truncated.
@@ -610,6 +613,8 @@ static bool store_real(sdfio_data_type type,
     return true;
 }
 
+/* Reads the next value of the data area: the word BAD, or a number of the
+ * data type. */
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_decimal_point *decimal_point,
                                void *dst, size_t index, sdfio_string *word,

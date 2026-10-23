@@ -24,9 +24,9 @@
 
 enum
 {
-    /** The first year that a date field can hold. */
+    /* The first year that a date field can hold. */
     SDFIO_FIRST_YEAR = 1,
-    /** The last year that a date field can hold. */
+    /* The last year that a date field can hold. */
     SDFIO_LAST_YEAR = 9999
 };
 
@@ -51,6 +51,7 @@ enum
     FEBRUARY = 2
 };
 
+/* The quotient rounded toward negative infinity, where C rounds toward 0. */
 static int64_t floor_div(int64_t a, int64_t b)
 {
     int64_t q = a / b;
@@ -93,6 +94,7 @@ static int64_t days_from_civil(int64_t year, unsigned month, unsigned day)
     return days;
 }
 
+/* The date of a day count since 1970-01-01. */
 static void civil_from_days(int64_t days, int64_t *year, unsigned *month,
                             unsigned *day)
 {
@@ -120,6 +122,7 @@ static void civil_from_days(int64_t days, int64_t *year, unsigned *month,
     *day = (unsigned)left + 1;
 }
 
+/* The whole minutes of a time, rounded down for a time before 1970. */
 static int64_t minutes_of(time_t time)
 {
     return floor_div((int64_t)time, SECONDS_PER_MINUTE);
@@ -233,18 +236,18 @@ bool sdfio_datetime_format(time_t time, sdfio_revision revision,
     return true;
 }
 
-/** The fields of a date in the text DDMMYYYYhhmm. */
+/* The fields of a date in the text DDMMYYYYhhmm. */
 typedef struct date_fields
 {
-    /** The year, 1 to 9999. */
+    /* The year, 1 to 9999. */
     int year;
-    /** The month, 1 to 12. */
+    /* The month, 1 to 12. */
     int month;
-    /** The day of the month. */
+    /* The day of the month. */
     int day;
-    /** The hour, 0 to 23. */
+    /* The hour, 0 to 23. */
     int hour;
-    /** The minute, 0 to 59. */
+    /* The minute, 0 to 59. */
     int minute;
 } date_fields;
 

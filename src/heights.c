@@ -32,6 +32,7 @@ ptrdiff_t sdfio_element_stride(sdfio_layout layout)
                : (ptrdiff_t)sdfio_data_type_size(layout.type);
 }
 
+/* The absolute value of a stride, also if it is the lowest ptrdiff_t. */
 static size_t magnitude(ptrdiff_t stride)
 {
     return stride < 0 ? (size_t)(-(stride + 1)) + 1 : (size_t)stride;
@@ -99,13 +100,14 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
     return SDFIO_OK;
 }
 
+/* Whether the header and the layout describe types that heights can use. */
 static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 {
     return header != NULL && sdfio_valid_data_type(header->data_type)
            && sdfio_valid_heights_type(layout.type);
 }
 
-/**
+/*
  * @def SDFIO_FLOAT_HEIGHTS_CHOSEN
  * Whether the processor favours calculating heights of type float in double.
  * A processor with hardware for single precision only, or with none, favours
@@ -120,7 +122,7 @@ static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 #define SDFIO_FLOAT_HEIGHTS_CHOSEN 1
 #endif
 
-/**
+/*
  * @def SDFIO_FLOAT_HEIGHTS_IN_DOUBLE
  * Whether heights of type float are calculated in double: what the processor
  * favours. The tests define SDFIO_FLOAT_HEIGHTS_OTHER to run the other
@@ -134,10 +136,10 @@ static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 
 #if SDFIO_FLOAT_HEIGHTS_IN_DOUBLE
 
-/** The scale for heights of type float, which are calculated in double. */
+/* The scale for heights of type float, which are calculated in double. */
 typedef struct scale_float
 {
-    /** The scale. */
+    /* The scale. */
     double exact;
 } scale_float;
 
@@ -176,22 +178,22 @@ static bool scale_divide_float(const scale_float *scale, float height,
 
 #else
 
-/**
+/*
  * The scale for heights of type float, as two floats that add up to the z-scale
  * more closely than one does, so that a calculation in float rounds as the one
  * in double would. A scale far from 1 is calculated in double instead.
  */
 typedef struct scale_float
 {
-    /** The scale as a float. */
+    /* The scale as a float. */
     float head;
-    /** What the float lacks of the scale. */
+    /* What the float lacks of the scale. */
     float tail;
-    /** The reciprocal of head, which the correction of a quotient needs. */
+    /* The reciprocal of head, which the correction of a quotient needs. */
     float inverse;
-    /** The scale itself. */
+    /* The scale itself. */
     double exact;
-    /** Whether the scale is too far from 1 for the pair of floats. */
+    /* Whether the scale is too far from 1 for the pair of floats. */
     bool far;
 } scale_float;
 
@@ -306,10 +308,10 @@ static double nearby_double(double x)
 #undef REAL_SUFFIX
 #undef REAL
 
-/** The scale for heights of type double. */
+/* The scale for heights of type double. */
 typedef struct scale_double
 {
-    /** The scale. */
+    /* The scale. */
     double value;
 } scale_double;
 
@@ -424,6 +426,7 @@ double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
     return z_scale > 0.0 ? z_scale : 1.0;
 }
 
+/* The lowest and the highest height of a matrix that a layout describes. */
 static sdfio_status find_range(sdfio_layout layout, const void *heights,
                                size_t rows, size_t columns, double *lowest,
                                double *highest)

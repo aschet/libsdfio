@@ -30,10 +30,11 @@
 
 enum
 {
-    /** The number of bytes of a trailer that are read at a time. */
+    /* The number of bytes of a trailer that are read at a time. */
     SDFIO_TRAILER_PIECE = 256
 };
 
+/* The unsigned integer of `size` bytes in little-endian order. */
 static uint64_t get_le(const unsigned char *bytes, size_t size)
 {
     uint64_t value = 0;
@@ -44,6 +45,7 @@ static uint64_t get_le(const unsigned char *bytes, size_t size)
     return value;
 }
 
+/* The binary64 number in little-endian order. */
 static double get_double(const unsigned char *bytes)
 {
     const uint64_t bits = get_le(bytes, sizeof(double));

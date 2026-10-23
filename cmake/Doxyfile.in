@@ -10,7 +10,6 @@ PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
 INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
-                         @PROJECT_SOURCE_DIR@/src \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
                          @PROJECT_SOURCE_DIR@/examples/external
@@ -19,9 +18,6 @@ OPTIMIZE_OUTPUT_FOR_C  = YES
 JAVADOC_AUTOBRIEF      = YES
 MARKDOWN_SUPPORT       = YES
 FILE_PATTERNS          = *.c *.h *.dox
-EXCLUDE_SYMBOLS        = REAL REAL_SUFFIX REAL_MAX REAL_ABS REAL_NEARBY \
-                         REAL_NAME REAL_JOIN REAL_JOIN_ scale_type_float \
-                         scale_type_double
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = "SDFIO_API=" \

@@ -25,16 +25,16 @@
 static const char terminator = SDFIO_ASCII_TERMINATOR;
 static const char crlf[] = SDFIO_ASCII_LINE_END;
 
-/** What the writer of this format keeps for a file. */
+/* What the writer of this format keeps for a file. */
 struct writing
 {
-    /** The decimal point of the locale, measured when the file was created. */
+    /* The decimal point of the locale, measured when the file was created. */
     sdfio_decimal_point decimal_point;
-    /** The column of the next value to write. */
+    /* The column of the next value to write. */
     size_t column;
 };
 
-/** A case of the test for the bad value, for SDFIO_SCALARS(). */
+/* A case of the test for the bad value, for SDFIO_SCALARS(). */
 #define IS_BAD_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
     {                                                                          \
@@ -53,7 +53,7 @@ static bool is_bad(sdfio_data_type type, const void *src, size_t index)
     return false;
 }
 
-/** A case of the loading of an integer, for SDFIO_SCALARS(). */
+/* A case of the loading of an integer, for SDFIO_SCALARS(). */
 #define LOAD_INTEGER_CASE(data, type, low, high, floating)                     \
     case data:                                                                 \
     {                                                                          \
@@ -73,7 +73,7 @@ static int32_t load_integer(sdfio_data_type type, const void *src, size_t index)
     return 0;
 }
 
-/** A case of the loading of a real number, for SDFIO_SCALARS(). */
+/* A case of the loading of a real number, for SDFIO_SCALARS(). */
 #define LOAD_REAL_CASE(data, type, low, high, floating)                        \
     case data:                                                                 \
     {                                                                          \
@@ -102,12 +102,14 @@ static bool append_text(sdfio_string *out, const char *text)
     return sdfio_string_append(out, text, strlen(text));
 }
 
+/* Appends the header line `name = value`. */
 static bool append_field(sdfio_string *out, const char *name, const char *value)
 {
     return append_text(out, name) && append_text(out, " = ")
            && append_text(out, value) && append_text(out, crlf);
 }
 
+/* Appends a header line whose value is a scale in the format of binary64. */
 static bool append_scale(sdfio_string *out,
                          const sdfio_decimal_point *decimal_point,
                          const char *name, double value)
@@ -120,6 +122,7 @@ static bool append_scale(sdfio_string *out,
     return append_field(out, name, text);
 }
 
+/* Formats the header: the version number and a line for each field. */
 static sdfio_status format_header(const sdfio_header *header,
                                   const sdfio_decimal_point *decimal_point,
                                   const sdfio_time_zone *zone,
@@ -181,7 +184,7 @@ static sdfio_status format_header(const sdfio_header *header,
 
 enum
 {
-    /** The digits of the largest integer of a data type, int32. */
+    /* The digits of the largest integer of a data type, int32. */
     SDFIO_INTEGER_DIGITS = 10
 };
 
@@ -209,6 +212,7 @@ static size_t put_integer(char *out, int32_t value)
     return used;
 }
 
+/* Writes the text of the value at an index, and returns its length. */
 static size_t format_value(const sdfio_header *header,
                            const sdfio_decimal_point *decimal_point,
                            const void *coded, size_t index, char *out,

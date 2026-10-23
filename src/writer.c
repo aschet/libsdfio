@@ -127,6 +127,7 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     return SDFIO_OK;
 }
 
+/* Checks the header, and prepares the writer for the format of the file. */
 static sdfio_status start_stream(sdfio_writer *writer,
                                  const sdfio_stream *stream,
                                  const sdfio_header *header)

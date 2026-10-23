@@ -115,6 +115,8 @@ sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status)
     return status;
 }
 
+/* Selects the format of the stream by its version number, and reads the
+ * header. */
 static sdfio_status open_source(sdfio_reader *reader,
                                 const sdfio_stream *stream)
 {

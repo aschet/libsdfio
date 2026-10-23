@@ -13,20 +13,20 @@
 #include "data_type.h"
 #include <limits.h>
 
-/** The properties that differ between the revisions. */
+/* The properties that differ between the revisions. */
 typedef struct revision_rules
 {
-    /** Whether the datetimes are in UTC. */
+    /* Whether the datetimes are in UTC. */
     bool utc;
-    /** The size in bytes of the number of columns and of the number of rows in
+    /* The size in bytes of the number of columns and of the number of rows in
      * the binary header. */
     size_t columns_rows_size;
-    /** The data types that the revision permits, as a set of bits that the
+    /* The data types that the revision permits, as a set of bits that the
      * code of a data type selects. */
     unsigned data_types;
 } revision_rules;
 
-/** The bit of a data type in a set of data types. */
+/* The bit of a data type in a set of data types. */
 #define TYPE_BIT(type) (1U << (type))
 
 static const revision_rules rules[] = {

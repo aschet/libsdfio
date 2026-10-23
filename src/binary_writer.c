@@ -51,6 +51,7 @@ static bool put_text(sdfio_sink *sink, const char *text, size_t width)
     return sdfio_sink_write(sink, field, width);
 }
 
+/* Writes an unsigned integer of `size` bytes in little-endian order. */
 static bool put_le(sdfio_sink *sink, size_t size, uint64_t value)
 {
     unsigned char bytes[sizeof(uint64_t)];
@@ -62,6 +63,7 @@ static bool put_le(sdfio_sink *sink, size_t size, uint64_t value)
     return sdfio_sink_write(sink, bytes, size);
 }
 
+/* Writes a binary64 number in little-endian order. */
 static bool put_double(sdfio_sink *sink, double value)
 {
     uint64_t bits = 0;

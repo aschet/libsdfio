@@ -46,6 +46,7 @@ static void close_file(void *user)
     fclose(user);
 }
 
+/* Flushes and closes the file that a writer wrote. */
 static sdfio_status finish_file(void *user, sdfio_message *message)
 {
     FILE *file = user;
