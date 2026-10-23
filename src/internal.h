@@ -51,8 +51,6 @@ SDFIO_STATIC_ASSERT(sizeof(double) == 8 && DBL_MANT_DIG == 53,
 /** The fields of the file and the limits of the library. */
 enum
 {
-    /** The size of the magic that starts a file, as in "aISO-2.0". */
-    SDFIO_MAGIC_SIZE = 8,
     /** Where the name of the revision starts in the magic. */
     SDFIO_MAGIC_NAME_AT = 1,
     /** The size of the name of the revision in the magic. */
@@ -83,9 +81,6 @@ enum
     SDFIO_BINARY_HEADER_MAX = 85,
     /** The code of "no compression" and "no checksum". */
     SDFIO_NONE = 0,
-    /** How many values the functions without a handle convert at a time on the
-     * stack. */
-    SDFIO_STACK_CHUNK = 128,
     /** The number of values a reader or a writer converts at a time, if the
      * configuration has none. */
     SDFIO_DEFAULT_CHUNK = 1024,
@@ -314,18 +309,12 @@ bool sdfio_valid_data_type(sdfio_data_type type);
 bool sdfio_is_floating(sdfio_data_type type);
 
 /**
- * Returns the lowest value of a data type, as a double.
+ * Returns the spelling of a revision in the magic, for example "ISO-2.0", or an
+ * empty string for an invalid value.
  *
- * @param type The data type. An invalid value gives 0.
+ * @param revision The revision.
  */
-double sdfio_lowest(sdfio_data_type type);
-
-/**
- * Returns the highest value of a data type, as a double.
- *
- * @param type The data type. An invalid value gives 0.
- */
-double sdfio_highest(sdfio_data_type type);
+const char *sdfio_revision_text(sdfio_revision revision);
 
 /**
  * Finds the revision that a name stands for.
@@ -380,32 +369,6 @@ bool sdfio_host_is_little_endian(void);
 void sdfio_fix_endianness(void *values, size_t count, size_t size);
 
 /**
- * Converts samples that are `stride` bytes apart to doubles.
- *
- * @param sample The sample type of the buffer.
- * @param src The first sample.
- * @param stride The distance in bytes between samples. May be negative.
- * @param count The number of samples.
- * @param[out] out Receives `count` doubles.
- */
-void sdfio_load_strided(sdfio_sample sample, const void *src, ptrdiff_t stride,
-                        size_t count, double *out);
-
-/**
- * Converts doubles to samples that are `stride` bytes apart.
- *
- * @param sample The sample type of the buffer.
- * @param[out] dst Receives the first sample.
- * @param stride The distance in bytes between samples. May be negative.
- * @param values The doubles.
- * @param count The number of values.
- * @retval SDFIO_ERR_RANGE A number does not fit the sample type.
- */
-sdfio_status sdfio_store_strided(sdfio_sample sample, void *dst,
-                                 ptrdiff_t stride, const double *values,
-                                 size_t count);
-
-/**
  * Returns the distance in bytes between the samples of a row of the heights of
  * the caller.
  *
@@ -433,64 +396,6 @@ ptrdiff_t sdfio_element_stride(sdfio_format format);
  */
 sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
                                 size_t columns, sdfio_message *message);
-
-/**
- * Converts values of the data area, in memory in the byte order of the host, to
- * doubles.
- *
- * @param type The data type of the data area.
- * @param src The values.
- * @param count The number of values.
- * @param[out] out Receives `count` doubles.
- */
-void sdfio_load_coded(sdfio_data_type type, const void *src, size_t count,
-                      double *out);
-
-/**
- * Converts doubles to values of the data area, in memory in the byte order of
- * the host.
- *
- * @param type The data type of the data area.
- * @param[out] dst Receives `count` values.
- * @param values The doubles.
- * @param count The number of values.
- * @retval SDFIO_ERR_RANGE A number does not fit the data type.
- */
-sdfio_status sdfio_store_coded(sdfio_data_type type, void *dst,
-                               const double *values, size_t count);
-
-/**
- * Puts a real number at an index of a data area.
- *
- * @param type The data type of the data area.
- * @param[out] dst The data area.
- * @param index The index of the value.
- * @param value The number.
- * @retval SDFIO_ERR_RANGE The number does not fit the data type.
- */
-sdfio_status sdfio_put_real(sdfio_data_type type, void *dst, size_t index,
-                            double value);
-
-/**
- * Puts an integer at an index of a data area.
- *
- * @param type The data type of the data area.
- * @param[out] dst The data area.
- * @param index The index of the value.
- * @param value The integer.
- * @retval SDFIO_ERR_RANGE The integer does not fit the data type.
- */
-sdfio_status sdfio_put_integer(sdfio_data_type type, void *dst, size_t index,
-                               long long value);
-
-/**
- * Returns the value at an index of a data area as a double.
- *
- * @param type The data type of the data area.
- * @param src The data area.
- * @param index The index of the value.
- */
-double sdfio_get_real(sdfio_data_type type, const void *src, size_t index);
 
 /* ---- Numbers ------------------------------------------------------------- */
 

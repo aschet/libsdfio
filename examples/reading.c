@@ -53,9 +53,10 @@ int main(int argc, char **argv)
             }
         }
         printf("%s %zu x %zu, mean %g m\ntrailer:\n%.*s\n",
-               sdfio_revision_name(header->revision), header->columns,
-               header->rows, measured > 0 ? sum / (double)measured : 0.0,
-               (int)trailer_size, trailer != NULL ? trailer : "");
+               header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
+               header->columns, header->rows,
+               measured > 0 ? sum / (double)measured : 0.0, (int)trailer_size,
+               trailer != NULL ? trailer : "");
     }
     free(heights);
     sdfio_reader_free(reader);

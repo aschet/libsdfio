@@ -21,6 +21,9 @@ OPTIMIZE_OUTPUT_FOR_C  = YES
 JAVADOC_AUTOBRIEF      = YES
 MARKDOWN_SUPPORT       = YES
 FILE_PATTERNS          = *.c *.h *.dox *.md
+EXCLUDE_SYMBOLS        = REAL REAL_SUFFIX REAL_MAX REAL_ABS REAL_NEARBY \
+                         REAL_NAME REAL_JOIN REAL_JOIN_ scale_type_float \
+                         scale_type_double
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = "SDFIO_API=" \

@@ -13,10 +13,10 @@
 #include "internal.h"
 
 /* The spelling of a revision in the magic, in the order of the enumeration. */
-static const char *const revision_names[] = {"ISO-1.0", "ISO-2.0"};
+static const char *const revision_texts[] = {"ISO-1.0", "ISO-2.0"};
 enum
 {
-    REVISION_COUNT = sizeof revision_names / sizeof revision_names[0]
+    REVISION_COUNT = sizeof revision_texts / sizeof revision_texts[0]
 };
 
 /* What a revision allows: one entry for each data type, by its code. */
@@ -33,37 +33,19 @@ static const bool allowed[REVISION_COUNT][8] = {
                        [SDFIO_DATA_BINARY64] = true},
 };
 
-/** What the library knows of a data type. */
-typedef struct scalar_info
-{
-    /** The name in a header. */
-    const char *name;
-    /** The size in bytes. */
-    size_t size;
-    /** The lowest value. */
-    double lowest;
-    /** The highest value. */
-    double highest;
-    /** Whether the type is a floating point type. */
-    bool floating;
-} scalar_info;
+/* The magics, the binary ones first. */
+static const char *const magics[] = {"bISO-1.0", "bISO-2.0", "aISO-1.0",
+                                     "aISO-2.0"};
 
-/** A row of the table of the data types, for SDFIO_SCALARS(). */
-#define SCALAR_ROW(data, name, type, bits, low, high, floating)                \
-    [(data) - FIRST_DATA_TYPE] = {name, sizeof(type), (double)(low),           \
-                                  (double)(high), floating},
-
-enum
+size_t sdfio_magic_count(void)
 {
-    /* The codes of the standard start here. */
-    FIRST_DATA_TYPE = SDFIO_DATA_BINARY32
-};
-static const scalar_info scalars[] = {SDFIO_SCALARS(SCALAR_ROW)};
+    return sdfio_has_text() ? sizeof magics / sizeof magics[0]
+                            : sizeof magics / sizeof magics[0] / 2;
+}
 
-static const scalar_info *scalar_of(sdfio_data_type type)
+const char *sdfio_magic(size_t index)
 {
-    return sdfio_valid_data_type(type) ? &scalars[type - FIRST_DATA_TYPE]
-                                       : NULL;
+    return index < sdfio_magic_count() ? magics[index] : NULL;
 }
 
 bool sdfio_valid_sample(sdfio_sample sample)
@@ -90,21 +72,27 @@ static bool valid_revision(sdfio_revision revision)
     return (size_t)revision < REVISION_COUNT;
 }
 
-const char *sdfio_revision_name(sdfio_revision revision)
+const char *sdfio_revision_text(sdfio_revision revision)
 {
-    return valid_revision(revision) ? revision_names[revision] : "";
-}
-
-const char *sdfio_data_type_name(sdfio_data_type type)
-{
-    const scalar_info *info = scalar_of(type);
-    return info != NULL ? info->name : "";
+    return valid_revision(revision) ? revision_texts[revision] : "";
 }
 
 size_t sdfio_data_type_size(sdfio_data_type type)
 {
-    const scalar_info *info = scalar_of(type);
-    return info != NULL ? info->size : 0;
+    switch (type)
+    {
+    case SDFIO_DATA_INT8:
+        return sizeof(int8_t);
+    case SDFIO_DATA_INT16:
+        return sizeof(int16_t);
+    case SDFIO_DATA_INT32:
+        return sizeof(int32_t);
+    case SDFIO_DATA_BINARY32:
+        return sizeof(float);
+    case SDFIO_DATA_BINARY64:
+        return sizeof(double);
+    }
+    return 0;
 }
 
 size_t sdfio_sample_size(sdfio_sample sample)
@@ -127,20 +115,7 @@ bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
 
 bool sdfio_is_floating(sdfio_data_type type)
 {
-    const scalar_info *info = scalar_of(type);
-    return info != NULL && info->floating;
-}
-
-double sdfio_lowest(sdfio_data_type type)
-{
-    const scalar_info *info = scalar_of(type);
-    return info != NULL ? info->lowest : 0.0;
-}
-
-double sdfio_highest(sdfio_data_type type)
-{
-    const scalar_info *info = scalar_of(type);
-    return info != NULL ? info->highest : 0.0;
+    return type == SDFIO_DATA_BINARY32 || type == SDFIO_DATA_BINARY64;
 }
 
 bool sdfio_revision_from_text(const char *text, size_t size,
@@ -148,8 +123,8 @@ bool sdfio_revision_from_text(const char *text, size_t size,
 {
     for (size_t i = 0; i < REVISION_COUNT; ++i)
     {
-        if (strlen(revision_names[i]) == size
-            && memcmp(revision_names[i], text, size) == 0)
+        if (strlen(revision_texts[i]) == size
+            && memcmp(revision_texts[i], text, size) == 0)
         {
             *revision = (sdfio_revision)i;
             return true;
@@ -174,16 +149,6 @@ size_t sdfio_binary_header_size(sdfio_revision revision)
     const size_t count_size =
         revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
     return fixed + SDFIO_HEADER_COUNTS * count_size;
-}
-
-double sdfio_bad_value(sdfio_data_type type)
-{
-    return sdfio_lowest(type);
-}
-
-bool sdfio_is_bad_value(sdfio_data_type type, double value)
-{
-    return value == sdfio_bad_value(type);
 }
 
 void sdfio_header_init(sdfio_header *header)

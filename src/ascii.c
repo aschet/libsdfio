@@ -544,6 +544,125 @@ static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
                                        "data area and the trailer");
 }
 
+/* ---- The values in memory -------------------------------------------------
+ * A value of the data area is read and written in the type of the data type,
+ * and the text of the file is converted to it here. */
+
+/** A case of the storing of the bad value, for SDFIO_SCALARS(). */
+#define STORE_BAD_CASE(data, name, type, bits, low, high, floating)            \
+    case data:                                                                 \
+    {                                                                          \
+        const type bad = (type)(low);                                          \
+        memcpy((unsigned char *)dst + index * sizeof bad, &bad, sizeof bad);   \
+        return;                                                                \
+    }
+
+static void store_bad(sdfio_data_type type, void *dst, size_t index)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(STORE_BAD_CASE)
+    }
+}
+
+/**
+ * A case of the storing of an integer, for SDFIO_SCALARS(): false if the type
+ * is not an integer type or the integer does not fit.
+ */
+#define STORE_INTEGER_CASE(data, name, type, bits, low, high, floating)        \
+    case data:                                                                 \
+    {                                                                          \
+        const double lowest = (double)(low);                                   \
+        const double highest = (double)(high);                                 \
+        if ((floating) || (double)value < lowest || (double)value > highest)   \
+        {                                                                      \
+            return false;                                                      \
+        }                                                                      \
+        const type stored = (type)value;                                       \
+        memcpy((unsigned char *)dst + index * sizeof stored, &stored,          \
+               sizeof stored);                                                 \
+        return true;                                                           \
+    }
+
+static bool store_integer(sdfio_data_type type, void *dst, size_t index,
+                          long long value)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(STORE_INTEGER_CASE)
+    }
+    return false;
+}
+
+/**
+ * A case of the storing of a real number, for SDFIO_SCALARS(): false if the
+ * type is not a floating point type or a finite number does not fit.
+ */
+#define STORE_REAL_CASE(data, name, type, bits, low, high, floating)           \
+    case data:                                                                 \
+    {                                                                          \
+        if (!(floating)                                                        \
+            || (sizeof(type) < sizeof value && isfinite(value)                 \
+                && fabs(value) > (double)(high)))                              \
+        {                                                                      \
+            return false;                                                      \
+        }                                                                      \
+        const type stored = (type)value;                                       \
+        memcpy((unsigned char *)dst + index * sizeof stored, &stored,          \
+               sizeof stored);                                                 \
+        return true;                                                           \
+    }
+
+static bool store_real(sdfio_data_type type, void *dst, size_t index,
+                       double value)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(STORE_REAL_CASE)
+    }
+    return false;
+}
+
+/** A case of the test for the bad value, for SDFIO_SCALARS(). */
+#define IS_BAD_CASE(data, name, type, bits, low, high, floating)               \
+    case data:                                                                 \
+    {                                                                          \
+        type stored;                                                           \
+        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
+               sizeof stored);                                                 \
+        return stored == (type)(low);                                          \
+    }
+
+static bool is_bad(sdfio_data_type type, const void *src, size_t index)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(IS_BAD_CASE)
+    }
+    return false;
+}
+
+/** A case of the loading of a number, for SDFIO_SCALARS(). */
+#define LOAD_CASE(data, name, type, bits, low, high, floating)                 \
+    case data:                                                                 \
+    {                                                                          \
+        type stored;                                                           \
+        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
+               sizeof stored);                                                 \
+        return (double)stored;                                                 \
+    }
+
+/* The number at an index as a double, which holds every type of the data area
+ * exactly. */
+static double load_number(sdfio_data_type type, const void *src, size_t index)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(LOAD_CASE)
+    }
+    return 0.0;
+}
+
 sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
                                size_t index, sdfio_message *message)
@@ -570,8 +689,8 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
     }
     if (size == sizeof bad_token - 1 && memcmp(token, bad_token, size) == 0)
     {
-        return sdfio_put_real(header->data_type, dst, index,
-                              sdfio_bad_value(header->data_type));
+        store_bad(header->data_type, dst, index);
+        return SDFIO_OK;
     }
     sdfio_status status = SDFIO_ERR_FORMAT;
     if (sdfio_is_floating(header->data_type))
@@ -579,7 +698,9 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
         double value = 0.0;
         if (sdfio_parse_number(point, token, size, &value))
         {
-            status = sdfio_put_real(header->data_type, dst, index, value);
+            status = store_real(header->data_type, dst, index, value)
+                         ? SDFIO_OK
+                         : SDFIO_ERR_FORMAT;
         }
     }
     else
@@ -589,7 +710,9 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
         long long value = 0;
         if (sdfio_parse_integer(token, size, &value))
         {
-            status = sdfio_put_integer(header->data_type, dst, index, value);
+            status = store_integer(header->data_type, dst, index, value)
+                         ? SDFIO_OK
+                         : SDFIO_ERR_FORMAT;
         }
     }
     if (status != SDFIO_OK)
@@ -751,7 +874,7 @@ sdfio_status sdfio_ascii_header(const sdfio_header *header,
                                 sdfio_message *message)
 {
     char magic[SDFIO_MAGIC_SIZE + 1];
-    snprintf(magic, sizeof magic, "a%s", sdfio_revision_name(header->revision));
+    snprintf(magic, sizeof magic, "a%s", sdfio_revision_text(header->revision));
     char text[SDFIO_NUMBER_CAPACITY];
     char date[SDFIO_DATE_SIZE + 1] = {0};
     bool ok = append_text(out, magic) && append_text(out, crlf)
@@ -825,13 +948,13 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
                           size_t capacity)
 {
     const sdfio_data_type type = header->data_type;
-    double value = sdfio_get_real(type, coded, index);
-    if (value == sdfio_bad_value(type))
+    if (is_bad(type, coded, index))
     {
         static const char bad[] = "BAD";
         memcpy(out, bad, sizeof bad);
         return sizeof bad - 1;
     }
+    const double value = load_number(type, coded, index);
     if (!sdfio_is_floating(type))
     {
         return format_integer((long long)value, out);

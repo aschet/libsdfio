@@ -211,7 +211,7 @@ static void check_rows(sdfio_revision revision,
         for (size_t column = 5; column < COLUMNS; ++column)
         {
             const int16_t count = counts[file_row * COLUMNS + column];
-            if (!sdfio_is_bad_value(SDFIO_DATA_INT16, count))
+            if (count != SDFIO_BAD_INT16)
             {
                 CHECK(near_relative(heights[y * COLUMNS + column], count * 1e-9,
                                     1e-12));

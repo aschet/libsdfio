@@ -35,7 +35,7 @@
  * @example counts.c
  * Writes and reads the integer counts of a scanner as 16-bit values, row by
  * row, with sdfio_write_data() and sdfio_read_data(). The points that are not
- * measured carry the bad value, which sdfio_is_bad_value() recognizes when
+ * measured carry the bad value SDFIO_BAD_INT16, which is recognized when
  * reading.
  */
 
@@ -58,7 +58,7 @@
 
 /**
  * @example opencv.cpp
- * A surface as an OpenCV depth image. A negative row stride turns the surface
+ * A surface as an OpenCV image of heights. A negative row stride turns the surface
  * into an image without a copy, and a region of interest is read.
  */
 

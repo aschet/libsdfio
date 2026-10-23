@@ -1,4 +1,4 @@
-// OpenCV: a surface as a depth image.
+// OpenCV: a surface as an image of heights.
 //
 // The row stride of a call may be negative, with the pointer at the last row:
 // the rows are then written from the bottom up. An image counts its rows from
@@ -51,41 +51,42 @@ sdfio_format bottom_up(const cv::Mat &image)
     return format;
 }
 
-cv::Mat read_depth(sdfio_reader *reader)
+cv::Mat read_heights(sdfio_reader *reader)
 {
     const sdfio_header *header = sdfio_get_header(reader);
-    cv::Mat depth(static_cast<int>(header->rows),
-                  static_cast<int>(header->columns), CV_32F);
-    check(sdfio_read_heights_strided(reader, bottom_up(depth),
-                                     depth.ptr(depth.rows - 1)),
+    cv::Mat heights(static_cast<int>(header->rows),
+                    static_cast<int>(header->columns), CV_32F);
+    check(sdfio_read_heights_strided(reader, bottom_up(heights),
+                                     heights.ptr(heights.rows - 1)),
           sdfio_reader_error_message(reader));
-    return depth;
+    return heights;
 }
 
-cv::Mat smooth(const cv::Mat &depth)
+cv::Mat smooth(const cv::Mat &heights)
 {
-    cv::Mat filled = depth.clone();
+    cv::Mat filled = heights.clone();
     cv::patchNaNs(filled, 0.0);
     cv::GaussianBlur(filled, filled, cv::Size(5, 5), 1.0);
     return filled;
 }
 
-void save_preview(const cv::Mat &depth, const char *path)
+void save_preview(const cv::Mat &heights, const char *path)
 {
     cv::Mat preview;
-    cv::normalize(depth, preview, 0, 255, cv::NORM_MINMAX, CV_8U);
+    cv::normalize(heights, preview, 0, 255, cv::NORM_MINMAX, CV_8U);
     cv::imwrite(path, preview);
 }
 
-void write_depth(const char *path, sdfio_header header, const cv::Mat &depth)
+void write_heights(const char *path, sdfio_header header,
+                   const cv::Mat &heights)
 {
     header.data_type = SDFIO_DATA_BINARY32;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
     Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights_strided(writer.get(), bottom_up(depth),
-                                      depth.ptr(depth.rows - 1)),
+    check(sdfio_write_heights_strided(writer.get(), bottom_up(heights),
+                                      heights.ptr(heights.rows - 1)),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_trailer(writer.get(), nullptr, 0),
           sdfio_writer_error_message(writer.get()));
@@ -114,13 +115,13 @@ int main(int argc, char **argv)
     try
     {
         const Reader reader = open(path);
-        const cv::Mat depth = read_depth(reader.get());
-        const cv::Mat blurred = smooth(depth);
+        const cv::Mat heights = read_heights(reader.get());
+        const cv::Mat blurred = smooth(heights);
         save_preview(blurred, "preview.png");
-        write_depth("smooth.sdf", *sdfio_get_header(reader.get()), blurred);
+        write_heights("smooth.sdf", *sdfio_get_header(reader.get()), blurred);
         const cv::Mat canvas = read_into_region(path);
-        std::cout << "OpenCV " << CV_VERSION << ": " << depth.cols << " x "
-                  << depth.rows << ", canvas " << canvas.cols << " x "
+        std::cout << "OpenCV " << CV_VERSION << ": " << heights.cols << " x "
+                  << heights.rows << ", canvas " << canvas.cols << " x "
                   << canvas.rows << "\n";
         return 0;
     }

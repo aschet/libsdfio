@@ -102,7 +102,7 @@ int main(void)
     read = sdfio_get_header(reader);
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));
-    CHECK(sdfio_is_bad_value(read->data_type, counts[2]));
+    CHECK(counts[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK,
                  sdfio_decode_heights(read, sdfio_format_packed(SDFIO_FLOAT32),
                                       counts, 6, back));

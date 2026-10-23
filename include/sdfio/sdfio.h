@@ -62,8 +62,8 @@
  * @par Points that are not measured
  * Heights in metres represent a point that is not measured by NaN or by a
  * marker chosen by the caller (see sdfio_format). The coded values of the data
- * area represent it by the bad value of the data type and revision, which
- * sdfio_bad_value() returns and sdfio_is_bad_value() tests.
+ * area represent it by the bad value of the data type: SDFIO_BAD_INT16 and the
+ * like. ASCII files write the string `BAD`.
  *
  * @par Locale
  * Numbers in ASCII files are read and written with the decimal point `.`,
@@ -99,6 +99,7 @@
 #include <sdfio/sdfio_export.h>
 #include <sdfio/version.h>
 
+#include <float.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -204,22 +205,6 @@ typedef enum sdfio_sample
     /** 64-bit floating point number, `double`. */
     SDFIO_FLOAT64
 } sdfio_sample;
-
-/**
- * Returns the name of a revision, for example "ISO-2.0", or an empty string
- * for an invalid value.
- *
- * @param[in] revision The revision.
- */
-SDFIO_API const char *sdfio_revision_name(sdfio_revision revision);
-
-/**
- * Returns the name of a data type, for example "binary32", or an empty string
- * for an invalid value.
- *
- * @param[in] type The data type.
- */
-SDFIO_API const char *sdfio_data_type_name(sdfio_data_type type);
 
 /**
  * Returns the size in bytes of one value of the data area in a data type, or 0
@@ -347,22 +332,45 @@ typedef struct sdfio_header
 SDFIO_API void sdfio_header_init(sdfio_header *header);
 
 /**
- * Returns true if a value of the data area is the bad value, which labels a
- * point that is not measured or spurious.
+ * The bad value of each data type: the number that labels a point that is not
+ * measured or spurious. It is the minimum of the type, which the standard
+ * excludes for a valid height.
  *
- * @param type The data type of the value.
- * @param value The value of the data area.
+ * @{
  */
-SDFIO_API bool sdfio_is_bad_value(sdfio_data_type type, double value);
+/** The bad value of SDFIO_DATA_INT8. */
+#define SDFIO_BAD_INT8 INT8_MIN
+/** The bad value of SDFIO_DATA_INT16. */
+#define SDFIO_BAD_INT16 INT16_MIN
+/** The bad value of SDFIO_DATA_INT32. */
+#define SDFIO_BAD_INT32 INT32_MIN
+/** The bad value of SDFIO_DATA_BINARY32. */
+#define SDFIO_BAD_BINARY32 (-FLT_MAX)
+/** The bad value of SDFIO_DATA_BINARY64. */
+#define SDFIO_BAD_BINARY64 (-DBL_MAX)
+/** @} */
+
+/** The size of the magic that starts every file, in bytes. */
+#define SDFIO_MAGIC_SIZE 8
 
 /**
- * Returns the bad value of a data type: the number that labels a point as not
- * measured or spurious. It is the minimum of the type, which the standard
- * excludes for a valid height. ASCII files denote it by the string `BAD`.
- *
- * @param type The data type.
+ * Returns the number of magics that a file can start with in this build: two
+ * for the binary representation and, if the library was built with support for
+ * the ASCII format, two more for the ASCII representation.
  */
-SDFIO_API double sdfio_bad_value(sdfio_data_type type);
+SDFIO_API size_t sdfio_magic_count(void);
+
+/**
+ * Returns a magic that a file can start with, for example "bISO-2.0": the
+ * letter b or a for the binary or the ASCII representation, and the revision.
+ * The text has SDFIO_MAGIC_SIZE characters and a terminator. A program can
+ * compare the first bytes of a file with each magic to find out whether the
+ * library reads it.
+ *
+ * @param index A number below sdfio_magic_count().
+ * @return The magic, or null if the index is not below the count.
+ */
+SDFIO_API const char *sdfio_magic(size_t index);
 
 /* ---- Streams ------------------------------------------------------------ */
 

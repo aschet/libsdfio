@@ -190,7 +190,7 @@ sdfio_status sdfio_binary_header(const sdfio_header *header,
 {
     unsigned char *at = out;
     char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
-    const char *revision_name = sdfio_revision_name(header->revision);
+    const char *revision_name = sdfio_revision_text(header->revision);
     const size_t revision_size = strlen(revision_name);
     memcpy(magic + 1, revision_name,
            revision_size < SDFIO_MAGIC_SIZE ? revision_size

@@ -114,6 +114,30 @@ static bool parse_line(char *line, expectation *e)
     return true;
 }
 
+/* The names that the expectations of the files use. */
+static const char *revision_text(sdfio_revision revision)
+{
+    return revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0";
+}
+
+static const char *type_text(sdfio_data_type type)
+{
+    switch (type)
+    {
+    case SDFIO_DATA_BINARY32:
+        return "binary32";
+    case SDFIO_DATA_INT8:
+        return "int8";
+    case SDFIO_DATA_INT16:
+        return "int16";
+    case SDFIO_DATA_INT32:
+        return "int32";
+    case SDFIO_DATA_BINARY64:
+        return "binary64";
+    }
+    return "";
+}
+
 static void check_against(const expectation *e)
 {
     char path[LINE_CAPACITY + 128];
@@ -130,11 +154,11 @@ static void check_against(const expectation *e)
         sdfio_reader_free(reader);
         return;
     }
-    CHECK(strcmp(sdfio_revision_name(header->revision), e->revision) == 0);
+    CHECK(strcmp(revision_text(header->revision), e->revision) == 0);
     CHECK(strcmp(header->representation == SDFIO_ASCII ? "ascii" : "binary",
                  e->representation)
           == 0);
-    CHECK(strcmp(sdfio_data_type_name(header->data_type), e->type) == 0);
+    CHECK(strcmp(type_text(header->data_type), e->type) == 0);
     CHECK(header->rows == e->rows);
     CHECK(header->columns == e->columns);
     CHECK(header->x_scale == e->x_scale);

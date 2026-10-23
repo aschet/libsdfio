@@ -39,7 +39,7 @@ static int write_counts(const char *path)
     header.z_scale = sdfio_z_scale_for_range(header.data_type, -80e-6, 80e-6);
     header.z_resolution = header.z_scale;
 
-    const int16_t not_measured = (int16_t)sdfio_bad_value(header.data_type);
+    const int16_t not_measured = SDFIO_BAD_INT16;
     sdfio_writer *writer = sdfio_writer_new(NULL);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
@@ -80,7 +80,7 @@ static int read_counts(const char *path)
     {
         status = SDFIO_ERR_MEMORY;
     }
-    const int16_t not_measured = (int16_t)sdfio_bad_value(header->data_type);
+    const int16_t not_measured = SDFIO_BAD_INT16;
     size_t unmeasured = 0;
     size_t measured = 0;
     size_t out_of_place = 0;
@@ -93,7 +93,7 @@ static int read_counts(const char *path)
             memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;
         for (size_t x = 0; status == SDFIO_OK && x < header->columns; ++x)
         {
-            if (sdfio_is_bad_value(header->data_type, row[x]))
+            if (row[x] == SDFIO_BAD_INT16)
             {
                 ++unmeasured;
             }
@@ -114,9 +114,9 @@ static int read_counts(const char *path)
         const double mean = sum / (double)measured;
         printf("%s %zu x %zu, %zu points not measured, mean %g counts = %g m, "
                "%zu rows out of place\n",
-               sdfio_revision_name(header->revision), header->columns,
-               header->rows, unmeasured, mean, mean * header->z_scale,
-               out_of_place);
+               header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
+               header->columns, header->rows, unmeasured, mean,
+               mean * header->z_scale, out_of_place);
     }
     free(row);
     free(expected);

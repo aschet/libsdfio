@@ -314,8 +314,28 @@ static void check_arguments(void)
     free(sink.data);
 }
 
+/* The magics a build reads: the binary ones, and the ASCII ones if they are
+ * built. */
+static void check_magics(void)
+{
+    CHECK(sdfio_magic_count() == (WITH_TEXT ? 4U : 2U));
+    CHECK(strcmp(sdfio_magic(0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_magic(1), "bISO-2.0") == 0);
+    if (WITH_TEXT)
+    {
+        CHECK(strcmp(sdfio_magic(2), "aISO-1.0") == 0);
+        CHECK(strcmp(sdfio_magic(3), "aISO-2.0") == 0);
+    }
+    for (size_t i = 0; i < sdfio_magic_count(); ++i)
+    {
+        CHECK(strlen(sdfio_magic(i)) == SDFIO_MAGIC_SIZE);
+    }
+    CHECK(sdfio_magic(sdfio_magic_count()) == NULL);
+}
+
 int main(void)
 {
+    check_magics();
     check_counted();
     check_small();
     check_arena();
