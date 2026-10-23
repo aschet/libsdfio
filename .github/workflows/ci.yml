@@ -66,6 +66,15 @@ jobs:
               -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc
               -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu
             emulator: qemu-s390x -L /usr/s390x-linux-gnu
+          - name: GCC RISC-V Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            packages: qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
+            toolchain: >-
+              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=riscv64
+              -DCMAKE_C_COMPILER=riscv64-linux-gnu-gcc
+              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-riscv64;-L;/usr/riscv64-linux-gnu
+            emulator: qemu-riscv64 -L /usr/riscv64-linux-gnu
           - name: Clang x86-64 Linux
             runner: ubuntu-latest
             generator: Ninja
