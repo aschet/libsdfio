@@ -15,29 +15,15 @@ interface, and the [examples](examples) show how to use it.
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build
-```
-
-To install the library:
-
-```sh
 cmake --install build --prefix /path/to/prefix
 ```
 
-A project then uses it with `find_package(sdfio REQUIRED)` and links the
-target `sdfio::sdfio`. On Linux and macOS the installation also has a
-pkg-config file: `pkg-config --cflags --libs sdfio`, with `--static` for the
-static library.
+An installed library is used with `find_package(sdfio REQUIRED)` and the target
+`sdfio::sdfio`, or with pkg-config.
 
-With Visual Studio, in PowerShell, the generator builds every configuration, so
-the commands name the one to build, test and install. `-A` selects `x64`,
-`Win32` or `ARM64`:
-
-```powershell
-cmake -S . -B build -A x64
-cmake --build build --config Release
-ctest --test-dir build -C Release
-cmake --install build --config Release --prefix C:\sdfio
-```
+With Visual Studio, configure with `-A x64` (or `Win32`, `ARM64`) and name the
+configuration in the other commands: `--config Release`, and `-C Release` for
+`ctest`.
 
 ## Checks
 
