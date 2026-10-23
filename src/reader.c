@@ -15,7 +15,7 @@
 #include "heights.h"
 #include "owner.h"
 #include "settings.h"
-#include "stream.h"
+#include "source.h"
 #include "types.h"
 
 /** A stream over memory of the caller, for sdfio_open_memory(). */

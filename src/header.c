@@ -13,7 +13,7 @@
 #include "codec.h"
 #include "common.h"
 #include "dates.h"
-#include "stream.h"
+#include "source.h"
 #include "text.h"
 #include "types.h"
 

@@ -11,7 +11,7 @@
 
 #include "tagged.h"
 #include "common.h"
-#include "stream.h"
+#include "sink.h"
 #include "text.h"
 
 bool sdfio_next_line(const char *text, size_t size, size_t *position,

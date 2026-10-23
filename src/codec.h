@@ -13,7 +13,8 @@
 #define SDFIO_SRC_CODEC_H
 
 #include "decimal.h"
-#include "stream.h"
+#include "source.h"
+#include "sink.h"
 
 /** The room for the text of one value in an ASCII data area, with its
  * separator, which is the most that a codec asks for. */

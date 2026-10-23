@@ -76,9 +76,11 @@ set(SDFIO_SOURCES
     src/reader.c
     src/settings.c
     src/settings.h
+    src/sink.c
+    src/sink.h
     src/sizes.c
-    src/stream.c
-    src/stream.h
+    src/source.c
+    src/source.h
     src/tagged.c
     src/tagged.h
     src/text.c

@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_TAGGED_H
 #define SDFIO_SRC_TAGGED_H
 
-#include "stream.h"
+#include "sink.h"
 
 /**
  * Converts a trailer from the file: every line end becomes LF, and the end of

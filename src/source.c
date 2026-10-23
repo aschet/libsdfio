@@ -5,11 +5,11 @@
  */
 
 /**
- * @file stream.c
- * @brief Buffered byte sources and sinks.
+ * @file source.c
+ * @brief Buffered byte source.
  */
 
-#include "stream.h"
+#include "source.h"
 #include "common.h"
 
 bool sdfio_source_create(sdfio_source *source, size_t capacity,
@@ -124,71 +124,6 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
     return done;
 }
 
-bool sdfio_sink_create(sdfio_sink *sink, size_t capacity,
-                       const sdfio_allocator *allocator)
-{
-    sink->buffer = sdfio_allocate(allocator, capacity);
-    sink->capacity = capacity;
-    sink->allocator = allocator;
-    return sink->buffer != NULL;
-}
-
-void sdfio_sink_destroy(sdfio_sink *sink)
-{
-    sdfio_release(sink->allocator, sink->buffer);
-    sink->buffer = NULL;
-}
-
-void sdfio_sink_init(sdfio_sink *sink, const sdfio_stream *io)
-{
-    sink->io = *io;
-    sink->used = 0;
-    sink->failed = false;
-}
-
-bool sdfio_sink_flush(sdfio_sink *sink)
-{
-    if (sink->used > 0 && !sink->failed)
-    {
-        if (sink->io.write == NULL
-            || sink->io.write(sink->io.user, sink->buffer, sink->used)
-                   != sink->used)
-        {
-            sink->failed = true;
-        }
-    }
-    sink->used = 0;
-    return !sink->failed;
-}
-
-bool sdfio_sink_write(sdfio_sink *sink, const void *data, size_t size)
-{
-    if (sink->failed)
-    {
-        return false;
-    }
-    if (size >= sink->capacity)
-    {
-        if (!sdfio_sink_flush(sink))
-        {
-            return false;
-        }
-        if (sink->io.write == NULL
-            || sink->io.write(sink->io.user, data, size) != size)
-        {
-            sink->failed = true;
-        }
-        return !sink->failed;
-    }
-    if (size > sink->capacity - sink->used && !sdfio_sink_flush(sink))
-    {
-        return false;
-    }
-    memcpy(sink->buffer + sink->used, data, size);
-    sink->used += size;
-    return true;
-}
-
 sdfio_status sdfio_source_failure(const sdfio_source *source,
                                   sdfio_message *message,
                                   const char *format_text)
@@ -203,9 +138,4 @@ sdfio_status sdfio_source_failure(const sdfio_source *source,
                           "The stream could not be read");
     }
     return sdfio_fail(message, SDFIO_ERR_FORMAT, format_text);
-}
-
-sdfio_status sdfio_sink_failure(sdfio_message *message)
-{
-    return sdfio_fail(message, SDFIO_ERR_IO, "The stream could not be written");
 }

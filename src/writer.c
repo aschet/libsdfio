@@ -15,7 +15,7 @@
 #include "heights.h"
 #include "owner.h"
 #include "settings.h"
-#include "stream.h"
+#include "sink.h"
 #include "tagged.h"
 #include "types.h"
 
