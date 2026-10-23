@@ -103,6 +103,19 @@
  * must not be changed while a call is in progress.
  */
 
+/**
+ * @mainpage libsdfio
+ *
+ * libsdfio is a bare-bones, portable C library that reads and writes the SDF
+ * surface data files of ISO 25178-71, in the revisions ISO-1.0 and ISO-2.0 and
+ * in the ASCII and the binary format.
+ *
+ * The interface is declared in `<sdfio/sdfio.h>`, which does not depend on the
+ * file functions of the C library, and in `<sdfio/file.h>`, which adds the
+ * functions for files. The description of `<sdfio/sdfio.h>` gives an overview
+ * of the layers of the interface. The example programs show typical uses.
+ */
+
 #ifndef SDFIO_SDFIO_H
 #define SDFIO_SDFIO_H
 
