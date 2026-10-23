@@ -89,12 +89,13 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out);
  * Writes a number as 1.5e+000.
  *
  * @param decimal_point The decimal point of the locale.
- * @param[out] out Receives the text, without a terminator.
+ * @param[out] out Receives the text, without a terminator. A text that is
+ * longer than the capacity is cut off.
  * @param capacity The size of `out`.
  * @param value The number.
  * @param digits The digits after the point.
  * @param exponent_width The digits of the exponent.
- * @return The length of the text.
+ * @return The length of the text, which can exceed the capacity.
  */
 size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
                                char *out, size_t capacity, double value,

@@ -34,9 +34,9 @@ static bool formats(const sdfio_decimal_point *decimal_point, double value,
                     int digits, int exponent, const char *expected)
 {
     char text[SDFIO_NUMBER_CAPACITY];
-    sdfio_format_scientific(decimal_point, text, sizeof text, value, digits,
-                            exponent);
-    return strcmp(text, expected) == 0;
+    const size_t length = sdfio_format_scientific(
+        decimal_point, text, sizeof text, value, digits, exponent);
+    return length == strlen(expected) && memcmp(text, expected, length) == 0;
 }
 
 static void check_numbers(const sdfio_decimal_point *decimal_point)
@@ -96,6 +96,19 @@ static void check_numbers(const sdfio_decimal_point *decimal_point)
     CHECK(formats(decimal_point, -2.5e-300, 3, 3, "-2.500e-300"));
     CHECK(formats(decimal_point, 1e100, 1, 3, "1.0e+100"));
     CHECK(formats(decimal_point, 12345.0, 2, 2, "1.23e+04"));
+    CHECK(formats(decimal_point, -1.5, 6, 2, "-1.500000e+00"));
+    CHECK(formats(decimal_point, 2.0, 0, 2, "2e+00"));
+    CHECK(formats(decimal_point, -2.0e-5, 0, 3, "-2e-005"));
+    CHECK(formats(decimal_point, INFINITY, 6, 2, "inf"));
+    CHECK(formats(decimal_point, -INFINITY, 6, 2, "-inf"));
+    CHECK(formats(decimal_point, NAN, 6, 2, "nan"));
+
+    /* A text that exceeds the capacity is cut off, and its length is returned.
+     */
+    char cut[4] = "";
+    CHECK(sdfio_format_scientific(decimal_point, cut, sizeof cut, 1.5, 6, 2)
+              == strlen("1.500000e+00")
+          && memcmp(cut, "1.50", sizeof cut) == 0);
 
     /* What is printed is read back. */
     uint32_t state = 12345u;

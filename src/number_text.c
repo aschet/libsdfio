@@ -205,6 +205,14 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
     return true;
 }
 
+/* Copies as much of a text as the capacity holds and returns its length. */
+static size_t copy_text(char *out, size_t capacity, const char *text,
+                        size_t size)
+{
+    memcpy(out, text, size < capacity ? size : capacity);
+    return size;
+}
+
 size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
                                char *out, size_t capacity, double value,
                                int digits, int exponent_width)
@@ -216,51 +224,56 @@ size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
     }
     if (isnan(value))
     {
-        return (size_t)snprintf(out, capacity, "nan");
+        return copy_text(out, capacity, "nan", 3);
     }
     char raw[SDFIO_NUMBER_CAPACITY];
-    const int length = snprintf(raw, sizeof raw, "%.*e", digits, value);
-    if (length < 0 || (size_t)length >= sizeof raw)
+    const int printed = snprintf(raw, sizeof raw, "%.*e", digits, value);
+    if (printed < 0 || (size_t)printed >= sizeof raw)
     {
-        return (size_t)snprintf(out, capacity, "0");
+        return copy_text(out, capacity, "0", 1);
     }
-    char *marker = strchr(raw, 'e');
+    const size_t length = (size_t)printed;
+    const char *marker = memchr(raw, 'e', length);
     if (marker == NULL)
     {
-        return (size_t)snprintf(out, capacity, "%s", raw); /* inf */
+        return copy_text(out, capacity, raw, length); /* inf */
     }
-    *marker = '\0';
 
-    /* The mantissa with a dot. */
-    char mantissa[SDFIO_NUMBER_CAPACITY];
-    size_t used = 0;
-    const size_t decimal_point_size = strlen(decimal_point->text);
-    for (const char *p = raw; *p != '\0';)
+    /* The C standard gives the form of the conversion: an optional minus, one
+     * digit, the decimal point of the locale if digits follow, the digits, e, a
+     * sign and at least two digits of the exponent. */
+    char text[SDFIO_NUMBER_CAPACITY];
+    size_t used = raw[0] == '-' ? 2 : 1;
+    memcpy(text, raw, used);
+    const char *rest = raw + used;
+    if (rest < marker)
     {
-        if (decimal_point_size > 0
-            && strncmp(p, decimal_point->text, decimal_point_size) == 0)
-        {
-            mantissa[used++] = '.';
-            p += decimal_point_size;
-        }
-        else
-        {
-            mantissa[used++] = *p++;
-        }
+        text[used++] = '.';
+        rest += strlen(decimal_point->text);
+        memcpy(text + used, rest, (size_t)(marker - rest));
+        used += (size_t)(marker - rest);
     }
-    mantissa[used] = '\0';
 
     /* The exponent has a sign and at least `exponent_width` digits, which the
      * C library does not promise. */
-    const char sign = marker[1] == '-' ? '-' : '+';
     const char *exponent = marker + 2;
-    while (exponent[0] == '0' && strlen(exponent) > 1)
+    const char *end = raw + length;
+    while (end - exponent > 1 && exponent[0] == '0')
     {
         ++exponent;
     }
-    const size_t exponent_size = strlen(exponent);
+    const size_t exponent_size = (size_t)(end - exponent);
     const size_t width = (size_t)exponent_width;
     const size_t padding = exponent_size < width ? width - exponent_size : 0;
-    return (size_t)snprintf(out, capacity, "%se%c%.*s%s", mantissa, sign,
-                            (int)padding, "0000000000", exponent);
+    if (used + 2 + padding + exponent_size > sizeof text)
+    {
+        return copy_text(out, capacity, "0", 1);
+    }
+    text[used++] = 'e';
+    text[used++] = marker[1] == '-' ? '-' : '+';
+    memset(text + used, '0', padding);
+    used += padding;
+    memcpy(text + used, exponent, exponent_size);
+    used += exponent_size;
+    return copy_text(out, capacity, text, used);
 }

@@ -114,8 +114,10 @@ static bool append_scale(sdfio_string *out,
                          const char *name, double value)
 {
     char text[SDFIO_NUMBER_CAPACITY];
-    sdfio_format_scientific(decimal_point, text, sizeof text, value,
-                            SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
+    const size_t length =
+        sdfio_format_scientific(decimal_point, text, sizeof text - 1, value,
+                                SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
+    text[length < sizeof text - 1 ? length : sizeof text - 1] = '\0';
     return append_field(out, name, text);
 }
 
