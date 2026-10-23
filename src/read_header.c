@@ -10,7 +10,6 @@
  */
 
 #include "read_header.h"
-#include "fields.h"
 #include "message.h"
 #include "source.h"
 #include <sdfio/sdfio.h>

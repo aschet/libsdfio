@@ -31,13 +31,6 @@ void sdfio_writer_own(sdfio_writer *writer, sdfio_owner owner);
 sdfio_message *sdfio_writer_message(sdfio_writer *writer);
 
 /**
- * Tells whether a writer has not started a file.
- *
- * @param writer The writer.
- */
-bool sdfio_writer_is_new(const sdfio_writer *writer);
-
-/**
  * Checks that a writer can create a file, before the file is created.
  *
  * @param writer The writer.

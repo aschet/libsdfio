@@ -18,7 +18,6 @@
 #include "datetime.h"
 #include "fields.h"
 #include "message.h"
-#include "revision.h"
 #include "sink.h"
 #include "writer_codec.h"
 #include <limits.h>

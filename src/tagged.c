@@ -16,8 +16,8 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-bool sdfio_next_line(const char *text, size_t size, size_t *position,
-                     const char **line, size_t *line_size)
+static bool next_line(const char *text, size_t size, size_t *position,
+                      const char **line, size_t *line_size)
 {
     if (*position >= size)
     {
@@ -47,7 +47,7 @@ bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size)
     size_t position = 0;
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfio_next_line(text, size, &position, &line, &line_size))
+    while (next_line(text, size, &position, &line, &line_size))
     {
         if (!sdfio_sink_write(sink, line, line_size)
             || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
@@ -125,7 +125,7 @@ bool sdfio_tagged_valid(const char *text, size_t size)
     size_t position = 0;
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfio_next_line(text, size, &position, &line, &line_size))
+    while (next_line(text, size, &position, &line, &line_size))
     {
         const char *blank = line;
         size_t blank_size = line_size;
@@ -144,13 +144,13 @@ bool sdfio_tagged_valid(const char *text, size_t size)
     return true;
 }
 
-bool sdfio_tagged_next(const char *text, size_t size, size_t *position,
-                       const char **name, size_t *name_size, const char **value,
-                       size_t *value_size)
+static bool tagged_next(const char *text, size_t size, size_t *position,
+                        const char **name, size_t *name_size,
+                        const char **value, size_t *value_size)
 {
     const char *line = NULL;
     size_t line_size = 0;
-    while (sdfio_next_line(text, size, position, &line, &line_size))
+    while (next_line(text, size, position, &line, &line_size))
     {
         if (split_line(line, line_size, name, name_size, value, value_size))
         {
@@ -170,8 +170,8 @@ bool sdfio_tagged_find(const char *text, size_t size, const char *name,
     const char *content = NULL;
     size_t field_size = 0;
     size_t content_size = 0;
-    while (sdfio_tagged_next(text, size, &position, &field, &field_size,
-                             &content, &content_size))
+    while (tagged_next(text, size, &position, &field, &field_size, &content,
+                       &content_size))
     {
         bool same = field_size == wanted;
         for (size_t i = 0; i < wanted && same; ++i)

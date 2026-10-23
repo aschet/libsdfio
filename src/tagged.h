@@ -24,41 +24,12 @@
 void sdfio_lines_to_lf(sdfio_string *text);
 
 /**
- * Finds the next line of a text, ended by LF, CR or CRLF.
- *
- * @param text The text.
- * @param size The length of the text.
- * @param[in,out] position Where to start, and where the next line starts.
- * @param[out] line Receives the line without its end.
- * @param[out] line_size Receives the length of the line.
- * @return False if there is no line left.
- */
-bool sdfio_next_line(const char *text, size_t size, size_t *position,
-                     const char **line, size_t *line_size);
-
-/**
  * Tells whether every line of a text is blank or of the form `Name = Value`.
  *
  * @param text The text.
  * @param size The length of the text.
  */
 bool sdfio_tagged_valid(const char *text, size_t size);
-
-/**
- * Finds the next line that is a field.
- *
- * @param text The text.
- * @param size The length of the text.
- * @param[in,out] position Where to start, and where the search goes on.
- * @param[out] name Receives the name, trimmed.
- * @param[out] name_size Receives the length of the name.
- * @param[out] value Receives the value, trimmed.
- * @param[out] value_size Receives the length of the value.
- * @return False if there is no field left.
- */
-bool sdfio_tagged_next(const char *text, size_t size, size_t *position,
-                       const char **name, size_t *name_size, const char **value,
-                       size_t *value_size);
 
 /**
  * Finds the field of a name.

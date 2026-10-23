@@ -77,11 +77,6 @@ sdfio_message *sdfio_writer_message(sdfio_writer *writer)
     return &writer->message;
 }
 
-bool sdfio_writer_is_new(const sdfio_writer *writer)
-{
-    return writer->state == SDFIO_WRITER_NEW;
-}
-
 const char *sdfio_writer_error_message(const sdfio_writer *writer)
 {
     return writer != NULL && writer->message.text != NULL ? writer->message.text

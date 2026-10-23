@@ -16,10 +16,7 @@
 #include "fields.h"
 #include "message.h"
 #include "number_text.h"
-#include "revision.h"
 #include "sink.h"
-#include "tagged.h"
-#include "text.h"
 #include "writer_codec.h"
 #include <sdfio/sdfio.h>
 #include <stdio.h>

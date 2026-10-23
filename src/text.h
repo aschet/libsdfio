@@ -55,15 +55,6 @@ static inline char sdfio_lower(char c)
 }
 
 /**
- * Compares a text with a word in lower case, without regard to case.
- *
- * @param text The text.
- * @param size The length of the text.
- * @param lower The word, in lower case and 0-terminated.
- */
-bool sdfio_equals_nocase(const char *text, size_t size, const char *lower);
-
-/**
  * Removes white space from both ends of a text.
  *
  * @param[in,out] text The start of the text.

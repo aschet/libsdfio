@@ -9,7 +9,6 @@
  * @brief Reading of the data area as heights.
  */
 
-#include "data_type.h"
 #include "heights.h"
 #include "reader_state.h"
 
