@@ -561,7 +561,7 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
         _Static_assert(sizeof(type) <= sizeof(int32_t),                        \
                        "the integer is parsed in 32 bits");                    \
         int32_t parsed = 0;                                                    \
-        if (!sdfio_parse_int32(token, size, (low), (high), &parsed))           \
+        if (!sdfio_parse_bounded_integer(token, size, (low), (high), &parsed)) \
         {                                                                      \
             return false;                                                      \
         }                                                                      \

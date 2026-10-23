@@ -90,35 +90,40 @@ static void check_numbers(const sdfio_decimal_point *decimal_point)
     CHECK(!sdfio_parse_integer("-", 1, &integer));
 
     int32_t small = 0;
-    CHECK(sdfio_parse_int32("127", 3, INT8_MIN, INT8_MAX, &small)
+    CHECK(sdfio_parse_bounded_integer("127", 3, INT8_MIN, INT8_MAX, &small)
           && small == 127);
-    CHECK(!sdfio_parse_int32("128", 3, INT8_MIN, INT8_MAX, &small));
-    CHECK(sdfio_parse_int32("-128", 4, INT8_MIN, INT8_MAX, &small)
+    CHECK(!sdfio_parse_bounded_integer("128", 3, INT8_MIN, INT8_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("-128", 4, INT8_MIN, INT8_MAX, &small)
           && small == INT8_MIN);
-    CHECK(!sdfio_parse_int32("-129", 4, INT8_MIN, INT8_MAX, &small));
-    CHECK(sdfio_parse_int32("+5", 2, INT16_MIN, INT16_MAX, &small)
+    CHECK(!sdfio_parse_bounded_integer("-129", 4, INT8_MIN, INT8_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("+5", 2, INT16_MIN, INT16_MAX, &small)
           && small == 5);
-    CHECK(sdfio_parse_int32("007", 3, INT16_MIN, INT16_MAX, &small)
+    CHECK(sdfio_parse_bounded_integer("007", 3, INT16_MIN, INT16_MAX, &small)
           && small == 7);
-    CHECK(sdfio_parse_int32("-0", 2, INT16_MIN, INT16_MAX, &small)
+    CHECK(sdfio_parse_bounded_integer("-0", 2, INT16_MIN, INT16_MAX, &small)
           && small == 0);
-    CHECK(sdfio_parse_int32("32767", 5, INT16_MIN, INT16_MAX, &small)
+    CHECK(sdfio_parse_bounded_integer("32767", 5, INT16_MIN, INT16_MAX, &small)
           && small == INT16_MAX);
-    CHECK(!sdfio_parse_int32("32768", 5, INT16_MIN, INT16_MAX, &small));
-    CHECK(sdfio_parse_int32("2147483647", 10, INT32_MIN, INT32_MAX, &small)
+    CHECK(
+        !sdfio_parse_bounded_integer("32768", 5, INT16_MIN, INT16_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("2147483647", 10, INT32_MIN, INT32_MAX,
+                                      &small)
           && small == INT32_MAX);
-    CHECK(!sdfio_parse_int32("2147483648", 10, INT32_MIN, INT32_MAX, &small));
-    CHECK(sdfio_parse_int32("-2147483648", 11, INT32_MIN, INT32_MAX, &small)
+    CHECK(!sdfio_parse_bounded_integer("2147483648", 10, INT32_MIN, INT32_MAX,
+                                       &small));
+    CHECK(sdfio_parse_bounded_integer("-2147483648", 11, INT32_MIN, INT32_MAX,
+                                      &small)
           && small == INT32_MIN);
-    CHECK(!sdfio_parse_int32("-2147483649", 11, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("99999999999999999999", 20, INT32_MIN, INT32_MAX,
-                             &small));
-    CHECK(!sdfio_parse_int32("", 0, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("-", 1, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("1.0", 3, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("12a", 3, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("1 2", 3, INT32_MIN, INT32_MAX, &small));
-    CHECK(!sdfio_parse_int32("--1", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("-2147483649", 11, INT32_MIN, INT32_MAX,
+                                       &small));
+    CHECK(!sdfio_parse_bounded_integer("99999999999999999999", 20, INT32_MIN,
+                                       INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("", 0, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("-", 1, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("1.0", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("12a", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("1 2", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("--1", 3, INT32_MIN, INT32_MAX, &small));
 
     CHECK(formats(decimal_point, 1.5, 14, 3, "1.50000000000000e+000"));
     CHECK(formats(decimal_point, 1.5, 6, 2, "1.500000e+00"));

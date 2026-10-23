@@ -209,8 +209,8 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
     return true;
 }
 
-bool sdfio_parse_int32(const char *text, size_t size, int32_t low, int32_t high,
-                       int32_t *out)
+bool sdfio_parse_bounded_integer(const char *text, size_t size, int32_t low,
+                                 int32_t high, int32_t *out)
 {
     bool negative = false;
     if (size > 0 && (text[0] == '+' || text[0] == '-'))

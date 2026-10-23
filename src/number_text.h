@@ -97,8 +97,8 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out);
  * @param[out] out Receives the integer.
  * @return False if the text is not an integer or lies outside the bounds.
  */
-bool sdfio_parse_int32(const char *text, size_t size, int32_t low, int32_t high,
-                       int32_t *out);
+bool sdfio_parse_bounded_integer(const char *text, size_t size, int32_t low,
+                                 int32_t high, int32_t *out);
 
 /**
  * Writes a number as 1.5e+000.
