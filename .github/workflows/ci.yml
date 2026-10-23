@@ -119,7 +119,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: GCC ARM Cortex-M4 bare metal
+          # A Cortex-M4 with a floating point unit.
+          - name: GCC ARM bare metal
             packages: gcc-arm-none-eabi libnewlib-arm-none-eabi
             prefix: arm-none-eabi
             processor: arm
@@ -127,6 +128,7 @@ jobs:
               -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
               -ffunction-sections -fdata-sections --specs=nano.specs
               --specs=nosys.specs
+          # RV32IMAC.
           - name: GCC RISC-V bare metal
             packages: gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
             prefix: riscv64-unknown-elf
