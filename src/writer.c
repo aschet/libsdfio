@@ -526,8 +526,8 @@ sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
-                                 size_t size)
+sdfio_status sdfio_write_trailer_text(sdfio_writer *writer, const char *text,
+                                      size_t size)
 {
     sdfio_status status = require_writable(writer);
     if (status == SDFIO_OK)
@@ -538,7 +538,7 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     {
         return status;
     }
-    if (trailer == NULL && size > 0)
+    if (text == NULL && size > 0)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "A trailer with a size needs its text");
@@ -548,9 +548,27 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     {
         return status;
     }
-    if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, trailer, size))
+    if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, text, size))
     {
         return write_failed(writer);
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_end_file(sdfio_writer *writer)
+{
+    sdfio_status status = require_writable(writer);
+    if (status == SDFIO_OK)
+    {
+        status = require_complete(writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = open_trailer(writer);
+    }
+    if (status != SDFIO_OK)
+    {
+        return status;
     }
     status = writer->codec->end_trailer(&writer->sink, &writer->message);
     if (status != SDFIO_OK)

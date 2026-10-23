@@ -67,7 +67,7 @@ int main(void)
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
     CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
     CHECK_OK(sdfio_write_trailer_field(writer, "Averages", "16"));
-    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    CHECK_OK(sdfio_end_file(writer));
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 

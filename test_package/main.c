@@ -57,7 +57,7 @@ int main(void)
         failed |= check(sdfio_create_file(writer, path, &header), "create");
         failed |= check(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights),
                         "write");
-        failed |= check(sdfio_write_trailer(writer, NULL, 0), "trailer");
+        failed |= check(sdfio_end_file(writer), "trailer");
     }
     sdfio_writer_free(writer);
 

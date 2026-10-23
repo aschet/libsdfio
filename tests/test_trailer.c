@@ -40,7 +40,7 @@ static void start_file(small_file *small, sdfio_representation representation)
  * file reports as null and an ASCII file as an empty text. */
 static bool read_trailer_of(small_file *small, const char *expected)
 {
-    CHECK_OK(sdfio_write_trailer(small->writer, NULL, 0));
+    CHECK_OK(sdfio_end_file(small->writer));
     sdfio_writer_free(small->writer);
     sdfio_reader *reader = sdfio_reader_new(&all_codecs);
     CHECK_OK(sdfio_open_memory(reader, small->file.data, small->file.size));
@@ -76,19 +76,13 @@ static void check_fields(void)
         start_file(&small, representations[i]);
         CHECK(read_trailer_of(&small, NULL));
 
-        /* Fields, then text. */
+        /* Fields and text follow each other in any order. */
         start_file(&small, representations[i]);
+        CHECK_OK(sdfio_write_trailer_text(small.writer, "free text", 9));
         CHECK_OK(sdfio_write_trailer_field(small.writer, "A", "b"));
-        CHECK_OK(sdfio_write_trailer(small.writer, "free text", 9));
-        sdfio_writer_free(small.writer);
-        sdfio_reader *reader = sdfio_reader_new(&all_codecs);
-        CHECK_OK(sdfio_open_memory(reader, small.file.data, small.file.size));
-        const char *read = NULL;
-        size_t size = 0;
-        CHECK_OK(sdfio_read_trailer(reader, &read, &size));
-        CHECK(read != NULL && same(read, size, "A = b\nfree text"));
-        sdfio_reader_free(reader);
-        free(small.file.data);
+        CHECK_OK(sdfio_write_trailer_text(small.writer, "more\ntext", 9));
+        CHECK_OK(sdfio_write_trailer_field(small.writer, "C", "d"));
+        CHECK(read_trailer_of(&small, "free text\nA = b\nmore\ntext\nC = d"));
     }
 }
 
@@ -139,7 +133,7 @@ static void check_the_order(void)
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
     CHECK_OK(sdfio_write_data_float(writer, &height, 1));
     CHECK_OK(sdfio_write_trailer_field(writer, "A", "b"));
-    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    CHECK_OK(sdfio_end_file(writer));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
     sdfio_writer_free(writer);
     free(file.data);
@@ -170,8 +164,9 @@ static void check_the_text_is_written_as_given(void)
             sdfio_writer *writer = sdfio_writer_new(&all_codecs);
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
             CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
-            CHECK_OK(
-                sdfio_write_trailer(writer, trailers[t], strlen(trailers[t])));
+            CHECK_OK(sdfio_write_trailer_text(writer, trailers[t],
+                                              strlen(trailers[t])));
+            CHECK_OK(sdfio_end_file(writer));
             sdfio_writer_free(writer);
 
             sdfio_reader *reader = sdfio_reader_new(&all_codecs);
@@ -195,8 +190,8 @@ static void check_the_text_is_written_as_given(void)
     sdfio_writer *writer = sdfio_writer_new(&all_codecs);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
-    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_text(writer, NULL, 5));
+    CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     free(file.data);
 }

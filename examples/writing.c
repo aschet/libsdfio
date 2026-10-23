@@ -55,7 +55,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_trailer(writer, NULL, 0);
+        status = sdfio_end_file(writer);
     }
     if (status != SDFIO_OK)
     {

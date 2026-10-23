@@ -21,7 +21,8 @@
  * 2. Records. sdfio_get_header() provides the header. sdfio_read_data() and
  *    sdfio_write_data() transfer the data area row by row in the coded form of
  *    the file. sdfio_read_trailer(), sdfio_write_trailer_field() and
- *    sdfio_write_trailer() transfer the trailer.
+ *    sdfio_write_trailer_text() transfer the trailer, and sdfio_end_file() ends
+ *    a file that is written.
  * 3. Heights. sdfio_decode_heights() and sdfio_encode_heights() convert between
  *    the coded values of the data area and heights in metres. They require
  *    only a header, no handle.
@@ -934,7 +935,7 @@ SDFIO_API sdfio_writer *sdfio_writer_new(const sdfio_config *config);
 
 /**
  * Releases a writer. A file that sdfio_create_file() created and
- * sdfio_write_trailer() did not end is closed in its incomplete state. A null
+ * sdfio_end_file() did not end is closed in its incomplete state. A null
  * pointer is ignored.
  *
  * @param writer The writer.
@@ -1076,7 +1077,7 @@ SDFIO_API sdfio_status sdfio_write_data_double(sdfio_writer *writer,
  * `header->rows` rows of `header->columns` samples follow each other, and the
  * row y = 0 is the first. For an integer data type with SDFIO_AUTO_Z_SCALE the
  * z-scale is selected from the heights. NaN and infinity label points that are
- * not measured. Call sdfio_write_trailer() afterwards.
+ * not measured. Call sdfio_end_file() afterwards.
  *
  * It is sdfio_write_heights_strided() with sdfio_format_packed().
  *
@@ -1104,7 +1105,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * `src + y * format.row_stride + x * format.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
  * z-scale is selected from the heights. NaN, infinity and `format.missing`
- * label points that are not measured. Call sdfio_write_trailer() afterwards.
+ * label points that are not measured. Call sdfio_end_file() afterwards.
  *
  * @param writer The writer.
  * @param format The format of the buffer.
@@ -1123,9 +1124,10 @@ SDFIO_API sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
 
 /**
  * Writes a line `field = value` of the trailer (record 3), which ISO-2.0
- * expects. The fields go to the stream as they are given, so the program
+ * expects. The line goes to the stream as it is given, so the program
  * assembles nothing in memory. All rows of the data area must have been
- * written. Call it for each field, then sdfio_write_trailer() to end the file.
+ * written. The fields and the text of sdfio_write_trailer_text() can follow
+ * each other in any order. sdfio_end_file() ends the file.
  *
  * The value is text. The caller formats numbers, for instance with snprintf()
  * in the C locale, because a locale with a decimal comma would produce `20,5`.
@@ -1145,27 +1147,40 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
                                                  const char *value);
 
 /**
- * Writes the rest of the trailer (record 3) and ends the file. The fields of
- * sdfio_write_trailer_field() come first. All rows of the data area must have
- * been written. A file that sdfio_create_file() created is closed.
+ * Writes lines of text to the trailer (record 3), for a trailer that does not
+ * consist of fields. All rows of the data area must have been written. The
+ * text and the fields of sdfio_write_trailer_field() can follow each other in
+ * any order. sdfio_end_file() ends the file.
  *
  * The text is not interpreted. Every line end of the text (LF, CR or CRLF) is
  * written as CRLF, as the standard specifies, in ASCII and in binary files, and
  * the last line is terminated. sdfio_read_trailer() returns the lines with LF.
  * In an ASCII file a line that consists only of `*` ends the record, so the
- * text must not contain one; lines of sdfio_write_trailer_field() never do. A
- * file whose trailer consists of fields, or of none, ends with a null text.
+ * text must not contain one; lines of sdfio_write_trailer_field() never do.
  *
  * @param writer The writer.
- * @param[in] trailer The text, or null for no more text.
+ * @param[in] text The text.
  * @param size The length of the text in bytes.
- * @retval SDFIO_ERR_ARGUMENT `trailer` is null and `size` is not 0.
- * @retval SDFIO_ERR_STATE No file is created, rows are missing, or an earlier
- * error ended the writing.
+ * @retval SDFIO_ERR_ARGUMENT `text` is null and `size` is not 0.
+ * @retval SDFIO_ERR_STATE No file is created, rows are missing, the file is
+ * ended, or an earlier error ended the writing.
  * @retval SDFIO_ERR_IO The stream failed.
  */
-SDFIO_API sdfio_status sdfio_write_trailer(sdfio_writer *writer,
-                                           const char *trailer, size_t size);
+SDFIO_API sdfio_status sdfio_write_trailer_text(sdfio_writer *writer,
+                                                const char *text, size_t size);
+
+/**
+ * Ends the file: closes its last record and, for a file that
+ * sdfio_create_file() created, the file. All rows of the data area must have
+ * been written. A file without trailer lines has no trailer. Nothing can be
+ * written after it.
+ *
+ * @param writer The writer.
+ * @retval SDFIO_ERR_STATE No file is created, rows are missing, the file is
+ * ended already, or an earlier error ended the writing.
+ * @retval SDFIO_ERR_IO The stream failed.
+ */
+SDFIO_API sdfio_status sdfio_end_file(sdfio_writer *writer);
 
 /**
  * Returns a description of the most recent failure of the writer, or an empty

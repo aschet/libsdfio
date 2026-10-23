@@ -104,7 +104,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_trailer(writer, "field = value\n", 14);
+            status = sdfio_write_trailer_text(writer, "field = value\n", 14);
+        }
+        if (status == SDFIO_OK)
+        {
+            status = sdfio_end_file(writer);
         }
     }
     sdfio_writer_free(writer);

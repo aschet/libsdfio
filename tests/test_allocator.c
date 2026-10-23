@@ -112,7 +112,11 @@ static sdfio_status round_trip(const sdfio_config *config,
         }
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_trailer(writer, "a = 1\n", 6);
+            status = sdfio_write_trailer_text(writer, "a = 1\n", 6);
+        }
+        if (status == SDFIO_OK)
+        {
+            status = sdfio_end_file(writer);
         }
         sdfio_writer_free(writer);
     }

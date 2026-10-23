@@ -247,7 +247,7 @@ static void check_file(void)
     sdfio_writer *writer = sdfio_writer_new(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
-    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
+    CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     CHECK(sink.size > DATE_AT + 2 * SDFIO_DATE_SIZE);
     CHECK(memcmp(sink.data + DATE_AT, "010720261200", SDFIO_DATE_SIZE) == 0);
