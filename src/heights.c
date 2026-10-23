@@ -50,11 +50,10 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
 sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message)
 {
-    if (!sdfio_valid_height_type(layout->type))
+    if (!sdfio_valid_data_type(layout->type))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The type of the heights is not SDFIO_TYPE_FLOAT or "
-                          "SDFIO_TYPE_DOUBLE");
+                          "The type of the layout is not a data type");
     }
     const size_t size = sdfio_data_type_size(layout->type);
     const size_t element = magnitude(sdfio_element_stride(*layout));

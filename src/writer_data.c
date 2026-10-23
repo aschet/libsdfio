@@ -11,7 +11,9 @@
 
 #include "data_type.h"
 #include "header.h"
+#include "heights.h"
 #include "writer_state.h"
+#include <string.h>
 
 /* The header goes out with the first values, when the z-scale is known. */
 sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
@@ -60,8 +62,40 @@ sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
     return status == SDFIO_OK ? status : sdfio_writer_fail(writer, status);
 }
 
-sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
-                              size_t rows)
+/* Writes the values of a row from a buffer whose elements are `element` bytes
+ * apart. */
+static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
+                              ptrdiff_t element)
+{
+    const sdfio_header *header = &writer->header;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    if (element == (ptrdiff_t)size)
+    {
+        return sdfio_writer_put_values(writer, row, header->columns);
+    }
+    for (size_t first = 0; first < header->columns;
+         first += writer->chunk_values)
+    {
+        const size_t count = header->columns - first < writer->chunk_values
+                                 ? header->columns - first
+                                 : writer->chunk_values;
+        for (size_t i = 0; i < count; ++i)
+        {
+            memcpy(writer->coded + i * size,
+                   row + (ptrdiff_t)(first + i) * element, size);
+        }
+        const sdfio_status status =
+            sdfio_writer_put_values(writer, writer->coded, count);
+        if (status != SDFIO_OK)
+        {
+            return status;
+        }
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
+                              const void *src, size_t rows)
 {
     sdfio_status status = sdfio_writer_require_writable(writer);
     if (status != SDFIO_OK)
@@ -79,21 +113,36 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "Give the rows to write");
     }
+    if (layout.type != header->data_type)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "The type of the layout is not the data type of the "
+                          "file");
+    }
+    /* Rows without a column hold nothing, so the layout is not used. */
+    status = header->columns > 0
+                 ? sdfio_check_layout(&layout, rows, header->columns,
+                                      &writer->message)
+                 : SDFIO_OK;
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
     status = sdfio_writer_start_data(writer);
     if (status != SDFIO_OK)
     {
         return status == SDFIO_ERR_ARGUMENT ? status
                                             : sdfio_writer_fail(writer, status);
     }
-    const size_t row_bytes =
-        header->columns * sdfio_data_type_size(header->data_type);
+    const ptrdiff_t element = sdfio_element_stride(layout);
     /* Rows without a column hold nothing, however many a file declares. */
     const size_t valued_rows = header->columns > 0 ? rows : 0;
     for (size_t i = 0; i < valued_rows; ++i)
     {
-        status = sdfio_writer_put_values(
-            writer, (const unsigned char *)src + i * row_bytes,
-            header->columns);
+        status = write_row(writer,
+                           (const unsigned char *)src
+                               + (ptrdiff_t)i * layout.row_stride,
+                           element);
         if (status != SDFIO_OK)
         {
             return status;
@@ -103,39 +152,3 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     writer->next_row += rows - valued_rows;
     return SDFIO_OK;
 }
-
-/* The writing of rows from a buffer of the C type of the data type of the
- * file, which the type of the pointer has to be. */
-static sdfio_status write_typed(sdfio_writer *writer, sdfio_data_type type,
-                                const void *src, size_t rows)
-{
-    const sdfio_status status = sdfio_writer_require_writable(writer);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (writer->header.data_type != type)
-    {
-        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "The data type of the file is not that of the "
-                          "buffer");
-    }
-    return sdfio_write_data(writer, src, rows);
-}
-
-/** A function that writes rows from a buffer of a C type, for the data type. */
-// A type cannot be parenthesized in the declaration of the function.
-// NOLINTBEGIN(bugprone-macro-parentheses)
-#define WRITE_TYPED(name, ctype, type)                                         \
-    sdfio_status sdfio_write_data_##name(sdfio_writer *writer,                 \
-                                         const ctype *src, size_t rows)        \
-    {                                                                          \
-        return write_typed(writer, type, src, rows);                           \
-    }
-// NOLINTEND(bugprone-macro-parentheses)
-
-WRITE_TYPED(int8, int8_t, SDFIO_TYPE_INT8)
-WRITE_TYPED(int16, int16_t, SDFIO_TYPE_INT16)
-WRITE_TYPED(int32, int32_t, SDFIO_TYPE_INT32)
-WRITE_TYPED(float, float, SDFIO_TYPE_FLOAT)
-WRITE_TYPED(double, double, SDFIO_TYPE_DOUBLE)

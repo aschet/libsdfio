@@ -682,146 +682,29 @@ SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
 SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
 
 /**
- * Reads the next rows of the data area (record 2) as the file codes them.
- *
- * `dst` receives `rows` times `header->columns` values of `header->data_type`
- * in the byte order of the machine, in the order of the file. The bad value is
- * not changed. ASCII values are parsed into the data type of the file, so that
- * an ASCII file of binary32 values is rounded to single precision. Use
- * sdfio_decode_heights() to obtain heights in metres.
- *
- * The functions sdfio_read_data_int16() and the like take a pointer of the C
- * type of the data type, and the compiler checks it.
- *
- * The first row read is the first row stored in the file, the row with y = 0.
- *
- * After an error the reader rejects further reads.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null or `rows` exceeds the rows
- * remaining.
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst,
-                                       size_t rows);
-
-/**
- * Reads the next rows of the data area into a buffer of `int8_t`, which is the
- * type of a file with the data type SDFIO_TYPE_INT8. It is sdfio_read_data()
- * with a check of the type.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT8,
- * or as for sdfio_read_data().
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data_int8(sdfio_reader *reader, int8_t *dst,
-                                            size_t rows);
-
-/**
- * Reads the next rows of the data area into a buffer of `int16_t`, which is the
- * type of a file with the data type SDFIO_TYPE_INT16. It is sdfio_read_data()
- * with a check of the type.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT16,
- * or as for sdfio_read_data().
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data_int16(sdfio_reader *reader, int16_t *dst,
-                                             size_t rows);
-
-/**
- * Reads the next rows of the data area into a buffer of `int32_t`, which is the
- * type of a file with the data type SDFIO_TYPE_INT32. It is sdfio_read_data()
- * with a check of the type.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT32,
- * or as for sdfio_read_data().
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data_int32(sdfio_reader *reader, int32_t *dst,
-                                             size_t rows);
-
-/**
- * Reads the next rows of the data area into a buffer of `float`, which is the
- * type of a file with the data type SDFIO_TYPE_FLOAT. It is sdfio_read_data()
- * with a check of the type.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_FLOAT,
- * or as for sdfio_read_data().
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data_float(sdfio_reader *reader, float *dst,
-                                             size_t rows);
-
-/**
- * Reads the next rows of the data area into a buffer of `double`, which is the
- * type of a file with the data type SDFIO_TYPE_DOUBLE. It is sdfio_read_data()
- * with a check of the type.
- *
- * @param reader The reader.
- * @param[out] dst The buffer for the values.
- * @param rows The number of rows to read.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not
- * SDFIO_TYPE_DOUBLE, or as for sdfio_read_data().
- * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
- * reading.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_data_double(sdfio_reader *reader, double *dst,
-                                              size_t rows);
-
-/**
- * Description of a buffer of heights of the caller: the type of its elements,
- * how a point that is not measured is marked, and how the matrix lies in
- * memory.
+ * Description of a buffer of the caller for heights or for the values of the
+ * data area: the type of its elements, how a point that is not measured is
+ * marked in heights, and how the matrix lies in memory.
  *
  * The element (y, x) is at `data + y * row_stride + x * element_stride`. Both
  * strides can be negative. They must keep the elements apart: either the rows
- * or the columns must not overlap. This allows heights to be read or written in
- * place where they are not contiguous, for example the z member of an array of
- * points, one channel of an interleaved image or a column-major matrix.
- * sdfio_layout_packed() describes a plain array.
+ * or the columns must not overlap. This allows heights and values to be read
+ * or written in place where they are not contiguous, for example the z member
+ * of an array of points, one channel of an interleaved image or a column-major
+ * matrix. sdfio_layout_packed() describes a plain array.
  */
 typedef struct sdfio_layout
 {
-    /** Type of the elements of the buffer: SDFIO_TYPE_FLOAT or
-     * SDFIO_TYPE_DOUBLE. */
+    /** Type of the elements of the buffer. For heights it is SDFIO_TYPE_FLOAT
+     * or SDFIO_TYPE_DOUBLE, and for the values of the data area it is the data
+     * type of the file. */
     sdfio_data_type type;
     /**
-     * Marker for a point that is not measured. NaN selects no marker: such a
-     * point is NaN. The marker is compared in the precision of the type of the
-     * buffer, so -9999.1 marks the points of a float buffer that hold the float
-     * nearest to -9999.1.
+     * Marker for a point that is not measured in heights. The values of the
+     * data area do not use it. NaN selects no marker: such a point is NaN. The
+     * marker is compared in the precision of the type of the buffer, so -9999.1
+     * marks the points of a float buffer that hold the float nearest to
+     * -9999.1.
      */
     double missing;
     /**
@@ -839,17 +722,53 @@ typedef struct sdfio_layout
 } sdfio_layout;
 
 /**
- * Returns the layout of a plain array of heights: the elements follow each
- * other, the rows follow each other, and NaN marks a point that is not
- * measured.
+ * Returns the layout of a plain array: the elements follow each other, the rows
+ * follow each other, and NaN marks a point of heights that is not measured.
  *
- * @param type The type of the elements: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
+ * @param type The type of the elements: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE
+ * for heights, and the data type of the file for the values of the data area.
  */
 static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
 {
     sdfio_layout layout = {type, NAN, 0, 0};
     return layout;
 }
+
+/**
+ * Reads the next rows of the data area (record 2) as the file codes them.
+ *
+ * `dst` receives `rows` times `header->columns` values of `header->data_type`
+ * in the byte order of the machine, in the order of the file. The bad value is
+ * not changed. ASCII values are parsed into the data type of the file, so that
+ * an ASCII file of binary32 values is rounded to single precision. Use
+ * sdfio_decode_heights() to obtain heights in metres.
+ *
+ * The buffer lies in memory as the layout describes, whose type has to be the
+ * data type of the file: the element (x, i) of the row i is stored at
+ * `dst + i * layout.row_stride + x * layout.element_stride`. The pointer is at
+ * the first row that is read. sdfio_layout_packed() describes values that
+ * follow each other. The field `missing` of the layout is not used, because the
+ * bad value of the data type marks a point that is not measured.
+ *
+ * The first row read is the first row stored in the file, the row with y = 0.
+ *
+ * After an error the reader rejects further reads.
+ *
+ * @param reader The reader.
+ * @param layout The layout of the buffer.
+ * @param[out] dst The buffer for the values.
+ * @param rows The number of rows to read.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
+ * remaining, the type of the layout is not the data type of the file, or the
+ * strides are invalid.
+ * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
+ * reading.
+ * @retval SDFIO_ERR_IO The stream failed.
+ * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
+ */
+SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
+                                       sdfio_layout layout, void *dst,
+                                       size_t rows);
 
 /**
  * Reads the remaining rows as heights in metres into a buffer that lies in
@@ -967,105 +886,28 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * byte order of the machine, in the order of the file. The bad value is written
  * unchanged.
  *
+ * The buffer lies in memory as the layout describes, whose type has to be the
+ * data type of the file, as for sdfio_read_data(). sdfio_layout_packed()
+ * describes values that follow each other.
+ *
  * The first row written is the first row stored in the file, the row with
  * y = 0.
  *
  * @param writer The writer.
+ * @param layout The layout of the buffer.
  * @param[in] src The values to write.
  * @param rows The number of rows to write.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
- * remaining, or the data type is an integer type and the z-scale is not set.
+ * remaining, the type of the layout is not the data type of the file, the
+ * strides are invalid, or the data type is an integer type and the z-scale is
+ * not set.
  * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
  * writing.
  * @retval SDFIO_ERR_IO The stream failed.
  */
-SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
+SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
+                                        sdfio_layout layout, const void *src,
                                         size_t rows);
-
-/**
- * Writes the next rows of the data area from a buffer of `int8_t`, which is the
- * type of a file with the data type SDFIO_TYPE_INT8. It is sdfio_write_data()
- * with a check of the type.
- *
- * @param writer The writer.
- * @param[in] src The values to write.
- * @param rows The number of rows to write.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT8,
- * or as for sdfio_write_data().
- * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
- * writing.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_data_int8(sdfio_writer *writer,
-                                             const int8_t *src, size_t rows);
-
-/**
- * Writes the next rows of the data area from a buffer of `int16_t`, which is
- * the type of a file with the data type SDFIO_TYPE_INT16. It is
- * sdfio_write_data() with a check of the type.
- *
- * @param writer The writer.
- * @param[in] src The values to write.
- * @param rows The number of rows to write.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT16,
- * or as for sdfio_write_data().
- * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
- * writing.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_data_int16(sdfio_writer *writer,
-                                              const int16_t *src, size_t rows);
-
-/**
- * Writes the next rows of the data area from a buffer of `int32_t`, which is
- * the type of a file with the data type SDFIO_TYPE_INT32. It is
- * sdfio_write_data() with a check of the type.
- *
- * @param writer The writer.
- * @param[in] src The values to write.
- * @param rows The number of rows to write.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_INT32,
- * or as for sdfio_write_data().
- * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
- * writing.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_data_int32(sdfio_writer *writer,
-                                              const int32_t *src, size_t rows);
-
-/**
- * Writes the next rows of the data area from a buffer of `float`, which is the
- * type of a file with the data type SDFIO_TYPE_FLOAT. It is sdfio_write_data()
- * with a check of the type.
- *
- * @param writer The writer.
- * @param[in] src The values to write.
- * @param rows The number of rows to write.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not SDFIO_TYPE_FLOAT,
- * or as for sdfio_write_data().
- * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
- * writing.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_data_float(sdfio_writer *writer,
-                                              const float *src, size_t rows);
-
-/**
- * Writes the next rows of the data area from a buffer of `double`, which is the
- * type of a file with the data type SDFIO_TYPE_DOUBLE. It is sdfio_write_data()
- * with a check of the type.
- *
- * @param writer The writer.
- * @param[in] src The values to write.
- * @param rows The number of rows to write.
- * @retval SDFIO_ERR_ARGUMENT The data type of the file is not
- * SDFIO_TYPE_DOUBLE, or as for sdfio_write_data().
- * @retval SDFIO_ERR_STATE No file is created, or an earlier error ended the
- * writing.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_data_double(sdfio_writer *writer,
-                                               const double *src, size_t rows);
 
 /**
  * Writes the whole data area from a matrix of heights in metres that lies in

@@ -48,7 +48,8 @@ static int write_coded_values(const char *path)
     for (size_t n = 0; n < header.rows && status == SDFIO_OK; ++n)
     {
         scan(row, n, not_measured);
-        status = sdfio_write_data_int16(writer, row, 1);
+        status = sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_INT16),
+                                  row, 1);
     }
     if (status == SDFIO_OK)
     {
@@ -91,7 +92,8 @@ static int read_coded_values(const char *path)
     double sum = 0.0;
     for (size_t n = 0; status == SDFIO_OK && n < header->rows; ++n)
     {
-        status = sdfio_read_data_int16(reader, row, 1);
+        status = sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_INT16),
+                                 row, 1);
         scan(expected, n, not_measured);
         out_of_place +=
             memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;

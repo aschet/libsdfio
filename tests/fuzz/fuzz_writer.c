@@ -141,7 +141,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
             if (coded != NULL)
             {
-                read_status = sdfio_read_data(reader, coded, read->rows);
+                read_status = sdfio_read_data(
+                    reader, sdfio_layout_packed(read->data_type), coded,
+                    read->rows);
             }
             const char *trailer = NULL;
             size_t trailer_size = 0;

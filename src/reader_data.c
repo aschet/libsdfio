@@ -10,7 +10,9 @@
  */
 
 #include "data_type.h"
+#include "heights.h"
 #include "reader_state.h"
+#include <string.h>
 
 /* The next `count` values of the data area, as the file stores them. */
 sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
@@ -46,7 +48,40 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
+/* Reads the values of a row into a buffer whose elements are `element` bytes
+ * apart. */
+static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
+                             ptrdiff_t element)
+{
+    const sdfio_header *header = &reader->header;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    if (element == (ptrdiff_t)size)
+    {
+        return sdfio_reader_take_values(reader, row, header->columns);
+    }
+    for (size_t first = 0; first < header->columns;
+         first += reader->chunk_values)
+    {
+        const size_t count = header->columns - first < reader->chunk_values
+                                 ? header->columns - first
+                                 : reader->chunk_values;
+        const sdfio_status status =
+            sdfio_reader_take_values(reader, reader->chunk, count);
+        if (status != SDFIO_OK)
+        {
+            return status;
+        }
+        for (size_t i = 0; i < count; ++i)
+        {
+            memcpy(row + (ptrdiff_t)(first + i) * element,
+                   reader->chunk + i * size, size);
+        }
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
+                             void *dst, size_t rows)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
@@ -64,14 +99,29 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                           "Give the memory to read the rows into");
     }
-    const size_t row_bytes =
-        header->columns * sdfio_data_type_size(header->data_type);
+    if (layout.type != header->data_type)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The type of the layout is not the data type of the "
+                          "file");
+    }
+    /* Rows without a column hold nothing, so the layout is not used. */
+    status = header->columns > 0
+                 ? sdfio_check_layout(&layout, rows, header->columns,
+                                      &reader->message)
+                 : SDFIO_OK;
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    const ptrdiff_t element = sdfio_element_stride(layout);
     /* Rows without a column hold nothing, however many a file declares. */
     const size_t valued_rows = header->columns > 0 ? rows : 0;
     for (size_t i = 0; i < valued_rows; ++i)
     {
-        status = sdfio_reader_take_values(
-            reader, (unsigned char *)dst + i * row_bytes, header->columns);
+        status = read_row(
+            reader, (unsigned char *)dst + (ptrdiff_t)i * layout.row_stride,
+            element);
         if (status != SDFIO_OK)
         {
             return sdfio_reader_fail(reader, status);
@@ -89,39 +139,3 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
     }
     return SDFIO_OK;
 }
-
-/* The reading of rows into a buffer of the C type of the data type of the
- * file, which the type of the pointer has to be. */
-static sdfio_status read_typed(sdfio_reader *reader, sdfio_data_type type,
-                               void *dst, size_t rows)
-{
-    const sdfio_status status = sdfio_reader_require_readable(reader);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (reader->header.data_type != type)
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "The data type of the file is not that of the "
-                          "buffer");
-    }
-    return sdfio_read_data(reader, dst, rows);
-}
-
-/** A function that reads rows into a buffer of a C type, for the data type. */
-// A type cannot be parenthesized in the declaration of the function.
-// NOLINTBEGIN(bugprone-macro-parentheses)
-#define READ_TYPED(name, ctype, type)                                          \
-    sdfio_status sdfio_read_data_##name(sdfio_reader *reader, ctype *dst,      \
-                                        size_t rows)                           \
-    {                                                                          \
-        return read_typed(reader, type, dst, rows);                            \
-    }
-// NOLINTEND(bugprone-macro-parentheses)
-
-READ_TYPED(int8, int8_t, SDFIO_TYPE_INT8)
-READ_TYPED(int16, int16_t, SDFIO_TYPE_INT16)
-READ_TYPED(int32, int32_t, SDFIO_TYPE_INT32)
-READ_TYPED(float, float, SDFIO_TYPE_FLOAT)
-READ_TYPED(double, double, SDFIO_TYPE_DOUBLE)

@@ -132,9 +132,11 @@ static void check_the_order(void)
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_data_float(writer, &height, 1));
+    CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                              &height, 1));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
-    CHECK_OK(sdfio_write_data_float(writer, &height, 1));
+    CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                              &height, 1));
     CHECK_OK(sdfio_write_trailer_field(writer, "A", "b"));
     CHECK_OK(sdfio_end_trailer(writer));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));

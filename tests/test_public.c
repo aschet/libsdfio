@@ -103,7 +103,8 @@ int main(void)
     reader = membuf_reopen(reader, &file);
     read = sdfio_get_header(reader);
     int16_t coded[6];
-    CHECK_OK(sdfio_read_data(reader, coded, 2));
+    CHECK_OK(sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_INT16),
+                             coded, 2));
     CHECK(coded[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
                                read, sdfio_layout_packed(SDFIO_TYPE_FLOAT),

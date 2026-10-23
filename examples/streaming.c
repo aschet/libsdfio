@@ -52,7 +52,8 @@ int main(void)
     double highest = -INFINITY;
     for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
     {
-        status = sdfio_read_data(reader, coded, 1);
+        status = sdfio_read_data(reader, sdfio_layout_packed(header->data_type),
+                                 coded, 1);
         if (status == SDFIO_OK)
         {
             status = sdfio_decode_heights(

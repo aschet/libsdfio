@@ -90,7 +90,9 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
         {
             for (size_t i = 0; i < header->rows && i < ROW_LIMIT; ++i)
             {
-                if (sdfio_read_data(reader, row, 1) != SDFIO_OK)
+                if (sdfio_read_data(
+                        reader, sdfio_layout_packed(header->data_type), row, 1)
+                    != SDFIO_OK)
                 {
                     break;
                 }

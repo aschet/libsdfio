@@ -106,7 +106,8 @@ int main(void)
         {
             coded[column] = (int16_t)(row * COLUMNS + column);
         }
-        status = sdfio_write_data(writer, coded, 1);
+        status = sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_INT16),
+                                  coded, 1);
     }
     if (status == SDFIO_OK)
     {

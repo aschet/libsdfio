@@ -321,7 +321,9 @@ static void check_header_errors(void)
     CHECK(strstr(sdfio_reader_error_message(reader), "cannot be opened")
           != NULL);
     CHECK(sdfio_get_header(reader) == NULL);
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_read_data(reader, NULL, 0));
+    CHECK_STATUS(SDFIO_ERR_STATE,
+                 sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 NULL, 0));
     sdfio_reader_free(reader);
 
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_open_file(NULL, "x"));
