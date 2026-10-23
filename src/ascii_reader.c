@@ -24,14 +24,6 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-enum
-{
-    /** The size of the longest word of an ASCII data area. */
-    SDFIO_TOKEN_CAPACITY = 64,
-    /** The longest header of an ASCII file. A longer text is not one. */
-    SDFIO_MAX_HEADER_TEXT = 1 << 20
-};
-
 static const char terminator = SDFIO_ASCII_TERMINATOR;
 
 /* The result of reading a line or a token. */
@@ -45,7 +37,7 @@ enum
 /* The next line of the source, without its end. The last line of a text that
  * does not end with a line end comes back once with `ended` false. */
 static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
-                     bool *done, size_t limit)
+                     bool *done)
 {
     sdfio_string_clear(line);
     *ended = false;
@@ -73,10 +65,6 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
             return GOT_ONE;
         }
         const char character = (char)c;
-        if (line->size >= limit)
-        {
-            return GOT_ERROR;
-        }
         if (!sdfio_string_append(line, &character, 1))
         {
             source->no_memory = true;
@@ -97,9 +85,8 @@ static void skip_line(sdfio_source *source)
     }
 }
 
-/* The next white-space separated word. */
-static int next_token(sdfio_source *source, char *token, size_t capacity,
-                      size_t *size)
+/* The next white-space separated word, in `token`. */
+static int next_token(sdfio_source *source, sdfio_string *token)
 {
     int c = 0;
     for (;;)
@@ -109,27 +96,34 @@ static int next_token(sdfio_source *source, char *token, size_t capacity,
         {
             return source->failed ? GOT_ERROR : GOT_NONE;
         }
-        if (sdfio_is_space((char)c))
+        if (!sdfio_is_space((char)c))
         {
-            ++source->position;
+            break;
         }
-        else
+        ++source->position;
+    }
+    sdfio_string_clear(token);
+    while (source->position < source->end || sdfio_source_fill(source, 1) > 0)
+    {
+        const char *start = (const char *)source->buffer + source->position;
+        const size_t available = source->end - source->position;
+        size_t length = 0;
+        while (length < available && !sdfio_is_space(start[length]))
+        {
+            ++length;
+        }
+        if (!sdfio_string_append(token, start, length))
+        {
+            source->no_memory = true;
+            return GOT_ERROR;
+        }
+        source->position += length;
+        if (length < available)
         {
             break;
         }
     }
-    *size = 0;
-    while ((c = sdfio_source_peek(source)) >= 0 && !sdfio_is_space((char)c))
-    {
-        if (*size + 1 >= capacity)
-        {
-            return GOT_ERROR;
-        }
-        token[(*size)++] = (char)c;
-        ++source->position;
-    }
-    token[*size] = '\0';
-    return GOT_ONE;
+    return source->failed ? GOT_ERROR : GOT_ONE;
 }
 
 /* A line that has only the character `*`, with white space around it. */
@@ -364,8 +358,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     sdfio_status status = SDFIO_OK;
     bool ended = false;
     bool done = false;
-    const int got =
-        next_line(source, &line, &ended, &done, SDFIO_MAX_HEADER_TEXT);
+    const int got = next_line(source, &line, &ended, &done);
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
@@ -394,8 +387,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     /* The records end with a line that has only a "*". */
     bool header_started = false;
     bool header_ended = false;
-    while (next_line(source, &line, &ended, &done, SDFIO_MAX_HEADER_TEXT)
-           == GOT_ONE)
+    while (next_line(source, &line, &ended, &done) == GOT_ONE)
     {
         const char *text = sdfio_string_text(&line);
         if (is_terminator(text, line.size))
@@ -407,12 +399,6 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
             || !sdfio_string_append(&header_text, text, line.size))
         {
             status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-            goto done;
-        }
-        if (header_text.size > SDFIO_MAX_HEADER_TEXT)
-        {
-            status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                "The SDF header is too long");
             goto done;
         }
         header_started = true;
@@ -523,11 +509,9 @@ done:
 
 static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 {
-    return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
-                                       "The stream could not be read")
-                          : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                       "SDF file must contain the header, the "
-                                       "data area and the trailer");
+    return sdfio_source_failure(source, message,
+                                "SDF file must contain the header, the data "
+                                "area and the trailer");
 }
 
 /* ---- The values in memory -------------------------------------------------
@@ -610,22 +594,20 @@ static bool store_real(sdfio_data_type type, void *dst, size_t index,
 
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
-                               size_t index, sdfio_message *message)
+                               size_t index, sdfio_string *word,
+                               sdfio_message *message)
 {
-    char token[SDFIO_TOKEN_CAPACITY];
-    size_t size = 0;
-    const int got = next_token(source, token, sizeof token, &size);
+    const int got = next_token(source, word);
     if (got == GOT_NONE)
     {
         return ended_early(source, message);
     }
     if (got == GOT_ERROR)
     {
-        return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
-                                           "The stream could not be read")
-                              : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                           "A data value is too long");
+        return sdfio_source_failure(source, message, "");
     }
+    const char *token = sdfio_string_text(word);
+    const size_t size = word->size;
     if (size == 1 && token[0] == terminator)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -671,36 +653,45 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
 
 static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
 {
-    char token[SDFIO_TOKEN_CAPACITY];
-    size_t size = 0;
-    if (next_token(source, token, sizeof token, &size) != GOT_ONE)
+    sdfio_string word = {.allocator = source->allocator};
+    sdfio_status status = SDFIO_OK;
+    if (next_token(source, &word) != GOT_ONE)
     {
-        return ended_early(source, message);
+        status = ended_early(source, message);
     }
-    if (size != 1 || token[0] != terminator)
+    else if (word.size != 1 || word.data[0] != terminator)
     {
-        /* Count what is there, for the message. */
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The data area has more values than the header "
-                          "says");
+        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                            "The data area has more values than the header "
+                            "says");
     }
-    skip_line(source);
-    return SDFIO_OK;
+    else
+    {
+        skip_line(source);
+    }
+    sdfio_string_free(&word);
+    return status;
 }
 
 static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
 {
-    char token[SDFIO_TOKEN_CAPACITY];
-    size_t size = 0;
-    while (next_token(source, token, sizeof token, &size) == GOT_ONE)
+    sdfio_string word = {.allocator = source->allocator};
+    sdfio_status status = SDFIO_OK;
+    bool found = false;
+    while (!found && next_token(source, &word) == GOT_ONE)
     {
-        if (size == 1 && token[0] == terminator)
-        {
-            skip_line(source);
-            return SDFIO_OK;
-        }
+        found = word.size == 1 && word.data[0] == terminator;
     }
-    return ended_early(source, message);
+    if (found)
+    {
+        skip_line(source);
+    }
+    else
+    {
+        status = ended_early(source, message);
+    }
+    sdfio_string_free(&word);
+    return status;
 }
 
 static sdfio_status read_values(sdfio_source *source,
@@ -708,16 +699,15 @@ static sdfio_status read_values(sdfio_source *source,
                                 void *dst, size_t count, sdfio_message *message)
 {
     const struct reading *reading = state;
-    for (size_t i = 0; i < count; ++i)
+    sdfio_string word = {.allocator = source->allocator};
+    sdfio_status status = SDFIO_OK;
+    for (size_t i = 0; i < count && status == SDFIO_OK; ++i)
     {
-        const sdfio_status status =
-            read_value(source, header, &reading->point, dst, i, message);
-        if (status != SDFIO_OK)
-        {
-            return status;
-        }
+        status =
+            read_value(source, header, &reading->point, dst, i, &word, message);
     }
-    return SDFIO_OK;
+    sdfio_string_free(&word);
+    return status;
 }
 
 static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
@@ -744,7 +734,7 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
     size_t parts = 0;
     *present = true;
     int got = GOT_ONE;
-    while ((got = next_line(source, &line, &ended, &done, SIZE_MAX)) == GOT_ONE)
+    while ((got = next_line(source, &line, &ended, &done)) == GOT_ONE)
     {
         if (first && line.size == 0 && !ended)
         {

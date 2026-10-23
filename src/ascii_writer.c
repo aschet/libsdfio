@@ -136,8 +136,8 @@ static sdfio_status format_header(const sdfio_header *header,
     ok = ok && append_field(out, SDFIO_ASCII_DATA_TYPE, text);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
     ok = ok && append_field(out, SDFIO_ASCII_CHECK_TYPE, text);
-    snprintf(text, sizeof text, "%c", terminator);
-    ok = ok && append_text(out, text) && append_text(out, crlf);
+    ok = ok && sdfio_string_append(out, &terminator, 1)
+         && append_text(out, crlf);
     if (!ok)
     {
         return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
