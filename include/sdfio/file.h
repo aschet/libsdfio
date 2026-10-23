@@ -44,8 +44,7 @@ SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
 /**
  * Opens the file at a path as the source and reads its header, as
  * sdfio_open_stream() does for a stream. The reader closes the file when it is
- * freed or when the open fails. On Windows the path is in the code page of the
- * C library.
+ * freed or when the open fails.
  *
  * @param reader The reader.
  * @param[in] path The path of the file.
@@ -75,9 +74,7 @@ SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
 
 #if defined(_WIN32)
 /**
- * Variant of sdfio_open_file() with a path of wide characters, for file names
- * that the code page of the C library cannot represent. Declared on Windows
- * only.
+ * Variant of sdfio_open_file() with a path of wide characters.
  *
  * @param reader The reader.
  * @param[in] path The path of the file.
@@ -86,8 +83,7 @@ SDFIO_API sdfio_status sdfio_open_file_w(sdfio_reader *reader,
                                          const wchar_t *path);
 
 /**
- * Variant of sdfio_create_file() with a path of wide characters. Declared on
- * Windows only.
+ * Variant of sdfio_create_file() with a path of wide characters.
  *
  * @param writer The writer.
  * @param[in] path The path of the file.
