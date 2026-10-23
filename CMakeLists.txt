@@ -55,7 +55,6 @@ set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 set(SDFIO_SOURCES
     src/ascii.c
     src/binary.c
-    src/binary.h
     src/byte_order.c
     src/byte_order.h
     src/common.c

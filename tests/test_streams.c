@@ -11,7 +11,6 @@
 
 #include <sdfio/file.h>
 
-#include "binary.h"
 #include "common.h"
 #include "fields.h"
 
@@ -138,8 +137,7 @@ static void check_failing_stream(void)
     }
     /* A failure in the header, and one in the data, which is a 32 by 48 matrix
      * of int16 after the header. */
-    const size_t data_end =
-        sdfio_binary_header_size(SDFIO_ISO_2_0) + 32 * 48 * 2;
+    const size_t data_end = ISO_2_0_BINARY_HEADER_SIZE + 32 * 48 * 2;
     const size_t places[] = {10, 100, data_end - 50};
     for (size_t i = 0; i < sizeof places / sizeof places[0]; ++i)
     {
@@ -254,7 +252,7 @@ static void check_header_errors(void)
     {
         /* The compression and the checksum bytes end the header, the data type
          * is before the checksum. */
-        const size_t header_size = sdfio_binary_header_size(SDFIO_ISO_2_0);
+        const size_t header_size = ISO_2_0_BINARY_HEADER_SIZE;
         unsigned char *copy = malloc(size);
         memcpy(copy, data, size);
         copy[header_size - 3] = 1;
@@ -374,26 +372,40 @@ static void check_file(void)
 
 /* A header that claims more bytes of data than any stream has: the trailer is
  * looked for by reading through the data area, which ends first. */
-static void check_huge_count(void)
+static void check_huge_extent(void)
 {
     if (sizeof(size_t) < sizeof(uint64_t))
     {
-        /* The count does not fit in size_t, so the file is refused. */
+        /* The number of values does not fit in size_t, so the file is
+         * refused. */
         return;
     }
     sdfio_header header;
     sdfio_header_init(&header);
-    header.revision = SDFIO_ISO_2_0;
     header.representation = SDFIO_BINARY;
     header.data_type = SDFIO_TYPE_DOUBLE;
-    header.columns = UINT32_MAX;
-    header.rows = 1U << 29;
+    header.columns = 1;
+    header.rows = 1;
     header.z_scale = 1.0;
-    unsigned char bytes[SDFIO_BINARY_HEADER_MAX + 16] = {0};
-    size_t size = 0;
-    sdfio_message message = {0};
-    CHECK_OK(sdfio_binary_header(&header, NULL, bytes, &size, &message));
-    pipe_source pipe = {bytes, size + 16, 0, SIZE_MAX, SIZE_MAX};
+    membuf file = {0};
+    const sdfio_stream out = membuf_stream(&file);
+    const double height = 0.0;
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
+    CHECK_OK(sdfio_create_stream(writer, &out, &header));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
+    CHECK_OK(sdfio_end_trailer(writer));
+    sdfio_writer_free(writer);
+    /* The numbers of points and profiles, 4 bytes each in little endian. */
+    const uint32_t extents[] = {UINT32_MAX, 1U << 29};
+    for (size_t i = 0; i < 2; ++i)
+    {
+        for (size_t byte = 0; byte < sizeof(uint32_t); ++byte)
+        {
+            file.data[ISO_2_0_EXTENTS_AT + i * sizeof(uint32_t) + byte] =
+                (unsigned char)(extents[i] >> (8 * byte));
+        }
+    }
+    pipe_source pipe = {file.data, file.size, 0, SIZE_MAX, SIZE_MAX};
     const sdfio_stream stream = pipe_stream(&pipe);
     sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_stream(reader, &stream));
@@ -401,6 +413,7 @@ static void check_huge_count(void)
     size_t trailer_size = 0;
     CHECK(sdfio_read_trailer(reader, &trailer, &trailer_size) != SDFIO_OK);
     sdfio_reader_free(reader);
+    free(file.data);
 }
 
 /* Appends a line to a text. */
@@ -486,7 +499,7 @@ static void check_standard_rules(void)
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  open_ascii("aISO-2.0", "01234567890", "010120261200", "1",
                             good_z, crlf));
-    /* The counts are 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
+    /* The number of points is 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
     CHECK_STATUS(
         SDFIO_ERR_FORMAT,
         open_ascii("aISO-1.0", "test", "010120261200", "65536", good_z, crlf));
@@ -537,7 +550,7 @@ int main(void)
     check_damage(SAMPLES "iso1_surface_binary.sdf");
     check_damage(SAMPLES "iso2_surface_ascii.sdf");
     check_file();
-    check_huge_count();
+    check_huge_extent();
     check_failing_sink();
     check_standard_rules();
     return finish_tests();

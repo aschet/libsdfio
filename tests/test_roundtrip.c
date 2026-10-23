@@ -7,7 +7,6 @@
 /* What is written is what is read: every revision, representation and data
  * type, the order of the rows, the trailer and the dates. */
 
-#include "binary.h"
 #include "check.h"
 #include "data_type.h"
 #include "revision.h"
@@ -615,9 +614,9 @@ static void check_resolution(void)
             if (representations[s] == SDFIO_BINARY)
             {
                 /* Four doubles and three bytes end the header. */
-                const double stored = double_in_file(
-                    file.data + sdfio_binary_header_size(SDFIO_ISO_2_0) - 3
-                    - sizeof(double));
+                const double stored =
+                    double_in_file(file.data + ISO_2_0_BINARY_HEADER_SIZE - 3
+                                   - sizeof(double));
                 CHECK(stored == expected);
             }
             free(file.data);
@@ -630,8 +629,8 @@ static void check_resolution(void)
     {
         membuf file = {0};
         write_with_resolution(&file, SDFIO_BINARY, 1e-9);
-        put_double_in_file(file.data + sdfio_binary_header_size(SDFIO_ISO_2_0)
-                               - 3 - sizeof(double),
+        put_double_in_file(file.data + ISO_2_0_BINARY_HEADER_SIZE - 3
+                               - sizeof(double),
                            stored_values[i]);
         CHECK(resolution_read(&file) == SDFIO_NO_RESOLUTION);
         free(file.data);
@@ -661,7 +660,7 @@ static void check_rows_without_columns(void)
     sdfio_header header;
     describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_FLOAT);
     header.columns = 0;
-    header.rows = sdfio_max_count(SDFIO_ISO_2_0);
+    header.rows = sdfio_max_extent(SDFIO_ISO_2_0);
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
@@ -775,8 +774,7 @@ static void check_trailer_line_ends(void)
             CHECK_OK(sdfio_end_trailer(writer));
             sdfio_writer_free(writer);
 
-            const size_t data_at =
-                sdfio_binary_header_size(SDFIO_ISO_2_0) + sizeof(double);
+            const size_t data_at = ISO_2_0_BINARY_HEADER_SIZE + sizeof(double);
             if (representations[s] == SDFIO_BINARY)
             {
                 CHECK(file.size == data_at + strlen(variants[v].in_file));

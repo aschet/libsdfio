@@ -126,8 +126,8 @@ sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "columns times rows does not fit in size_t");
     }
-    if (header->columns > sdfio_max_count(header->revision)
-        || header->rows > sdfio_max_count(header->revision))
+    if (header->columns > sdfio_max_extent(header->revision)
+        || header->rows > sdfio_max_extent(header->revision))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The columns or the rows do not fit the header of "

@@ -50,11 +50,12 @@ static inline bool sdfio_requires_utc(sdfio_revision revision)
 }
 
 /**
- * Returns the largest number of columns or rows of a revision: the header
- * holds them as 2 bytes in ISO-1.0 and as 4 bytes in ISO-2.0.
+ * Returns the largest number of columns or of rows of a revision, which is the
+ * extent of the matrix in either direction. The header holds each of them in 2
+ * bytes in ISO-1.0 and in 4 bytes in ISO-2.0.
  *
  * @param revision The revision.
  */
-size_t sdfio_max_count(sdfio_revision revision);
+size_t sdfio_max_extent(sdfio_revision revision);
 
 #endif /* SDFIO_SRC_REVISION_H */

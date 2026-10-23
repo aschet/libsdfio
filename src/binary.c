@@ -12,7 +12,6 @@
  * order of the host.
  */
 
-#include "binary.h"
 #include "byte_order.h"
 #include "common.h"
 #include "data_type.h"
@@ -29,8 +28,21 @@
 enum
 {
     /** The number of bytes of a trailer that are read at a time. */
-    SDFIO_TRAILER_PIECE = 256
+    SDFIO_TRAILER_PIECE = 256,
+    /** The number of binary64 numbers of the header: the scales of x, y and z,
+     * and the resolution of z. */
+    REAL_FIELDS = 4,
+    /** The bytes of the header that end it, in the order in which they are
+     * stored. */
+    CODE_COMPRESSION = 0,
+    CODE_DATA_TYPE = 1,
+    CODE_CHECKSUM = 2,
+    CODE_FIELDS = 3
 };
+
+_Static_assert(SDFIO_MAGIC_SIZE <= SDFIO_DATE_SIZE
+                   && SDFIO_ID_SIZE <= SDFIO_DATE_SIZE,
+               "a text field of the header fits the buffer of put_text");
 
 static uint64_t get_le(const unsigned char *bytes, size_t size)
 {
@@ -42,15 +54,6 @@ static uint64_t get_le(const unsigned char *bytes, size_t size)
     return value;
 }
 
-static void put_le(unsigned char *bytes, size_t size, uint64_t value)
-{
-    for (size_t i = 0; i < size; ++i)
-    {
-        bytes[i] = (unsigned char)(value & UCHAR_MAX);
-        value >>= CHAR_BIT;
-    }
-}
-
 static double get_double(const unsigned char *bytes)
 {
     const uint64_t bits = get_le(bytes, sizeof(double));
@@ -59,29 +62,10 @@ static double get_double(const unsigned char *bytes)
     return value;
 }
 
-static void put_double(unsigned char *bytes, double value)
-{
-    uint64_t bits = 0;
-    memcpy(&bits, &value, sizeof bits);
-    put_le(bytes, sizeof bits, bits);
-}
-
-size_t sdfio_binary_header_size(sdfio_revision revision)
-{
-    /* The magic, the identifier and the two dates, the counts, four binary64
-     * numbers and the bytes of the compression, the data type and the
-     * checksum. */
-    const size_t fixed =
-        SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
-        + SDFIO_HEADER_DOUBLES * sizeof(double) + SDFIO_HEADER_CODES;
-    const size_t count_size =
-        revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    return fixed + SDFIO_HEADER_COUNTS * count_size;
-}
-
-sdfio_status sdfio_binary_revision(const unsigned char *magic,
-                                   sdfio_revision *revision,
-                                   sdfio_message *message)
+/* The revision of a magic, or the reason why it is not one of a binary file. */
+static sdfio_status revision_of_magic(const unsigned char *magic,
+                                      sdfio_revision *revision,
+                                      sdfio_message *message)
 {
     const char *text = (const char *)magic;
     const char prefix = text[0];
@@ -124,50 +108,99 @@ static void copy_identifier(sdfio_header *header, const unsigned char *field)
     header->manufacturer_id[size] = '\0';
 }
 
-sdfio_status sdfio_binary_parse(const unsigned char *bytes,
-                                sdfio_header *header,
-                                const sdfio_time_zone *zone,
+static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
+                                 bool *present, sdfio_message *message)
+{
+    char piece[SDFIO_TRAILER_PIECE];
+    size_t count = 0;
+    while ((count = sdfio_source_read(source, piece, sizeof piece)) > 0)
+    {
+        if (out->size + count > SDFIO_MAX_TRAILER)
+        {
+            return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                              "The SDF trailer is too long");
+        }
+        if (!sdfio_string_append(out, piece, count))
+        {
+            return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
+        }
+    }
+    if (source->failed)
+    {
+        return sdfio_source_failure(source, message, "");
+    }
+    *present = out->size > 0; /* the file ends with the data */
+    sdfio_lines_to_lf(out);
+    return SDFIO_OK;
+}
+
+/* Takes bytes of the header from the source. */
+static bool take(sdfio_source *source, void *out, size_t size)
+{
+    return sdfio_source_read(source, out, size) == size;
+}
+
+static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
+                                void *state, const sdfio_time_zone *zone,
                                 sdfio_message *message)
 {
+    (void)state;
+    unsigned char magic[SDFIO_MAGIC_SIZE];
+    if (!take(source, magic, sizeof magic))
+    {
+        return sdfio_source_failure(source, message,
+                                    "Not an SDF file, unexpected magic");
+    }
     sdfio_revision revision = SDFIO_ISO_2_0;
-    sdfio_status status = sdfio_binary_revision(bytes, &revision, message);
+    sdfio_status status = revision_of_magic(magic, &revision, message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    const unsigned char *at = bytes + SDFIO_MAGIC_SIZE;
-    copy_identifier(header, at);
-    at += SDFIO_ID_SIZE;
-    if (!sdfio_date_is_valid((const char *)at, SDFIO_DATE_SIZE)
-        || !sdfio_date_is_valid((const char *)at + SDFIO_DATE_SIZE,
-                                SDFIO_DATE_SIZE))
+    const size_t extent_size =
+        revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
+    unsigned char identifier[SDFIO_ID_SIZE];
+    unsigned char created_text[SDFIO_DATE_SIZE];
+    unsigned char modified_text[SDFIO_DATE_SIZE];
+    unsigned char columns_field[sizeof(uint32_t)];
+    unsigned char rows_field[sizeof(uint32_t)];
+    unsigned char scales[REAL_FIELDS][sizeof(double)];
+    unsigned char codes[CODE_FIELDS];
+    bool complete = take(source, identifier, sizeof identifier)
+                    && take(source, created_text, sizeof created_text)
+                    && take(source, modified_text, sizeof modified_text)
+                    && take(source, columns_field, extent_size)
+                    && take(source, rows_field, extent_size);
+    for (size_t i = 0; complete && i < REAL_FIELDS; ++i)
+    {
+        complete = take(source, scales[i], sizeof scales[i]);
+    }
+    if (!complete || !take(source, codes, sizeof codes))
+    {
+        return sdfio_source_failure(source, message,
+                                    "File is too short to contain an SDF "
+                                    "header");
+    }
+    copy_identifier(header, identifier);
+    if (!sdfio_date_is_valid((const char *)created_text, SDFIO_DATE_SIZE)
+        || !sdfio_date_is_valid((const char *)modified_text, SDFIO_DATE_SIZE))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "A date of the SDF header is not valid");
     }
-    const time_t created =
-        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision, zone);
-    at += SDFIO_DATE_SIZE;
-    const time_t modified =
-        sdfio_date_parse((const char *)at, SDFIO_DATE_SIZE, revision, zone);
-    at += SDFIO_DATE_SIZE;
-    const size_t count_size =
-        revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    header->columns = (size_t)get_le(at, count_size);
-    at += count_size;
-    header->rows = (size_t)get_le(at, count_size);
-    at += count_size;
-    header->x_scale = get_double(at);
-    at += sizeof(double);
-    header->y_scale = get_double(at);
-    at += sizeof(double);
-    header->z_scale = get_double(at);
-    at += sizeof(double);
-    const double resolution = get_double(at);
-    at += sizeof(double);
-    const unsigned compression = *at++;
-    const unsigned code = *at++;
-    const unsigned check_type = *at;
+    const time_t created = sdfio_date_parse((const char *)created_text,
+                                            SDFIO_DATE_SIZE, revision, zone);
+    const time_t modified = sdfio_date_parse((const char *)modified_text,
+                                             SDFIO_DATE_SIZE, revision, zone);
+    header->columns = (size_t)get_le(columns_field, extent_size);
+    header->rows = (size_t)get_le(rows_field, extent_size);
+    header->x_scale = get_double(scales[0]);
+    header->y_scale = get_double(scales[1]);
+    header->z_scale = get_double(scales[2]);
+    const double resolution = get_double(scales[3]);
+    const unsigned compression = codes[CODE_COMPRESSION];
+    const unsigned code = codes[CODE_DATA_TYPE];
+    const unsigned check_type = codes[CODE_CHECKSUM];
     if (compression != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -198,124 +231,6 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
     header->creation_date = created;
     header->modification_date = modified;
     return SDFIO_OK;
-}
-
-static unsigned char *put_text(unsigned char *out, const char *text,
-                               size_t width)
-{
-    /* A text that is too long is cut, and one that is too short is filled
-     * with spaces. */
-    const size_t size = strlen(text);
-    for (size_t i = 0; i < width; ++i)
-    {
-        out[i] = (unsigned char)(i < size ? text[i] : ' ');
-    }
-    return out + width;
-}
-
-sdfio_status sdfio_binary_header(const sdfio_header *header,
-                                 const sdfio_time_zone *zone,
-                                 unsigned char *out, size_t *size,
-                                 sdfio_message *message)
-{
-    unsigned char *at = out;
-    char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
-    const char *revision_name = sdfio_revision_text(header->revision);
-    const size_t revision_size = strlen(revision_name);
-    memcpy(magic + 1, revision_name,
-           revision_size < SDFIO_MAGIC_SIZE ? revision_size
-                                            : SDFIO_MAGIC_SIZE - 1);
-    at = put_text(at, magic, SDFIO_MAGIC_SIZE);
-    at = put_text(at, header->manufacturer_id, SDFIO_ID_SIZE);
-    char date[SDFIO_DATE_SIZE + 1] = {0};
-    if (!sdfio_date_format(header->creation_date, header->revision, zone, date))
-    {
-        return sdfio_fail(message, SDFIO_ERR_RANGE,
-                          "The time zone cannot convert the creation date");
-    }
-    at = put_text(at, date, SDFIO_DATE_SIZE);
-    if (!sdfio_date_format(header->modification_date, header->revision, zone,
-                           date))
-    {
-        return sdfio_fail(message, SDFIO_ERR_RANGE,
-                          "The time zone cannot convert the modification date");
-    }
-    at = put_text(at, date, SDFIO_DATE_SIZE);
-    const size_t count_size =
-        header->revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-    put_le(at, count_size, header->columns);
-    at += count_size;
-    put_le(at, count_size, header->rows);
-    at += count_size;
-    put_double(at, header->x_scale);
-    at += sizeof(double);
-    put_double(at, header->y_scale);
-    at += sizeof(double);
-    put_double(at, header->z_scale);
-    at += sizeof(double);
-    put_double(at, header->z_resolution > 0.0 ? header->z_resolution
-                                              : SDFIO_NO_RESOLUTION);
-    at += sizeof(double);
-    *at++ = SDFIO_NONE;
-    *at++ = (unsigned char)header->data_type;
-    *at++ = SDFIO_NONE;
-    *size = (size_t)(at - out);
-    return SDFIO_OK;
-}
-
-static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, sdfio_message *message)
-{
-    char piece[SDFIO_TRAILER_PIECE];
-    size_t count = 0;
-    while ((count = sdfio_source_read(source, piece, sizeof piece)) > 0)
-    {
-        if (out->size + count > SDFIO_MAX_TRAILER)
-        {
-            return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "The SDF trailer is too long");
-        }
-        if (!sdfio_string_append(out, piece, count))
-        {
-            return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-        }
-    }
-    if (source->failed)
-    {
-        return sdfio_source_failure(source, message, "");
-    }
-    *present = out->size > 0; /* the file ends with the data */
-    sdfio_lines_to_lf(out);
-    return SDFIO_OK;
-}
-
-static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
-                                void *state, const sdfio_time_zone *zone,
-                                sdfio_message *message)
-{
-    (void)state;
-    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
-    if (available < SDFIO_MAGIC_SIZE)
-    {
-        return sdfio_source_failure(source, message,
-                                    "Not an SDF file, unexpected magic");
-    }
-    sdfio_revision revision = SDFIO_ISO_2_0;
-    const sdfio_status status = sdfio_binary_revision(
-        source->buffer + source->position, &revision, message);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
-    const size_t size = sdfio_binary_header_size(revision);
-    if (sdfio_source_read(source, bytes, size) != size)
-    {
-        return sdfio_source_failure(source, message,
-                                    "File is too short to contain an SDF "
-                                    "header");
-    }
-    return sdfio_binary_parse(bytes, header, zone, message);
 }
 
 static sdfio_status read_values(sdfio_source *source,
@@ -364,6 +279,37 @@ static size_t scratch_size(size_t chunk_values)
                                          : chunk_values * SDFIO_LARGEST_SAMPLE;
 }
 
+/* Writes a text in a field of a width: a text that is too long is cut, and one
+ * that is too short is filled with spaces. */
+static bool put_text(sdfio_sink *sink, const char *text, size_t width)
+{
+    unsigned char field[SDFIO_DATE_SIZE];
+    const size_t size = strlen(text);
+    for (size_t i = 0; i < width; ++i)
+    {
+        field[i] = (unsigned char)(i < size ? text[i] : ' ');
+    }
+    return sdfio_sink_write(sink, field, width);
+}
+
+static bool put_le(sdfio_sink *sink, size_t size, uint64_t value)
+{
+    unsigned char bytes[sizeof(uint64_t)];
+    for (size_t i = 0; i < size; ++i)
+    {
+        bytes[i] = (unsigned char)(value & UCHAR_MAX);
+        value >>= CHAR_BIT;
+    }
+    return sdfio_sink_write(sink, bytes, size);
+}
+
+static bool put_double(sdfio_sink *sink, double value)
+{
+    uint64_t bits = 0;
+    memcpy(&bits, &value, sizeof bits);
+    return put_le(sink, sizeof bits, bits);
+}
+
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
                                  const sdfio_allocator *allocator,
@@ -371,15 +317,46 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 {
     (void)state;
     (void)allocator;
-    unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
-    size_t size = 0;
-    const sdfio_status status =
-        sdfio_binary_header(header, zone, bytes, &size, message);
-    if (status == SDFIO_OK && !sdfio_sink_write(sink, bytes, size))
+    char created[SDFIO_DATE_SIZE + 1] = {0};
+    char modified[SDFIO_DATE_SIZE + 1] = {0};
+    if (!sdfio_date_format(header->creation_date, header->revision, zone,
+                           created))
     {
-        return sdfio_sink_failure(message);
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the creation date");
     }
-    return status;
+    if (!sdfio_date_format(header->modification_date, header->revision, zone,
+                           modified))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the modification date");
+    }
+    char magic[SDFIO_MAGIC_SIZE + 1] = {'b'};
+    const char *revision_name = sdfio_revision_text(header->revision);
+    const size_t revision_size = strlen(revision_name);
+    memcpy(magic + 1, revision_name,
+           revision_size < SDFIO_MAGIC_SIZE ? revision_size
+                                            : SDFIO_MAGIC_SIZE - 1);
+    const size_t extent_size =
+        header->revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
+    const double resolution =
+        header->z_resolution > 0.0 ? header->z_resolution : SDFIO_NO_RESOLUTION;
+    const unsigned char codes[CODE_FIELDS] = {
+        [CODE_COMPRESSION] = SDFIO_NONE,
+        [CODE_DATA_TYPE] = (unsigned char)header->data_type,
+        [CODE_CHECKSUM] = SDFIO_NONE};
+    const bool written =
+        put_text(sink, magic, SDFIO_MAGIC_SIZE)
+        && put_text(sink, header->manufacturer_id, SDFIO_ID_SIZE)
+        && put_text(sink, created, SDFIO_DATE_SIZE)
+        && put_text(sink, modified, SDFIO_DATE_SIZE)
+        && put_le(sink, extent_size, header->columns)
+        && put_le(sink, extent_size, header->rows)
+        && put_double(sink, header->x_scale)
+        && put_double(sink, header->y_scale)
+        && put_double(sink, header->z_scale) && put_double(sink, resolution)
+        && sdfio_sink_write(sink, codes, sizeof codes);
+    return written ? SDFIO_OK : sdfio_sink_failure(message);
 }
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,

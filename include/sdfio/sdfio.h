@@ -86,11 +86,12 @@
  * @par Standard
  * The library follows ISO 25178-71:2026, and a reader checks what the standard
  * defines: the magic, the data types of the revision, a compression and a
- * checksum type of 0, the ranges of the counts and of the dates, a positive
- * z-scale, the line ends and the string `BAD`. It deviates in two places, which
- * files of MountainsMap need: the numbers of an ASCII file can be in any
- * decimal or scientific form, and a manufacturer identifier in a binary file
- * ends at its first 0 byte, where the standard fills it with spaces.
+ * checksum type of 0, the ranges of the numbers of points and profiles and of
+ * the dates, a positive z-scale, the line ends and the string `BAD`. It
+ * deviates in two places, which files of MountainsMap need: the numbers of an
+ * ASCII file can be in any decimal or scientific form, and a manufacturer
+ * identifier in a binary file ends at its first 0 byte, where the standard
+ * fills it with spaces.
  *
  * @par Limitations
  * Rows of a file can be read only in order.
@@ -952,8 +953,8 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * @param[in] header The description of the file.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the header cannot be
  * written: a data type that the revision does not permit, a scale that is not
- * positive, a date that is not set, or a count that the binary header cannot
- * hold.
+ * positive, a date that is not set, or a number of columns or rows that the
+ * header cannot hold.
  * @retval SDFIO_ERR_RANGE The time zone of the configuration cannot convert a
  * date. It is reported when the header is written, with the first rows.
  * @retval SDFIO_ERR_STATE The writer has created a file already.

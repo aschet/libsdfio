@@ -33,30 +33,10 @@ enum
     SDFIO_ID_SIZE = 10,
     /** The size of a date field, DDMMYYYYhhmm. */
     SDFIO_DATE_SIZE = 12,
-    /** The number of dates in the header of a binary file. */
-    SDFIO_HEADER_DATES = 2,
-    /** The number of counts (columns and rows) in the header of a binary file.
-     */
-    SDFIO_HEADER_COUNTS = 2,
-    /** The number of binary64 numbers in the header of a binary file. */
-    SDFIO_HEADER_DOUBLES = 4,
-    /** The number of bytes of codes (compression, data type and checksum) in
-     * the header of a binary file. */
-    SDFIO_HEADER_CODES = 3,
-    /** The size of the largest binary header, that of ISO-2.0. */
-    SDFIO_BINARY_HEADER_MAX = 85,
     /** The code of "no compression" and "no checksum". */
     SDFIO_NONE = 0,
     /** The longest trailer. */
     SDFIO_MAX_TRAILER = 1 << 28
 };
-
-_Static_assert(SDFIO_BINARY_HEADER_MAX
-                   == SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE
-                          + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
-                          + SDFIO_HEADER_COUNTS * sizeof(uint32_t)
-                          + SDFIO_HEADER_DOUBLES * sizeof(double)
-                          + SDFIO_HEADER_CODES,
-               "the largest binary header is the sum of its fields");
 
 #endif /* SDFIO_SRC_FIELDS_H */

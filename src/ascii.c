@@ -230,8 +230,10 @@ static sdfio_status header_count(const sdfio_string *header_text,
     }
     if (number < 0 || (unsigned long long)number > SIZE_MAX)
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "A count in the SDF header is out of range");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "NumPoints or NumProfiles in the SDF header is out of "
+            "range");
     }
     *out = (size_t)number;
     return SDFIO_OK;
@@ -512,12 +514,13 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                             "A date of the SDF header is not valid");
         goto done;
     }
-    if (header->columns > sdfio_max_count(revision)
-        || header->rows > sdfio_max_count(revision))
+    if (header->columns > sdfio_max_extent(revision)
+        || header->rows > sdfio_max_extent(revision))
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "A count in the SDF header is out of range for the "
-                            "revision");
+        status =
+            sdfio_fail(message, SDFIO_ERR_FORMAT,
+                       "NumPoints or NumProfiles in the SDF header is out of "
+                       "range for the revision");
         goto done;
     }
     if (identifier_size(identifier) > SDFIO_ID_SIZE)
