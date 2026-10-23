@@ -72,6 +72,6 @@ bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
             settings->writer_formats[writers++] = config->writer_formats[i];
         }
     }
-    return settings->chunk <= SIZE_MAX / SDFIO_LARGEST_DATA_ENTRY
+    return settings->chunk <= SIZE_MAX / SDFIO_LARGEST_CODED_VALUE
            && settings->chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
 }

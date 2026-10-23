@@ -26,7 +26,7 @@
  * 3. Heights. sdfio_decode_heights() and sdfio_encode_heights() convert between
  *    the coded values of the data area and heights in metres. They require
  *    only a header, no handle.
- * 4. Images. sdfio_read_heights() and sdfio_write_heights() combine layers 2
+ * 4. Matrices. sdfio_read_heights() and sdfio_write_heights() combine layers 2
  *    and 3 for a complete matrix, in a plain array or in a buffer that lies in
  *    memory as described by strides.
  *
@@ -40,11 +40,13 @@
  * This header does not include `<stdio.h>`.
  *
  * @par Data and heights
- * The data area stores one value per point in the data type of the file, in
- * units of the z-scale of the header. These are the coded values, which
- * sdfio_read_data() and sdfio_write_data() transfer. A height is the same
- * point in metres, as a float or a double. A point that is not measured is NaN
- * or a marker that the program chooses.
+ * The data area (record 2) holds the data matrix of the columns and rows of the
+ * header. It stores one coded value per point, in the data type of the file,
+ * in units of the z-scale of the header. sdfio_read_data() and
+ * sdfio_write_data() transfer the coded values. A height is the same point in
+ * metres, as a float or a double. A point that is not measured has the bad
+ * value of the data type in the data area, and NaN or a marker that the program
+ * chooses in heights.
  * sdfio_read_heights() and sdfio_write_heights() transfer heights, and
  * sdfio_decode_heights() and sdfio_encode_heights() convert between the two.
  *
@@ -203,7 +205,8 @@ typedef enum sdfio_representation
 } sdfio_representation;
 
 /**
- * The type of a value: of the data area of a file, and of a buffer of heights.
+ * The type of the coded values of the data area of a file, and of the elements
+ * of a buffer of heights.
  *
  * Each enumerator is named after the C type of the values. The enumerator
  * values are the data type codes of the standard, which calls SDFIO_TYPE_FLOAT
@@ -286,7 +289,7 @@ typedef struct sdfio_header
     sdfio_revision revision;
     /** Representation of the file. */
     sdfio_representation representation;
-    /** Data type of the values in the data area. */
+    /** Data type of the coded values in the data area. */
     sdfio_data_type data_type;
     /** Number of columns M of the data matrix: the points along x. */
     size_t columns;
@@ -586,8 +589,8 @@ SDFIO_API const char *sdfio_version_number(const sdfio_config *config,
 
 /**
  * Returns the size in bytes of a buffer for the whole data area: `header->rows`
- * times `header->columns` values of `header->data_type`. The size is checked
- * for arithmetic overflow. A buffer of this size is suitable for
+ * times `header->columns` coded values of `header->data_type`. The size is
+ * checked for arithmetic overflow. A buffer of this size is suitable for
  * sdfio_read_data() and sdfio_decode_heights(). The caller allocates it.
  *
  * @param[in] header The header of the file.
@@ -722,7 +725,7 @@ SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
  * of an array of points, one channel of an interleaved image or a column-major
  * matrix. sdfio_layout_packed() describes a plain array. A program that does
  * not use an initializer calls sdfio_layout_init() before it assigns fields:
- * the default of `missing` is NaN, not zero.
+ * the default of `not_measured` is NaN, not zero.
  */
 typedef struct sdfio_layout
 {
@@ -737,7 +740,7 @@ typedef struct sdfio_layout
      * marks the points of a float buffer that hold the float nearest to
      * -9999.1.
      */
-    double missing;
+    double not_measured;
     /**
      * Distance in bytes between consecutive elements within a row. 0 selects
      * elements that follow each other directly.
@@ -778,18 +781,19 @@ static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
 /**
  * Reads the next rows of the data area (record 2) as the file codes them.
  *
- * `dst` receives `rows` times `header->columns` values of `header->data_type`
- * in the byte order of the machine, in the order of the file. The bad value is
- * not changed. ASCII values are parsed into the data type of the file, so that
- * an ASCII file of binary32 values is rounded to single precision. Use
- * sdfio_decode_heights() to obtain heights in metres.
+ * `dst` receives `rows` times `header->columns` coded values of
+ * `header->data_type` in the byte order of the machine, in the order of the
+ * file. The bad value is not changed. ASCII values are parsed into the data
+ * type of the file, so that an ASCII file of binary32 values is rounded to
+ * single precision. Use sdfio_decode_heights() to obtain heights in metres.
  *
  * The buffer lies in memory as the layout describes, whose type has to be the
- * data type of the file: the element (x, i) of the row i is stored at
- * `dst + i * layout.row_stride + x * layout.element_stride`. The pointer is at
- * the first row that is read. sdfio_layout_packed() describes values that
- * follow each other. The field `missing` of the layout is not used, because the
- * bad value of the data type marks a point that is not measured.
+ * data type of the file: the element (y, x) is stored at
+ * `dst + y * layout.row_stride + x * layout.element_stride`, where y counts
+ * the rows from the first row that is read. sdfio_layout_packed() describes
+ * values that follow each other. The field `not_measured` of the layout is not
+ * used, because the bad value of the data type marks a point that is not
+ * measured.
  *
  * The first row read is the first row stored in the file, the row with y = 0.
  *
@@ -797,7 +801,7 @@ static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
  *
  * @param reader The reader.
  * @param layout The layout of the buffer.
- * @param[out] dst The buffer for the values.
+ * @param[out] dst The buffer for the coded values.
  * @param rows The number of rows to read.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
  * remaining, the type of the layout is not the data type of the file, or the
@@ -820,7 +824,7 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  * layout.element_stride`. The row y = 0 is the first row. A negative row
  * stride, with `dst` at the first element of the row y = 0, which is the last
  * row in memory, stores the matrix upside down. A point that is not measured
- * becomes `layout.missing`.
+ * becomes `layout.not_measured`.
  *
  * The function reads from the first row of the data area, so no rows may have
  * been read before.
@@ -923,20 +927,20 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
 /**
  * Writes the next rows of the data area.
  *
- * `src` holds `rows` times `header.columns` values of `header.data_type` in the
- * byte order of the machine, in the order of the file. The bad value is written
- * unchanged.
+ * `src` holds `rows` times `header.columns` coded values of `header.data_type`
+ * in the byte order of the machine, in the order of the file. The bad value is
+ * written unchanged.
  *
  * The buffer lies in memory as the layout describes, whose type has to be the
  * data type of the file, as for sdfio_read_data(). sdfio_layout_packed()
- * describes values that follow each other.
+ * describes coded values that follow each other.
  *
  * The first row written is the first row stored in the file, the row with
  * y = 0.
  *
  * @param writer The writer.
  * @param layout The layout of the buffer.
- * @param[in] src The values to write.
+ * @param[in] src The coded values to write.
  * @param rows The number of rows to write.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
  * remaining, the type of the layout is not the data type of the file, the
@@ -958,7 +962,7 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
  * The layout is that of sdfio_read_heights(): the element (y, x) is at
  * `src + y * layout.row_stride + x * layout.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
- * z-scale is selected from the heights. NaN, infinity and `layout.missing`
+ * z-scale is selected from the heights. NaN, infinity and `layout.not_measured`
  * label points that are not measured. Call sdfio_end_trailer() afterwards.
  *
  * @param writer The writer.
@@ -1051,8 +1055,8 @@ SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
  *
  * `count` values of `header->data_type` are converted with `header->z_scale`.
  * The height i is stored at `heights + i * layout.element_stride`. A point that
- * is not measured becomes `layout.missing`. The function needs no handle, so it
- * works on data from any source.
+ * is not measured becomes `layout.not_measured`. The function needs no handle,
+ * so it works on data from any source.
  *
  * @param[in] header The header that describes the values.
  * @param layout The layout of the output buffer.
@@ -1072,8 +1076,8 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * sdfio_decode_heights().
  *
  * The heights are divided by `header->z_scale`. NaN, infinity and
- * `layout.missing` become the bad value. Integer results are rounded to the
- * nearest value.
+ * `layout.not_measured` become the bad value. Integer results are rounded to
+ * the nearest value.
  *
  * @param[in] header The header that describes the values.
  * @param layout The layout of the input buffer.
@@ -1106,7 +1110,7 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
 /**
  * Determines the z-scale for a matrix of heights in metres, as
  * sdfio_write_heights() does: the range of the finite heights, excluding the
- * points that `layout.missing` marks, is determined and passed to
+ * points that `layout.not_measured` marks, is determined and passed to
  * sdfio_z_scale_for_range(). It is intended for sdfio_write_data() with an
  * integer data type.
  *

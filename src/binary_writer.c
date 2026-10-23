@@ -32,7 +32,7 @@ static size_t scratch_size(size_t chunk_values)
 {
     return sdfio_host_is_little_endian()
                ? 0
-               : chunk_values * SDFIO_LARGEST_DATA_ENTRY;
+               : chunk_values * SDFIO_LARGEST_CODED_VALUE;
 }
 
 static const char *const version_numbers[] = {

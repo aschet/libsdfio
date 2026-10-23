@@ -11,13 +11,13 @@ folder. The name of a file starts with the revision:
 
 Every file exists in the ASCII representation (`_ascii`) and in the binary one (`_binary`), as in
 `iso2_surface_binary.sdf`. The surfaces have 48 columns and 32 rows with the sampling intervals
-2 µm along x and 3 µm along y, and the profiles have 128 points. Missing points are the rows 10 to
+2 µm along x and 3 µm along y, and the profiles have 128 points. The points that are not measured are the rows 10 to
 13 and the columns 20 to 29 of a surface, and the points 60 to 63 of a profile.
 
 | Name | Data | Revisions |
 | --- | --- | --- |
-| `profile` | A profile with missing points, binary64 | all |
-| `surface` | A surface with a region of missing points and a trailer, int16 | all |
+| `profile` | A profile with points that are not measured, binary64 | all |
+| `surface` | A surface with a region of points that are not measured and a trailer, int16 | all |
 | `surface_int32` | The same surface, int32 | all |
 | `surface_binary64` | The same surface, binary64 | all |
 | `surface_binary32`, `surface_int8` | The same surface, in the data types that version 2.0 adds | ISO-2.0 |

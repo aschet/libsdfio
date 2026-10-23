@@ -27,7 +27,7 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Rows were read already");
     }
-    if (!sdfio_valid_height_type(layout.type))
+    if (!sdfio_valid_heights_type(layout.type))
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                           "The type of the heights is not SDFIO_TYPE_FLOAT or "

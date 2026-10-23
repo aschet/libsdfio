@@ -24,22 +24,22 @@
 
 #include <stdio.h>
 
-sdfio_point sdfio_point_now(void)
+sdfio_decimal_point sdfio_decimal_point_now(void)
 {
-    sdfio_point point = {{'.', '\0'}};
+    sdfio_decimal_point decimal_point = {{'.', '\0'}};
     const struct lconv *locale = localeconv();
     if (locale != NULL && locale->decimal_point != NULL
         && locale->decimal_point[0] != '\0'
-        && strlen(locale->decimal_point) < sizeof point.text)
+        && strlen(locale->decimal_point) < sizeof decimal_point.text)
     {
-        memcpy(point.text, locale->decimal_point,
+        memcpy(decimal_point.text, locale->decimal_point,
                strlen(locale->decimal_point) + 1);
     }
-    return point;
+    return decimal_point;
 }
 
-bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
-                        double *out)
+bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
+                        const char *text, size_t size, double *out)
 {
     sdfio_trim(&text, &size);
     bool negative = false;
@@ -103,9 +103,9 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
     }
 
     /* strtod wants the point of the locale. */
-    const size_t point_size = strlen(point->text);
+    const size_t decimal_point_size = strlen(decimal_point->text);
     char buffer[SDFIO_NUMBER_CAPACITY];
-    if (size + point_size >= sizeof buffer)
+    if (size + decimal_point_size >= sizeof buffer)
     {
         return false;
     }
@@ -114,8 +114,8 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
     {
         if (k == dot)
         {
-            memcpy(buffer + length, point->text, point_size);
-            length += point_size;
+            memcpy(buffer + length, decimal_point->text, decimal_point_size);
+            length += decimal_point_size;
         }
         else
         {
@@ -169,9 +169,9 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
     return true;
 }
 
-size_t sdfio_format_scientific(const sdfio_point *point, char *out,
-                               size_t capacity, double value, int digits,
-                               int exponent_width)
+size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
+                               char *out, size_t capacity, double value,
+                               int digits, int exponent_width)
 {
     /* A negative zero is a zero: the format has no sign to keep for it. */
     if (value == 0.0)
@@ -198,13 +198,14 @@ size_t sdfio_format_scientific(const sdfio_point *point, char *out,
     /* The mantissa with a dot. */
     char mantissa[SDFIO_NUMBER_CAPACITY];
     size_t used = 0;
-    const size_t point_size = strlen(point->text);
+    const size_t decimal_point_size = strlen(decimal_point->text);
     for (const char *p = raw; *p != '\0';)
     {
-        if (point_size > 0 && strncmp(p, point->text, point_size) == 0)
+        if (decimal_point_size > 0
+            && strncmp(p, decimal_point->text, decimal_point_size) == 0)
         {
             mantissa[used++] = '.';
-            p += point_size;
+            p += decimal_point_size;
         }
         else
         {

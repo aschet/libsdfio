@@ -262,7 +262,7 @@ static bool copy_datetime(char *out, const char *value, size_t size)
  * it removed. */
 static sdfio_status store_field(header_fields *fields, enum field field,
                                 const char *value, size_t size,
-                                const sdfio_point *point,
+                                const sdfio_decimal_point *decimal_point,
                                 sdfio_message *message)
 {
     bool valid = true;
@@ -291,16 +291,20 @@ static sdfio_status store_field(header_fields *fields, enum field field,
         valid = parse_extent(value, size, &fields->rows);
         break;
     case X_SCALE:
-        valid = sdfio_parse_number(point, value, size, &fields->x_scale);
+        valid =
+            sdfio_parse_number(decimal_point, value, size, &fields->x_scale);
         break;
     case Y_SCALE:
-        valid = sdfio_parse_number(point, value, size, &fields->y_scale);
+        valid =
+            sdfio_parse_number(decimal_point, value, size, &fields->y_scale);
         break;
     case Z_SCALE:
-        valid = sdfio_parse_number(point, value, size, &fields->z_scale);
+        valid =
+            sdfio_parse_number(decimal_point, value, size, &fields->z_scale);
         break;
     case Z_RESOLUTION:
-        valid = sdfio_parse_number(point, value, size, &fields->resolution);
+        valid =
+            sdfio_parse_number(decimal_point, value, size, &fields->resolution);
         break;
     case COMPRESSION:
         valid = sdfio_parse_integer(value, size, &fields->compression);
@@ -323,13 +327,13 @@ static sdfio_status store_field(header_fields *fields, enum field field,
 struct reading
 {
     /** The decimal point of the locale, measured when the file was opened. */
-    sdfio_point point;
+    sdfio_decimal_point decimal_point;
 };
 
 /* Reads the lines of the header up to the line that terminates the record. */
 static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
-                                const sdfio_point *point, header_fields *fields,
-                                sdfio_message *message)
+                                const sdfio_decimal_point *decimal_point,
+                                header_fields *fields, sdfio_message *message)
 {
     bool ended = false;
     bool done = false;
@@ -362,8 +366,8 @@ static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
             {
                 continue;
             }
-            const sdfio_status status =
-                store_field(fields, field, value, value_size, point, message);
+            const sdfio_status status = store_field(
+                fields, field, value, value_size, decimal_point, message);
             if (status != SDFIO_OK)
             {
                 return status;
@@ -399,7 +403,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 sdfio_message *message)
 {
     struct reading *reading = state;
-    reading->point = sdfio_point_now();
+    reading->decimal_point = sdfio_decimal_point_now();
     sdfio_string line = {.allocator = source->allocator};
     sdfio_status status = SDFIO_OK;
     bool ended = false;
@@ -431,7 +435,8 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     header_fields fields = {0};
     if (status == SDFIO_OK)
     {
-        status = read_fields(source, &line, &reading->point, &fields, message);
+        status = read_fields(source, &line, &reading->decimal_point, &fields,
+                             message);
     }
     sdfio_string_free(&line);
     if (status != SDFIO_OK)
@@ -582,8 +587,8 @@ static bool store_real(sdfio_data_type type, void *dst, size_t index,
 }
 
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
-                               const sdfio_point *point, void *dst,
-                               size_t index, sdfio_string *word,
+                               const sdfio_decimal_point *decimal_point,
+                               void *dst, size_t index, sdfio_string *word,
                                sdfio_message *message)
 {
     const int got = next_token(source, word);
@@ -613,7 +618,7 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     if (sdfio_is_floating(header->data_type))
     {
         double value = 0.0;
-        if (sdfio_parse_number(point, token, size, &value))
+        if (sdfio_parse_number(decimal_point, token, size, &value))
         {
             status = store_real(header->data_type, dst, index, value)
                          ? SDFIO_OK
@@ -692,8 +697,8 @@ static sdfio_status read_values(sdfio_source *source,
     sdfio_status status = SDFIO_OK;
     for (size_t i = 0; i < count && status == SDFIO_OK; ++i)
     {
-        status =
-            read_value(source, header, &reading->point, dst, i, &word, message);
+        status = read_value(source, header, &reading->decimal_point, dst, i,
+                            &word, message);
     }
     sdfio_string_free(&word);
     return status;

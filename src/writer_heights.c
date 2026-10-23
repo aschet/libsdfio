@@ -27,7 +27,7 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_layout layout,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "Rows were written already");
     }
-    if (!sdfio_valid_height_type(layout.type))
+    if (!sdfio_valid_heights_type(layout.type))
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "The type of the heights is not SDFIO_TYPE_FLOAT or "

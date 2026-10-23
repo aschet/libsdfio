@@ -102,7 +102,7 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
 static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 {
     return header != NULL && sdfio_valid_data_type(header->data_type)
-           && sdfio_valid_height_type(layout.type);
+           && sdfio_valid_heights_type(layout.type);
 }
 
 /**
@@ -243,9 +243,9 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(layout);
     return layout.type == SDFIO_TYPE_FLOAT
                ? decode_float(header, data, count, heights, element,
-                              layout.missing)
+                              layout.not_measured)
                : decode_double(header, data, count, heights, element,
-                               layout.missing);
+                               layout.not_measured);
 }
 
 sdfio_status sdfio_encode_heights(const sdfio_header *header,
@@ -262,9 +262,9 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(layout);
     return layout.type == SDFIO_TYPE_FLOAT
                ? encode_float(header, heights, element, count, data,
-                              layout.missing)
+                              layout.not_measured)
                : encode_double(header, heights, element, count, data,
-                               layout.missing);
+                               layout.not_measured);
 }
 
 double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
@@ -311,7 +311,7 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
                                size_t rows, size_t columns, double *lowest,
                                double *highest)
 {
-    if (!sdfio_valid_height_type(layout.type) || lowest == NULL
+    if (!sdfio_valid_heights_type(layout.type) || lowest == NULL
         || highest == NULL || (rows > 0 && columns > 0 && heights == NULL)
         || sdfio_check_layout(&layout, rows, columns, NULL) != SDFIO_OK)
     {
@@ -322,7 +322,7 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
     if (layout.type == SDFIO_TYPE_FLOAT)
     {
         float marker = 0.0F;
-        if (!marker_of_float(layout.missing, &marker, &has_marker))
+        if (!marker_of_float(layout.not_measured, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }
@@ -332,7 +332,7 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
     else
     {
         double marker = 0.0;
-        if (!marker_of_double(layout.missing, &marker, &has_marker))
+        if (!marker_of_double(layout.not_measured, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }

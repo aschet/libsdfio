@@ -29,7 +29,7 @@ static const char crlf[] = SDFIO_ASCII_LINE_END;
 struct writing
 {
     /** The decimal point of the locale, measured when the file was created. */
-    sdfio_point point;
+    sdfio_decimal_point decimal_point;
     /** The column of the next value to write. */
     size_t column;
 };
@@ -88,17 +88,18 @@ static bool append_field(sdfio_string *out, const char *name, const char *value)
            && append_text(out, value) && append_text(out, crlf);
 }
 
-static bool append_scale(sdfio_string *out, const sdfio_point *point,
+static bool append_scale(sdfio_string *out,
+                         const sdfio_decimal_point *decimal_point,
                          const char *name, double value)
 {
     char text[SDFIO_NUMBER_CAPACITY];
-    sdfio_format_scientific(point, text, sizeof text, value,
+    sdfio_format_scientific(decimal_point, text, sizeof text, value,
                             SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
     return append_field(out, name, text);
 }
 
 static sdfio_status format_header(const sdfio_header *header,
-                                  const sdfio_point *point,
+                                  const sdfio_decimal_point *decimal_point,
                                   const sdfio_time_zone *zone,
                                   sdfio_string *out, sdfio_message *message)
 {
@@ -126,10 +127,14 @@ static sdfio_status format_header(const sdfio_header *header,
     ok = ok && append_field(out, SDFIO_ASCII_POINTS, text);
     snprintf(text, sizeof text, "%zu", header->rows);
     ok = ok && append_field(out, SDFIO_ASCII_PROFILES, text);
-    ok = ok && append_scale(out, point, SDFIO_ASCII_X_SCALE, header->x_scale)
-         && append_scale(out, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
-         && append_scale(out, point, SDFIO_ASCII_Z_SCALE, header->z_scale)
-         && append_scale(out, point, SDFIO_ASCII_Z_RESOLUTION,
+    ok = ok
+         && append_scale(out, decimal_point, SDFIO_ASCII_X_SCALE,
+                         header->x_scale)
+         && append_scale(out, decimal_point, SDFIO_ASCII_Y_SCALE,
+                         header->y_scale)
+         && append_scale(out, decimal_point, SDFIO_ASCII_Z_SCALE,
+                         header->z_scale)
+         && append_scale(out, decimal_point, SDFIO_ASCII_Z_RESOLUTION,
                          header->z_resolution > 0.0 ? header->z_resolution
                                                     : SDFIO_NO_RESOLUTION);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
@@ -147,7 +152,8 @@ static sdfio_status format_header(const sdfio_header *header,
     return SDFIO_OK;
 }
 
-static size_t format_value(const sdfio_header *header, const sdfio_point *point,
+static size_t format_value(const sdfio_header *header,
+                           const sdfio_decimal_point *decimal_point,
                            const void *coded, size_t index, char *out,
                            size_t capacity)
 {
@@ -165,11 +171,11 @@ static size_t format_value(const sdfio_header *header, const sdfio_point *point,
     }
     if (type == SDFIO_TYPE_FLOAT)
     {
-        return sdfio_format_scientific(point, out, capacity, value,
+        return sdfio_format_scientific(decimal_point, out, capacity, value,
                                        SDFIO_FLOAT_DIGITS,
                                        SDFIO_FLOAT_EXPONENT);
     }
-    return sdfio_format_scientific(point, out, capacity, value,
+    return sdfio_format_scientific(decimal_point, out, capacity, value,
                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
 }
 
@@ -184,11 +190,11 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  sdfio_message *message)
 {
     struct writing *writing = state;
-    writing->point = sdfio_point_now();
+    writing->decimal_point = sdfio_decimal_point_now();
     writing->column = 0;
     sdfio_string text = {.allocator = allocator};
     sdfio_status status =
-        format_header(header, &writing->point, zone, &text, message);
+        format_header(header, &writing->decimal_point, zone, &text, message);
     if (status == SDFIO_OK
         && !sdfio_sink_write(sink, sdfio_string_text(&text), text.size))
     {
@@ -217,7 +223,7 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
             {
                 text[used++] = ' ';
             }
-            used += format_value(header, &writing->point,
+            used += format_value(header, &writing->decimal_point,
                                  (const unsigned char *)values + first * size,
                                  i, text + used, SDFIO_TEXT_PER_VALUE);
             if (++writing->column == header->columns)

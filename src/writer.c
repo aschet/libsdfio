@@ -38,7 +38,7 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
         writer->formats[i] = settings.writer_formats[i];
     }
     writer->coded = sdfio_allocate(&writer->allocator,
-                                   settings.chunk * SDFIO_LARGEST_DATA_ENTRY);
+                                   settings.chunk * SDFIO_LARGEST_CODED_VALUE);
     if (writer->coded == NULL
         || !sdfio_sink_create(&writer->sink, settings.buffer,
                               &writer->allocator))

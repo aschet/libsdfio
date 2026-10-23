@@ -65,7 +65,7 @@ static void check_init(void)
     memset(&layout, 0xA5, sizeof layout);
     sdfio_layout_init(&layout);
     CHECK(layout.type == SDFIO_TYPE_FLOAT);
-    CHECK(isnan(layout.missing));
+    CHECK(isnan(layout.not_measured));
     CHECK(layout.element_stride == 0);
     CHECK(layout.row_stride == 0);
 

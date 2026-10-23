@@ -41,7 +41,7 @@ static void check_decode(void)
 
     /* A marker of the caller instead of NaN. */
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
-    layout.missing = -9999.0;
+    layout.not_measured = -9999.0;
     double doubles[4];
     CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, doubles));
     CHECK(doubles[2] == -9999.0);
@@ -83,7 +83,7 @@ static void check_encode(void)
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-9);
     const double heights[] = {1.004e-7, -2e-7, NAN, INFINITY, -9999.0};
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
-    layout.missing = -9999.0;
+    layout.not_measured = -9999.0;
     int16_t coded[5];
     CHECK_OK(sdfio_encode_heights(&header, layout, heights, 5, coded));
     CHECK(coded[0] == 100 && coded[1] == -200);
@@ -164,7 +164,7 @@ static void check_range(void)
     const float heights[] = {0.5f, NAN, -2.0f, 9999.1f, 3.0f, 1.0f};
     /* A marker of a double literal for the floats that hold 9999.1f. */
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
-    layout.missing = 9999.1;
+    layout.not_measured = 9999.1;
     double z_scale = 0.0;
     /* Two rows of three, the second one read bottom up. */
     layout.row_stride = -(ptrdiff_t)(3 * sizeof(float));
@@ -172,7 +172,7 @@ static void check_range(void)
                                    &z_scale));
     CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-12));
     /* Without the marker the large height sets the scale. */
-    layout.missing = NAN;
+    layout.not_measured = NAN;
     CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, layout, heights + 3, 2, 3,
                                    &z_scale));
     CHECK(z_scale > 0.3);
@@ -194,7 +194,7 @@ static void check_float_marker(void)
     const sdfio_header header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-3);
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
-    layout.missing = -9999.1;
+    layout.not_measured = -9999.1;
     const float heights[] = {1.0f, -9999.1f, NAN, 2.0f};
     int16_t coded[4];
     CHECK_OK(sdfio_encode_heights(&header, layout, heights, 4, coded));

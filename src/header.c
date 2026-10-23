@@ -33,13 +33,13 @@ void sdfio_header_init(sdfio_header *header)
     memcpy(header->manufacturer_id, producer, sizeof producer);
 }
 
-bool sdfio_data_entries(const sdfio_header *header, size_t *entries)
+bool sdfio_coded_values(const sdfio_header *header, size_t *values)
 {
     if (header->columns != 0 && header->rows > SIZE_MAX / header->columns)
     {
         return false;
     }
-    *entries = header->columns * header->rows;
+    *values = header->columns * header->rows;
     return true;
 }
 
@@ -123,8 +123,8 @@ sdfio_status sdfio_header_validate_for_writing(const sdfio_header *header,
                           "The year of a date is out of the range of the "
                           "SDF files");
     }
-    size_t entries = 0;
-    if (!sdfio_data_entries(header, &entries))
+    size_t values = 0;
+    if (!sdfio_coded_values(header, &values))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "columns times rows does not fit in size_t");

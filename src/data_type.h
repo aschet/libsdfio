@@ -15,11 +15,11 @@
 #include <float.h>
 #include <sdfio/sdfio.h>
 
-/** The size in bytes of the largest data entry of the data area, which is a
+/** The size in bytes of the largest coded value of the data area, which is a
  * binary64 number. */
 enum
 {
-    SDFIO_LARGEST_DATA_ENTRY = 8
+    SDFIO_LARGEST_CODED_VALUE = 8
 };
 
 /**
@@ -45,11 +45,11 @@ enum
  *
  * @param type The value to test.
  */
-bool sdfio_valid_height_type(sdfio_data_type type);
+bool sdfio_valid_heights_type(sdfio_data_type type);
 
 /**
- * Returns the size in bytes of one data entry of a data type, or 0 if the value
- * is not a data type.
+ * Returns the size in bytes of one coded value of a data type, or 0 if the
+ * value is not a data type.
  *
  * @param type The type.
  */

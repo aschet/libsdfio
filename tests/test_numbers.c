@@ -15,49 +15,51 @@
 
 #include <locale.h>
 
-static bool parses(const sdfio_point *point, const char *text, double expected)
+static bool parses(const sdfio_decimal_point *decimal_point, const char *text,
+                   double expected)
 {
     double value = 0.0;
-    return sdfio_parse_number(point, text, strlen(text), &value)
+    return sdfio_parse_number(decimal_point, text, strlen(text), &value)
            && (value == expected || (isnan(value) && isnan(expected)));
 }
 
-static bool refuses(const sdfio_point *point, const char *text)
+static bool refuses(const sdfio_decimal_point *decimal_point, const char *text)
 {
     double value = 0.0;
-    return !sdfio_parse_number(point, text, strlen(text), &value);
+    return !sdfio_parse_number(decimal_point, text, strlen(text), &value);
 }
 
-static bool formats(const sdfio_point *point, double value, int digits,
-                    int exponent, const char *expected)
+static bool formats(const sdfio_decimal_point *decimal_point, double value,
+                    int digits, int exponent, const char *expected)
 {
     char text[SDFIO_NUMBER_CAPACITY];
-    sdfio_format_scientific(point, text, sizeof text, value, digits, exponent);
+    sdfio_format_scientific(decimal_point, text, sizeof text, value, digits,
+                            exponent);
     return strcmp(text, expected) == 0;
 }
 
-static void check_numbers(const sdfio_point *point)
+static void check_numbers(const sdfio_decimal_point *decimal_point)
 {
-    CHECK(parses(point, "1.5", 1.5));
-    CHECK(parses(point, "-1.5e-3", -1.5e-3));
-    CHECK(parses(point, "  2 ", 2.0));
-    CHECK(parses(point, "+1", 1.0));
-    CHECK(parses(point, ".5", 0.5));
-    CHECK(parses(point, "5.", 5.0));
-    CHECK(parses(point, "1E3", 1000.0));
-    CHECK(refuses(point, "inf"));
-    CHECK(refuses(point, "NaN"));
-    CHECK(parses(point, "1e400", INFINITY));
-    CHECK(parses(point, "1e-400", 0.0));
-    CHECK(refuses(point, ""));
-    CHECK(refuses(point, "e5"));
-    CHECK(refuses(point, "1e"));
-    CHECK(refuses(point, "1.2.3"));
-    CHECK(refuses(point, "--1"));
-    CHECK(refuses(point, "+-1"));
-    CHECK(refuses(point, "0x10"));
-    CHECK(refuses(point, "1,5"));
-    CHECK(refuses(point, "12abc"));
+    CHECK(parses(decimal_point, "1.5", 1.5));
+    CHECK(parses(decimal_point, "-1.5e-3", -1.5e-3));
+    CHECK(parses(decimal_point, "  2 ", 2.0));
+    CHECK(parses(decimal_point, "+1", 1.0));
+    CHECK(parses(decimal_point, ".5", 0.5));
+    CHECK(parses(decimal_point, "5.", 5.0));
+    CHECK(parses(decimal_point, "1E3", 1000.0));
+    CHECK(refuses(decimal_point, "inf"));
+    CHECK(refuses(decimal_point, "NaN"));
+    CHECK(parses(decimal_point, "1e400", INFINITY));
+    CHECK(parses(decimal_point, "1e-400", 0.0));
+    CHECK(refuses(decimal_point, ""));
+    CHECK(refuses(decimal_point, "e5"));
+    CHECK(refuses(decimal_point, "1e"));
+    CHECK(refuses(decimal_point, "1.2.3"));
+    CHECK(refuses(decimal_point, "--1"));
+    CHECK(refuses(decimal_point, "+-1"));
+    CHECK(refuses(decimal_point, "0x10"));
+    CHECK(refuses(decimal_point, "1,5"));
+    CHECK(refuses(decimal_point, "12abc"));
 
     long long integer = 0;
     CHECK(sdfio_parse_integer("123", 3, &integer) && integer == 123);
@@ -72,13 +74,13 @@ static void check_numbers(const sdfio_point *point)
     CHECK(!sdfio_parse_integer("", 0, &integer));
     CHECK(!sdfio_parse_integer("-", 1, &integer));
 
-    CHECK(formats(point, 1.5, 14, 3, "1.50000000000000e+000"));
-    CHECK(formats(point, 1.5, 6, 2, "1.500000e+00"));
-    CHECK(formats(point, 0.0, 6, 2, "0.000000e+00"));
-    CHECK(formats(point, -0.0, 6, 2, "0.000000e+00"));
-    CHECK(formats(point, -2.5e-300, 3, 3, "-2.500e-300"));
-    CHECK(formats(point, 1e100, 1, 3, "1.0e+100"));
-    CHECK(formats(point, 12345.0, 2, 2, "1.23e+04"));
+    CHECK(formats(decimal_point, 1.5, 14, 3, "1.50000000000000e+000"));
+    CHECK(formats(decimal_point, 1.5, 6, 2, "1.500000e+00"));
+    CHECK(formats(decimal_point, 0.0, 6, 2, "0.000000e+00"));
+    CHECK(formats(decimal_point, -0.0, 6, 2, "0.000000e+00"));
+    CHECK(formats(decimal_point, -2.5e-300, 3, 3, "-2.500e-300"));
+    CHECK(formats(decimal_point, 1e100, 1, 3, "1.0e+100"));
+    CHECK(formats(decimal_point, 12345.0, 2, 2, "1.23e+04"));
 
     /* What is printed is read back. */
     uint32_t state = 12345u;
@@ -90,10 +92,10 @@ static void check_numbers(const sdfio_point *point)
             * pow(10.0, (double)((int)(state >> 24) % 40 - 20));
         char text[SDFIO_NUMBER_CAPACITY];
         const size_t length =
-            sdfio_format_scientific(point, text, sizeof text, value,
+            sdfio_format_scientific(decimal_point, text, sizeof text, value,
                                     SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
         double back = 0.0;
-        CHECK(sdfio_parse_number(point, text, length, &back)
+        CHECK(sdfio_parse_number(decimal_point, text, length, &back)
               && near_relative(back, value, 1e-13));
     }
 }
@@ -116,9 +118,9 @@ static void check_locale(void)
     snprintf(probe, sizeof probe, "%.1f", 1.5);
     CHECK(strchr(probe, ',') != NULL);
 
-    const sdfio_point point = sdfio_point_now();
-    CHECK(strcmp(point.text, ",") == 0);
-    check_numbers(&point);
+    const sdfio_decimal_point decimal_point = sdfio_decimal_point_now();
+    CHECK(strcmp(decimal_point.text, ",") == 0);
+    check_numbers(&decimal_point);
 
     /* A file written and read in such a locale has the dots of the format. */
     sdfio_header header;
@@ -157,9 +159,9 @@ static void check_locale(void)
 
 int main(void)
 {
-    const sdfio_point point = sdfio_point_now();
-    CHECK(strcmp(point.text, ".") == 0);
-    check_numbers(&point);
+    const sdfio_decimal_point decimal_point = sdfio_decimal_point_now();
+    CHECK(strcmp(decimal_point.text, ".") == 0);
+    check_numbers(&decimal_point);
     check_locale();
     return finish_tests();
 }

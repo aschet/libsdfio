@@ -30,19 +30,20 @@ static bool REAL_NAME(is_finite)(REAL value)
 
 /* The marker of the caller as a number of the type of the heights. NaN is no
  * marker. False if the marker does not fit the type. */
-static bool REAL_NAME(marker_of)(double missing, REAL *marker, bool *present)
+static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
+                                 bool *present)
 {
     *marker = (REAL)NAN;
     *present = false;
-    if (isnan(missing))
+    if (isnan(not_measured))
     {
         return true;
     }
-    if (isfinite(missing) && fabs(missing) > (double)REAL_MAX)
+    if (isfinite(not_measured) && fabs(not_measured) > (double)REAL_MAX)
     {
         return false;
     }
-    *marker = (REAL)missing;
+    *marker = (REAL)not_measured;
     *present = true;
     return true;
 }
@@ -89,11 +90,11 @@ static bool REAL_NAME(marker_of)(double missing, REAL *marker, bool *present)
 static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                                       const void *coded, size_t count,
                                       void *heights, ptrdiff_t element,
-                                      double missing)
+                                      double not_measured)
 {
     REAL marker = 0;
     bool has_marker = false;
-    if (!REAL_NAME(marker_of)(missing, &marker, &has_marker))
+    if (!REAL_NAME(marker_of)(not_measured, &marker, &has_marker))
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -173,11 +174,12 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
 
 static sdfio_status REAL_NAME(encode)(const sdfio_header *header,
                                       const void *heights, ptrdiff_t element,
-                                      size_t count, void *coded, double missing)
+                                      size_t count, void *coded,
+                                      double not_measured)
 {
     REAL marker = 0;
     bool has_marker = false;
-    if (!REAL_NAME(marker_of)(missing, &marker, &has_marker))
+    if (!REAL_NAME(marker_of)(not_measured, &marker, &has_marker))
     {
         return SDFIO_ERR_ARGUMENT;
     }

@@ -25,9 +25,9 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     sdfio_header *header = &writer->header;
     if (header->z_scale == SDFIO_AUTO_Z_SCALE)
     {
-        size_t entries = 0;
-        sdfio_data_entries(header, &entries);
-        if (sdfio_is_floating(header->data_type) || entries == 0)
+        size_t values = 0;
+        sdfio_coded_values(header, &values);
+        if (sdfio_is_floating(header->data_type) || values == 0)
         {
             header->z_scale = 1.0;
         }

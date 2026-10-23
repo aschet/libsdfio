@@ -16,16 +16,16 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Computes the total number of data entries of the data area: the number of
+ * Computes the total number of coded values of the data area: the number of
  * columns times the number of rows of the data matrix that the header
  * describes. The function reports an overflow of size_t instead of wrapping
  * around.
  *
  * @param header The header, with the numbers of columns and rows.
- * @param[out] entries Receives the number of data entries.
+ * @param[out] values Receives the number of coded values.
  * @return False if the number does not fit in size_t.
  */
-bool sdfio_data_entries(const sdfio_header *header, size_t *entries);
+bool sdfio_coded_values(const sdfio_header *header, size_t *values);
 
 /**
  * Validates a header for the creation of a file.

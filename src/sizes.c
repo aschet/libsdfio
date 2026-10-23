@@ -45,7 +45,7 @@ static sdfio_status heights_bytes(const sdfio_header *header,
                                   sdfio_data_type type, size_t rows,
                                   size_t *bytes)
 {
-    if (header == NULL || bytes == NULL || !sdfio_valid_height_type(type))
+    if (header == NULL || bytes == NULL || !sdfio_valid_heights_type(type))
     {
         return SDFIO_ERR_ARGUMENT;
     }
