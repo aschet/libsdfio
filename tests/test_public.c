@@ -82,6 +82,7 @@ static void check_init(void)
     CHECK(config.allocator == NULL);
     CHECK(config.buffer_size == 0);
     CHECK(config.chunk_values == 0);
+    CHECK(config.max_trailer_size == 0);
     CHECK(config.time_zone == NULL);
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {

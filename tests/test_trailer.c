@@ -203,11 +203,93 @@ static void check_the_text_is_written_as_given(void)
     free(file.data);
 }
 
+/* A file with a trailer of three fields, or without a trailer. */
+static membuf file_with_trailer(sdfio_representation representation,
+                                bool with_fields)
+{
+    small_file small;
+    start_file(&small, representation);
+    if (with_fields)
+    {
+        CHECK_OK(sdfio_write_trailer_field(small.writer, "OperatorName",
+                                           "Jane Doe"));
+        CHECK_OK(sdfio_write_trailer_field(small.writer, "PartName",
+                                           "Synthetic bumps"));
+        CHECK_OK(
+            sdfio_write_trailer_field(small.writer, "Magnification", "20.5"));
+    }
+    CHECK_OK(sdfio_end_trailer(small.writer));
+    sdfio_writer_free(small.writer);
+    return small.file;
+}
+
+/* The status of reading the trailer of a file with a limit. */
+static sdfio_status read_with_limit(const membuf *file, size_t limit,
+                                    size_t *size)
+{
+    const sdfio_config config = {.max_trailer_size = limit, ALL_FORMATS};
+    sdfio_reader *reader = sdfio_reader_new(&config);
+    CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
+    const char *text = NULL;
+    *size = 0;
+    const sdfio_status status = sdfio_read_trailer(reader, &text, size);
+    if (status != SDFIO_OK)
+    {
+        /* After the failure the reader does not read on. */
+        CHECK(sdfio_read_trailer(reader, &text, size) != SDFIO_OK);
+    }
+    sdfio_reader_free(reader);
+    return status;
+}
+
+/* A trailer longer than the limit of the configuration is not read: the limit
+ * counts the bytes of the file in a binary file, and the characters of the text
+ * in an ASCII file. A limit of 0 is none. */
+static void check_the_limit(void)
+{
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t r = 0; r < 2; ++r)
+    {
+        membuf file = file_with_trailer(representations[r], true);
+        membuf empty = file_with_trailer(representations[r], false);
+        size_t full = 0;
+        CHECK_OK(read_with_limit(&file, 0, &full));
+        /* An ASCII file has white space around the trailer, which the limit
+         * counts and the trailer then lacks. */
+        const size_t white_space = 8;
+        const size_t bytes =
+            r == 0 ? file.size - empty.size : full + white_space;
+        size_t size = 0;
+        CHECK_OK(read_with_limit(&file, bytes, &size));
+        CHECK(size == full);
+        CHECK_STATUS(
+            SDFIO_ERR_LIMIT,
+            read_with_limit(&file, r == 0 ? bytes - 1 : full - 1, &size));
+        CHECK_STATUS(SDFIO_ERR_LIMIT, read_with_limit(&file, 1, &size));
+        free(file.data);
+        free(empty.data);
+
+        /* One line without an end is not collected beyond the limit. */
+        small_file big;
+        start_file(&big, representations[r]);
+        static char line[5000];
+        memset(line, 'x', sizeof line - 1);
+        CHECK_OK(sdfio_write_trailer_text(big.writer, line, sizeof line - 1));
+        CHECK_OK(sdfio_end_trailer(big.writer));
+        sdfio_writer_free(big.writer);
+        CHECK_STATUS(SDFIO_ERR_LIMIT, read_with_limit(&big.file, 100, &size));
+        CHECK_OK(read_with_limit(&big.file, 0, &size));
+        CHECK(size == sizeof line - 1);
+        free(big.file.data);
+    }
+}
+
 int main(void)
 {
     check_fields();
     check_what_a_line_may_be();
     check_the_order();
     check_the_text_is_written_as_given();
+    check_the_limit();
     return finish_tests();
 }

@@ -38,6 +38,8 @@ typedef struct sdfio_settings
     size_t buffer;
     /** The number of values converted at a time. */
     size_t chunk;
+    /** The largest trailer that a reader keeps in bytes, 0 for no limit. */
+    size_t max_trailer;
     /** The reader formats of the configuration, null after the last. */
     const sdfio_reader_format *reader_formats[SDFIO_FORMAT_MAX];
     /** The writer formats of the configuration, null after the last. */

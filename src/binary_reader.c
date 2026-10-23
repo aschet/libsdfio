@@ -93,12 +93,19 @@ static void copy_identifier(sdfio_header *header, const unsigned char *field)
 }
 
 static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, sdfio_message *message)
+                                 bool *present, size_t limit,
+                                 sdfio_message *message)
 {
     char piece[SDFIO_TRAILER_PIECE];
     size_t count = 0;
     while ((count = sdfio_source_read(source, piece, sizeof piece)) > 0)
     {
+        if (limit != 0 && count > limit - out->size)
+        {
+            return sdfio_fail(message, SDFIO_ERR_LIMIT,
+                              "The trailer is longer than the limit of the "
+                              "configuration");
+        }
         if (!sdfio_string_append(out, piece, count))
         {
             return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");

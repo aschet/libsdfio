@@ -31,16 +31,18 @@ enum
 {
     GOT_NONE = 0,
     GOT_ONE = 1,
-    GOT_ERROR = -1
+    GOT_ERROR = -1,
+    GOT_LIMIT = -2
 };
 
 /* Tolerated deviation: a line can end with LF alone, where the standard has
  * CRLF.
  *
  * The next line of the source, without its end. The last line of a text that
- * does not end with a line end comes back once with `ended` false. */
+ * does not end with a line end comes back once with `ended` false. A line that
+ * would have more than `max_size` characters is GOT_LIMIT. */
 static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
-                     bool *done)
+                     bool *done, size_t max_size)
 {
     sdfio_string_clear(line);
     *ended = false;
@@ -66,6 +68,10 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
             }
             *ended = true;
             return GOT_ONE;
+        }
+        if (line->size >= max_size)
+        {
+            return GOT_LIMIT;
         }
         const char character = (char)c;
         if (!sdfio_string_append(line, &character, 1))
@@ -355,7 +361,7 @@ static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
     bool done = false;
     bool terminated = false;
     bool malformed = false;
-    while (next_line(source, line, &ended, &done) == GOT_ONE)
+    while (next_line(source, line, &ended, &done, SIZE_MAX) == GOT_ONE)
     {
         const char *text = sdfio_string_text(line);
         if (is_terminator(text, line->size))
@@ -427,7 +433,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     sdfio_status status = SDFIO_OK;
     bool ended = false;
     bool done = false;
-    const int got = next_line(source, &line, &ended, &done);
+    const int got = next_line(source, &line, &ended, &done, SIZE_MAX);
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
@@ -725,7 +731,8 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
 }
 
 static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, sdfio_message *message)
+                                 bool *present, size_t limit,
+                                 sdfio_message *message)
 {
     sdfio_string line = {.allocator = source->allocator};
     sdfio_string part = {.allocator = source->allocator};
@@ -737,8 +744,20 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
     size_t parts = 0;
     *present = true;
     int got = GOT_ONE;
-    while ((got = next_line(source, &line, &ended, &done)) == GOT_ONE)
+    for (;;)
     {
+        /* What the limit leaves for the next line. */
+        const size_t kept = out->size + part.size;
+        size_t room = SIZE_MAX;
+        if (limit != 0)
+        {
+            room = kept < limit ? limit - kept : 0;
+        }
+        got = next_line(source, &line, &ended, &done, room);
+        if (got != GOT_ONE)
+        {
+            break;
+        }
         if (first && line.size == 0 && !ended)
         {
             *present = false; /* the text ends with the data */
@@ -772,6 +791,18 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
             }
             part_started = true;
         }
+        if (limit != 0 && out->size + part.size > limit)
+        {
+            got = GOT_LIMIT;
+            break;
+        }
+    }
+    if (got == GOT_LIMIT)
+    {
+        status = sdfio_fail(message, SDFIO_ERR_LIMIT,
+                            "The trailer is longer than the limit of the "
+                            "configuration");
+        goto done;
     }
     if (got == GOT_ERROR)
     {

@@ -75,6 +75,8 @@ struct sdfio_reader
     unsigned char *chunk;
     /** The number of values in a chunk. */
     size_t chunk_values;
+    /** The largest trailer in bytes, 0 for no limit. */
+    size_t max_trailer;
 };
 
 /**

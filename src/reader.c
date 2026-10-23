@@ -46,7 +46,8 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
     }
     *reader = (sdfio_reader){.allocator = settings.allocator,
                              .zone = settings.zone,
-                             .chunk_values = settings.chunk};
+                             .chunk_values = settings.chunk,
+                             .max_trailer = settings.max_trailer};
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
         reader->formats[i] = settings.reader_formats[i];

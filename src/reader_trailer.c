@@ -35,9 +35,9 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
     {
         /* Tolerated deviation: the text of a trailer is not checked for the
          * tagged format that ISO-2.0 asks for. */
-        status = reader->format->read_trailer(&reader->source, &reader->trailer,
-                                              &reader->trailer_present,
-                                              &reader->message);
+        status = reader->format->read_trailer(
+            &reader->source, &reader->trailer, &reader->trailer_present,
+            reader->max_trailer, &reader->message);
     }
     if (status != SDFIO_OK)
     {

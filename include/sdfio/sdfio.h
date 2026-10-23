@@ -186,7 +186,9 @@ typedef enum sdfio_status
      */
     SDFIO_ERR_BAD_VALUE,
     /** An allocation failed. */
-    SDFIO_ERR_MEMORY
+    SDFIO_ERR_MEMORY,
+    /** A limit of the configuration was exceeded. */
+    SDFIO_ERR_LIMIT
 } sdfio_status;
 
 /**
@@ -543,6 +545,13 @@ typedef struct sdfio_config
      */
     size_t chunk_values;
     /**
+     * Largest trailer in bytes that a reader keeps in memory. Zero means no
+     * limit. The size is that of the text before the white space around it is
+     * removed, and a binary file counts its CRLF line ends.
+     * sdfio_read_trailer() fails with SDFIO_ERR_LIMIT for a longer trailer.
+     */
+    size_t max_trailer_size;
+    /**
      * Conversion of the dates of ISO-1.0 files. The structure is
      * copied, so it need not outlive the call that receives it. Null selects no
      * conversion.
@@ -868,6 +877,8 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The file is damaged or truncated.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
+ * @retval SDFIO_ERR_LIMIT The trailer is longer than
+ * sdfio_config::max_trailer_size.
  */
 SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
                                           const char **trailer, size_t *size);

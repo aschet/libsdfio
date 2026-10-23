@@ -97,13 +97,16 @@ struct sdfio_reader_format
      * @param source The source, after the data area.
      * @param[in,out] out Receives the trailer.
      * @param[out] present False if the file ends with the data.
+     * @param limit The largest trailer in bytes, 0 for no limit.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_FORMAT The trailer is damaged.
      * @retval SDFIO_ERR_MEMORY There is no memory.
+     * @retval SDFIO_ERR_LIMIT The trailer is longer than the limit.
      * @retval SDFIO_ERR_IO The stream failed.
      */
     sdfio_status (*read_trailer)(sdfio_source *source, sdfio_string *out,
-                                 bool *present, sdfio_message *message);
+                                 bool *present, size_t limit,
+                                 sdfio_message *message);
 };
 
 #endif /* SDFIO_SRC_READER_FORMAT_H */
