@@ -60,6 +60,8 @@ set(SDFIO_SOURCES
     src/byte_order.h
     src/common.c
     src/common.h
+    src/data_type.c
+    src/data_type.h
     src/dates.c
     src/dates.h
     src/decimal.c
@@ -71,9 +73,14 @@ set(SDFIO_SOURCES
     src/heights.c
     src/heights.h
     src/heights_real.h
+    src/magic.c
     src/owner.h
+    src/read_header.c
+    src/read_header.h
     src/reader.c
     src/reader_codec.h
+    src/revision.c
+    src/revision.h
     src/settings.c
     src/settings.h
     src/sink.c
@@ -85,9 +92,7 @@ set(SDFIO_SOURCES
     src/tagged.h
     src/text.c
     src/text.h
-    src/types.c
-    src/types.h
-    src/writer.c
+        src/writer.c
     src/writer_codec.h
 )
 

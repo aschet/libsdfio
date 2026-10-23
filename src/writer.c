@@ -10,13 +10,13 @@
  */
 
 #include "common.h"
+#include "data_type.h"
 #include "header.h"
 #include "heights.h"
 #include "owner.h"
 #include "settings.h"
 #include "sink.h"
 #include "tagged.h"
-#include "types.h"
 #include "writer_codec.h"
 
 /** Where a writer is in the life of a file. */

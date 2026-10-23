@@ -10,15 +10,16 @@
  */
 
 #include "common.h"
+#include "data_type.h"
 #include "dates.h"
 #include "decimal.h"
 #include "fields.h"
 #include "reader_codec.h"
+#include "revision.h"
 #include "sink.h"
 #include "source.h"
 #include "tagged.h"
 #include "text.h"
-#include "types.h"
 #include "writer_codec.h"
 
 #include <stdio.h>

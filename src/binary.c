@@ -15,14 +15,15 @@
 #include "binary.h"
 #include "byte_order.h"
 #include "common.h"
+#include "data_type.h"
 #include "dates.h"
 #include "fields.h"
 #include "reader_codec.h"
+#include "revision.h"
 #include "sink.h"
 #include "source.h"
 #include "tagged.h"
 #include "text.h"
-#include "types.h"
 #include "writer_codec.h"
 
 enum
@@ -63,6 +64,19 @@ static void put_double(unsigned char *bytes, double value)
     uint64_t bits = 0;
     memcpy(&bits, &value, sizeof bits);
     put_le(bytes, sizeof bits, bits);
+}
+
+size_t sdfio_binary_header_size(sdfio_revision revision)
+{
+    /* The magic, the identifier and the two dates, the counts, four binary64
+     * numbers and the bytes of the compression, the data type and the
+     * checksum. */
+    const size_t fixed =
+        SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
+        + SDFIO_HEADER_DOUBLES * sizeof(double) + SDFIO_HEADER_CODES;
+    const size_t count_size =
+        revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
+    return fixed + SDFIO_HEADER_COUNTS * count_size;
 }
 
 sdfio_status sdfio_binary_revision(const unsigned char *magic,

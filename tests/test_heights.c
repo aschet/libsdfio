@@ -7,9 +7,10 @@
 /* The step from stored values to heights and back, without a file. */
 
 #include "check.h"
+#include "data_type.h"
+#include "revision.h"
 
 #include "heights.h"
-#include "types.h"
 
 static sdfio_header description(sdfio_revision revision, sdfio_data_type type,
                                 double z_scale)

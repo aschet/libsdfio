@@ -10,13 +10,14 @@
  */
 
 #include "common.h"
+#include "data_type.h"
 #include "header.h"
 #include "heights.h"
 #include "owner.h"
+#include "read_header.h"
 #include "reader_codec.h"
 #include "settings.h"
 #include "source.h"
-#include "types.h"
 
 /** A stream over memory of the caller, for sdfio_open_memory(). */
 typedef struct memory_stream

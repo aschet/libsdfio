@@ -6,49 +6,22 @@
 
 /**
  * @file header.h
- * @brief Header reading and validation.
+ * @brief Operations on the header structure.
  */
 
 #ifndef SDFIO_SRC_HEADER_H
 #define SDFIO_SRC_HEADER_H
 
-#include "reader_codec.h"
+#include "common.h"
 
 /**
- * Finds the codec of the file at the start of the source by its magic. The
- * source stays at the start.
+ * Counts the values of the data area, with a check for overflow.
  *
- * @param source The source.
- * @param codecs The listed reader codecs.
- * @param[out] codec Receives the codec.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The magic is not one of an SDF file.
- * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not listed.
- * @retval SDFIO_ERR_IO The stream failed.
+ * @param header The header.
+ * @param[out] count Receives columns times rows.
+ * @return False if the count does not fit in size_t.
  */
-sdfio_status sdfio_select_reader_codec(sdfio_source *source,
-                                       const sdfio_reader_codec *const *codecs,
-                                       const sdfio_reader_codec **codec,
-                                       sdfio_message *message);
-
-/**
- * Reads the header at the start of the source with a codec, and checks what
- * every representation has in common.
- *
- * @param source The source.
- * @param codec The codec that sdfio_select_reader_codec() found.
- * @param[out] header Receives the header.
- * @param[out] state The room of `state_size` bytes for the codec, zeroed.
- * @param zone The time zone of the caller. May be null.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The header is damaged.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-sdfio_status sdfio_read_header(sdfio_source *source,
-                               const sdfio_reader_codec *codec,
-                               sdfio_header *header, void *state,
-                               const sdfio_time_zone *zone,
-                               sdfio_message *message);
+bool sdfio_count(const sdfio_header *header, size_t *count);
 
 /**
  * Checks what makes a file that cannot be written.

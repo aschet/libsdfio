@@ -15,6 +15,13 @@
 #include "common.h"
 
 /**
+ * Returns the size of the binary header of a revision.
+ *
+ * @param revision The revision.
+ */
+size_t sdfio_binary_header_size(sdfio_revision revision);
+
+/**
  * Finds the revision of a magic.
  *
  * @param magic The magic, `SDFIO_MAGIC_SIZE` bytes of a binary file.

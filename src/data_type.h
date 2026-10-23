@@ -5,12 +5,12 @@
  */
 
 /**
- * @file types.h
- * @brief Data types, revisions and their rules.
+ * @file data_type.h
+ * @brief Data types of the data area.
  */
 
-#ifndef SDFIO_SRC_TYPES_H
-#define SDFIO_SRC_TYPES_H
+#ifndef SDFIO_SRC_DATA_TYPE_H
+#define SDFIO_SRC_DATA_TYPE_H
 
 #include "common.h"
 
@@ -66,57 +66,4 @@ bool sdfio_valid_data_type(sdfio_data_type type);
  */
 bool sdfio_is_floating(sdfio_data_type type);
 
-/**
- * Returns the spelling of a revision in the magic, for example "ISO-2.0", or an
- * empty string for an invalid value.
- *
- * @param revision The revision.
- */
-const char *sdfio_revision_text(sdfio_revision revision);
-
-/**
- * Finds the revision that a name stands for.
- *
- * @param text The name, as in the magic: "ISO-2.0".
- * @param size The length of the name.
- * @param[out] revision Receives the revision.
- * @return False if the name is not one of a revision.
- */
-bool sdfio_revision_from_text(const char *text, size_t size,
-                              sdfio_revision *revision);
-
-/**
- * Tells whether the dates of a revision are in UTC.
- *
- * @param revision The revision.
- */
-static inline bool sdfio_requires_utc(sdfio_revision revision)
-{
-    return revision == SDFIO_ISO_2_0;
-}
-
-/**
- * Returns the largest number of columns or rows of a revision: the header
- * holds them as 2 bytes in ISO-1.0 and as 4 bytes in ISO-2.0.
- *
- * @param revision The revision.
- */
-size_t sdfio_max_count(sdfio_revision revision);
-
-/**
- * Returns the size of the binary header of a revision.
- *
- * @param revision The revision.
- */
-size_t sdfio_binary_header_size(sdfio_revision revision);
-
-/**
- * Counts the values of the data area, with a check for overflow.
- *
- * @param header The header.
- * @param[out] count Receives columns times rows.
- * @return False if the count does not fit in size_t.
- */
-bool sdfio_count(const sdfio_header *header, size_t *count);
-
-#endif /* SDFIO_SRC_TYPES_H */
+#endif /* SDFIO_SRC_DATA_TYPE_H */

@@ -17,8 +17,8 @@
 
 #include "dates.h"
 #include "fields.h"
+#include "revision.h"
 #include "text.h"
-#include "types.h"
 
 enum
 {

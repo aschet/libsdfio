@@ -7,10 +7,12 @@
 /* What is written is what is read: every revision, representation and data
  * type, the order of the rows, the trailer and the dates. */
 
+#include "binary.h"
 #include "check.h"
+#include "data_type.h"
+#include "revision.h"
 
 #include "tagged.h"
-#include "types.h"
 
 #include <stdlib.h>
 

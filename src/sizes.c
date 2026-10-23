@@ -9,7 +9,7 @@
  * @brief Computation of buffer sizes.
  */
 
-#include "types.h"
+#include "data_type.h"
 
 /* The bytes of `rows` rows of `columns` elements, or false if the size does
  * not fit in size_t. */
