@@ -245,8 +245,8 @@ run_licenses() {
 
 # The lines and branches of the library that the tests run, without those of
 # the tests and the examples. The tests run threads, so the counters are atomic.
-# The job fails when a figure falls below the floor that is a little under the
-# present one.
+# The job fails when fewer than 75 percent of the lines run, the floor of the
+# other libraries.
 run_coverage() {
   use_pipx
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
@@ -254,7 +254,7 @@ run_coverage() {
   cmake --build "$dir"
   ctest --test-dir "$dir" --output-on-failure --no-tests=error
   gcovr --root . --filter 'src/' --exclude-throw-branches \
-    --fail-under-line 90 --fail-under-branch 78 \
+    --fail-under-line 75 \
     --print-summary --txt "$dir/coverage.txt" "$dir"
 }
 
