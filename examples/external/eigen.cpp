@@ -23,8 +23,6 @@ sdfio_config make_config()
     sdfio_config config = {};
     config.reader_formats[0] = &sdfio_binary_reader_format;
     config.reader_formats[1] = &sdfio_ascii_reader_format;
-    config.writer_formats[0] = &sdfio_binary_writer_format;
-    config.writer_formats[1] = &sdfio_ascii_writer_format;
     return config;
 }
 
