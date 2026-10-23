@@ -34,7 +34,10 @@ enum
     GOT_ERROR = -1
 };
 
-/* The next line of the source, without its end. The last line of a text that
+/* Tolerated deviation: a line can end with LF alone, where the standard has
+ * CRLF.
+ *
+ * The next line of the source, without its end. The last line of a text that
  * does not end with a line end comes back once with `ended` false. */
 static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
                      bool *done)
@@ -248,7 +251,9 @@ static bool parse_extent(const char *value, size_t size, size_t *out)
     return true;
 }
 
-/* A date is 12 characters. A value of 0 characters only, of any length, is a
+/* Tolerated deviation: a date of 0 characters only can have fewer than 12.
+ *
+ * A date is 12 characters. A value of 0 characters only, of any length, is a
  * date that is not recorded and becomes the 12 characters of one. */
 static bool copy_datetime(char *out, const char *value, size_t size)
 {
@@ -374,6 +379,9 @@ static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
             malformed = malformed || blank_size > 0;
             continue;
         }
+        /* Tolerated deviation: a field that the standard does not define
+         * matches no name and is ignored, and a field that repeats takes the
+         * last value. */
         for (enum field field = 0; field < FIELD_COUNT; ++field)
         {
             if (!same_name(name, name_size, field_names[field]))
@@ -778,7 +786,10 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
                                       "The SDF trailer cannot be read");
         goto done;
     }
-    /* The trailer is itself ended by its own "*": the empty part that follows
+    /* Tolerated deviation: the final line "*" can be missing, and the trailer
+     * ends with the file.
+     *
+     * The trailer is itself ended by its own "*": the empty part that follows
      * is not part of it. */
     if (part.size > 0
         && ((parts > 0 && !sdfio_string_append(out, &terminator, 1))

@@ -74,7 +74,9 @@ static bool revision_of(const unsigned char *version_number,
     return false;
 }
 
-/* The identifier up to the first 0, without the white space at its end. The
+/* Tolerated deviation: the identifier ends at its first 0 byte.
+ *
+ * The identifier up to the first 0, without the white space at its end. The
  * standard fills a string that is shorter than its field with spaces; the
  * writer of MountainsMap ends it in a 0 instead, and the bytes after that are
  * whatever was in memory. */

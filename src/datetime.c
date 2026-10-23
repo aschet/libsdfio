@@ -276,8 +276,10 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
            && fields->hour < HOURS_PER_DAY && fields->minute < MINUTES_PER_HOUR;
 }
 
-/* The text that exporters write for a date that they do not record: the
- * character 0 only, or 0 bytes only. */
+/* Tolerated deviation: a date of the character 0 only, or of the byte 0 only,
+ * is a date that is not recorded.
+ *
+ * The text that exporters write for a date that they do not record. */
 static bool is_not_recorded(const char *text, size_t size)
 {
     if (size == 0 || size > SDFIO_DATETIME_SIZE)

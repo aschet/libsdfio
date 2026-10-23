@@ -32,7 +32,9 @@ find_format(const sdfio_reader_format *const *formats, char prefix)
 /* The UTF-8 byte order mark, which some editors put before a text. */
 static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
 
-/* Skips the byte order mark of an ASCII file. A binary file starts with its
+/* Tolerated deviation: an ASCII file can start with the UTF-8 byte order mark.
+ *
+ * Skips the byte order mark of an ASCII file. A binary file starts with its
  * version number, so a mark before one is no mark but damage. */
 static void skip_byte_order_mark(sdfio_source *source)
 {

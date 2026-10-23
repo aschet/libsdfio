@@ -39,7 +39,10 @@ sdfio_decimal_point sdfio_decimal_point_now(void)
     return decimal_point;
 }
 
-/* Checks the text against the grammar of a number and copies it into a buffer
+/* Tolerated deviation: any decimal or scientific form of a number is read, not
+ * only the normalized form with a signed exponent that the standard has.
+ *
+ * Checks the text against the grammar of a number and copies it into a buffer
  * with the decimal point of the locale, which strtod() and strtof() want. The
  * sign is not copied. */
 static bool scan_number(const sdfio_decimal_point *decimal_point,
