@@ -50,9 +50,9 @@ class Image
         const sdfio_header *header = sdfio_get_header(reader.get());
         Image image(header->columns, header->rows, header->x_scale,
                     header->y_scale);
-        check(sdfio_read_heights(reader.get(), SDFIO_FLOAT32,
-                                 image.heights_.get()),
-              sdfio_reader_error_message(reader.get()));
+        check(
+            sdfio_read_heights(reader.get(), SDFIO_FLOAT, image.heights_.get()),
+            sdfio_reader_error_message(reader.get()));
         return image;
     }
 
@@ -60,7 +60,7 @@ class Image
     {
         sdfio_header header;
         sdfio_header_init(&header);
-        header.data_type = SDFIO_DATA_INT16;
+        header.data_type = SDFIO_INT16_T;
         header.columns = columns_;
         header.rows = rows_;
         header.x_scale = x_scale_;
@@ -68,7 +68,7 @@ class Image
         Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
         check(sdfio_create_file(writer.get(), path.string().c_str(), &header),
               sdfio_writer_error_message(writer.get()));
-        check(sdfio_write_heights(writer.get(), SDFIO_FLOAT32, heights_.get()),
+        check(sdfio_write_heights(writer.get(), SDFIO_FLOAT, heights_.get()),
               sdfio_writer_error_message(writer.get()));
         check(sdfio_write_trailer(writer.get(), nullptr, 0),
               sdfio_writer_error_message(writer.get()));

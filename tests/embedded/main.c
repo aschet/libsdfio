@@ -88,7 +88,7 @@ int main(void)
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_header header;
     sdfio_header_init(&header);
-    header.data_type = SDFIO_DATA_INT16;
+    header.data_type = SDFIO_INT16_T;
     header.columns = COLUMNS;
     header.rows = ROWS;
     header.x_scale = 1.0e-6;

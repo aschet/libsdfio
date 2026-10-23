@@ -353,10 +353,46 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, void *dst, size_t rows)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_sample sample,
+/* The reading of rows into a buffer of the C type of the data type of the
+ * file, which the type of the pointer has to be. */
+static sdfio_status read_typed(sdfio_reader *reader, sdfio_data_type type,
+                               void *dst, size_t rows)
+{
+    const sdfio_status status = require_readable(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (reader->header.data_type != type)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The data type of the file is not that of the "
+                          "buffer");
+    }
+    return sdfio_read_data(reader, dst, rows);
+}
+
+/** A function that reads rows into a buffer of a C type, for the data type. */
+// A type cannot be parenthesized in the declaration of the function.
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define READ_TYPED(name, ctype, type)                                          \
+    sdfio_status sdfio_read_data_##name(sdfio_reader *reader, ctype *dst,      \
+                                        size_t rows)                           \
+    {                                                                          \
+        return read_typed(reader, type, dst, rows);                            \
+    }
+// NOLINTEND(bugprone-macro-parentheses)
+
+READ_TYPED(int8, int8_t, SDFIO_INT8_T)
+READ_TYPED(int16, int16_t, SDFIO_INT16_T)
+READ_TYPED(int32, int32_t, SDFIO_INT32_T)
+READ_TYPED(float, float, SDFIO_FLOAT)
+READ_TYPED(double, double, SDFIO_DOUBLE)
+
+sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_data_type type,
                                 void *dst)
 {
-    return sdfio_read_heights_strided(reader, sdfio_format_packed(sample), dst);
+    return sdfio_read_heights_strided(reader, sdfio_format_packed(type), dst);
 }
 
 sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
@@ -405,7 +441,7 @@ sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
                 if (status != SDFIO_OK)
                 {
                     sdfio_fail(&reader->message, status,
-                               "A height does not fit the sample type");
+                               "A height does not fit the type of the buffer");
                 }
             }
             if (status != SDFIO_OK)

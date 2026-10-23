@@ -251,15 +251,11 @@ const char *sdfio_string_text(const sdfio_string *string);
  * @param X The macro that is called for each type.
  */
 #define SDFIO_SCALARS(X)                                                       \
-    X(SDFIO_DATA_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)     \
-    X(SDFIO_DATA_INT16, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX,      \
-      false)                                                                   \
-    X(SDFIO_DATA_INT32, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX,      \
-      false)                                                                   \
-    X(SDFIO_DATA_BINARY32, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX,     \
-      true)                                                                    \
-    X(SDFIO_DATA_BINARY64, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX,    \
-      true)
+    X(SDFIO_INT8_T, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)        \
+    X(SDFIO_INT16_T, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX, false)  \
+    X(SDFIO_INT32_T, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX, false)  \
+    X(SDFIO_FLOAT, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX, true)       \
+    X(SDFIO_DOUBLE, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX, true)
 
 /**
  * The checks of the sizes of the data types, as the file stores them: the type
@@ -288,11 +284,18 @@ SDFIO_STATIC_ASSERT(SDFIO_BINARY_HEADER_MAX
                     "the largest binary header is the sum of its fields");
 
 /**
- * Tells whether a value is a sample type.
+ * Tells whether a value is a type of heights: SDFIO_FLOAT or SDFIO_DOUBLE.
  *
- * @param sample The value to test.
+ * @param type The value to test.
  */
-bool sdfio_valid_sample(sdfio_sample sample);
+bool sdfio_valid_height_type(sdfio_data_type type);
+
+/**
+ * Returns the size in bytes of one value of a type, or 0 for an invalid value.
+ *
+ * @param type The type.
+ */
+size_t sdfio_data_type_size(sdfio_data_type type);
 
 /**
  * Tells whether a value is a data type.

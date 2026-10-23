@@ -366,11 +366,46 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, const void *src,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_sample sample,
+/* The writing of rows from a buffer of the C type of the data type of the
+ * file, which the type of the pointer has to be. */
+static sdfio_status write_typed(sdfio_writer *writer, sdfio_data_type type,
+                                const void *src, size_t rows)
+{
+    const sdfio_status status = require_writable(writer);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (writer->header.data_type != type)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "The data type of the file is not that of the "
+                          "buffer");
+    }
+    return sdfio_write_data(writer, src, rows);
+}
+
+/** A function that writes rows from a buffer of a C type, for the data type. */
+// A type cannot be parenthesized in the declaration of the function.
+// NOLINTBEGIN(bugprone-macro-parentheses)
+#define WRITE_TYPED(name, ctype, type)                                         \
+    sdfio_status sdfio_write_data_##name(sdfio_writer *writer,                 \
+                                         const ctype *src, size_t rows)        \
+    {                                                                          \
+        return write_typed(writer, type, src, rows);                           \
+    }
+// NOLINTEND(bugprone-macro-parentheses)
+
+WRITE_TYPED(int8, int8_t, SDFIO_INT8_T)
+WRITE_TYPED(int16, int16_t, SDFIO_INT16_T)
+WRITE_TYPED(int32, int32_t, SDFIO_INT32_T)
+WRITE_TYPED(float, float, SDFIO_FLOAT)
+WRITE_TYPED(double, double, SDFIO_DOUBLE)
+
+sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_data_type type,
                                  const void *src)
 {
-    return sdfio_write_heights_strided(writer, sdfio_format_packed(sample),
-                                       src);
+    return sdfio_write_heights_strided(writer, sdfio_format_packed(type), src);
 }
 
 sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,

@@ -41,7 +41,7 @@ void check(sdfio_status status, const char *message)
 // apart, and the rows are one element apart.
 sdfio_format layout_of(const Eigen::MatrixXd &matrix)
 {
-    sdfio_format format = sdfio_format_packed(SDFIO_FLOAT64);
+    sdfio_format format = sdfio_format_packed(SDFIO_DOUBLE);
     format.element_stride =
         static_cast<ptrdiff_t>(matrix.outerStride() * sizeof(double));
     format.row_stride =
@@ -117,7 +117,7 @@ double rms_of(const Eigen::MatrixXd &heights)
 void write_matrix(const char *path, sdfio_header header,
                   const Eigen::MatrixXd &heights)
 {
-    header.data_type = SDFIO_DATA_BINARY32;
+    header.data_type = SDFIO_FLOAT;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
     Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),

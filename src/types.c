@@ -22,15 +22,14 @@ enum
 /* What a revision allows: one entry for each data type, by its code. */
 static const bool allowed[REVISION_COUNT][8] = {
     /* ISO-1.0 */
-    [SDFIO_ISO_1_0] = {[SDFIO_DATA_INT16] = true,
-                       [SDFIO_DATA_INT32] = true,
-                       [SDFIO_DATA_BINARY64] = true},
+    [SDFIO_ISO_1_0] =
+        {[SDFIO_INT16_T] = true, [SDFIO_INT32_T] = true, [SDFIO_DOUBLE] = true},
     /* ISO-2.0 */
-    [SDFIO_ISO_2_0] = {[SDFIO_DATA_INT8] = true,
-                       [SDFIO_DATA_INT16] = true,
-                       [SDFIO_DATA_INT32] = true,
-                       [SDFIO_DATA_BINARY32] = true,
-                       [SDFIO_DATA_BINARY64] = true},
+    [SDFIO_ISO_2_0] = {[SDFIO_INT8_T] = true,
+                       [SDFIO_INT16_T] = true,
+                       [SDFIO_INT32_T] = true,
+                       [SDFIO_FLOAT] = true,
+                       [SDFIO_DOUBLE] = true},
 };
 
 /* The magics, the binary ones first. */
@@ -48,20 +47,20 @@ const char *sdfio_magic(size_t index)
     return index < sdfio_magic_count() ? magics[index] : NULL;
 }
 
-bool sdfio_valid_sample(sdfio_sample sample)
+bool sdfio_valid_height_type(sdfio_data_type type)
 {
-    return sample == SDFIO_FLOAT32 || sample == SDFIO_FLOAT64;
+    return type == SDFIO_FLOAT || type == SDFIO_DOUBLE;
 }
 
 bool sdfio_valid_data_type(sdfio_data_type type)
 {
     switch (type)
     {
-    case SDFIO_DATA_BINARY32:
-    case SDFIO_DATA_INT8:
-    case SDFIO_DATA_INT16:
-    case SDFIO_DATA_INT32:
-    case SDFIO_DATA_BINARY64:
+    case SDFIO_FLOAT:
+    case SDFIO_INT8_T:
+    case SDFIO_INT16_T:
+    case SDFIO_INT32_T:
+    case SDFIO_DOUBLE:
         return true;
     }
     return false;
@@ -81,27 +80,15 @@ size_t sdfio_data_type_size(sdfio_data_type type)
 {
     switch (type)
     {
-    case SDFIO_DATA_INT8:
+    case SDFIO_INT8_T:
         return sizeof(int8_t);
-    case SDFIO_DATA_INT16:
+    case SDFIO_INT16_T:
         return sizeof(int16_t);
-    case SDFIO_DATA_INT32:
+    case SDFIO_INT32_T:
         return sizeof(int32_t);
-    case SDFIO_DATA_BINARY32:
+    case SDFIO_FLOAT:
         return sizeof(float);
-    case SDFIO_DATA_BINARY64:
-        return sizeof(double);
-    }
-    return 0;
-}
-
-size_t sdfio_sample_size(sdfio_sample sample)
-{
-    switch (sample)
-    {
-    case SDFIO_FLOAT32:
-        return sizeof(float);
-    case SDFIO_FLOAT64:
+    case SDFIO_DOUBLE:
         return sizeof(double);
     }
     return 0;
@@ -115,7 +102,7 @@ bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
 
 bool sdfio_is_floating(sdfio_data_type type)
 {
-    return type == SDFIO_DATA_BINARY32 || type == SDFIO_DATA_BINARY64;
+    return type == SDFIO_FLOAT || type == SDFIO_DOUBLE;
 }
 
 bool sdfio_revision_from_text(const char *text, size_t size,
@@ -156,7 +143,7 @@ void sdfio_header_init(sdfio_header *header)
     *header = (sdfio_header){0};
     header->revision = SDFIO_ISO_2_0;
     header->representation = SDFIO_BINARY;
-    header->data_type = SDFIO_DATA_BINARY32;
+    header->data_type = SDFIO_FLOAT;
     header->x_scale = 1.0;
     header->y_scale = 1.0;
     header->z_scale = SDFIO_AUTO_Z_SCALE;

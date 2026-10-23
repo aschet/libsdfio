@@ -95,10 +95,10 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
 }
 
 /* The format of an array whose rows are `row_stride` bytes apart. */
-static inline sdfio_format format_with_rows(sdfio_sample sample,
+static inline sdfio_format format_with_rows(sdfio_data_type type,
                                             ptrdiff_t row_stride)
 {
-    sdfio_format format = sdfio_format_packed(sample);
+    sdfio_format format = sdfio_format_packed(type);
     format.row_stride = row_stride;
     return format;
 }

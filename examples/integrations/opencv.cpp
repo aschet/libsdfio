@@ -46,7 +46,7 @@ Reader open(const char *path)
 // the file is the last row in memory, so the rows run backwards.
 sdfio_format bottom_up(const cv::Mat &image)
 {
-    sdfio_format format = sdfio_format_packed(SDFIO_FLOAT32);
+    sdfio_format format = sdfio_format_packed(SDFIO_FLOAT);
     format.row_stride = -static_cast<ptrdiff_t>(image.step);
     return format;
 }
@@ -80,7 +80,7 @@ void save_preview(const cv::Mat &heights, const char *path)
 void write_heights(const char *path, sdfio_header header,
                    const cv::Mat &heights)
 {
-    header.data_type = SDFIO_DATA_BINARY32;
+    header.data_type = SDFIO_FLOAT;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
     Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
