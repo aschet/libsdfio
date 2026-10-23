@@ -9,12 +9,14 @@
 # TOOLCHAIN_OPTIONS are options for CMake that the library and the project of
 # its own share: the compiler, the architecture. CONFIGURE_OPTIONS are options
 # for the library only. EMULATOR is the command that runs a program of another
-# architecture.
+# architecture. WORKDIR is where the build and the installation go, the current
+# directory if it is not set.
 #
 # Where pkg-config is available, a program is also built with the flags that
 # it gives, with the compiler of the build.
 set -e
 
+workdir=${WORKDIR:-$PWD}
 generator=()
 if [ -n "$GENERATOR" ]; then
   generator=(-G "$GENERATOR" -DCMAKE_BUILD_TYPE=Release)
@@ -22,8 +24,8 @@ fi
 
 for linkage in ON OFF; do
   echo "== BUILD_SHARED_LIBS=$linkage"
-  build="build-$linkage"
-  stage="$PWD/stage-$linkage"
+  build="$workdir/build-$linkage"
+  stage="$workdir/stage-$linkage"
   # shellcheck disable=SC2086
   cmake -S . -B "$build" "${generator[@]}" $TOOLCHAIN_OPTIONS $CONFIGURE_OPTIONS \
     -DBUILD_SHARED_LIBS=$linkage \

@@ -43,3 +43,16 @@ A project then uses it with `find_package(sdfio REQUIRED)` and links the
 target `sdfio::sdfio`. On Linux and macOS the installation also has a
 pkg-config file: `pkg-config --cflags --libs sdfio`, with `--static` for the
 static library.
+
+## Checks
+
+The jobs of the continuous integration are one script, which runs the same
+way on a machine of a developer:
+
+```sh
+.github/ci/run.sh --list
+.github/ci/run.sh gcc-x86-64-linux
+```
+
+`run.sh --apt <job>` lists the Debian and Ubuntu packages that a job needs,
+for example the cross compiler and qemu of `gcc-arm-linux`.

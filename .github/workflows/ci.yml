@@ -18,10 +18,10 @@ defaults:
     shell: bash
 
 jobs:
-  # Named compiler, architecture and operating system. Each job builds the
-  # library as a static and as a shared library, tests it, installs it, and
-  # builds and runs a project of its own against the installation.
-  build:
+  # What a job does and needs is in .github/ci/run.sh, which a developer runs
+  # in the same way: run.sh <job>. The jobs of the first three groups are named
+  # compiler, architecture and operating system.
+  ci:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -30,219 +30,77 @@ jobs:
         include:
           - name: GCC x86-64 Linux
             runner: ubuntu-latest
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=gcc
-            # The strict one: exactly C11, without the extensions of the
-            # compiler and without a diagnostic that a flag could silence.
-            configure: >-
-              -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
-              -DCMAKE_C_FLAGS=-pedantic-errors
+            job: gcc-x86-64-linux
           - name: GCC x86 Linux
             runner: ubuntu-latest
-            generator: Ninja
-            packages: gcc-multilib
-            toolchain: >-
-              -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS=-m32
-              -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32
+            job: gcc-x86-linux
           - name: GCC AArch64 Linux
             runner: ubuntu-24.04-arm
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=gcc
+            job: gcc-aarch64-linux
           - name: GCC ARM Linux
             runner: ubuntu-latest
-            generator: Ninja
-            packages: qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
-            toolchain: >-
-              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm
-              -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc
-              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf
-            emulator: qemu-arm -L /usr/arm-linux-gnueabihf
+            job: gcc-arm-linux
           - name: GCC z/Architecture Linux
             runner: ubuntu-latest
-            generator: Ninja
-            packages: qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross
-            toolchain: >-
-              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x
-              -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc
-              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu
-            emulator: qemu-s390x -L /usr/s390x-linux-gnu
+            job: gcc-z-architecture-linux
           - name: GCC RISC-V Linux
             runner: ubuntu-latest
-            generator: Ninja
-            packages: qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
-            toolchain: >-
-              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=riscv64
-              -DCMAKE_C_COMPILER=riscv64-linux-gnu-gcc
-              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-riscv64;-L;/usr/riscv64-linux-gnu
-            emulator: qemu-riscv64 -L /usr/riscv64-linux-gnu
+            job: gcc-risc-v-linux
           - name: Clang x86-64 Linux
             runner: ubuntu-latest
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=clang
+            job: clang-x86-64-linux
           - name: Clang AArch64 macOS
             runner: macos-latest
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=clang
+            job: clang-aarch64-macos
           - name: MSVC x86-64 Windows
             runner: windows-latest
-            toolchain: -A x64
+            job: msvc-x86-64-windows
           - name: MSVC x86 Windows
             runner: windows-latest
-            toolchain: -A Win32
+            job: msvc-x86-windows
           - name: MSVC AArch64 Windows
             runner: windows-11-arm
-            toolchain: -A ARM64
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install the tools
-        if: ${{ matrix.packages != '' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ${{ matrix.packages }}
-
-      - name: Build, test, install and use
-        env:
-          GENERATOR: ${{ matrix.generator }}
-          TOOLCHAIN_OPTIONS: ${{ matrix.toolchain }}
-          CONFIGURE_OPTIONS: ${{ matrix.configure }}
-          EMULATOR: ${{ matrix.emulator }}
-        run: .github/ci/install-and-use.sh
-
-  # A program for a processor without an operating system: the library as a
-  # static library, and the image of a program that writes a file into memory.
-  # The image has to contain no code to read files or to handle ASCII.
-  firmware:
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # A Cortex-M4 with a floating point unit.
+            job: msvc-aarch64-windows
           - name: GCC ARM bare metal
-            packages: gcc-arm-none-eabi libnewlib-arm-none-eabi
-            prefix: arm-none-eabi
-            processor: arm
-            flags: >-
-              -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
-              -ffunction-sections -fdata-sections --specs=nano.specs
-              --specs=nosys.specs
-          # RV32IMAC.
+            runner: ubuntu-latest
+            job: gcc-arm-bare-metal
           - name: GCC RISC-V bare metal
-            packages: gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
-            prefix: riscv64-unknown-elf
-            processor: riscv32
-            flags: >-
-              -march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections
-              --specs=picolibc.specs
+            runner: ubuntu-latest
+            job: gcc-risc-v-bare-metal
+          - name: ASan and UBSan
+            runner: ubuntu-latest
+            job: asan-ubsan
+          - name: TSan
+            runner: ubuntu-latest
+            job: tsan
+          - name: Static analysis
+            runner: ubuntu-latest
+            job: static-analysis
+          - name: Format
+            runner: ubuntu-latest
+            job: format
+          - name: Documentation
+            runner: ubuntu-latest
+            job: documentation
+          - name: Licenses
+            runner: ubuntu-latest
+            job: licenses
     steps:
       - uses: actions/checkout@v7
 
       - name: Install the tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build ${{ matrix.packages }}
-
-      - name: Build the library and the firmware image
+        if: ${{ runner.os == 'Linux' }}
         env:
-          PREFIX: ${{ matrix.prefix }}
-          PROCESSOR: ${{ matrix.processor }}
-          FLAGS: ${{ matrix.flags }}
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR="$PROCESSOR" \
-            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_C_COMPILER="$PREFIX-gcc" "-DCMAKE_C_FLAGS=$FLAGS" \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
-          cmake --build build
-          # shellcheck disable=SC2086
-          "$PREFIX-gcc" -std=c11 $FLAGS -Os -Wl,--gc-sections -nostartfiles \
-            -Wl,--entry=main -Iinclude -Ibuild/generated/include \
-            -DSDFIO_STATIC_DEFINE tests/embedded/main.c build/libsdfio.a \
-            -o build/firmware
-          "$PREFIX-size" build/firmware
-          if "$PREFIX-nm" build/firmware \
-            | grep -E "sdfio_(ascii|parse_number|format_scientific)|_reader_codec"
-          then
-            echo "The image contains code that the program does not name."
-            exit 1
-          fi
-
-  # The thread sanitizer cannot be combined with the address sanitizer, so the
-  # builds are two, and so are the jobs.
-  asan-ubsan:
-    name: ASan and UBSan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build and test
-        run: |
-          # The sanitizers map their memory
-          sudo sysctl vm.mmap_rnd_bits=28 || true
-          CC=clang cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_SANITIZE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          cmake --build build
-          ctest --test-dir build --output-on-failure --no-tests=error
-
-  tsan:
-    name: TSan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build and test
-        run: |
-          sudo sysctl vm.mmap_rnd_bits=28 || true
-          CC=clang cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_SANITIZE_THREAD=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          cmake --build build
-          ctest --test-dir build --output-on-failure --no-tests=error
-
-  static-analysis:
-    name: Static analysis
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Analyze
-        run: |
-          pipx install "clang-tidy==21.1.6"
-          export PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
-          # The files for Windows cannot be analyzed here
-          clang-tidy -p build --warnings-as-errors='*' \
-            $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_win32 -e test_wide)
-
-  format:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Check
-        run: |
-          pipx install "clang-format==21.1.6"
-          export PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
-          clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
-            tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
-            examples/*.c examples/integrations/*.cpp
-
-  documentation:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: Generate
+          JOB: ${{ matrix.job }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y doxygen ninja-build
-          cmake -S . -B build -G Ninja -DSDFIO_BUILD_DOCS=ON -DBUILD_TESTING=OFF
-          cmake --build build --target docs 2>&1 | tee docs.log
-          if grep -i "warning" docs.log; then exit 1; fi
+          # shellcheck disable=SC2046
+          sudo apt-get install -y $(.github/ci/run.sh --apt "$JOB")
+          for package in $(.github/ci/run.sh --pipx "$JOB"); do
+            pipx install "$package"
+          done
 
-  licenses:
-    name: Licenses
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: fsfe/reuse-action@v5
+      - name: Run the job
+        env:
+          JOB: ${{ matrix.job }}
+        run: .github/ci/run.sh "$JOB"
