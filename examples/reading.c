@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 
     const sdfio_header *header = sdfio_get_header(reader);
     size_t heights_size = 0;
-    status = sdfio_heights_size(header, SDFIO_FLOAT, &heights_size);
+    status = sdfio_heights_size(header, SDFIO_TYPE_FLOAT, &heights_size);
     float *heights = status == SDFIO_OK ? malloc(heights_size) : NULL;
     if (status == SDFIO_OK && heights == NULL && heights_size > 0)
     {
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_read_heights(reader, SDFIO_FLOAT, heights);
+        status = sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights);
     }
     const char *trailer = NULL;
     size_t trailer_size = 0;

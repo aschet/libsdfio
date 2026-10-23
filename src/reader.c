@@ -383,11 +383,11 @@ static sdfio_status read_typed(sdfio_reader *reader, sdfio_data_type type,
     }
 // NOLINTEND(bugprone-macro-parentheses)
 
-READ_TYPED(int8, int8_t, SDFIO_INT8_T)
-READ_TYPED(int16, int16_t, SDFIO_INT16_T)
-READ_TYPED(int32, int32_t, SDFIO_INT32_T)
-READ_TYPED(float, float, SDFIO_FLOAT)
-READ_TYPED(double, double, SDFIO_DOUBLE)
+READ_TYPED(int8, int8_t, SDFIO_TYPE_INT8)
+READ_TYPED(int16, int16_t, SDFIO_TYPE_INT16)
+READ_TYPED(int32, int32_t, SDFIO_TYPE_INT32)
+READ_TYPED(float, float, SDFIO_TYPE_FLOAT)
+READ_TYPED(double, double, SDFIO_TYPE_DOUBLE)
 
 sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_data_type type,
                                 void *dst)

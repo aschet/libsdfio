@@ -14,14 +14,14 @@ static void check_memory(void)
 {
     sdfio_header header;
     sdfio_header_init(&header);
-    header.data_type = SDFIO_INT16_T;
+    header.data_type = SDFIO_TYPE_INT16;
     header.columns = 5;
     header.rows = 3;
 
     size_t bytes = 0;
-    CHECK_OK(sdfio_heights_size(&header, SDFIO_FLOAT, &bytes));
+    CHECK_OK(sdfio_heights_size(&header, SDFIO_TYPE_FLOAT, &bytes));
     CHECK(bytes == 15 * sizeof(float));
-    CHECK_OK(sdfio_heights_row_size(&header, SDFIO_DOUBLE, &bytes));
+    CHECK_OK(sdfio_heights_row_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
     CHECK(bytes == 5 * sizeof(double));
     CHECK_OK(sdfio_data_size(&header, &bytes));
     CHECK(bytes == 15 * sizeof(int16_t));
@@ -35,12 +35,12 @@ static void check_memory(void)
     header.columns = SIZE_MAX / 2;
     header.rows = 3;
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_DOUBLE, &bytes));
+                 sdfio_heights_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
     header.columns = SIZE_MAX / 4;
     header.rows = 2;
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_DOUBLE, &bytes));
-    header.data_type = SDFIO_INT32_T;
+                 sdfio_heights_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
+    header.data_type = SDFIO_TYPE_INT32;
     CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_data_size(&header, &bytes));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_heights_size(&header, (sdfio_data_type)99, &bytes));
@@ -57,14 +57,14 @@ int main(void)
     sdfio_header_init(&header);
     header.columns = 3;
     header.rows = 2;
-    header.data_type = SDFIO_INT16_T;
+    header.data_type = SDFIO_TYPE_INT16;
     const float heights[6] = {1e-6f, 2e-6f, NAN, 4e-6f, 5e-6f, 6e-6f};
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
     char composed[128];
     sdfio_trailer assembled;
     sdfio_trailer_init(&assembled, composed, sizeof composed);
@@ -83,7 +83,7 @@ int main(void)
         return finish_tests();
     }
     float back[6];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT, back));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, back));
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
@@ -93,7 +93,7 @@ int main(void)
     /* A row stride of 0 means rows that follow each other. */
     reader = membuf_reopen(reader, &file);
     float packed[6];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT, packed));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, packed));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
@@ -103,9 +103,9 @@ int main(void)
     int16_t counts[6];
     CHECK_OK(sdfio_read_data(reader, counts, 2));
     CHECK(counts[2] == SDFIO_BAD_INT16);
-    CHECK_STATUS(SDFIO_OK,
-                 sdfio_decode_heights(read, sdfio_format_packed(SDFIO_FLOAT),
-                                      counts, 6, back));
+    CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
+                               read, sdfio_format_packed(SDFIO_TYPE_FLOAT),
+                               counts, 6, back));
     sdfio_reader_free(reader);
     free(file.data);
     return finish_tests();

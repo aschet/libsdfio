@@ -65,13 +65,14 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
         {
             size_t bytes = 0;
             float *heights = NULL;
-            if (sdfio_heights_size(header, SDFIO_FLOAT, &bytes) == SDFIO_OK)
+            if (sdfio_heights_size(header, SDFIO_TYPE_FLOAT, &bytes)
+                == SDFIO_OK)
             {
                 heights = calloc(bytes + 1, 1);
             }
             if (heights != NULL)
             {
-                (void)sdfio_read_heights(reader, SDFIO_FLOAT, heights);
+                (void)sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights);
                 free(heights);
             }
         }

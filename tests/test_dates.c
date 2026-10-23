@@ -234,7 +234,7 @@ static void check_file(void)
     sdfio_header header;
     sdfio_header_init(&header);
     header.revision = SDFIO_ISO_1_0;
-    header.data_type = SDFIO_INT16_T;
+    header.data_type = SDFIO_TYPE_INT16;
     header.columns = 1;
     header.rows = 1;
     header.creation_date = 1782900000;
@@ -245,7 +245,7 @@ static void check_file(void)
     const float height = 1.0F;
     sdfio_writer *writer = sdfio_writer_new(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT, &height));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     CHECK(sink.size > DATE_AT + 2 * SDFIO_DATE_SIZE);
@@ -273,7 +273,7 @@ static void check_file(void)
     writer = sdfio_writer_new(&refusing_config);
     CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_write_heights(writer, SDFIO_FLOAT, &height));
+                 sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
     sdfio_writer_free(writer);
     free(refused.data);
     free(sink.data);

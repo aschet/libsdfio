@@ -85,13 +85,13 @@ static void check_pipe(const char *path, size_t piece)
     {
         double *heights =
             malloc(header->rows * header->columns * sizeof(double));
-        CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, heights));
+        CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights));
         /* The same heights, in the same places, as from memory. */
         sdfio_reader *in_memory = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
             malloc(header->rows * header->columns * sizeof(double));
-        CHECK_OK(sdfio_read_heights(in_memory, SDFIO_DOUBLE, expected));
+        CHECK_OK(sdfio_read_heights(in_memory, SDFIO_TYPE_DOUBLE, expected));
         for (size_t i = 0; i < header->rows * header->columns; ++i)
         {
             CHECK(isnan(expected[i]) ? isnan(heights[i])
@@ -108,7 +108,7 @@ static void check_pipe(const char *path, size_t piece)
         CHECK_OK(sdfio_read_trailer(reader, &again, &again_size));
         CHECK(again == trailer && again_size == trailer_size);
         CHECK_STATUS(SDFIO_ERR_STATE,
-                     sdfio_read_heights(reader, SDFIO_DOUBLE, heights));
+                     sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights));
         free(heights);
     }
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_open_stream(reader, &stream));
@@ -150,7 +150,7 @@ static void check_failing_stream(void)
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
                 malloc(header->rows * header->columns * sizeof(double));
-            status = sdfio_read_heights(reader, SDFIO_DOUBLE, heights);
+            status = sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights);
             free(heights);
         }
         CHECK(status == SDFIO_ERR_IO);
@@ -186,7 +186,7 @@ static void check_damage(const char *path)
             double *heights =
                 malloc(header->rows * header->columns * sizeof(double) + 1);
             const sdfio_status status =
-                sdfio_read_heights(reader, SDFIO_DOUBLE, heights);
+                sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights);
             if (length < size / 2)
             {
                 CHECK(status != SDFIO_OK);
@@ -221,7 +221,7 @@ static void check_damage(const char *path)
             if (count < (size_t)1 << 20)
             {
                 double *heights = malloc(count * sizeof(double) + 1);
-                (void)sdfio_read_heights(reader, SDFIO_DOUBLE, heights);
+                (void)sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights);
                 free(heights);
             }
             const char *trailer = NULL;
@@ -344,7 +344,7 @@ static void check_file(void)
 
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_file(writer, path, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
@@ -352,7 +352,7 @@ static void check_file(void)
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     double back[4] = {0};
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, back));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
     CHECK(back[3] == 4.0 && back[0] == 1.0);
     sdfio_reader_free(reader);
     remove(path);
@@ -383,7 +383,7 @@ static void check_huge_count(void)
     sdfio_header_init(&header);
     header.revision = SDFIO_ISO_2_0;
     header.representation = SDFIO_BINARY;
-    header.data_type = SDFIO_DOUBLE;
+    header.data_type = SDFIO_TYPE_DOUBLE;
     header.columns = UINT32_MAX;
     header.rows = 1U << 29;
     header.z_scale = 1.0;
@@ -512,7 +512,7 @@ static void check_failing_sink(void)
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_STATUS(SDFIO_ERR_IO, sdfio_write_trailer(writer, NULL, 0));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);

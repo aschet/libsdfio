@@ -251,11 +251,13 @@ const char *sdfio_string_text(const sdfio_string *string);
  * @param X The macro that is called for each type.
  */
 #define SDFIO_SCALARS(X)                                                       \
-    X(SDFIO_INT8_T, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)        \
-    X(SDFIO_INT16_T, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX, false)  \
-    X(SDFIO_INT32_T, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX, false)  \
-    X(SDFIO_FLOAT, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX, true)       \
-    X(SDFIO_DOUBLE, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX, true)
+    X(SDFIO_TYPE_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)     \
+    X(SDFIO_TYPE_INT16, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX,      \
+      false)                                                                   \
+    X(SDFIO_TYPE_INT32, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX,      \
+      false)                                                                   \
+    X(SDFIO_TYPE_FLOAT, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX, true)  \
+    X(SDFIO_TYPE_DOUBLE, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX, true)
 
 /**
  * The checks of the sizes of the data types, as the file stores them: the type
@@ -284,7 +286,8 @@ SDFIO_STATIC_ASSERT(SDFIO_BINARY_HEADER_MAX
                     "the largest binary header is the sum of its fields");
 
 /**
- * Tells whether a value is a type of heights: SDFIO_FLOAT or SDFIO_DOUBLE.
+ * Tells whether a value is a type of heights: SDFIO_TYPE_FLOAT or
+ * SDFIO_TYPE_DOUBLE.
  *
  * @param type The value to test.
  */

@@ -124,15 +124,15 @@ static const char *type_text(sdfio_data_type type)
 {
     switch (type)
     {
-    case SDFIO_FLOAT:
+    case SDFIO_TYPE_FLOAT:
         return "binary32";
-    case SDFIO_INT8_T:
+    case SDFIO_TYPE_INT8:
         return "int8";
-    case SDFIO_INT16_T:
+    case SDFIO_TYPE_INT16:
         return "int16";
-    case SDFIO_INT32_T:
+    case SDFIO_TYPE_INT32:
         return "int32";
-    case SDFIO_DOUBLE:
+    case SDFIO_TYPE_DOUBLE:
         return "binary64";
     }
     return "";
@@ -176,7 +176,7 @@ static void check_against(const expectation *e)
     const size_t count = header->rows * header->columns;
     double *heights = malloc(count * sizeof *heights);
     CHECK(heights != NULL);
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights));
 
     const char *trailer = NULL;
     size_t trailer_size = 0;
@@ -213,7 +213,8 @@ static void check_against(const expectation *e)
     }
     /* Text is parsed into the data type of the file: a binary32 file is
      * rounded to single precision, which the reference does not do. */
-    const double precision = header->data_type == SDFIO_FLOAT ? 1e-6 : 1e-12;
+    const double precision =
+        header->data_type == SDFIO_TYPE_FLOAT ? 1e-6 : 1e-12;
     CHECK(valid == e->valid);
     CHECK(near_relative(sum, e->sum, 1e-9 + precision));
     CHECK(near_relative(first, e->z_first, precision));

@@ -114,7 +114,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_heights(writer, SDFIO_FLOAT, written);
+            status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, written);
         }
         if (status == SDFIO_OK)
         {
@@ -135,7 +135,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_open_memory(reader, sink.data, sink.size);
         if (status == SDFIO_OK)
         {
-            status = sdfio_read_heights(reader, SDFIO_FLOAT, read);
+            status = sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, read);
         }
         const char *trailer = NULL;
         size_t trailer_size = 0;
@@ -173,7 +173,7 @@ static void check_counted(void)
         const sdfio_config config = {&allocator, 0, 0, NULL};
         bool equal = false;
         CHECK_OK(
-            round_trip(&config, representations[i], SDFIO_INT16_T, &equal));
+            round_trip(&config, representations[i], SDFIO_TYPE_INT16, &equal));
         CHECK(equal);
         CHECK(state.calls > 0);
         CHECK(state.live == 0);
@@ -188,7 +188,7 @@ static void check_counted(void)
             const sdfio_config failing_config = {&failing_allocator, 0, 0,
                                                  NULL};
             const sdfio_status status = round_trip(
-                &failing_config, representations[i], SDFIO_INT16_T, &equal);
+                &failing_config, representations[i], SDFIO_TYPE_INT16, &equal);
             CHECK_STATUS(SDFIO_ERR_MEMORY, status);
             CHECK(failing.live == 0);
         }
@@ -202,7 +202,7 @@ static void check_small(void)
                                          {NULL, 64, 3, NULL},
                                          {NULL, 100, 7, NULL},
                                          {NULL, 0, 1, NULL}};
-    static const sdfio_data_type types[] = {SDFIO_INT16_T, SDFIO_FLOAT};
+    static const sdfio_data_type types[] = {SDFIO_TYPE_INT16, SDFIO_TYPE_FLOAT};
     for (size_t i = 0; i < sizeof small / sizeof small[0]; ++i)
     {
         for (const sdfio_data_type *type = types; type != types + 2; ++type)
@@ -261,7 +261,7 @@ static void check_arena(void)
     const sdfio_allocator allocator = {&state, arena_allocate, arena_release};
     const sdfio_config config = {&allocator, 256, 16, NULL};
     bool equal = false;
-    CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_FLOAT, &equal));
+    CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_TYPE_FLOAT, &equal));
     CHECK(equal);
     /* The writer and the reader stay within a few kilobytes of it. */
     CHECK(state.used < ARENA_SIZE);

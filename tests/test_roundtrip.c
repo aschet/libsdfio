@@ -74,7 +74,7 @@ static void check_roundtrip(sdfio_revision revision,
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(
         sdfio_write_trailer(writer, tagged_trailer, strlen(tagged_trailer)));
     sdfio_writer_free(writer);
@@ -101,11 +101,11 @@ static void check_roundtrip(sdfio_revision revision,
     CHECK(read->z_scale > 0.0);
 
     double back[ROWS * COLUMNS];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, back));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
     /* An integer type is as exact as one count; text and binary32 keep
      * about as many digits as they print. */
     double tolerance = 1e-13;
-    if (type == SDFIO_FLOAT)
+    if (type == SDFIO_TYPE_FLOAT)
     {
         tolerance = 1e-6;
     }
@@ -150,7 +150,7 @@ static void check_all_types(void)
         for (size_t s = 0;
              s < sizeof representations / sizeof representations[0]; ++s)
         {
-            for (int t = SDFIO_FLOAT; t <= SDFIO_DOUBLE; ++t)
+            for (int t = SDFIO_TYPE_FLOAT; t <= SDFIO_TYPE_DOUBLE; ++t)
             {
                 const sdfio_data_type type = (sdfio_data_type)t;
                 if (!sdfio_revision_allows(revisions[r], type))
@@ -169,7 +169,7 @@ static void check_rows(sdfio_revision revision,
                        sdfio_representation representation)
 {
     sdfio_header header;
-    describe(&header, revision, representation, SDFIO_INT16_T);
+    describe(&header, revision, representation, SDFIO_TYPE_INT16);
     header.z_scale = 1e-9;
     int16_t counts[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
@@ -204,7 +204,7 @@ static void check_rows(sdfio_revision revision,
     /* The heights are in the order of the file, which is the order of y. */
     reader = membuf_reopen(reader, &file);
     double heights[ROWS * COLUMNS];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights));
     for (size_t file_row = 0; file_row < ROWS; ++file_row)
     {
         const size_t y = file_row;
@@ -227,7 +227,7 @@ static void check_rows(sdfio_revision revision,
 static void check_typed_rows(void)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_INT16_T);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
     header.z_scale = 1e-9;
     const int16_t counts[ROWS * COLUMNS] = {1, 2, 3};
     const float floats[ROWS * COLUMNS] = {0};
@@ -263,7 +263,7 @@ static void check_profile_scale(void)
     for (size_t i = 0; i < sizeof scales / sizeof scales[0]; ++i)
     {
         sdfio_header header;
-        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DOUBLE);
+        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
         header.rows = 1;
         header.y_scale = scales[i];
         const double heights[COLUMNS] = {1e-6};
@@ -271,7 +271,7 @@ static void check_profile_scale(void)
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new(NULL);
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+        CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
         CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
         sdfio_writer_free(writer);
         sdfio_reader *reader = sdfio_reader_new(NULL);
@@ -285,7 +285,7 @@ static void check_profile_scale(void)
 static void check_errors(void)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_INT16_T);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
     membuf file = {0};
@@ -304,7 +304,7 @@ static void check_errors(void)
     writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+                 sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     sdfio_writer_free(writer);
 
     /* A height that would be read as a point not measured. */
@@ -315,16 +315,16 @@ static void check_errors(void)
     writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
-                 sdfio_write_heights(writer, SDFIO_DOUBLE, marker));
+                 sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, marker));
     sdfio_writer_free(writer);
 
     /* A description that cannot be written. */
-    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_INT8_T);
+    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT8);
     writer = sdfio_writer_new(NULL);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
-    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_INT16_T);
+    describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
     header.columns = (size_t)UINT16_MAX + 1;
     writer = sdfio_writer_new(NULL);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -332,11 +332,11 @@ static void check_errors(void)
     sdfio_writer_free(writer);
 
     /* The end before the rows, and a trailer ISO-2.0 cannot have. */
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DOUBLE);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
     writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer(writer, NULL, 0));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     /* The text of a trailer is not looked at; only a missing one is refused. */
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
     CHECK_OK(sdfio_write_trailer(writer, "free text", 9));
@@ -348,10 +348,11 @@ static void check_errors(void)
 /* The z-scale a writer chooses uses the range of the type. */
 static void check_z_scale(void)
 {
-    const double scale = sdfio_z_scale_for_range(SDFIO_INT16_T, -80e-6, 80e-6);
+    const double scale =
+        sdfio_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
     CHECK(near_relative(scale, 80e-6 / 32767.0, 1e-12));
-    CHECK(sdfio_z_scale_for_range(SDFIO_DOUBLE, -1, 1) == 1.0);
-    CHECK(sdfio_z_scale_for_range(SDFIO_INT16_T, NAN, NAN) == 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_TYPE_DOUBLE, -1, 1) == 1.0);
+    CHECK(sdfio_z_scale_for_range(SDFIO_TYPE_INT16, NAN, NAN) == 1.0);
 }
 
 /* A negative row stride, with the pointer at the last row, turns the matrix
@@ -359,7 +360,7 @@ static void check_z_scale(void)
 static void check_stride(void)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DOUBLE);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
     const ptrdiff_t stride = COLUMNS * sizeof(double);
@@ -369,7 +370,7 @@ static void check_stride(void)
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights_strided(
-        writer, format_with_rows(SDFIO_DOUBLE, -stride),
+        writer, format_with_rows(SDFIO_TYPE_DOUBLE, -stride),
         heights + (ROWS - 1) * COLUMNS));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
@@ -378,11 +379,11 @@ static void check_stride(void)
     double down[ROWS * COLUMNS];
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, up));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, up));
     reader = membuf_reopen(reader, &file);
-    CHECK_OK(sdfio_read_heights_strided(reader,
-                                        format_with_rows(SDFIO_DOUBLE, -stride),
-                                        down + (ROWS - 1) * COLUMNS));
+    CHECK_OK(sdfio_read_heights_strided(
+        reader, format_with_rows(SDFIO_TYPE_DOUBLE, -stride),
+        down + (ROWS - 1) * COLUMNS));
     for (size_t row = 0; row < ROWS; ++row)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
@@ -398,11 +399,12 @@ static void check_stride(void)
     }
     /* A stride smaller than a row would overwrite the memory. */
     reader = membuf_reopen(reader, &file);
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_read_heights_strided(
-                     reader,
-                     format_with_rows(SDFIO_DOUBLE, (ptrdiff_t)sizeof(double)),
-                     up));
+    CHECK_STATUS(
+        SDFIO_ERR_ARGUMENT,
+        sdfio_read_heights_strided(
+            reader,
+            format_with_rows(SDFIO_TYPE_DOUBLE, (ptrdiff_t)sizeof(double)),
+            up));
     sdfio_reader_free(reader);
     free(file.data);
 }
@@ -421,7 +423,7 @@ typedef struct point
 static void check_element_stride(void)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DOUBLE);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
     double plain[ROWS * COLUMNS];
     make_heights(plain);
 
@@ -445,7 +447,7 @@ static void check_element_stride(void)
     for (size_t i = 0; i < 3; ++i)
     {
         const sdfio_stream stream = membuf_stream(files[i]);
-        sdfio_format format = sdfio_format_packed(SDFIO_DOUBLE);
+        sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
         const void *source = plain;
         if (i == 1)
         {
@@ -480,7 +482,7 @@ static void check_element_stride(void)
     }
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_memory(reader, from_plain.data, from_plain.size));
-    sdfio_format format = sdfio_format_packed(SDFIO_DOUBLE);
+    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
     format.element_stride = ROWS * sizeof(double);
     format.row_stride = sizeof(double);
     CHECK_OK(sdfio_read_heights_strided(reader, format, read_columns));
@@ -512,7 +514,7 @@ static void check_element_stride(void)
     /* Strides that make the elements overlap are refused, and nothing is
      * written. */
     double scratch[ROWS * COLUMNS] = {0};
-    format = format_with_rows(SDFIO_DOUBLE, sizeof(double));
+    format = format_with_rows(SDFIO_TYPE_DOUBLE, sizeof(double));
     reader = membuf_reopen(reader, &from_plain);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_read_heights_strided(reader, format, scratch));
@@ -539,14 +541,14 @@ static void write_with_resolution(membuf *file,
                                   double resolution)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, representation, SDFIO_DOUBLE);
+    describe(&header, SDFIO_ISO_2_0, representation, SDFIO_TYPE_DOUBLE);
     header.z_resolution = resolution;
     double heights[ROWS * COLUMNS];
     make_heights(heights);
     const sdfio_stream stream = membuf_stream(file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
 }
@@ -635,7 +637,7 @@ static void check_resolution(void)
     for (size_t i = 0; i < sizeof refused / sizeof refused[0]; ++i)
     {
         sdfio_header header;
-        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_DOUBLE);
+        describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
         header.z_resolution = refused[i];
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
@@ -652,7 +654,7 @@ static void check_resolution(void)
 static void check_rows_without_columns(void)
 {
     sdfio_header header;
-    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_FLOAT);
+    describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_FLOAT);
     header.columns = 0;
     header.rows = sdfio_max_count(SDFIO_ISO_2_0);
 
@@ -683,7 +685,7 @@ static void check_defaults(void)
     sdfio_header_init(&header);
     CHECK(header.revision == SDFIO_ISO_2_0);
     CHECK(header.representation == SDFIO_BINARY);
-    CHECK(header.data_type == SDFIO_FLOAT);
+    CHECK(header.data_type == SDFIO_TYPE_FLOAT);
     CHECK(header.z_scale == SDFIO_AUTO_Z_SCALE);
     CHECK(header.columns == 0 && header.rows == 0);
 
@@ -695,13 +697,13 @@ static void check_defaults(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT, heights));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
     float back[6];
     sdfio_reader *reader = sdfio_reader_new(NULL);
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_FLOAT, back));
+    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, back));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(heights[i]) ? isnan(back[i]) : back[i] == heights[i]);
@@ -752,7 +754,8 @@ static void check_trailer_line_ends(void)
         for (size_t v = 0; v < sizeof variants / sizeof variants[0]; ++v)
         {
             sdfio_header header;
-            describe(&header, SDFIO_ISO_2_0, representations[s], SDFIO_DOUBLE);
+            describe(&header, SDFIO_ISO_2_0, representations[s],
+                     SDFIO_TYPE_DOUBLE);
             header.columns = 1;
             header.rows = 1;
             const double height = 1e-6;
@@ -760,7 +763,7 @@ static void check_trailer_line_ends(void)
             const sdfio_stream stream = membuf_stream(&file);
             sdfio_writer *writer = sdfio_writer_new(NULL);
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-            CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, &height));
+            CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
             CHECK_OK(sdfio_write_trailer(writer, variants[v].written,
                                          strlen(variants[v].written)));
             sdfio_writer_free(writer);
@@ -821,14 +824,14 @@ static void check_read_line_ends(void)
     for (size_t r = 0; r < 2; ++r)
     {
         sdfio_header header;
-        describe(&header, revisions[r], SDFIO_ASCII, SDFIO_INT16_T);
+        describe(&header, revisions[r], SDFIO_ASCII, SDFIO_TYPE_INT16);
         double heights[ROWS * COLUMNS];
         make_heights(heights);
         membuf crlf = {0};
         const sdfio_stream stream = membuf_stream(&crlf);
         sdfio_writer *writer = sdfio_writer_new(NULL);
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, heights));
+        CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
         CHECK_OK(sdfio_write_trailer(writer, tagged_trailer,
                                      strlen(tagged_trailer)));
         sdfio_writer_free(writer);
@@ -836,7 +839,7 @@ static void check_read_line_ends(void)
         double expected[ROWS * COLUMNS];
         sdfio_reader *reader = sdfio_reader_new(NULL);
         CHECK_OK(sdfio_open_memory(reader, crlf.data, crlf.size));
-        CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, expected));
+        CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, expected));
         sdfio_reader_free(reader);
 
         for (size_t e = 0; e < 1; ++e)
@@ -850,7 +853,7 @@ static void check_read_line_ends(void)
             CHECK(got != NULL && got->columns == COLUMNS && got->rows == ROWS
                   && got->x_scale == header.x_scale
                   && got->creation_date == header.creation_date);
-            CHECK_OK(sdfio_read_heights(reader, SDFIO_DOUBLE, read));
+            CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, read));
             for (size_t i = 0; i < ROWS * COLUMNS; ++i)
             {
                 CHECK(isnan(expected[i]) ? isnan(read[i])

@@ -51,8 +51,8 @@ int main(void)
     if (writer != NULL)
     {
         failed |= check(sdfio_create_file(writer, path, &header), "create");
-        failed |=
-            check(sdfio_write_heights(writer, SDFIO_FLOAT, heights), "write");
+        failed |= check(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights),
+                        "write");
         failed |= check(sdfio_write_trailer(writer, NULL, 0), "trailer");
     }
     sdfio_writer_free(writer);
@@ -62,7 +62,8 @@ int main(void)
     if (reader != NULL)
     {
         failed |= check(sdfio_open_file(reader, path), "open");
-        failed |= check(sdfio_read_heights(reader, SDFIO_FLOAT, read), "read");
+        failed |=
+            check(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, read), "read");
     }
     sdfio_reader_free(reader);
     remove(path);

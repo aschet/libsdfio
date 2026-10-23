@@ -456,7 +456,7 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     const long long type_code = parsed_codes.type;
     const long long compression = parsed_codes.compression;
     const long long check_type = parsed_codes.check_type;
-    if (type_code < SDFIO_FLOAT || type_code > SDFIO_DOUBLE)
+    if (type_code < SDFIO_TYPE_FLOAT || type_code > SDFIO_TYPE_DOUBLE)
     {
         status =
             sdfio_fail(message, SDFIO_ERR_FORMAT, "Unknown SDF data type code");
@@ -959,7 +959,7 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
     {
         return format_integer((long long)value, out);
     }
-    if (type == SDFIO_FLOAT)
+    if (type == SDFIO_TYPE_FLOAT)
     {
         return sdfio_format_scientific(point, out, capacity, value,
                                        SDFIO_FLOAT_DIGITS,

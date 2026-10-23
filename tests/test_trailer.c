@@ -121,7 +121,7 @@ static void check_the_text_is_written_as_given(void)
             sdfio_header header;
             sdfio_header_init(&header);
             header.revision = revisions[r];
-            header.data_type = SDFIO_INT16_T;
+            header.data_type = SDFIO_TYPE_INT16;
             header.z_scale = 1e-9;
             header.columns = 1;
             header.rows = 1;
@@ -130,7 +130,7 @@ static void check_the_text_is_written_as_given(void)
             const sdfio_stream stream = membuf_stream(&file);
             sdfio_writer *writer = sdfio_writer_new(NULL);
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-            CHECK_OK(sdfio_write_heights(writer, SDFIO_DOUBLE, &height));
+            CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
             CHECK_OK(
                 sdfio_write_trailer(writer, trailers[t], strlen(trailers[t])));
             sdfio_writer_free(writer);
@@ -155,7 +155,7 @@ static void check_the_text_is_written_as_given(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(NULL);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT, &height));
+    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
     CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     sdfio_writer_free(writer);
@@ -185,7 +185,7 @@ static void check_through_a_file(void)
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new(NULL);
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights(writer, SDFIO_FLOAT, heights));
+        CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
         CHECK_OK(sdfio_write_trailer(writer, trailer.text, trailer.size));
         sdfio_writer_free(writer);
 

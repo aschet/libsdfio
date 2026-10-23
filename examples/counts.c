@@ -31,7 +31,7 @@ static int write_counts(const char *path)
 {
     sdfio_header header;
     sdfio_header_init(&header);
-    header.data_type = SDFIO_INT16_T;
+    header.data_type = SDFIO_TYPE_INT16;
     header.columns = COLUMNS;
     header.rows = ROWS;
     header.x_scale = 2e-6;
@@ -65,7 +65,7 @@ static int read_counts(const char *path)
     sdfio_reader *reader = sdfio_reader_new(NULL);
     sdfio_status status = sdfio_open_file(reader, path);
     const sdfio_header *header = sdfio_get_header(reader);
-    if (status == SDFIO_OK && header->data_type != SDFIO_INT16_T)
+    if (status == SDFIO_OK && header->data_type != SDFIO_TYPE_INT16)
     {
         fprintf(stderr, "the file does not hold int16 counts\n");
         sdfio_reader_free(reader);

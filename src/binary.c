@@ -147,7 +147,7 @@ sdfio_status sdfio_binary_parse(const unsigned char *bytes,
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "The checksum type of an SDF file has to be 0");
     }
-    if (code < (unsigned)SDFIO_FLOAT || code > (unsigned)SDFIO_DOUBLE)
+    if (code < (unsigned)SDFIO_TYPE_FLOAT || code > (unsigned)SDFIO_TYPE_DOUBLE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Unknown SDF data type code");

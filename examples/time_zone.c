@@ -55,7 +55,7 @@ int main(void)
     sdfio_header header;
     sdfio_header_init(&header);
     header.revision = SDFIO_ISO_1_0;
-    header.data_type = SDFIO_INT16_T;
+    header.data_type = SDFIO_TYPE_INT16;
     header.columns = 1;
     header.rows = 1;
     header.creation_date = 1782900000; /* 2026-07-01 10:00 UTC */
@@ -66,7 +66,7 @@ int main(void)
     sdfio_status status = sdfio_create_file(writer, path, &header);
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_heights(writer, SDFIO_FLOAT, &height);
+        status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height);
     }
     if (status == SDFIO_OK)
     {

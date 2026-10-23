@@ -54,7 +54,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_heights(writer, SDFIO_FLOAT, heights);
+        status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights);
     }
     if (status == SDFIO_OK)
     {
@@ -71,7 +71,7 @@ static int write_surface(const char *path, sdfio_data_type type)
 int main(void)
 {
     fill();
-    const int floats = write_surface("float.sdf", SDFIO_FLOAT);
-    const int integers = write_surface("integer.sdf", SDFIO_INT16_T);
+    const int floats = write_surface("float.sdf", SDFIO_TYPE_FLOAT);
+    const int integers = write_surface("integer.sdf", SDFIO_TYPE_INT16);
     return floats == EXIT_SUCCESS ? integers : floats;
 }

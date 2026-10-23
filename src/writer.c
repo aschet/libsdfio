@@ -396,11 +396,11 @@ static sdfio_status write_typed(sdfio_writer *writer, sdfio_data_type type,
     }
 // NOLINTEND(bugprone-macro-parentheses)
 
-WRITE_TYPED(int8, int8_t, SDFIO_INT8_T)
-WRITE_TYPED(int16, int16_t, SDFIO_INT16_T)
-WRITE_TYPED(int32, int32_t, SDFIO_INT32_T)
-WRITE_TYPED(float, float, SDFIO_FLOAT)
-WRITE_TYPED(double, double, SDFIO_DOUBLE)
+WRITE_TYPED(int8, int8_t, SDFIO_TYPE_INT8)
+WRITE_TYPED(int16, int16_t, SDFIO_TYPE_INT16)
+WRITE_TYPED(int32, int32_t, SDFIO_TYPE_INT32)
+WRITE_TYPED(float, float, SDFIO_TYPE_FLOAT)
+WRITE_TYPED(double, double, SDFIO_TYPE_DOUBLE)
 
 sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_data_type type,
                                  const void *src)

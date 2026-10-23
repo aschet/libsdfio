@@ -52,7 +52,7 @@ static double read_sum(const char *path, sdfio_reader *reader)
     double *heights = malloc(count * sizeof *heights);
     double sum = NAN;
     if (heights != NULL
-        && sdfio_read_heights(reader, SDFIO_DOUBLE, heights) == SDFIO_OK)
+        && sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights) == SDFIO_OK)
     {
         sum = 0.0;
         for (size_t i = 0; i < count; ++i)
@@ -100,7 +100,7 @@ static void *write_and_read(void *argument)
         header.revision = revisions[(self->id + (size_t)round) % 2];
         header.representation =
             (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY : SDFIO_ASCII;
-        header.data_type = SDFIO_INT32_T;
+        header.data_type = SDFIO_TYPE_INT32;
         header.columns = COLUMNS;
         header.rows = ROWS;
         double heights[ROWS * COLUMNS];
@@ -112,7 +112,8 @@ static void *write_and_read(void *argument)
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new(NULL);
         if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
-            || sdfio_write_heights(writer, SDFIO_DOUBLE, heights) != SDFIO_OK
+            || sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights)
+                   != SDFIO_OK
             || sdfio_write_trailer(writer, NULL, 0) != SDFIO_OK)
         {
             ++self->errors;
@@ -122,7 +123,7 @@ static void *write_and_read(void *argument)
         double back[ROWS * COLUMNS];
         sdfio_reader *reader = sdfio_reader_new(NULL);
         if (sdfio_open_memory(reader, file.data, file.size) != SDFIO_OK
-            || sdfio_read_heights(reader, SDFIO_DOUBLE, back) != SDFIO_OK)
+            || sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back) != SDFIO_OK)
         {
             ++self->errors;
         }
@@ -162,7 +163,8 @@ static void *read_shared(void *argument)
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
                 malloc(header->rows * header->columns * sizeof *heights);
-            if (sdfio_read_heights(reader, SDFIO_DOUBLE, heights) != SDFIO_OK)
+            if (sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights)
+                != SDFIO_OK)
             {
                 ++self->errors;
             }

@@ -96,7 +96,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_heights(writer, SDFIO_FLOAT, heights);
+            status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights);
         }
         if (status == SDFIO_OK)
         {

@@ -34,7 +34,8 @@ int main(void)
     status = sdfio_data_row_size(header, &coded_size);
     if (status == SDFIO_OK)
     {
-        status = sdfio_heights_row_size(header, SDFIO_DOUBLE, &heights_size);
+        status =
+            sdfio_heights_row_size(header, SDFIO_TYPE_DOUBLE, &heights_size);
     }
     void *coded = status == SDFIO_OK ? malloc(coded_size) : NULL;
     double *heights = status == SDFIO_OK ? malloc(heights_size) : NULL;
@@ -51,9 +52,9 @@ int main(void)
         status = sdfio_read_data(reader, coded, 1);
         if (status == SDFIO_OK)
         {
-            status =
-                sdfio_decode_heights(header, sdfio_format_packed(SDFIO_DOUBLE),
-                                     coded, header->columns, heights);
+            status = sdfio_decode_heights(
+                header, sdfio_format_packed(SDFIO_TYPE_DOUBLE), coded,
+                header->columns, heights);
         }
         for (size_t column = 0; column < header->columns && status == SDFIO_OK;
              ++column)

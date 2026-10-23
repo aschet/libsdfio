@@ -47,9 +47,9 @@ sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
 {
     if (!sdfio_valid_height_type(format->type))
     {
-        return sdfio_fail(
-            message, SDFIO_ERR_ARGUMENT,
-            "The type of the heights is not SDFIO_FLOAT or SDFIO_DOUBLE");
+        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
+                          "The type of the heights is not SDFIO_TYPE_FLOAT or "
+                          "SDFIO_TYPE_DOUBLE");
     }
     const size_t size = sdfio_data_type_size(format->type);
     const size_t element = magnitude(sdfio_element_stride(*format));
@@ -233,7 +233,7 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const ptrdiff_t element = sdfio_element_stride(format);
-    return format.type == SDFIO_FLOAT
+    return format.type == SDFIO_TYPE_FLOAT
                ? decode_float(header, data, count, heights, element,
                               format.missing)
                : decode_double(header, data, count, heights, element,
@@ -253,7 +253,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const ptrdiff_t element = sdfio_element_stride(format);
-    return format.type == SDFIO_FLOAT
+    return format.type == SDFIO_TYPE_FLOAT
                ? encode_float(header, heights, element, count, data,
                               format.missing)
                : encode_double(header, heights, element, count, data,
@@ -269,15 +269,15 @@ double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
     double usable_max = 0.0;
     switch (type)
     {
-    case SDFIO_INT8_T:
+    case SDFIO_TYPE_INT8:
         usable_min = INT8_MIN + 1.0;
         usable_max = INT8_MAX;
         break;
-    case SDFIO_INT16_T:
+    case SDFIO_TYPE_INT16:
         usable_min = INT16_MIN + 1.0;
         usable_max = INT16_MAX;
         break;
-    case SDFIO_INT32_T:
+    case SDFIO_TYPE_INT32:
         usable_min = INT32_MIN + 1.0;
         usable_max = INT32_MAX;
         break;
@@ -312,7 +312,7 @@ static sdfio_status find_range(sdfio_format format, const void *heights,
     }
     const ptrdiff_t element = sdfio_element_stride(format);
     bool has_marker = false;
-    if (format.type == SDFIO_FLOAT)
+    if (format.type == SDFIO_TYPE_FLOAT)
     {
         float marker = 0.0F;
         if (!marker_of_float(format.missing, &marker, &has_marker))
