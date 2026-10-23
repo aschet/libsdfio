@@ -16,14 +16,14 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Computes the number of values of the data area, which holds one value for
- * each point, with a check for overflow.
+ * Computes the number of elements of the matrix, which is the number of values
+ * of the data area, with a check for overflow.
  *
  * @param header The header.
- * @param[out] total Receives columns times rows.
+ * @param[out] elements Receives columns times rows.
  * @return False if the number does not fit in size_t.
  */
-bool sdfio_value_total(const sdfio_header *header, size_t *total);
+bool sdfio_matrix_elements(const sdfio_header *header, size_t *elements);
 
 /**
  * Checks what makes a file that cannot be written.

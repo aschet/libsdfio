@@ -151,7 +151,7 @@ static sdfio_status open_source(sdfio_reader *reader,
     }
     const sdfio_header *header = &reader->header;
     const size_t type_size = sdfio_data_type_size(header->data_type);
-    if (!sdfio_value_total(header, &reader->value_count)
+    if (!sdfio_matrix_elements(header, &reader->value_count)
         || reader->value_count > SIZE_MAX / type_size)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
