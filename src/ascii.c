@@ -567,9 +567,8 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
 #define STORE_INTEGER_CASE(data, name, type, bits, low, high, floating)        \
     case data:                                                                 \
     {                                                                          \
-        const double lowest = (double)(low);                                   \
-        const double highest = (double)(high);                                 \
-        if ((floating) || (double)value < lowest || (double)value > highest)   \
+        if ((floating) || (double)value < (double)(low)                        \
+            || (double)value > (double)(high))                                 \
         {                                                                      \
             return false;                                                      \
         }                                                                      \
