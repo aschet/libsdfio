@@ -353,7 +353,8 @@ static void check_file(void)
 
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_file(writer, path, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
@@ -402,7 +403,8 @@ static void check_huge_matrix(void)
     const double height = 0.0;
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &out, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 &height));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     /* The numbers of columns and rows, 4 bytes each in little endian. */
@@ -538,7 +540,8 @@ static void check_failing_sink(void)
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     CHECK_STATUS(SDFIO_ERR_IO, sdfio_end_trailer(writer));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_trailer(writer));
     sdfio_writer_free(writer);

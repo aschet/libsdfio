@@ -44,7 +44,8 @@ static int write_surface(const char *path, sdfio_data_type type)
     sdfio_status status = sdfio_create_file(writer, path, &header);
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights);
+        status = sdfio_write_heights(
+            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
     }
     if (status == SDFIO_OK)
     {

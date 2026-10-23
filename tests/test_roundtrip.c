@@ -78,7 +78,8 @@ static void check_roundtrip(sdfio_revision revision,
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     CHECK_OK(sdfio_write_trailer_text(writer, tagged_trailer,
                                       strlen(tagged_trailer)));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -286,7 +287,8 @@ static void check_profile_scale(void)
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new(all_formats());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+        CHECK_OK(sdfio_write_heights(
+            writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
         CHECK_OK(sdfio_end_trailer(writer));
         sdfio_writer_free(writer);
         sdfio_reader *reader = sdfio_reader_new(all_formats());
@@ -319,7 +321,8 @@ static void check_errors(void)
     writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+                 sdfio_write_heights(
+                     writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
     sdfio_writer_free(writer);
 
     /* A height that would be read as a point not measured. */
@@ -330,7 +333,8 @@ static void check_errors(void)
     writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
-                 sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, marker));
+                 sdfio_write_heights(
+                     writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), marker));
     sdfio_writer_free(writer);
 
     /* A description that cannot be written. */
@@ -351,7 +355,8 @@ static void check_errors(void)
     writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_trailer(writer));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     /* The text of a trailer is not looked at; only a missing one is refused. */
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_text(writer, NULL, 5));
     CHECK_OK(sdfio_write_trailer_text(writer, "free text", 9));
@@ -385,9 +390,9 @@ static void check_stride(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights_strided(
-        writer, layout_with_rows(SDFIO_TYPE_DOUBLE, -stride),
-        heights + (ROWS - 1) * COLUMNS));
+    CHECK_OK(sdfio_write_heights(writer,
+                                 layout_with_rows(SDFIO_TYPE_DOUBLE, -stride),
+                                 heights + (ROWS - 1) * COLUMNS));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
@@ -479,7 +484,7 @@ static void check_element_stride(void)
         }
         sdfio_writer *writer = sdfio_writer_new(all_formats());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights_strided(writer, layout, source));
+        CHECK_OK(sdfio_write_heights(writer, layout, source));
         CHECK_OK(sdfio_end_trailer(writer));
         sdfio_writer_free(writer);
     }
@@ -541,7 +546,7 @@ static void check_element_stride(void)
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_write_heights_strided(writer, layout, plain));
+                 sdfio_write_heights(writer, layout, plain));
     sdfio_writer_free(writer);
     free(from_plain.data);
     free(from_columns.data);
@@ -563,7 +568,8 @@ static void write_with_resolution(membuf *file,
     const sdfio_stream stream = membuf_stream(file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 }
@@ -713,7 +719,8 @@ static void check_defaults(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     float back[6];
@@ -780,7 +787,8 @@ static void check_trailer_line_ends(void)
             const sdfio_stream stream = membuf_stream(&file);
             sdfio_writer *writer = sdfio_writer_new(all_formats());
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-            CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
+            CHECK_OK(sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), &height));
             CHECK_OK(sdfio_write_trailer_text(writer, variants[v].written,
                                               strlen(variants[v].written)));
             CHECK_OK(sdfio_end_trailer(writer));
@@ -848,7 +856,8 @@ static void check_read_line_ends(void)
         const sdfio_stream stream = membuf_stream(&crlf);
         sdfio_writer *writer = sdfio_writer_new(all_formats());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-        CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+        CHECK_OK(sdfio_write_heights(
+            writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
         CHECK_OK(sdfio_write_trailer_text(writer, tagged_trailer,
                                           strlen(tagged_trailer)));
         CHECK_OK(sdfio_end_trailer(writer));

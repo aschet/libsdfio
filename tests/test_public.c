@@ -66,7 +66,8 @@ int main(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 heights));
     CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
     CHECK_OK(sdfio_write_trailer_field(writer, "Averages", "16"));
     CHECK_OK(sdfio_end_trailer(writer));

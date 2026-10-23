@@ -110,7 +110,8 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
-            status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, written);
+            status = sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), written);
         }
         if (status == SDFIO_OK)
         {

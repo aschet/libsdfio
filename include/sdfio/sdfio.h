@@ -1068,33 +1068,9 @@ SDFIO_API sdfio_status sdfio_write_data_double(sdfio_writer *writer,
                                                const double *src, size_t rows);
 
 /**
- * Writes the whole data area from a plain array of heights in metres: the
- * `header->rows` rows of `header->columns` elements follow each other, and the
- * row y = 0 is the first. For an integer data type with SDFIO_AUTO_Z_SCALE the
- * z-scale is selected from the heights. NaN and infinity label points that are
- * not measured. Call sdfio_end_trailer() afterwards.
- *
- * It is sdfio_write_heights_strided() with sdfio_layout_packed().
- *
- * @param writer The writer.
- * @param type The type of the array: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
- * @param[in] src The heights.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null or the type is not
- * SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
- * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
- * writing, or rows were written already.
- * @retval SDFIO_ERR_RANGE A height does not fit the data type with the z-scale.
- * @retval SDFIO_ERR_BAD_VALUE A height would be read as a point that is not
- * measured.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
-                                           sdfio_data_type type,
-                                           const void *src);
-
-/**
  * Writes the whole data area from a matrix of heights in metres that lies in
- * memory as the layout describes.
+ * memory as the layout describes. sdfio_layout_packed() describes a plain
+ * array.
  *
  * The layout is that of sdfio_read_heights(): the element (y, x) is at
  * `src + y * layout.row_stride + x * layout.element_stride`, and the row y = 0
@@ -1113,9 +1089,9 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * measured.
  * @retval SDFIO_ERR_IO The stream failed.
  */
-SDFIO_API sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
-                                                   sdfio_layout layout,
-                                                   const void *src);
+SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
+                                           sdfio_layout layout,
+                                           const void *src);
 
 /**
  * Writes a line `field = value` of the trailer (record 3), which ISO-2.0

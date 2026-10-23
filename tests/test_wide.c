@@ -39,7 +39,8 @@ int main(void)
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_file_w(writer, path, &header));
     CHECK(file_exists(path));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));

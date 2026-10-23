@@ -13,14 +13,8 @@
 #include "heights.h"
 #include "writer_state.h"
 
-sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_data_type type,
+sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_layout layout,
                                  const void *src)
-{
-    return sdfio_write_heights_strided(writer, sdfio_layout_packed(type), src);
-}
-
-sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
-                                         sdfio_layout layout, const void *src)
 {
     sdfio_status status = sdfio_writer_require_writable(writer);
     if (status != SDFIO_OK)

@@ -115,7 +115,8 @@ static void *write_and_read(void *argument)
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = sdfio_writer_new(all_formats());
         if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
-            || sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights)
+            || sdfio_write_heights(
+                   writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights)
                    != SDFIO_OK
             || sdfio_end_trailer(writer) != SDFIO_OK)
         {

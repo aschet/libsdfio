@@ -35,7 +35,8 @@ static void start_file(small_file *small, sdfio_representation representation)
     const sdfio_stream stream = membuf_stream(&small->file);
     small->writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(small->writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(small->writer, SDFIO_TYPE_FLOAT, heights));
+    CHECK_OK(sdfio_write_heights(
+        small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
 }
 
 /* Ends the file and reads its trailer back: the text, or none, which a binary
@@ -165,7 +166,8 @@ static void check_the_text_is_written_as_given(void)
             const sdfio_stream stream = membuf_stream(&file);
             sdfio_writer *writer = sdfio_writer_new(all_formats());
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-            CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
+            CHECK_OK(sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), &height));
             CHECK_OK(sdfio_write_trailer_text(writer, trailers[t],
                                               strlen(trailers[t])));
             CHECK_OK(sdfio_end_trailer(writer));
@@ -191,7 +193,8 @@ static void check_the_text_is_written_as_given(void)
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
-    CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 &height));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_text(writer, NULL, 5));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
