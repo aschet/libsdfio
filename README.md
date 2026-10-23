@@ -32,3 +32,12 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build
 ```
+
+To install the library:
+
+```sh
+cmake --install build --prefix /path/to/prefix
+```
+
+A project then uses it with `find_package(sdfio REQUIRED)` and links the
+target `sdfio::sdfio`.
