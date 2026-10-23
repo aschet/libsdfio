@@ -27,13 +27,11 @@ configuration in the other commands: `--config Release`, and `-C Release` for
 
 ## Checks
 
-The jobs of the continuous integration are one script, which runs the same
-way on a machine of a developer:
+The continuous integration runs its jobs with `.github/ci/run.sh`, which runs
+them on a developer machine in the same way. The first command lists the
+jobs and the second runs one of them:
 
 ```sh
 .github/ci/run.sh --list
 .github/ci/run.sh gcc-x86-64-linux
 ```
-
-`run.sh --apt <job>` lists the Debian and Ubuntu packages that a job needs,
-for example the cross compiler and qemu of `gcc-arm-linux`.
