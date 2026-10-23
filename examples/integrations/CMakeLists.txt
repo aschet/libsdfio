@@ -21,13 +21,12 @@ else()
     message(STATUS "Integration example for OpenCV: not found, skipped")
 endif()
 
-find_package(VTK QUIET COMPONENTS CommonCore CommonDataModel FiltersCore
-    FiltersGeneral FiltersGeometry InteractionStyle RenderingCore
-    RenderingOpenGL2)
+set(vtk_components CommonCore CommonDataModel FiltersCore FiltersGeneral
+    FiltersGeometry InteractionStyle RenderingCore RenderingOpenGL2)
+find_package(VTK QUIET COMPONENTS ${vtk_components})
 if(VTK_FOUND)
-    set(vtk_modules VTK::CommonCore VTK::CommonDataModel VTK::FiltersCore
-        VTK::FiltersGeneral VTK::FiltersGeometry VTK::InteractionStyle
-        VTK::RenderingCore VTK::RenderingOpenGL2)
+    set(vtk_modules ${vtk_components})
+    list(TRANSFORM vtk_modules PREPEND VTK::)
     sdfio_integration(vtk SOURCE vtk.cpp LIBS ${vtk_modules})
     vtk_module_autoinit(TARGETS integration_vtk MODULES ${vtk_modules})
 else()
@@ -35,7 +34,7 @@ else()
 endif()
 
 find_package(Eigen3 3.3 QUIET NO_MODULE)
-if(TARGET Eigen3::Eigen)
+if(Eigen3_FOUND)
     sdfio_integration(eigen SOURCE eigen.cpp LIBS Eigen3::Eigen)
 else()
     message(STATUS "Integration example for Eigen: not found, skipped")
