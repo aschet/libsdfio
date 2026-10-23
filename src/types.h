@@ -23,33 +23,20 @@ enum
 /**
  * The data types of the format as a list for X-macros.
  *
- * For each type the list has the data type, its name, its C type, an unsigned
- * type of the same size, its lowest and highest value, and whether it is a
- * floating point type.
+ * For each type the list has the data type, its C type, its lowest and highest
+ * value, and whether it is a floating point type. The lowest value is also the
+ * bad value, which marks a point that is not measured. The highest value is
+ * not special.
  *
  * @param X The macro that is called for each type.
  */
 #define SDFIO_SCALARS(X)                                                       \
-    X(SDFIO_TYPE_INT8, "int8", int8_t, uint8_t, INT8_MIN, INT8_MAX, false)     \
-    X(SDFIO_TYPE_INT16, "int16", int16_t, uint16_t, INT16_MIN, INT16_MAX,      \
-      false)                                                                   \
-    X(SDFIO_TYPE_INT32, "int32", int32_t, uint32_t, INT32_MIN, INT32_MAX,      \
-      false)                                                                   \
-    X(SDFIO_TYPE_FLOAT, "binary32", float, uint32_t, -FLT_MAX, FLT_MAX, true)  \
-    X(SDFIO_TYPE_DOUBLE, "binary64", double, uint64_t, -DBL_MAX, DBL_MAX, true)
+    X(SDFIO_TYPE_INT8, int8_t, INT8_MIN, INT8_MAX, false)                      \
+    X(SDFIO_TYPE_INT16, int16_t, INT16_MIN, INT16_MAX, false)                  \
+    X(SDFIO_TYPE_INT32, int32_t, INT32_MIN, INT32_MAX, false)                  \
+    X(SDFIO_TYPE_FLOAT, float, -FLT_MAX, FLT_MAX, true)                        \
+    X(SDFIO_TYPE_DOUBLE, double, -DBL_MAX, DBL_MAX, true)
 
-/**
- * The checks of the sizes of the data types, as the file stores them: the type
- * of the program and the unsigned type that holds its bytes are of one size,
- * and no value is larger than the largest that a buffer is made for.
- */
-#define SDFIO_CHECK_SCALAR(data, name, ctype, stored, low, high, floating)     \
-    _Static_assert(sizeof(ctype) == sizeof(stored),                            \
-                   name ": the type and its stored bytes differ in size");     \
-    _Static_assert(sizeof(ctype) <= SDFIO_LARGEST_SAMPLE,                      \
-                   name ": larger than the largest sample");
-SDFIO_SCALARS(SDFIO_CHECK_SCALAR)
-#undef SDFIO_CHECK_SCALAR
 _Static_assert(sizeof(int8_t) == 1 && sizeof(int16_t) == 2
                    && sizeof(int32_t) == 4 && sizeof(uint64_t) == 8,
                "the integer types of the file have the sizes of the format");

@@ -543,7 +543,7 @@ static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
  * and the text of the file is converted to it here. */
 
 /** A case of the storing of the bad value, for SDFIO_SCALARS(). */
-#define STORE_BAD_CASE(data, name, type, bits, low, high, floating)            \
+#define STORE_BAD_CASE(data, type, low, high, floating)                        \
     case data:                                                                 \
     {                                                                          \
         const type bad = (type)(low);                                          \
@@ -563,7 +563,7 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
  * A case of the storing of an integer, for SDFIO_SCALARS(): false if the type
  * is not an integer type or the integer does not fit.
  */
-#define STORE_INTEGER_CASE(data, name, type, bits, low, high, floating)        \
+#define STORE_INTEGER_CASE(data, type, low, high, floating)                    \
     case data:                                                                 \
     {                                                                          \
         if ((floating) || (double)value < (double)(low)                        \
@@ -591,7 +591,7 @@ static bool store_integer(sdfio_data_type type, void *dst, size_t index,
  * A case of the storing of a real number, for SDFIO_SCALARS(): false if the
  * type is not a floating point type or a finite number does not fit.
  */
-#define STORE_REAL_CASE(data, name, type, bits, low, high, floating)           \
+#define STORE_REAL_CASE(data, type, low, high, floating)                       \
     case data:                                                                 \
     {                                                                          \
         if (!(floating)                                                        \
@@ -617,7 +617,7 @@ static bool store_real(sdfio_data_type type, void *dst, size_t index,
 }
 
 /** A case of the test for the bad value, for SDFIO_SCALARS(). */
-#define IS_BAD_CASE(data, name, type, bits, low, high, floating)               \
+#define IS_BAD_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
     {                                                                          \
         type stored;                                                           \
@@ -636,7 +636,7 @@ static bool is_bad(sdfio_data_type type, const void *src, size_t index)
 }
 
 /** A case of the loading of a number, for SDFIO_SCALARS(). */
-#define LOAD_CASE(data, name, type, bits, low, high, floating)                 \
+#define LOAD_CASE(data, type, low, high, floating)                             \
     case data:                                                                 \
     {                                                                          \
         type stored;                                                           \

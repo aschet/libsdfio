@@ -52,7 +52,7 @@ static bool REAL_NAME(marker_of)(double missing, REAL *marker, bool *present)
  * the type of the heights and multiplied by the scale. The lowest value of the
  * type is the bad value.
  */
-#define DECODE_CASE(data, name, type, bits, low, high, floating)               \
+#define DECODE_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
         for (size_t i = 0; i < count; ++i)                                     \
         {                                                                      \
@@ -115,7 +115,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
  * type. A height that is not a finite number, or that equals the marker, is
  * written as the bad value.
  */
-#define ENCODE_CASE(data, name, type, bits, low, high, floating)               \
+#define ENCODE_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
         for (size_t i = 0; i < count; ++i)                                     \
         {                                                                      \
