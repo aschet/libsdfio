@@ -13,6 +13,7 @@
 #include "message.h"
 #include "source.h"
 #include <sdfio/sdfio.h>
+#include <string.h>
 
 /* The reader format whose version numbers start with a byte. */
 static const sdfio_reader_format *
@@ -28,10 +29,27 @@ find_format(const sdfio_reader_format *const *formats, char prefix)
     return NULL;
 }
 
+/* The UTF-8 byte order mark, which some editors put before a text. */
+static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
+
+/* Skips the byte order mark of an ASCII file. A binary file starts with its
+ * version number, so a mark before one is no mark but damage. */
+static void skip_byte_order_mark(sdfio_source *source)
+{
+    const size_t size = sizeof byte_order_mark;
+    if (sdfio_source_fill(source, size + 1) > size
+        && memcmp(source->buffer + source->position, byte_order_mark, size) == 0
+        && source->buffer[source->position + size] == 'a')
+    {
+        source->position += size;
+    }
+}
+
 sdfio_status sdfio_select_reader_format(
     sdfio_source *source, const sdfio_reader_format *const *formats,
     const sdfio_reader_format **format, sdfio_message *message)
 {
+    skip_byte_order_mark(source);
     const size_t available =
         sdfio_source_fill(source, SDFIO_VERSION_NUMBER_SIZE);
     if (available < SDFIO_VERSION_NUMBER_SIZE)

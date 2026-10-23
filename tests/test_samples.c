@@ -20,7 +20,8 @@
 enum
 {
     FIELD_COUNT = 17,
-    LINE_CAPACITY = 4096
+    LINE_CAPACITY = 4096,
+    MARKED_CAPACITY = 65536
 };
 
 typedef struct expectation
@@ -353,6 +354,50 @@ static void check_dates_set_to_zero(void)
     }
 }
 
+/* An editor can put the UTF-8 byte order mark before an ASCII file, in front
+ * of the version number. It is no part of a binary file, which a mark would
+ * damage. */
+static void check_byte_order_mark(void)
+{
+    static const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
+    static const char *const names[] = {
+        "samples/iso25178-71-2026/iso2_surface_ascii.sdf",
+        "samples/iso25178-71-2026/iso2_surface_binary.sdf"};
+    for (size_t i = 0; i < 2; ++i)
+    {
+        size_t size = 0;
+        unsigned char *bytes = read_file(names[i], &size);
+        CHECK(bytes != NULL);
+        if (bytes == NULL)
+        {
+            continue;
+        }
+        static unsigned char marked[MARKED_CAPACITY];
+        CHECK(size + sizeof mark <= sizeof marked);
+        if (size + sizeof mark <= sizeof marked)
+        {
+            memcpy(marked, mark, sizeof mark);
+            memcpy(marked + sizeof mark, bytes, size);
+            sdfio_reader *reader = sdfio_reader_new(all_formats());
+            const sdfio_status status =
+                sdfio_open_memory(reader, marked, size + sizeof mark);
+            if (i == 0)
+            {
+                CHECK_OK(status);
+                const sdfio_header *header = sdfio_get_header(reader);
+                CHECK(header != NULL && header->columns == 48
+                      && header->rows == 32);
+            }
+            else
+            {
+                CHECK_STATUS(SDFIO_ERR_FORMAT, status);
+            }
+            sdfio_reader_free(reader);
+        }
+        free(bytes);
+    }
+}
+
 int main(void)
 {
     char path[512];
@@ -378,5 +423,6 @@ int main(void)
     fclose(list);
     CHECK(files > 0);
     check_dates_set_to_zero();
+    check_byte_order_mark();
     return finish_tests();
 }

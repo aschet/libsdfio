@@ -103,6 +103,8 @@
  *   have fewer than 12 characters.
  * - An ASCII file can end its lines with LF instead of CRLF, and the final
  *   line `*` after the trailer can be missing.
+ * - An ASCII file can start with the UTF-8 byte order mark that some editors
+ *   add.
  * - A field of an ASCII header that the standard does not define is ignored,
  *   and a field that appears more than once counts with its last value.
  * - The trailer of an ISO-2.0 file need not be in the tagged format.
