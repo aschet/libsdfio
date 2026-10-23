@@ -34,16 +34,4 @@ enum
     SDFIO_BINARY_CODE_FIELDS = 3
 };
 
-/**
- * Returns the size in bytes of each of the two header fields that hold the
- * number of columns and the number of rows of the data matrix. The size is 2 in
- * ISO-1.0 and 4 in ISO-2.0.
- *
- * @param revision The revision.
- */
-static inline size_t sdfio_binary_columns_rows_size(sdfio_revision revision)
-{
-    return revision == SDFIO_ISO_2_0 ? sizeof(uint32_t) : sizeof(uint16_t);
-}
-
 #endif /* SDFIO_SRC_BINARY_H */

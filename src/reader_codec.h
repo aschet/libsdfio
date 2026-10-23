@@ -32,10 +32,12 @@ struct sdfio_reader_codec
     /** The first character of the version numbers, which identifies the
      * representation. */
     char prefix;
-    /** The version numbers that the codec reads, one for each revision in the
-     * order of the enumeration. The codec determines the revision of a file by
-     * comparing the version number of the file with these. */
-    const char *version_numbers[SDFIO_REVISION_COUNT];
+    /** The version numbers that the codec reads, indexed by revision. The
+     * codec determines the revision of a file by comparing the version number
+     * of the file with these. */
+    const char *const *version_numbers;
+    /** The number of version numbers in the list. */
+    size_t version_number_count;
 
     /**
      * Reads the header at the start of the source and leaves the source at the

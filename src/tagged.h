@@ -24,25 +24,21 @@
 void sdfio_lines_to_lf(sdfio_string *text);
 
 /**
- * Tells whether every line of a text is blank or of the form `Name = Value`.
+ * Splits a line of the form `Name = Value` into its name and its value. The
+ * name consists of letters, digits and underscores, and white space around the
+ * name, the separator and the value is removed.
  *
- * @param text The text.
- * @param size The length of the text.
- */
-bool sdfio_tagged_valid(const char *text, size_t size);
-
-/**
- * Finds the field of a name.
- *
- * @param text The text.
- * @param size The length of the text.
- * @param name The name, 0-terminated.
- * @param[out] value Receives the value, trimmed.
+ * @param line The line, without its line end.
+ * @param size The length of the line.
+ * @param[out] name Receives the name.
+ * @param[out] name_size Receives the length of the name.
+ * @param[out] value Receives the value.
  * @param[out] value_size Receives the length of the value.
- * @return False if there is no such field.
+ * @return False if the line is not of that form.
  */
-bool sdfio_tagged_find(const char *text, size_t size, const char *name,
-                       const char **value, size_t *value_size);
+bool sdfio_tagged_split(const char *line, size_t size, const char **name,
+                        size_t *name_size, const char **value,
+                        size_t *value_size);
 
 /**
  * Writes a trailer into the file.

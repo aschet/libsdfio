@@ -32,9 +32,6 @@ struct sdfio_writer_codec
     /** The size of what the codec keeps for a file between its calls, which
      * the writer allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
-    /** The version numbers that the codec writes, one for each revision in the
-     * order of the enumeration. */
-    const char *version_numbers[SDFIO_REVISION_COUNT];
     /** The representation that the codec writes. */
     sdfio_representation representation;
 

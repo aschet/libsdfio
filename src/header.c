@@ -63,7 +63,7 @@ static bool positive(double value)
 sdfio_status sdfio_header_validate_for_writing(const sdfio_header *header,
                                                sdfio_message *message)
 {
-    if ((unsigned)header->revision > (unsigned)SDFIO_ISO_2_0
+    if (!sdfio_revision_valid(header->revision)
         || (header->representation != SDFIO_BINARY
             && header->representation != SDFIO_ASCII)
         || !sdfio_valid_data_type(header->data_type))

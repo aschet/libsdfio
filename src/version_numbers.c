@@ -21,21 +21,30 @@ size_t sdfio_version_number_count(const sdfio_config *config)
         return 0;
     }
     size_t count = 0;
-    while (count < SDFIO_CODEC_MAX && settings.reader_codecs[count] != NULL)
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && settings.reader_codecs[i] != NULL;
+         ++i)
     {
-        ++count;
+        count += settings.reader_codecs[i]->version_number_count;
     }
-    return count * SDFIO_REVISION_COUNT;
+    return count;
 }
 
 const char *sdfio_version_number(const sdfio_config *config, size_t index)
 {
     sdfio_settings settings;
-    if (!sdfio_config_resolve(config, &settings)
-        || index >= sdfio_version_number_count(config))
+    if (!sdfio_config_resolve(config, &settings))
     {
         return NULL;
     }
-    return settings.reader_codecs[index / SDFIO_REVISION_COUNT]
-        ->version_numbers[index % SDFIO_REVISION_COUNT];
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && settings.reader_codecs[i] != NULL;
+         ++i)
+    {
+        const sdfio_reader_codec *codec = settings.reader_codecs[i];
+        if (index < codec->version_number_count)
+        {
+            return codec->version_numbers[index];
+        }
+        index -= codec->version_number_count;
+    }
+    return NULL;
 }

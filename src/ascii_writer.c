@@ -74,6 +74,9 @@ static double load_number(sdfio_data_type type, const void *src, size_t index)
     return 0.0;
 }
 
+static const char *const version_numbers[] = {
+    [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
+
 static bool append_text(sdfio_string *out, const char *text)
 {
     return sdfio_string_append(out, text, strlen(text));
@@ -99,8 +102,7 @@ static sdfio_status format_header(const sdfio_header *header,
                                   const sdfio_time_zone *zone,
                                   sdfio_string *out, sdfio_message *message)
 {
-    const char *version_number =
-        sdfio_ascii_writer_codec.version_numbers[header->revision];
+    const char *version_number = version_numbers[header->revision];
     char text[SDFIO_NUMBER_CAPACITY];
     char date[SDFIO_DATETIME_SIZE + 1] = {0};
     bool ok = append_text(out, version_number) && append_text(out, crlf)
@@ -271,7 +273,6 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
 }
 
 const sdfio_writer_codec sdfio_ascii_writer_codec = {
-    .version_numbers = {"aISO-1.0", "aISO-2.0"},
     .state_size = sizeof(struct writing),
     .representation = SDFIO_ASCII,
     .scratch_size = scratch_size,

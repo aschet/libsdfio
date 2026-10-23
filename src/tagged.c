@@ -88,10 +88,9 @@ static bool is_name_character(char c)
            || c == '_';
 }
 
-/* Splits a line into its name and its value. */
-static bool split_line(const char *line, size_t size, const char **name,
-                       size_t *name_size, const char **value,
-                       size_t *value_size)
+bool sdfio_tagged_split(const char *line, size_t size, const char **name,
+                        size_t *name_size, const char **value,
+                        size_t *value_size)
 {
     sdfio_trim(&line, &size);
     size_t end = 0;
@@ -118,74 +117,6 @@ static bool split_line(const char *line, size_t size, const char **name,
     *value_size = size - at - 1;
     sdfio_trim(value, value_size);
     return true;
-}
-
-bool sdfio_tagged_valid(const char *text, size_t size)
-{
-    size_t position = 0;
-    const char *line = NULL;
-    size_t line_size = 0;
-    while (next_line(text, size, &position, &line, &line_size))
-    {
-        const char *blank = line;
-        size_t blank_size = line_size;
-        sdfio_trim(&blank, &blank_size);
-        const char *name = NULL;
-        const char *value = NULL;
-        size_t name_size = 0;
-        size_t value_size = 0;
-        if (blank_size > 0
-            && !split_line(line, line_size, &name, &name_size, &value,
-                           &value_size))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-static bool tagged_next(const char *text, size_t size, size_t *position,
-                        const char **name, size_t *name_size,
-                        const char **value, size_t *value_size)
-{
-    const char *line = NULL;
-    size_t line_size = 0;
-    while (next_line(text, size, position, &line, &line_size))
-    {
-        if (split_line(line, line_size, name, name_size, value, value_size))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool sdfio_tagged_find(const char *text, size_t size, const char *name,
-                       const char **value, size_t *value_size)
-{
-    const size_t wanted = strlen(name);
-    bool found = false;
-    size_t position = 0;
-    const char *field = NULL;
-    const char *content = NULL;
-    size_t field_size = 0;
-    size_t content_size = 0;
-    while (tagged_next(text, size, &position, &field, &field_size, &content,
-                       &content_size))
-    {
-        bool same = field_size == wanted;
-        for (size_t i = 0; i < wanted && same; ++i)
-        {
-            same = sdfio_lower(field[i]) == sdfio_lower(name[i]);
-        }
-        if (same)
-        {
-            *value = content;
-            *value_size = content_size;
-            found = true;
-        }
-    }
-    return found;
 }
 
 bool sdfio_tagged_name_valid(const char *name)

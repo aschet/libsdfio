@@ -505,14 +505,14 @@ typedef struct sdfio_config
      */
     const sdfio_time_zone *time_zone;
     /**
-     * The codecs that a reader uses, without gaps and in the order in which
-     * sdfio_version_number() lists their version numbers. A reader needs at
-     * least one, and a codec is listed once. A writer ignores them.
+     * The codecs that a reader uses, in the order in which
+     * sdfio_version_number() lists their version numbers. Unused entries are
+     * null. A reader needs at least one. A writer ignores them.
      */
     const sdfio_reader_codec *reader_codecs[SDFIO_CODEC_MAX];
     /**
-     * The codecs that a writer uses, without gaps. A writer needs at least
-     * one, and a codec is listed once. A reader ignores them.
+     * The codecs that a writer uses. Unused entries are null. A writer needs at
+     * least one. A reader ignores them.
      */
     const sdfio_writer_codec *writer_codecs[SDFIO_CODEC_MAX];
 } sdfio_config;

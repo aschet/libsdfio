@@ -14,26 +14,32 @@
 
 #include <sdfio/sdfio.h>
 
-/** The number of revisions that the library supports: ISO-1.0 and ISO-2.0. */
-enum
-{
-    SDFIO_REVISION_COUNT = 2
-};
+/**
+ * Tells whether a value is one of the revisions.
+ *
+ * @param revision The value to test.
+ */
+bool sdfio_revision_valid(sdfio_revision revision);
 
 /**
- * Tells whether the dates of a revision are in UTC.
+ * Tells whether the datetimes of a revision are in UTC.
  *
  * @param revision The revision.
  */
-static inline bool sdfio_requires_utc(sdfio_revision revision)
-{
-    return revision == SDFIO_ISO_2_0;
-}
+bool sdfio_requires_utc(sdfio_revision revision);
+
+/**
+ * Returns the size in bytes of each of the two fields of the binary header that
+ * hold the number of columns and the number of rows of the data matrix.
+ *
+ * @param revision The revision.
+ */
+size_t sdfio_revision_columns_rows_size(sdfio_revision revision);
 
 /**
  * Returns the largest number of columns, and the largest number of rows, that
- * the header of a revision can hold. The header stores each of the two numbers
- * in 2 bytes in ISO-1.0 and in 4 bytes in ISO-2.0.
+ * the header of a revision can hold. The limit follows from the size of the
+ * fields of the binary header.
  *
  * @param revision The revision.
  */

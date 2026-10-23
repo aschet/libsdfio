@@ -30,6 +30,22 @@ bool sdfio_valid_height_type(sdfio_data_type type)
     return type == SDFIO_TYPE_FLOAT || type == SDFIO_TYPE_DOUBLE;
 }
 
+/** A case of the search for a data type by its code. */
+#define CODE_CASE(data, ctype, low, high, floating)                            \
+    if (code == (long long)(data))                                             \
+    {                                                                          \
+        *type = data;                                                          \
+        return true;                                                           \
+    }
+
+bool sdfio_data_type_from_code(long long code, sdfio_data_type *type)
+{
+    SDFIO_SCALARS(CODE_CASE)
+    return false;
+}
+
+#undef CODE_CASE
+
 bool sdfio_valid_data_type(sdfio_data_type type)
 {
     switch (type)

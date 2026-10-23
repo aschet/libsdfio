@@ -63,6 +63,15 @@ size_t sdfio_data_type_size(sdfio_data_type type);
 bool sdfio_valid_data_type(sdfio_data_type type);
 
 /**
+ * Finds the data type that a code of a file stands for.
+ *
+ * @param code The code, as the header of a file gives it.
+ * @param[out] type Receives the data type.
+ * @return False if the code is no data type.
+ */
+bool sdfio_data_type_from_code(long long code, sdfio_data_type *type);
+
+/**
  * Tells whether a data type is a floating-point type.
  *
  * @param type The data type. A value that is not a data type is not a

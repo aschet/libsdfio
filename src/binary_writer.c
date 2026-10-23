@@ -35,6 +35,9 @@ static size_t scratch_size(size_t chunk_values)
                : chunk_values * SDFIO_LARGEST_DATA_ENTRY;
 }
 
+static const char *const version_numbers[] = {
+    [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
+
 /* Writes a text in a field of a width: a text that is too long is cut, and one
  * that is too short is filled with spaces. */
 static bool put_text(sdfio_sink *sink, const char *text, size_t width)
@@ -87,10 +90,9 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the modification date");
     }
-    const char *version_number =
-        sdfio_binary_writer_codec.version_numbers[header->revision];
+    const char *version_number = version_numbers[header->revision];
     const size_t columns_rows_size =
-        sdfio_binary_columns_rows_size(header->revision);
+        sdfio_revision_columns_rows_size(header->revision);
     const double resolution =
         header->z_resolution > 0.0 ? header->z_resolution : SDFIO_NO_RESOLUTION;
     const unsigned char codes[SDFIO_BINARY_CODE_FIELDS] = {
@@ -153,7 +155,6 @@ static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
 }
 
 const sdfio_writer_codec sdfio_binary_writer_codec = {
-    .version_numbers = {"bISO-1.0", "bISO-2.0"},
     .representation = SDFIO_BINARY,
     .scratch_size = scratch_size,
     .write_header = write_header,

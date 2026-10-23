@@ -52,14 +52,18 @@ static double get_double(const unsigned char *bytes)
     return value;
 }
 
+static const char *const version_numbers[] = {
+    [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
+
 /* The revision whose version number the bytes are, according to the version
  * numbers that the codec lists. */
 static bool revision_of(const unsigned char *version_number,
                         sdfio_revision *revision)
 {
-    for (size_t i = 0; i < SDFIO_REVISION_COUNT; ++i)
+    for (size_t i = 0; i < sizeof version_numbers / sizeof version_numbers[0];
+         ++i)
     {
-        if (memcmp(version_number, sdfio_binary_reader_codec.version_numbers[i],
+        if (memcmp(version_number, version_numbers[i],
                    SDFIO_VERSION_NUMBER_SIZE)
             == 0)
         {
@@ -133,7 +137,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Unknown or unsupported SDF version number");
     }
-    const size_t columns_rows_size = sdfio_binary_columns_rows_size(revision);
+    const size_t columns_rows_size = sdfio_revision_columns_rows_size(revision);
     unsigned char identifier[SDFIO_ID_SIZE];
     unsigned char created_text[SDFIO_DATETIME_SIZE];
     unsigned char modified_text[SDFIO_DATETIME_SIZE];
@@ -188,12 +192,12 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "The checksum type of an SDF file has to be 0");
     }
-    if (code < (unsigned)SDFIO_TYPE_FLOAT || code > (unsigned)SDFIO_TYPE_DOUBLE)
+    sdfio_data_type type = SDFIO_TYPE_FLOAT;
+    if (!sdfio_data_type_from_code(code, &type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Unknown SDF data type code");
     }
-    const sdfio_data_type type = (sdfio_data_type)code;
     if (!sdfio_revision_allows(revision, type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -252,7 +256,8 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
 
 const sdfio_reader_codec sdfio_binary_reader_codec = {
     .prefix = 'b',
-    .version_numbers = {"bISO-1.0", "bISO-2.0"},
+    .version_numbers = version_numbers,
+    .version_number_count = sizeof version_numbers / sizeof version_numbers[0],
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

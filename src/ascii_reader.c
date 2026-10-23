@@ -133,14 +133,18 @@ static bool is_terminator(const char *line, size_t size)
     return size == 1 && line[0] == terminator;
 }
 
+static const char *const version_numbers[] = {
+    [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
+
 /* The revision whose version number the text is, according to the version
  * numbers that the codec lists. */
 static bool revision_of(const char *version_number, size_t size,
                         sdfio_revision *revision)
 {
-    for (size_t i = 0; i < SDFIO_REVISION_COUNT; ++i)
+    for (size_t i = 0; i < sizeof version_numbers / sizeof version_numbers[0];
+         ++i)
     {
-        const char *listed = sdfio_ascii_reader_codec.version_numbers[i];
+        const char *listed = version_numbers[i];
         if (strlen(listed) == size && memcmp(listed, version_number, size) == 0)
         {
             *revision = (sdfio_revision)i;
@@ -153,190 +157,166 @@ static bool revision_of(const char *version_number, size_t size,
 /* ---- The header -----------------------------------------------------------
  */
 
-/** The value of a field in the text of a header, not copied. */
-typedef struct field_text
+/** The fields of the header, in the order of their ASCII field names. */
+enum field
 {
-    /** The first character of the value. */
-    const char *text;
-    /** The length of the value. */
-    size_t size;
-} field_text;
+    MANUFACTURER_ID,
+    CREATE_DATE,
+    MODIFICATION_DATE,
+    POINTS,
+    PROFILES,
+    X_SCALE,
+    Y_SCALE,
+    Z_SCALE,
+    Z_RESOLUTION,
+    COMPRESSION,
+    DATA_TYPE,
+    CHECK_TYPE,
+    FIELD_COUNT
+};
 
-static sdfio_status field(const sdfio_string *header_text, const char *name,
-                          field_text *out, sdfio_message *message)
-{
-    if (!sdfio_tagged_find(header_text->data != NULL ? header_text->data : "",
-                           header_text->size, name, &out->text, &out->size))
-    {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "A required field of the SDF header is missing");
-    }
-    return SDFIO_OK;
-}
+static const char *const field_names[FIELD_COUNT] = {
+    [MANUFACTURER_ID] = SDFIO_ASCII_MANUFACTURER_ID,
+    [CREATE_DATE] = SDFIO_ASCII_CREATE_DATE,
+    [MODIFICATION_DATE] = SDFIO_ASCII_MODIFICATION_DATE,
+    [POINTS] = SDFIO_ASCII_POINTS,
+    [PROFILES] = SDFIO_ASCII_PROFILES,
+    [X_SCALE] = SDFIO_ASCII_X_SCALE,
+    [Y_SCALE] = SDFIO_ASCII_Y_SCALE,
+    [Z_SCALE] = SDFIO_ASCII_Z_SCALE,
+    [Z_RESOLUTION] = SDFIO_ASCII_Z_RESOLUTION,
+    [COMPRESSION] = SDFIO_ASCII_COMPRESSION,
+    [DATA_TYPE] = SDFIO_ASCII_DATA_TYPE,
+    [CHECK_TYPE] = SDFIO_ASCII_CHECK_TYPE};
 
-static sdfio_status invalid_value(sdfio_message *message)
+/** The values of the fields of a header, as the file gives them. */
+typedef struct header_fields
 {
-    return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                      "A field of the SDF header has an invalid value");
-}
-
-static sdfio_status header_real(const sdfio_string *header_text,
-                                const char *name, const sdfio_point *point,
-                                double *out, sdfio_message *message)
-{
-    field_text value;
-    const sdfio_status status = field(header_text, name, &value, message);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (!sdfio_parse_number(point, value.text, value.size, out))
-    {
-        return invalid_value(message);
-    }
-    return SDFIO_OK;
-}
-
-static sdfio_status header_count(const sdfio_string *header_text,
-                                 const char *name, size_t *out,
-                                 sdfio_message *message)
-{
-    field_text value;
-    const sdfio_status status = field(header_text, name, &value, message);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    long long number = 0;
-    if (!sdfio_parse_integer(value.text, value.size, &number))
-    {
-        return invalid_value(message);
-    }
-    if (number < 0 || (unsigned long long)number > SIZE_MAX)
-    {
-        return sdfio_fail(
-            message, SDFIO_ERR_FORMAT,
-            "NumPoints or NumProfiles in the SDF header is out of "
-            "range");
-    }
-    *out = (size_t)number;
-    return SDFIO_OK;
-}
-
-static sdfio_status header_coded(const sdfio_string *header_text,
-                                 const char *name, long long *out,
-                                 sdfio_message *message)
-{
-    field_text value;
-    const sdfio_status status = field(header_text, name, &value, message);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    return sdfio_parse_integer(value.text, value.size, out)
-               ? SDFIO_OK
-               : invalid_value(message);
-}
-
-/* The characters of an identifier without the white space around them. */
-static size_t identifier_size(field_text identifier)
-{
-    const char *text = identifier.text;
-    size_t size = identifier.size;
-    sdfio_trim(&text, &size);
-    return size;
-}
-
-static void copy_identifier(sdfio_header *header, const char *text, size_t size)
-{
-    sdfio_trim(&text, &size);
-    if (size >= sizeof header->manufacturer_id)
-    {
-        size = sizeof header->manufacturer_id - 1;
-    }
-    memcpy(header->manufacturer_id, text, size);
-    header->manufacturer_id[size] = '\0';
-}
-
-/** The codes of the header of an ASCII file that describe its data area. */
-typedef struct codes
-{
-    /** The data type. */
-    long long type;
-    /** The compression. */
+    /** Whether the file has the field. */
+    bool found[FIELD_COUNT];
+    /** The manufacturer's ID, terminated. */
+    char identifier[SDFIO_ID_SIZE + 1];
+    /** The creation date and time. */
+    char created[SDFIO_DATETIME_SIZE];
+    /** The last modification date and time. */
+    char modified[SDFIO_DATETIME_SIZE];
+    /** The number of columns in the data matrix. */
+    size_t columns;
+    /** The number of rows in the data matrix. */
+    size_t rows;
+    /** The X-scale factor. */
+    double x_scale;
+    /** The Y-scale factor. */
+    double y_scale;
+    /** The Z-scale factor. */
+    double z_scale;
+    /** The Z-resolution. */
+    double resolution;
+    /** The compression type. */
     long long compression;
+    /** The code of the data type. */
+    long long data_type;
     /** The checksum type. */
     long long check_type;
-} codes;
+} header_fields;
 
-static sdfio_status read_codes(const sdfio_string *header_text, codes *out,
-                               sdfio_message *message)
+static bool same_name(const char *name, size_t size, const char *field_name)
 {
-    sdfio_status status =
-        header_coded(header_text, SDFIO_ASCII_DATA_TYPE, &out->type, message);
-    if (status != SDFIO_OK)
+    if (strlen(field_name) != size)
     {
-        return status;
+        return false;
     }
-    status = header_coded(header_text, SDFIO_ASCII_COMPRESSION,
-                          &out->compression, message);
-    if (status != SDFIO_OK)
+    for (size_t i = 0; i < size; ++i)
     {
-        return status;
+        if (sdfio_lower(name[i]) != sdfio_lower(field_name[i]))
+        {
+            return false;
+        }
     }
-    return header_coded(header_text, SDFIO_ASCII_CHECK_TYPE, &out->check_type,
-                        message);
+    return true;
 }
 
-/* The fields that are numbers or texts, into the description. */
-static sdfio_status read_fields(const sdfio_string *header_text,
-                                const sdfio_point *point, sdfio_header *header,
-                                field_text *identifier, field_text *created,
-                                field_text *modified, double *resolution,
+static bool parse_extent(const char *value, size_t size, size_t *out)
+{
+    long long number = 0;
+    if (!sdfio_parse_integer(value, size, &number) || number < 0
+        || (unsigned long long)number > SIZE_MAX)
+    {
+        return false;
+    }
+    *out = (size_t)number;
+    return true;
+}
+
+static bool copy_datetime(char *out, const char *value, size_t size)
+{
+    if (size != SDFIO_DATETIME_SIZE)
+    {
+        return false;
+    }
+    memcpy(out, value, size);
+    return true;
+}
+
+/* Converts the value of a field, which the file gave with white space around
+ * it removed. */
+static sdfio_status store_field(header_fields *fields, enum field field,
+                                const char *value, size_t size,
+                                const sdfio_point *point,
                                 sdfio_message *message)
 {
-    sdfio_status status =
-        field(header_text, SDFIO_ASCII_MANUFACTURER_ID, identifier, message);
-    if (status == SDFIO_OK)
+    bool valid = true;
+    switch (field)
     {
-        status = field(header_text, SDFIO_ASCII_CREATE_DATE, created, message);
+    case MANUFACTURER_ID:
+        if (size > SDFIO_ID_SIZE)
+        {
+            return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                              "The manufacturer's ID of the SDF header has "
+                              "more than 10 characters");
+        }
+        memcpy(fields->identifier, value, size);
+        fields->identifier[size] = '\0';
+        break;
+    case CREATE_DATE:
+        valid = copy_datetime(fields->created, value, size);
+        break;
+    case MODIFICATION_DATE:
+        valid = copy_datetime(fields->modified, value, size);
+        break;
+    case POINTS:
+        valid = parse_extent(value, size, &fields->columns);
+        break;
+    case PROFILES:
+        valid = parse_extent(value, size, &fields->rows);
+        break;
+    case X_SCALE:
+        valid = sdfio_parse_number(point, value, size, &fields->x_scale);
+        break;
+    case Y_SCALE:
+        valid = sdfio_parse_number(point, value, size, &fields->y_scale);
+        break;
+    case Z_SCALE:
+        valid = sdfio_parse_number(point, value, size, &fields->z_scale);
+        break;
+    case Z_RESOLUTION:
+        valid = sdfio_parse_number(point, value, size, &fields->resolution);
+        break;
+    case COMPRESSION:
+        valid = sdfio_parse_integer(value, size, &fields->compression);
+        break;
+    case DATA_TYPE:
+        valid = sdfio_parse_integer(value, size, &fields->data_type);
+        break;
+    case CHECK_TYPE:
+        valid = sdfio_parse_integer(value, size, &fields->check_type);
+        break;
+    case FIELD_COUNT:
+        break;
     }
-    if (status == SDFIO_OK)
-    {
-        status = field(header_text, SDFIO_ASCII_MODIFICATION_DATE, modified,
-                       message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_count(header_text, SDFIO_ASCII_POINTS, &header->columns,
-                              message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_count(header_text, SDFIO_ASCII_PROFILES, &header->rows,
-                              message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_real(header_text, SDFIO_ASCII_X_SCALE, point,
-                             &header->x_scale, message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_real(header_text, SDFIO_ASCII_Y_SCALE, point,
-                             &header->y_scale, message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_real(header_text, SDFIO_ASCII_Z_SCALE, point,
-                             &header->z_scale, message);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = header_real(header_text, SDFIO_ASCII_Z_RESOLUTION, point,
-                             resolution, message);
-    }
-    return status;
+    return valid ? SDFIO_OK
+                 : sdfio_fail(message, SDFIO_ERR_FORMAT,
+                              "A field of the SDF header has an invalid value");
 }
 
 /** What the reader of this codec keeps for a file. */
@@ -346,15 +326,81 @@ struct reading
     sdfio_point point;
 };
 
+/* Reads the lines of the header up to the line that terminates the record. */
+static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
+                                const sdfio_point *point, header_fields *fields,
+                                sdfio_message *message)
+{
+    bool ended = false;
+    bool done = false;
+    bool terminated = false;
+    bool malformed = false;
+    while (next_line(source, line, &ended, &done) == GOT_ONE)
+    {
+        const char *text = sdfio_string_text(line);
+        if (is_terminator(text, line->size))
+        {
+            terminated = true;
+            break;
+        }
+        const char *name = NULL;
+        const char *value = NULL;
+        size_t name_size = 0;
+        size_t value_size = 0;
+        if (!sdfio_tagged_split(text, line->size, &name, &name_size, &value,
+                                &value_size))
+        {
+            const char *blank = text;
+            size_t blank_size = line->size;
+            sdfio_trim(&blank, &blank_size);
+            malformed = malformed || blank_size > 0;
+            continue;
+        }
+        for (enum field field = 0; field < FIELD_COUNT; ++field)
+        {
+            if (!same_name(name, name_size, field_names[field]))
+            {
+                continue;
+            }
+            const sdfio_status status =
+                store_field(fields, field, value, value_size, point, message);
+            if (status != SDFIO_OK)
+            {
+                return status;
+            }
+            fields->found[field] = true;
+            break;
+        }
+    }
+    if (!terminated)
+    {
+        return sdfio_source_failure(source, message,
+                                    "SDF file must contain the header, the "
+                                    "data area and the trailer");
+    }
+    if (malformed)
+    {
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "Malformed SDF tagged field line in the header");
+    }
+    for (enum field field = 0; field < FIELD_COUNT; ++field)
+    {
+        if (!fields->found[field])
+        {
+            return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                              "A required field of the SDF header is missing");
+        }
+    }
+    return SDFIO_OK;
+}
+
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 void *state, const sdfio_time_zone *zone,
                                 sdfio_message *message)
 {
     struct reading *reading = state;
     reading->point = sdfio_point_now();
-    const sdfio_point *point = &reading->point;
     sdfio_string line = {.allocator = source->allocator};
-    sdfio_string header_text = {.allocator = source->allocator};
     sdfio_status status = SDFIO_OK;
     bool ended = false;
     bool done = false;
@@ -364,144 +410,87 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         status = sdfio_source_failure(
             source, message,
             "The first line of the file is not a version number");
-        goto done;
     }
-    if (got != GOT_ONE || !ended)
+    else if (got != GOT_ONE || !ended)
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
                             "SDF file is missing the header and the data area");
-        goto done;
     }
-
-    const char *version_number_line = sdfio_string_text(&line);
-    size_t version_number_line_size = line.size;
-    sdfio_trim(&version_number_line, &version_number_line_size);
     sdfio_revision revision = SDFIO_ISO_2_0;
-    if (!revision_of(version_number_line, version_number_line_size, &revision))
+    if (status == SDFIO_OK)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Unknown or unsupported SDF version number");
-        goto done;
-    }
-
-    /* The records end with a line that has only a "*". */
-    bool header_started = false;
-    bool header_ended = false;
-    while (next_line(source, &line, &ended, &done) == GOT_ONE)
-    {
-        const char *text = sdfio_string_text(&line);
-        if (is_terminator(text, line.size))
+        const char *version_number = sdfio_string_text(&line);
+        size_t version_number_size = line.size;
+        sdfio_trim(&version_number, &version_number_size);
+        if (!revision_of(version_number, version_number_size, &revision))
         {
-            header_ended = true;
-            break;
+            status = sdfio_fail(message, SDFIO_ERR_FORMAT,
+                                "Unknown or unsupported SDF version number");
         }
-        if ((header_started && !sdfio_string_append(&header_text, "\n", 1))
-            || !sdfio_string_append(&header_text, text, line.size))
-        {
-            status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-            goto done;
-        }
-        header_started = true;
     }
-    if (!header_ended)
+    header_fields fields = {0};
+    if (status == SDFIO_OK)
     {
-        status =
-            sdfio_source_failure(source, message,
-                                 "SDF file must contain the header, the data "
-                                 "area and the trailer");
-        goto done;
+        status = read_fields(source, &line, &reading->point, &fields, message);
     }
-    if (!sdfio_tagged_valid(sdfio_string_text(&header_text), header_text.size))
-    {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "Malformed SDF tagged field line in the header");
-        goto done;
-    }
-
-    codes parsed_codes;
-    status = read_codes(&header_text, &parsed_codes, message);
+    sdfio_string_free(&line);
     if (status != SDFIO_OK)
     {
-        goto done;
+        return status;
     }
-    const long long type_code = parsed_codes.type;
-    const long long compression = parsed_codes.compression;
-    const long long check_type = parsed_codes.check_type;
-    if (type_code < SDFIO_TYPE_FLOAT || type_code > SDFIO_TYPE_DOUBLE)
+    sdfio_data_type type = SDFIO_TYPE_FLOAT;
+    if (!sdfio_data_type_from_code(fields.data_type, &type))
     {
-        status =
-            sdfio_fail(message, SDFIO_ERR_FORMAT, "Unknown SDF data type code");
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "Unknown SDF data type code");
     }
-    const sdfio_data_type type = (sdfio_data_type)type_code;
     if (!sdfio_revision_allows(revision, type))
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "The data type is not valid for the SDF revision");
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The data type is not valid for the SDF revision");
     }
-    if (compression != SDFIO_NONE)
+    if (fields.compression != SDFIO_NONE)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "The compression type of an SDF file has to be 0");
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The compression type of an SDF file has to be 0");
     }
-    if (check_type != SDFIO_NONE)
+    if (fields.check_type != SDFIO_NONE)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "The checksum type of an SDF file has to be 0");
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The checksum type of an SDF file has to be 0");
     }
-
-    field_text identifier;
-    field_text created;
-    field_text modified;
-    double resolution = 0.0;
-    status = read_fields(&header_text, point, header, &identifier, &created,
-                         &modified, &resolution, message);
-    if (status != SDFIO_OK)
+    if (!sdfio_datetime_is_valid(fields.created, SDFIO_DATETIME_SIZE)
+        || !sdfio_datetime_is_valid(fields.modified, SDFIO_DATETIME_SIZE))
     {
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "A date of the SDF header is not valid");
     }
-    if (!sdfio_datetime_is_valid(created.text, created.size)
-        || !sdfio_datetime_is_valid(modified.text, modified.size))
+    if (fields.columns > sdfio_max_columns_and_rows(revision)
+        || fields.rows > sdfio_max_columns_and_rows(revision))
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "A date of the SDF header is not valid");
-        goto done;
-    }
-    if (header->columns > sdfio_max_columns_and_rows(revision)
-        || header->rows > sdfio_max_columns_and_rows(revision))
-    {
-        status =
-            sdfio_fail(message, SDFIO_ERR_FORMAT,
-                       "NumPoints or NumProfiles in the SDF header is out of "
-                       "range for the revision");
-        goto done;
-    }
-    if (identifier_size(identifier) > SDFIO_ID_SIZE)
-    {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "The manufacturer identifier of the SDF header has "
-                            "more than 10 characters");
-        goto done;
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The number of columns or rows in the SDF header is "
+                          "out of range for the revision");
     }
     header->revision = revision;
     header->representation = SDFIO_ASCII;
     header->data_type = type;
-    header->z_resolution = resolution > 0.0 && isfinite(resolution)
-                               ? resolution
-                               : SDFIO_NO_RESOLUTION;
-    copy_identifier(header, identifier.text, identifier.size);
-    header->creation_date =
-        sdfio_datetime_parse(created.text, created.size, revision, zone);
-    header->modification_date =
-        sdfio_datetime_parse(modified.text, modified.size, revision, zone);
-
-done:
-    sdfio_string_free(&line);
-    sdfio_string_free(&header_text);
-    return status;
+    header->columns = fields.columns;
+    header->rows = fields.rows;
+    header->x_scale = fields.x_scale;
+    header->y_scale = fields.y_scale;
+    header->z_scale = fields.z_scale;
+    header->z_resolution =
+        fields.resolution > 0.0 && isfinite(fields.resolution)
+            ? fields.resolution
+            : SDFIO_NO_RESOLUTION;
+    memcpy(header->manufacturer_id, fields.identifier,
+           sizeof fields.identifier);
+    header->creation_date = sdfio_datetime_parse(
+        fields.created, SDFIO_DATETIME_SIZE, revision, zone);
+    header->modification_date = sdfio_datetime_parse(
+        fields.modified, SDFIO_DATETIME_SIZE, revision, zone);
+    return SDFIO_OK;
 }
 
 /* ---- The data area ---------------------------------------------------------
@@ -809,7 +798,8 @@ done:
 const sdfio_reader_codec sdfio_ascii_reader_codec = {
     .state_size = sizeof(struct reading),
     .prefix = 'a',
-    .version_numbers = {"aISO-1.0", "aISO-2.0"},
+    .version_numbers = version_numbers,
+    .version_number_count = sizeof version_numbers / sizeof version_numbers[0],
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

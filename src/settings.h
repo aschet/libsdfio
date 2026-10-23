@@ -38,9 +38,9 @@ typedef struct sdfio_settings
     size_t buffer;
     /** The number of values converted at a time. */
     size_t chunk;
-    /** The reader codecs without the gaps, null after the last. */
+    /** The reader codecs of the configuration, null after the last. */
     const sdfio_reader_codec *reader_codecs[SDFIO_CODEC_MAX];
-    /** The writer codecs without the gaps, null after the last. */
+    /** The writer codecs of the configuration, null after the last. */
     const sdfio_writer_codec *writer_codecs[SDFIO_CODEC_MAX];
 } sdfio_settings;
 
@@ -49,9 +49,9 @@ typedef struct sdfio_settings
  *
  * @param config The configuration. May be null, which lists no codec.
  * @param[out] settings Receives the settings.
- * @return False if the allocator is not complete, a list of codecs has a gap or
- * a codec twice, or the chunk is too large for its buffers. A list may be
- * empty: the reader and the writer check the one they use.
+ * @return False if the allocator is incomplete or the chunk is too large for
+ * its buffers. A list of codecs may be empty: the reader and the writer check
+ * the one they use.
  */
 bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings);
 

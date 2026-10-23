@@ -136,9 +136,17 @@ static void check_roundtrip(sdfio_revision revision,
     CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
     CHECK(trailer != NULL && size == strlen(tagged_trailer)
           && memcmp(trailer, tagged_trailer, size) == 0);
+    const char *second = memchr(trailer, '\n', size);
+    const char *name = NULL;
     const char *value = NULL;
+    size_t name_size = 0;
     size_t value_size = 0;
-    CHECK(sdfio_tagged_find(trailer, size, "partname", &value, &value_size)
+    CHECK(second != NULL
+          && sdfio_tagged_split(second + 1,
+                                size - (size_t)(second + 1 - trailer), &name,
+                                &name_size, &value, &value_size)
+          && name_size == strlen("PartName")
+          && memcmp(name, "PartName", name_size) == 0
           && value_size == strlen("Sample")
           && memcmp(value, "Sample", value_size) == 0);
 

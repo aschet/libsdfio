@@ -335,8 +335,7 @@ static void check_arguments(void)
                                    sizeof ascii_version_number));
     sdfio_reader_free(reader);
 
-    /* A handle needs a codec of its direction, each only once and without a
-     * gap. */
+    /* A handle needs a codec of its direction. */
     CHECK(sdfio_reader_new(NULL) == NULL);
     CHECK(sdfio_writer_new(NULL) == NULL);
     const sdfio_config none = {0};
@@ -350,12 +349,6 @@ static void check_arguments(void)
     const sdfio_config writers_only = {
         .writer_codecs = {&sdfio_binary_writer_codec}};
     CHECK(sdfio_reader_new(&writers_only) == NULL);
-    const sdfio_config twice = {.writer_codecs = {&sdfio_binary_writer_codec,
-                                                  &sdfio_binary_writer_codec}};
-    CHECK(sdfio_writer_new(&twice) == NULL);
-    const sdfio_config gap = {
-        .reader_codecs = {NULL, &sdfio_binary_reader_codec}};
-    CHECK(sdfio_reader_new(&gap) == NULL);
 }
 
 /* The version numbers of a configuration: those of its codecs, in their order.
