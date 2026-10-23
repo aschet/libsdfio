@@ -16,6 +16,7 @@
 
 #include "number_text.h"
 #include "text.h"
+#include <ctype.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,7 +63,7 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
      * dot */
     size_t i = 0;
     size_t digits = 0;
-    while (i < size && sdfio_is_digit(text[i]))
+    while (i < size && isdigit((unsigned char)text[i]))
     {
         ++i;
         ++digits;
@@ -72,7 +73,7 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
     {
         dot = i;
         ++i;
-        while (i < size && sdfio_is_digit(text[i]))
+        while (i < size && isdigit((unsigned char)text[i]))
         {
             ++i;
             ++digits;
@@ -90,7 +91,7 @@ bool sdfio_parse_number(const sdfio_point *point, const char *text, size_t size,
             ++i;
         }
         size_t exponent = 0;
-        while (i < size && sdfio_is_digit(text[i]))
+        while (i < size && isdigit((unsigned char)text[i]))
         {
             ++i;
             ++exponent;
@@ -157,7 +158,7 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
     const unsigned long long base = 10;
     for (size_t i = 0; i < size; ++i)
     {
-        if (!sdfio_is_digit(text[i]))
+        if (!isdigit((unsigned char)text[i]))
         {
             return false;
         }

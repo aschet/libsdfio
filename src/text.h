@@ -34,16 +34,6 @@ static inline bool sdfio_is_space(char c)
 }
 
 /**
- * Tells whether a character is a digit from 0 to 9, whatever the locale.
- *
- * @param c The character.
- */
-static inline bool sdfio_is_digit(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-/**
  * Returns a character in lower case, whatever the locale. Only the letters A to
  * Z change.
  *

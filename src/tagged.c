@@ -13,6 +13,7 @@
 #include "dynstring.h"
 #include "sink.h"
 #include "text.h"
+#include <ctype.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
 
@@ -84,8 +85,8 @@ void sdfio_lines_to_lf(sdfio_string *text)
 
 static bool is_name_character(char c)
 {
-    return sdfio_is_digit(c) || (sdfio_lower(c) >= 'a' && sdfio_lower(c) <= 'z')
-           || c == '_';
+    return isdigit((unsigned char)c)
+           || (sdfio_lower(c) >= 'a' && sdfio_lower(c) <= 'z') || c == '_';
 }
 
 bool sdfio_tagged_split(const char *line, size_t size, const char **name,
@@ -128,7 +129,7 @@ bool sdfio_tagged_name_valid(const char *name)
     for (size_t i = 0; name[i] != '\0'; ++i)
     {
         const char c = sdfio_lower(name[i]);
-        if (!sdfio_is_digit(c) && !(c >= 'a' && c <= 'z') && c != '_')
+        if (!isdigit((unsigned char)c) && !(c >= 'a' && c <= 'z') && c != '_')
         {
             return false;
         }

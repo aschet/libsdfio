@@ -19,6 +19,7 @@
 #include "fields.h"
 #include "revision.h"
 #include "text.h"
+#include <ctype.h>
 #include <string.h>
 
 enum
@@ -245,7 +246,7 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
     }
     for (size_t i = 0; i < size; ++i)
     {
-        if (!sdfio_is_digit(text[i]))
+        if (!isdigit((unsigned char)text[i]))
         {
             return false;
         }
