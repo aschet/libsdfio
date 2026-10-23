@@ -129,9 +129,14 @@ static sdfio_status format_header(const sdfio_header *header,
     const char *version_number = version_numbers[header->revision];
     char text[SDFIO_NUMBER_CAPACITY];
     char date[SDFIO_DATETIME_SIZE + 1] = {0};
+    /* The field has 10 characters, as in a binary file. */
+    char identifier[SDFIO_ID_SIZE + 1] = {0};
+    const char *end = memchr(header->manufacturer_id, '\0', SDFIO_ID_SIZE);
+    memcpy(identifier, header->manufacturer_id,
+           end != NULL ? (size_t)(end - header->manufacturer_id)
+                       : (size_t)SDFIO_ID_SIZE);
     bool ok = append_text(out, version_number) && append_text(out, crlf)
-              && append_field(out, SDFIO_ASCII_MANUFACTURER_ID,
-                              header->manufacturer_id);
+              && append_field(out, SDFIO_ASCII_MANUFACTURER_ID, identifier);
     if (!sdfio_datetime_format(header->creation_date, header->revision, zone,
                                date))
     {

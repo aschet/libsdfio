@@ -49,7 +49,9 @@ bool sdfio_datetime_representable(time_t time);
 
 /**
  * Tells whether a text is a date as the standard has it: DDMMYYYYhhmm with the
- * ranges of the fields, and a day that the month has.
+ * ranges of the fields, and a day that the month has. A date that is not
+ * recorded is valid too, written as the character 0 or the byte 0 only, which
+ * parsing reads as SDFIO_NO_TIME.
  *
  * @param text The field.
  * @param size The length of the field.

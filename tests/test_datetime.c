@@ -83,6 +83,22 @@ static void check_utc(void)
               == SDFIO_NO_TIME);
     }
 
+    /* A date that is not recorded, as the character 0 or the byte 0 only, is
+     * valid and reads as no date. */
+    const char unrecorded[][SDFIO_DATETIME_SIZE + 1] = {
+        "000000000000", "000000", "0", {0}};
+    for (size_t i = 0; i < sizeof unrecorded / sizeof unrecorded[0]; ++i)
+    {
+        const size_t size =
+            i == 3 ? (size_t)SDFIO_DATETIME_SIZE : strlen(unrecorded[i]);
+        CHECK(sdfio_datetime_is_valid(unrecorded[i], size));
+        CHECK(sdfio_datetime_parse(unrecorded[i], size, SDFIO_ISO_2_0, NULL)
+              == SDFIO_NO_TIME);
+    }
+    CHECK(!sdfio_datetime_is_valid("00000000000", 0));
+    CHECK(!sdfio_datetime_is_valid("0000000000000", 13));
+    CHECK(!sdfio_datetime_is_valid("0000000000x0", SDFIO_DATETIME_SIZE));
+
     /* A field that is no date reads as no date. */
     const char *bad[] = {"310220260000",  "320120260000", "011320260000",
                          "010120260060",  "010120262400", "01012026000",

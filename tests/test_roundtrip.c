@@ -809,6 +809,40 @@ static void check_defaults(void)
     free(file.data);
 }
 
+/* The identifier has 10 characters in both representations, so a longer one is
+ * cut, and the file reads back. */
+static void check_long_identifier(void)
+{
+    static const sdfio_representation representations[] = {SDFIO_BINARY,
+                                                           SDFIO_ASCII};
+    for (size_t i = 0; i < sizeof representations / sizeof representations[0];
+         ++i)
+    {
+        sdfio_header header;
+        sdfio_header_init(&header);
+        header.representation = representations[i];
+        header.columns = 1;
+        header.rows = 1;
+        snprintf(header.manufacturer_id, sizeof header.manufacturer_id, "%s",
+                 "A manufacturer with a long name");
+        const float height = 1e-6F;
+        membuf file = {0};
+        const sdfio_stream stream = membuf_stream(&file);
+        sdfio_writer *writer = sdfio_writer_new(all_formats());
+        CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+        CHECK_OK(sdfio_write_heights(
+            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height));
+        CHECK_OK(sdfio_end_trailer(writer));
+        sdfio_writer_free(writer);
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+        const sdfio_header *back = sdfio_get_header(reader);
+        CHECK(back != NULL && strcmp(back->manufacturer_id, "A manufact") == 0);
+        sdfio_reader_free(reader);
+        free(file.data);
+    }
+}
+
 /* Every line end that is written is CRLF, as the standard has it, whatever the
  * program put in memory; what is read back has LF. */
 static bool only_crlf(const unsigned char *bytes, size_t size)
@@ -978,6 +1012,7 @@ int main(void)
     check_trailer_line_ends();
     check_rows_without_columns();
     check_defaults();
+    check_long_identifier();
     check_resolution();
     check_element_stride();
     check_stride();

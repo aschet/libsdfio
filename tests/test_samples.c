@@ -227,6 +227,132 @@ static void check_against(const expectation *e)
     sdfio_reader_free(reader);
 }
 
+/* The bytes of a file of tests/data, or null. */
+static unsigned char *read_file(const char *name, size_t *size)
+{
+    char path[512];
+    snprintf(path, sizeof path, "%s/%s", SDFIO_TEST_DATA_DIR, name);
+    FILE *file = fopen(path, "rb");
+    if (file == NULL)
+    {
+        return NULL;
+    }
+    fseek(file, 0, SEEK_END);
+    const long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    if (length < 0)
+    {
+        fclose(file);
+        return NULL;
+    }
+    *size = (size_t)length;
+    unsigned char *bytes = malloc(*size + 1);
+    if (bytes != NULL && fread(bytes, 1, *size, file) != *size)
+    {
+        free(bytes);
+        bytes = NULL;
+    }
+    if (bytes != NULL)
+    {
+        bytes[*size] = 0; /* the text of an ASCII file ends */
+    }
+    fclose(file);
+    return bytes;
+}
+
+/* Replaces `length` characters at `at` with a text, in a buffer that ends with
+ * a 0 character and whose size is updated. The text is not longer. */
+static void replace(char *at, size_t length, const char *text, size_t *size)
+{
+    const size_t used = strlen(text);
+    memmove(at + used, at + length, strlen(at + length) + 1);
+    for (size_t i = 0; i < used; ++i)
+    {
+        at[i] = text[i];
+    }
+    *size -= length - used;
+}
+
+/* The file opens, its dates read as not recorded, and its data area and its
+ * trailer read as usual. */
+static void check_unrecorded(const unsigned char *bytes, size_t size)
+{
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    CHECK_OK(sdfio_open_memory(reader, bytes, size));
+    const sdfio_header *header = sdfio_get_header(reader);
+    if (header != NULL)
+    {
+        CHECK(header->creation_date == SDFIO_NO_TIME);
+        CHECK(header->modification_date == SDFIO_NO_TIME);
+        CHECK(header->columns == 30 && header->rows == 20);
+        static float heights[30 * 20];
+        CHECK_OK(sdfio_read_heights(
+            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
+    }
+    sdfio_reader_free(reader);
+}
+
+/* The date fields of a binary file hold the character 0 or the byte 0 only,
+ * and those of an ASCII file the character 0 only, as some exporters write
+ * them for a date that they do not record. */
+static void check_dates_set_to_zero(void)
+{
+    enum
+    {
+        CREATION_AT = 18,
+        BINARY_DATES = 2 * 12
+    };
+    static const char *const binary[] = {"interop/mm11_iso1_binary_int32.sdf",
+                                         "interop/mm11_iso2_binary_int32.sdf"};
+    for (size_t i = 0; i < sizeof binary / sizeof binary[0]; ++i)
+    {
+        size_t size = 0;
+        unsigned char *bytes = read_file(binary[i], &size);
+        CHECK(bytes != NULL);
+        if (bytes == NULL)
+        {
+            continue;
+        }
+        memset(bytes + CREATION_AT, '0', BINARY_DATES);
+        check_unrecorded(bytes, size);
+        memset(bytes + CREATION_AT, 0, BINARY_DATES);
+        check_unrecorded(bytes, size);
+        free(bytes);
+    }
+    static const char *const ascii = "interop/mm11_iso2_ascii_int32.sdf";
+    static const char *const created = "= 230920261959";
+    static const char *const modified = "= 240920260805";
+    static const char *const replacements[][2] = {{"= 000000000000", "= 0"},
+                                                  {"= 000000000000", "= 000"}};
+    for (size_t i = 0; i < 3; ++i)
+    {
+        size_t size = 0;
+        unsigned char *bytes = read_file(ascii, &size);
+        CHECK(bytes != NULL);
+        if (bytes == NULL)
+        {
+            return;
+        }
+        const char *const to = i == 0   ? "= 000000000000"
+                               : i == 1 ? replacements[0][1]
+                                        : replacements[1][1];
+        char *at = strstr((char *)bytes, created);
+        CHECK(at != NULL);
+        if (at != NULL)
+        {
+            replace(at, strlen(created), to, &size);
+        }
+        at = strstr((char *)bytes, modified);
+        CHECK(at != NULL);
+        if (at != NULL)
+        {
+            replace(at, strlen(modified), to, &size);
+        }
+        check_unrecorded(bytes, size);
+        free(bytes);
+    }
+}
+
 int main(void)
 {
     char path[512];
@@ -251,5 +377,6 @@ int main(void)
     }
     fclose(list);
     CHECK(files > 0);
+    check_dates_set_to_zero();
     return finish_tests();
 }

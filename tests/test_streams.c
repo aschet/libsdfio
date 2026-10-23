@@ -285,7 +285,7 @@ static void check_header_errors(void)
                          + 2 * sizeof(uint32_t) + 2 * sizeof(double)
         };
         memcpy(copy, data, size);
-        memset(copy + DATES_AT, '0', SDFIO_DATETIME_SIZE);
+        memset(copy + DATES_AT, '9', SDFIO_DATETIME_SIZE);
         reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
@@ -499,7 +499,7 @@ static void check_standard_rules(void)
         open_ascii("aISO-2.0", "test", "010120261200", "1", "-1.0e-009", crlf));
     /* A date is DDMMYYYYhhmm with the ranges of the fields. */
     const char *const bad_dates[] = {
-        "000000000000", "320120261200",  "310220261200",
+        "999999999999", "320120261200",  "310220261200",
         "011320261200", "010120262400",  "010120261260",
         "01012026120",  "0101202612000", "01-01-2026 12"};
     for (size_t i = 0; i < sizeof bad_dates / sizeof bad_dates[0]; ++i)

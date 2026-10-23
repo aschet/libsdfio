@@ -276,10 +276,28 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
            && fields->hour < HOURS_PER_DAY && fields->minute < MINUTES_PER_HOUR;
 }
 
+/* The text that exporters write for a date that they do not record: the
+ * character 0 only, or 0 bytes only. */
+static bool is_not_recorded(const char *text, size_t size)
+{
+    if (size == 0 || size > SDFIO_DATETIME_SIZE)
+    {
+        return false;
+    }
+    for (size_t i = 1; i < size; ++i)
+    {
+        if (text[i] != text[0])
+        {
+            return false;
+        }
+    }
+    return text[0] == '0' || text[0] == '\0';
+}
+
 bool sdfio_datetime_is_valid(const char *text, size_t size)
 {
     date_fields fields;
-    return read_date(text, size, &fields);
+    return is_not_recorded(text, size) || read_date(text, size, &fields);
 }
 
 time_t sdfio_datetime_parse(const char *text, size_t size,

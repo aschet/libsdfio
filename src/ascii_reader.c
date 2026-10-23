@@ -248,13 +248,27 @@ static bool parse_extent(const char *value, size_t size, size_t *out)
     return true;
 }
 
+/* A date is 12 characters. A value of 0 characters only, of any length, is a
+ * date that is not recorded and becomes the 12 characters of one. */
 static bool copy_datetime(char *out, const char *value, size_t size)
 {
-    if (size != SDFIO_DATETIME_SIZE)
+    if (size == SDFIO_DATETIME_SIZE)
+    {
+        memcpy(out, value, size);
+        return true;
+    }
+    for (size_t i = 0; i < size; ++i)
+    {
+        if (value[i] != '0')
+        {
+            return false;
+        }
+    }
+    if (size == 0 || size > SDFIO_DATETIME_SIZE)
     {
         return false;
     }
-    memcpy(out, value, size);
+    memset(out, '0', SDFIO_DATETIME_SIZE);
     return true;
 }
 

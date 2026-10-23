@@ -86,14 +86,26 @@
  * version.
  *
  * @par Standard
- * The library follows ISO 25178-71:2026, and a reader checks what the standard
- * defines: the version number, the data types of the revision, a compression
- * and a checksum type of 0, the ranges of the numbers of columns and rows
- * and of the dates, a positive z-scale, the line ends and the string `BAD`. It
- * deviates in two places, which files of MountainsMap need: the numbers of an
- * ASCII file can be in any decimal or scientific form, and a manufacturer
- * identifier in a binary file ends at its first 0 byte, where the standard
- * fills it with spaces.
+ * The library follows ISO 25178-71:2026. A writer writes what the standard
+ * defines and nothing else. A reader checks the version number, the data types
+ * of the revision, a compression and a checksum type of 0, the ranges of the
+ * numbers of columns and rows and of the dates, a positive z-scale, a
+ * manufacturer identifier of at most 10 characters and the string `BAD`. It
+ * tolerates these deviations:
+ * - Numbers in an ASCII file can be in any decimal or scientific form, where
+ *   the standard has the normalized form with a signed exponent. Files of
+ *   MountainsMap have such numbers.
+ * - A manufacturer identifier in a binary file ends at its first 0 byte, where
+ *   the standard fills it with spaces; the bytes after the 0 are ignored. Files
+ *   of MountainsMap have such identifiers.
+ * - A date of the character 0 only, or of the byte 0 only, is a date that is
+ *   not recorded and reads as SDFIO_NO_TIME. In an ASCII file such a date can
+ *   have fewer than 12 characters.
+ * - An ASCII file can end its lines with LF instead of CRLF, and the final
+ *   line `*` after the trailer can be missing.
+ * - A field of an ASCII header that the standard does not define is ignored,
+ *   and a field that appears more than once counts with its last value.
+ * - The trailer of an ISO-2.0 file need not be in the tagged format.
  *
  * @par Limitations
  * Rows of a file can be read only in order.
@@ -330,7 +342,7 @@ typedef struct sdfio_header
     time_t modification_date;
     /**
      * Manufacturer's identifier, 7-bit ASCII, terminated by a null character.
-     * A binary file stores the first 10 characters.
+     * A file stores the first 10 characters.
      */
     char manufacturer_id[SDFIO_MANUFACTURER_CAPACITY];
 } sdfio_header;
