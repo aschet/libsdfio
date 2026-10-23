@@ -8,9 +8,6 @@
  * @file owner.h
  * @brief What a file adds to a reader or a writer, and the functions of the
  * files that use the handles.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_OWNER_H

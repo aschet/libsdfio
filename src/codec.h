@@ -8,9 +8,6 @@
  * @file codec.h
  * @brief The codecs: the functions that read and write a representation of the
  * files.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_CODEC_H

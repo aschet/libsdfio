@@ -7,9 +7,6 @@
 /**
  * @file decimal.h
  * @brief The numbers of ASCII files, whatever the locale.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_DECIMAL_H

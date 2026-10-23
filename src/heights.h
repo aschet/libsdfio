@@ -7,9 +7,6 @@
 /**
  * @file heights.h
  * @brief The layout of a matrix of heights in memory of the caller.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_HEIGHTS_H

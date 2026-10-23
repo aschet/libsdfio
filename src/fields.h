@@ -7,9 +7,6 @@
 /**
  * @file fields.h
  * @brief The fields of the header and the limits of the format.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_FIELDS_H

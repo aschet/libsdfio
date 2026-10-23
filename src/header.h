@@ -8,9 +8,6 @@
  * @file header.h
  * @brief Reading the header with a codec, and the rules a header has to follow
  * to be written.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_HEADER_H

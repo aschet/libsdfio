@@ -8,9 +8,6 @@
  * @file stream.h
  * @brief The bytes of a file: a buffered source and a buffered sink over the
  * callbacks of sdfio_stream.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_STREAM_H

@@ -7,9 +7,6 @@
 /**
  * @file binary.h
  * @brief The binary representation: the fixed header.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_BINARY_H

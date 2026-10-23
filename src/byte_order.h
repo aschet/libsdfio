@@ -7,9 +7,6 @@
 /**
  * @file byte_order.h
  * @brief The byte order of the machine and of the files.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_BYTE_ORDER_H

@@ -7,9 +7,6 @@
 /**
  * @file text.h
  * @brief The characters of text, whatever the locale.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_TEXT_H

@@ -8,9 +8,6 @@
  * @file settings.h
  * @brief A configuration with its defaults filled in, for the reader and the
  * writer.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_SETTINGS_H

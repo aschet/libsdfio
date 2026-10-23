@@ -7,9 +7,6 @@
 /**
  * @file tagged.h
  * @brief The lines of a trailer and the fields `Name = Value` in them.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_TAGGED_H

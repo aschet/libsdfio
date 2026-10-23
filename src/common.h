@@ -9,9 +9,6 @@
  * @brief What every part of the library uses: the checks at compile time, the
  * text of a failure, the allocation through the allocator of a handle, and the
  * growable string.
- *
- * Not part of the interface: the library is built with hidden symbols. The
- * tests link the objects and call the functions directly.
  */
 
 #ifndef SDFIO_SRC_COMMON_H
