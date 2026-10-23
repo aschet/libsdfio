@@ -13,7 +13,7 @@ INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/src \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
-                         @PROJECT_SOURCE_DIR@/examples/integrations
+                         @PROJECT_SOURCE_DIR@/examples/external
 EXAMPLE_PATTERNS       = *.c *.cpp
 OPTIMIZE_OUTPUT_FOR_C  = YES
 JAVADOC_AUTOBRIEF      = YES

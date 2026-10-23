@@ -203,7 +203,7 @@ run_static_analysis() {
 run_format() {
   clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
     tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
-    examples/*.c examples/integrations/*.cpp
+    examples/*.c examples/external/*.cpp
 }
 
 run_documentation() {
