@@ -11,9 +11,9 @@ project(sdfio
     LANGUAGES C
 )
 
-# The library, the tests and the examples are standard C11.
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
+# Standard C for every target: no extensions of the compiler. The standard
+# itself is the default of the compiler, but at least C11, which the library
+# asks for with a compile feature.
 set(CMAKE_C_EXTENSIONS OFF)
 
 include(CMakePackageConfigHelpers)
@@ -115,6 +115,7 @@ set_target_properties(sdfio_objects PROPERTIES
 )
 
 add_library(sdfio $<TARGET_OBJECTS:sdfio_objects>)
+target_compile_features(sdfio PUBLIC c_std_11)
 add_library(sdfio::sdfio ALIAS sdfio)
 
 generate_export_header(sdfio

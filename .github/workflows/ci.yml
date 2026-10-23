@@ -47,7 +47,9 @@ jobs:
           CC: gcc
           GENERATOR: Ninja
           CONFIGURE_OPTIONS: >-
-            -DCMAKE_C_FLAGS=-pedantic-errors -DSDFIO_BUILD_EXAMPLES=ON
+            -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
+            -DCMAKE_C_FLAGS=-pedantic-errors
+            -DSDFIO_BUILD_EXAMPLES=ON
         run: .github/ci/install-and-use.sh
 
       - name: Clang with the address and undefined behavior sanitizers
