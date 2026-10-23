@@ -37,10 +37,6 @@ jobs:
             configure: >-
               -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
               -DCMAKE_C_FLAGS=-pedantic-errors
-          - name: Clang x86-64 Linux
-            runner: ubuntu-latest
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=clang
           - name: GCC x86 Linux
             runner: ubuntu-latest
             generator: Ninja
@@ -70,6 +66,14 @@ jobs:
               -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc
               -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu
             emulator: qemu-s390x -L /usr/s390x-linux-gnu
+          - name: Clang x86-64 Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=clang
+          - name: Clang AArch64 macOS
+            runner: macos-latest
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=clang
           - name: MSVC x86-64 Windows
             runner: windows-latest
             toolchain: -A x64
@@ -79,10 +83,6 @@ jobs:
           - name: MSVC AArch64 Windows
             runner: windows-11-arm
             toolchain: -A ARM64
-          - name: Clang AArch64 macOS
-            runner: macos-latest
-            generator: Ninja
-            toolchain: -DCMAKE_C_COMPILER=clang
     steps:
       - uses: actions/checkout@v7
 
