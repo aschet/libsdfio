@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: 0BSD
 #
 # Examples with the libraries that process images and surfaces, in C++ over the
-# C interface. Each one is built if its library is found and skipped with a
-# note if not.
+# C interface. They are built with -DSDFIO_BUILD_INTEGRATIONS=ON, each one if
+# its library is found and skipped with a note if not.
 
 function(sdfio_integration name)
     cmake_parse_arguments(ARG "NO_TEST" "SOURCE" "LIBS;DEFINITIONS" ${ARGN})
