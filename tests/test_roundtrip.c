@@ -809,6 +809,41 @@ static void check_defaults(void)
     free(file.data);
 }
 
+/* The digits of the integers of an ASCII data area, up to the extremes of the
+ * widest type. The lowest value of a type is the bad value, which is BAD. */
+static void check_integer_text(void)
+{
+    sdfio_header header;
+    sdfio_header_init(&header);
+    header.representation = SDFIO_ASCII;
+    header.data_type = SDFIO_TYPE_INT32;
+    header.z_scale = 1.0;
+    header.columns = 9;
+    header.rows = 1;
+    const int32_t coded[9] = {0,       7,         -7,         10,       99999,
+                              -100000, INT32_MAX, -INT32_MAX, INT32_MIN};
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = sdfio_writer_new(all_formats());
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_INT32),
+                              coded, 1));
+    CHECK_OK(sdfio_end_trailer(writer));
+    sdfio_writer_free(writer);
+    char *text = malloc(file.size + 1);
+    CHECK(text != NULL);
+    if (text != NULL)
+    {
+        memcpy(text, file.data, file.size);
+        text[file.size] = '\0';
+        CHECK(strstr(text,
+                     "0 7 -7 10 99999 -100000 2147483647 -2147483647 BAD\r\n")
+              != NULL);
+        free(text);
+    }
+    free(file.data);
+}
+
 /* The identifier has 10 characters in both representations, so a longer one is
  * cut, and the file reads back. */
 static void check_long_identifier(void)
@@ -1013,6 +1048,7 @@ int main(void)
     check_rows_without_columns();
     check_defaults();
     check_long_identifier();
+    check_integer_text();
     check_resolution();
     check_element_stride();
     check_stride();

@@ -60,12 +60,11 @@ static bool is_bad(sdfio_data_type type, const void *src, size_t index)
         type stored;                                                           \
         memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
                sizeof stored);                                                 \
-        return (floating) ? 0 : (long long)stored;                             \
+        return (floating) ? 0 : (int32_t)stored;                               \
     }
 
 /* The integer at an index, for a data type that is an integer type. */
-static long long load_integer(sdfio_data_type type, const void *src,
-                              size_t index)
+static int32_t load_integer(sdfio_data_type type, const void *src, size_t index)
 {
     switch (type)
     {
@@ -180,6 +179,36 @@ static sdfio_status format_header(const sdfio_header *header,
     return SDFIO_OK;
 }
 
+enum
+{
+    /** The digits of the largest integer of a data type, int32. */
+    SDFIO_INTEGER_DIGITS = 10
+};
+
+/* Writes an integer in decimal digits, without a terminator. */
+static size_t put_integer(char *out, int32_t value)
+{
+    char digits[SDFIO_INTEGER_DIGITS];
+    size_t count = 0;
+    uint32_t magnitude =
+        value < 0 ? UINT32_C(0) - (uint32_t)value : (uint32_t)value;
+    do
+    {
+        digits[count++] = (char)('0' + magnitude % 10U);
+        magnitude /= 10U;
+    } while (magnitude != 0);
+    size_t used = 0;
+    if (value < 0)
+    {
+        out[used++] = '-';
+    }
+    while (count > 0)
+    {
+        out[used++] = digits[--count];
+    }
+    return used;
+}
+
 static size_t format_value(const sdfio_header *header,
                            const sdfio_decimal_point *decimal_point,
                            const void *coded, size_t index, char *out,
@@ -194,8 +223,7 @@ static size_t format_value(const sdfio_header *header,
     }
     if (!sdfio_is_floating(type))
     {
-        return (size_t)snprintf(out, capacity, "%lld",
-                                load_integer(type, coded, index));
+        return put_integer(out, load_integer(type, coded, index));
     }
     const double value = load_real(type, coded, index);
     if (type == SDFIO_TYPE_FLOAT)
