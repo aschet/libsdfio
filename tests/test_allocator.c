@@ -51,26 +51,6 @@ static void counting_release(void *user, void *memory)
     free(memory);
 }
 
-typedef struct memory_sink
-{
-    unsigned char *data;
-    size_t size;
-} memory_sink;
-
-static size_t sink_write(void *user, const void *data, size_t size)
-{
-    memory_sink *sink = user;
-    unsigned char *grown = realloc(sink->data, sink->size + size);
-    if (grown == NULL)
-    {
-        return 0;
-    }
-    memcpy(grown + sink->size, data, size);
-    sink->data = grown;
-    sink->size += size;
-    return size;
-}
-
 static void fill(float *heights)
 {
     for (size_t i = 0; i < (size_t)COLUMNS * ROWS; ++i)
@@ -101,12 +81,12 @@ static sdfio_status round_trip(const sdfio_config *config,
     header.y_scale = 1.0e-6;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
 
-    memory_sink sink = {0};
+    membuf sink = {0};
     sdfio_status status = SDFIO_ERR_MEMORY;
     sdfio_writer *writer = sdfio_writer_new(config);
     if (writer != NULL)
     {
-        const sdfio_stream stream = {&sink, NULL, sink_write};
+        const sdfio_stream stream = membuf_stream(&sink);
         status = sdfio_create_stream(writer, &stream, &header);
         if (status == SDFIO_OK)
         {
@@ -291,8 +271,8 @@ static void check_arguments(void)
     header.rows = 1;
     header.creation_date = SDFIO_NO_TIME;
     sdfio_writer *writer = sdfio_writer_new(all_formats());
-    memory_sink sink = {0};
-    const sdfio_stream stream = {&sink, NULL, sink_write};
+    membuf sink = {0};
+    const sdfio_stream stream = membuf_stream(&sink);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
     CHECK(strstr(sdfio_writer_error_message(writer), "SDFIO_NO_TIME") != NULL);
@@ -314,7 +294,7 @@ static void check_arguments(void)
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
-    sink = (memory_sink){0};
+    sink = (membuf){0};
     const sdfio_config binary_only = {
         .reader_formats = {&sdfio_binary_reader_format},
         .writer_formats = {&sdfio_binary_writer_format}};

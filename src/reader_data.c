@@ -9,6 +9,7 @@
  * @brief Reading of the data area as coded values.
  */
 
+#include "chunk.h"
 #include "data_type.h"
 #include "heights.h"
 #include "reader_state.h"
@@ -61,9 +62,8 @@ static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
     for (size_t first = 0; first < header->columns;
          first += reader->chunk_values)
     {
-        const size_t count = header->columns - first < reader->chunk_values
-                                 ? header->columns - first
-                                 : reader->chunk_values;
+        const size_t count =
+            sdfio_chunk_count(header->columns, first, reader->chunk_values);
         const sdfio_status status =
             sdfio_reader_take_values(reader, reader->chunk, count);
         if (status != SDFIO_OK)
@@ -98,17 +98,7 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                           "Give the memory to read the rows into");
     }
-    if (layout.type != header->data_type)
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "The type of the layout is not the data type of the "
-                          "file");
-    }
-    /* Rows without a column hold nothing, so the layout is not used. */
-    status = header->columns > 0
-                 ? sdfio_check_layout(&layout, rows, header->columns,
-                                      &reader->message)
-                 : SDFIO_OK;
+    status = sdfio_check_data_layout(&layout, header, rows, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;

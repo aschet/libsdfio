@@ -100,6 +100,34 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
     return SDFIO_OK;
 }
 
+sdfio_status sdfio_check_heights_layout(sdfio_layout *layout,
+                                        const sdfio_header *header,
+                                        sdfio_message *message)
+{
+    if (!sdfio_valid_heights_type(layout->type))
+    {
+        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
+                          "The type of the heights is not SDFIO_TYPE_FLOAT or "
+                          "SDFIO_TYPE_DOUBLE");
+    }
+    return sdfio_check_layout(layout, header->rows, header->columns, message);
+}
+
+sdfio_status sdfio_check_data_layout(sdfio_layout *layout,
+                                     const sdfio_header *header, size_t rows,
+                                     sdfio_message *message)
+{
+    if (layout->type != header->data_type)
+    {
+        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
+                          "The type of the layout is not the data type of the "
+                          "file");
+    }
+    return header->columns > 0
+               ? sdfio_check_layout(layout, rows, header->columns, message)
+               : SDFIO_OK;
+}
+
 /* Whether the header and the layout describe types that heights can use. */
 static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 {
@@ -134,6 +162,35 @@ static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 #define SDFIO_FLOAT_HEIGHTS_IN_DOUBLE SDFIO_FLOAT_HEIGHTS_CHOSEN
 #endif
 
+/* The height of a stored number calculated in double, or false if it does not
+ * fit a float. */
+static bool multiply_in_double(double exact, float number, float *height)
+{
+    const double product = (double)number * exact;
+    if (!(fabs(product) <= (double)FLT_MAX))
+    {
+        return false;
+    }
+    *height = (float)product;
+    return true;
+}
+
+/* The quotient of a height and a scale calculated in double, as a float and
+ * the correction that the rounding to a float needs, or false if it does not
+ * fit a float. */
+static bool divide_in_double(double exact, float height, float *quotient,
+                             float *correction)
+{
+    const double divided = (double)height / exact;
+    if (!(fabs(divided) <= (double)FLT_MAX))
+    {
+        return false;
+    }
+    *quotient = (float)divided;
+    *correction = (float)(divided - (double)*quotient);
+    return true;
+}
+
 #if SDFIO_FLOAT_HEIGHTS_IN_DOUBLE
 
 /* The scale for heights of type float, which are calculated in double. */
@@ -152,13 +209,7 @@ static void make_scale_float(double scale, scale_float *out)
 static bool scale_multiply_float(const scale_float *scale, float number,
                                  float *height)
 {
-    const double product = (double)number * scale->exact;
-    if (!(fabs(product) <= (double)FLT_MAX))
-    {
-        return false;
-    }
-    *height = (float)product;
-    return true;
+    return multiply_in_double(scale->exact, number, height);
 }
 
 /* The quotient of a height and the scale as a float and the correction that
@@ -166,14 +217,7 @@ static bool scale_multiply_float(const scale_float *scale, float number,
 static bool scale_divide_float(const scale_float *scale, float height,
                                float *quotient, float *correction)
 {
-    const double divided = (double)height / scale->exact;
-    if (!(fabs(divided) <= (double)FLT_MAX))
-    {
-        return false;
-    }
-    *quotient = (float)divided;
-    *correction = (float)(divided - (double)*quotient);
-    return true;
+    return divide_in_double(scale->exact, height, quotient, correction);
 }
 
 #else
@@ -212,13 +256,7 @@ static bool scale_multiply_float(const scale_float *scale, float number,
 {
     if (scale->far)
     {
-        const double product = (double)number * scale->exact;
-        if (!(fabs(product) <= (double)FLT_MAX))
-        {
-            return false;
-        }
-        *height = (float)product;
-        return true;
+        return multiply_in_double(scale->exact, number, height);
     }
     *height = fmaf(number, scale->head, number * scale->tail);
     return fabsf(*height) <= FLT_MAX;
@@ -234,14 +272,7 @@ static bool scale_divide_float(const scale_float *scale, float height,
     *correction = 0.0F;
     if (scale->far)
     {
-        const double divided = (double)height / scale->exact;
-        if (!(fabs(divided) <= (double)FLT_MAX))
-        {
-            return false;
-        }
-        *quotient = (float)divided;
-        *correction = (float)(divided - (double)*quotient);
-        return true;
+        return divide_in_double(scale->exact, height, quotient, correction);
     }
     *quotient = height / scale->head;
     if (!(fabsf(*quotient) <= FLT_MAX))

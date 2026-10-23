@@ -9,6 +9,7 @@
  * @brief Writing of the data area as coded values.
  */
 
+#include "chunk.h"
 #include "data_type.h"
 #include "header.h"
 #include "heights.h"
@@ -75,9 +76,8 @@ static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
     for (size_t first = 0; first < header->columns;
          first += writer->chunk_values)
     {
-        const size_t count = header->columns - first < writer->chunk_values
-                                 ? header->columns - first
-                                 : writer->chunk_values;
+        const size_t count =
+            sdfio_chunk_count(header->columns, first, writer->chunk_values);
         for (size_t i = 0; i < count; ++i)
         {
             memcpy(writer->coded + i * size,
@@ -112,17 +112,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "Give the rows to write");
     }
-    if (layout.type != header->data_type)
-    {
-        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "The type of the layout is not the data type of the "
-                          "file");
-    }
-    /* Rows without a column hold nothing, so the layout is not used. */
-    status = header->columns > 0
-                 ? sdfio_check_layout(&layout, rows, header->columns,
-                                      &writer->message)
-                 : SDFIO_OK;
+    status = sdfio_check_data_layout(&layout, header, rows, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;

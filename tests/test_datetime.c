@@ -225,26 +225,6 @@ static void check_time_zone(void)
     CHECK(!sdfio_datetime_format(1782900000, SDFIO_ISO_1_0, &refusing, text));
 }
 
-typedef struct memory_sink
-{
-    unsigned char *data;
-    size_t size;
-} memory_sink;
-
-static size_t sink_write(void *user, const void *data, size_t size)
-{
-    memory_sink *sink = user;
-    unsigned char *grown = realloc(sink->data, sink->size + size);
-    if (grown == NULL)
-    {
-        return 0;
-    }
-    memcpy(grown + sink->size, data, size);
-    sink->data = grown;
-    sink->size += size;
-    return size;
-}
-
 /* The writer stores the clock of the time zone, and the reader gives the UTC
  * time back; without a time zone the clock reading is the date. */
 static void check_file(void)
@@ -261,8 +241,8 @@ static void check_file(void)
     header.creation_date = 1782900000;
     header.modification_date = 1768474800;
 
-    memory_sink sink = {NULL, 0};
-    const sdfio_stream stream = {&sink, NULL, sink_write};
+    membuf sink = {0};
+    const sdfio_stream stream = membuf_stream(&sink);
     const float height = 1.0F;
     sdfio_writer *writer = sdfio_writer_new(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
@@ -291,8 +271,8 @@ static void check_file(void)
     /* A writer whose time zone refuses the date creates no file. */
     const sdfio_time_zone refusing = {NULL, refuse, refuse};
     const sdfio_config refusing_config = {.time_zone = &refusing, ALL_FORMATS};
-    memory_sink refused = {NULL, 0};
-    const sdfio_stream refused_stream = {&refused, NULL, sink_write};
+    membuf refused = {0};
+    const sdfio_stream refused_stream = membuf_stream(&refused);
     writer = sdfio_writer_new(&refusing_config);
     CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,

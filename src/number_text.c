@@ -40,6 +40,20 @@ sdfio_decimal_point sdfio_decimal_point_now(void)
     return decimal_point;
 }
 
+/* Takes the sign at the start of a text, if there is one, and tells whether it
+ * is a minus. */
+static bool take_sign(const char **text, size_t *size)
+{
+    bool negative = false;
+    if (*size > 0 && ((*text)[0] == '+' || (*text)[0] == '-'))
+    {
+        negative = (*text)[0] == '-';
+        ++*text;
+        --*size;
+    }
+    return negative;
+}
+
 /* Tolerated deviation: any decimal or scientific form of a number is read, not
  * only the normalized form with a signed exponent that the standard has.
  *
@@ -52,13 +66,7 @@ static bool scan_number(const sdfio_decimal_point *decimal_point,
                         bool *negative)
 {
     sdfio_trim(&text, &size);
-    *negative = false;
-    if (size > 0 && (text[0] == '+' || text[0] == '-'))
-    {
-        *negative = text[0] == '-';
-        ++text;
-        --size;
-    }
+    *negative = take_sign(&text, &size);
     if (size == 0 || text[0] == '+' || text[0] == '-')
     {
         return false;
@@ -176,13 +184,7 @@ bool sdfio_parse_float(const sdfio_decimal_point *decimal_point,
 bool sdfio_parse_integer(const char *text, size_t size, long long *out)
 {
     sdfio_trim(&text, &size);
-    bool negative = false;
-    if (size > 0 && (text[0] == '+' || text[0] == '-'))
-    {
-        negative = text[0] == '-';
-        ++text;
-        --size;
-    }
+    const bool negative = take_sign(&text, &size);
     if (size == 0)
     {
         return false;
@@ -212,13 +214,7 @@ bool sdfio_parse_integer(const char *text, size_t size, long long *out)
 bool sdfio_parse_bounded_integer(const char *text, size_t size, int32_t low,
                                  int32_t high, int32_t *out)
 {
-    bool negative = false;
-    if (size > 0 && (text[0] == '+' || text[0] == '-'))
-    {
-        negative = text[0] == '-';
-        ++text;
-        --size;
-    }
+    const bool negative = take_sign(&text, &size);
     if (size == 0)
     {
         return false;

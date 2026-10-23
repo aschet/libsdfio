@@ -14,6 +14,7 @@
 
 #include "binary.h"
 #include "byte_order.h"
+#include "chunk.h"
 #include "data_type.h"
 #include "datetime.h"
 #include "fields.h"
@@ -130,8 +131,7 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
     }
     for (size_t first = 0; first < count; first += chunk_values)
     {
-        const size_t n =
-            count - first < chunk_values ? count - first : chunk_values;
+        const size_t n = sdfio_chunk_count(count, first, chunk_values);
         memcpy(scratch, (const unsigned char *)values + first * size, n * size);
         sdfio_fix_endianness(scratch, n, size);
         if (!sdfio_sink_write(sink, scratch, n * size))

@@ -9,6 +9,7 @@
  * @brief Reading of the data area as heights.
  */
 
+#include "chunk.h"
 #include "data_type.h"
 #include "heights.h"
 #include "reader_state.h"
@@ -27,14 +28,7 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Rows were read already");
     }
-    if (!sdfio_valid_heights_type(layout.type))
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "The type of the heights is not SDFIO_TYPE_FLOAT or "
-                          "SDFIO_TYPE_DOUBLE");
-    }
-    status = sdfio_check_layout(&layout, header->rows, header->columns,
-                                &reader->message);
+    status = sdfio_check_heights_layout(&layout, header, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -53,9 +47,8 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
         for (size_t first = 0; first < header->columns;
              first += reader->chunk_values)
         {
-            const size_t count = header->columns - first < reader->chunk_values
-                                     ? header->columns - first
-                                     : reader->chunk_values;
+            const size_t count =
+                sdfio_chunk_count(header->columns, first, reader->chunk_values);
             status = sdfio_reader_take_values(reader, reader->chunk, count);
             if (status == SDFIO_OK)
             {

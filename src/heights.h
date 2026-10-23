@@ -44,4 +44,36 @@ ptrdiff_t sdfio_element_stride(sdfio_layout layout);
 sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message);
 
+/**
+ * Checks the layout of a buffer of heights for the matrix of a header: the
+ * type of the heights, and the strides (see sdfio_check_layout()).
+ *
+ * @param[in,out] layout The layout of the buffer, whose row stride is
+ * resolved.
+ * @param header The header of the file.
+ * @param[out] message Receives the reason. May be null.
+ * @retval SDFIO_ERR_ARGUMENT The type is not SDFIO_TYPE_FLOAT or
+ * SDFIO_TYPE_DOUBLE, or the strides are invalid.
+ */
+sdfio_status sdfio_check_heights_layout(sdfio_layout *layout,
+                                        const sdfio_header *header,
+                                        sdfio_message *message);
+
+/**
+ * Checks the layout of a buffer for rows of the data area: the type has to be
+ * the data type of the file, and the strides have to be valid. Rows without a
+ * column hold nothing, so their layout is not looked at.
+ *
+ * @param[in,out] layout The layout of the buffer, whose row stride is
+ * resolved.
+ * @param header The header of the file.
+ * @param rows The number of rows that the buffer holds.
+ * @param[out] message Receives the reason. May be null.
+ * @retval SDFIO_ERR_ARGUMENT The type is not the data type of the file, or the
+ * strides are invalid.
+ */
+sdfio_status sdfio_check_data_layout(sdfio_layout *layout,
+                                     const sdfio_header *header, size_t rows,
+                                     sdfio_message *message);
+
 #endif /* SDFIO_SRC_HEIGHTS_H */
