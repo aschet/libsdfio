@@ -16,13 +16,14 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Counts the values of the data area, with a check for overflow.
+ * Computes the number of values of the data area, which holds one value for
+ * each point, with a check for overflow.
  *
  * @param header The header.
- * @param[out] count Receives columns times rows.
- * @return False if the count does not fit in size_t.
+ * @param[out] total Receives columns times rows.
+ * @return False if the number does not fit in size_t.
  */
-bool sdfio_count(const sdfio_header *header, size_t *count);
+bool sdfio_value_total(const sdfio_header *header, size_t *total);
 
 /**
  * Checks what makes a file that cannot be written.
