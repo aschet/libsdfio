@@ -18,171 +18,216 @@ defaults:
     shell: bash
 
 jobs:
-  # One machine for all of Linux: the steps share the checkout and the tools,
-  # and every step runs, so that a failure does not hide the next.
-  linux:
-    name: Linux
+  # Named compiler, architecture and operating system. Each job builds the
+  # library as a static and as a shared library, tests it, installs it, and
+  # builds and runs a project of its own against the installation.
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC x86-64 Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=gcc
+            # The strict one: exactly C11, without the extensions of the
+            # compiler and without a diagnostic that a flag could silence.
+            configure: >-
+              -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
+              -DCMAKE_C_FLAGS=-pedantic-errors
+          - name: Clang x86-64 Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=clang
+          - name: GCC x86 Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            packages: gcc-multilib
+            toolchain: >-
+              -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS=-m32
+              -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32
+          - name: GCC AArch64 Linux
+            runner: ubuntu-24.04-arm
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=gcc
+          - name: GCC ARM Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            packages: qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
+            toolchain: >-
+              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm
+              -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc
+              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf
+            emulator: qemu-arm -L /usr/arm-linux-gnueabihf
+          - name: GCC z/Architecture Linux
+            runner: ubuntu-latest
+            generator: Ninja
+            packages: qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross
+            toolchain: >-
+              -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x
+              -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc
+              -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu
+            emulator: qemu-s390x -L /usr/s390x-linux-gnu
+          - name: MSVC x86-64 Windows
+            runner: windows-latest
+            toolchain: -A x64
+          - name: MSVC x86 Windows
+            runner: windows-latest
+            toolchain: -A Win32
+          - name: MSVC AArch64 Windows
+            runner: windows-11-arm
+            toolchain: -A ARM64
+          - name: Clang AArch64 macOS
+            runner: macos-latest
+            generator: Ninja
+            toolchain: -DCMAKE_C_COMPILER=clang
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the tools
+        if: ${{ matrix.packages != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Build, test, install and use
+        env:
+          GENERATOR: ${{ matrix.generator }}
+          TOOLCHAIN_OPTIONS: ${{ matrix.toolchain }}
+          CONFIGURE_OPTIONS: ${{ matrix.configure }}
+          EMULATOR: ${{ matrix.emulator }}
+        run: .github/ci/install-and-use.sh
+
+  # A program for a processor without an operating system: the library as a
+  # static library, and the image of a program that writes a file into memory.
+  # The image has to contain no code to read files or to handle ASCII.
+  firmware:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC ARM Cortex-M4 bare metal
+            packages: gcc-arm-none-eabi libnewlib-arm-none-eabi
+            prefix: arm-none-eabi
+            processor: arm
+            flags: >-
+              -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
+              -ffunction-sections -fdata-sections --specs=nano.specs
+              --specs=nosys.specs
+          - name: GCC RISC-V bare metal
+            packages: gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+            prefix: riscv64-unknown-elf
+            processor: riscv32
+            flags: >-
+              -march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections
+              --specs=picolibc.specs
     steps:
       - uses: actions/checkout@v7
 
       - name: Install the tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build qemu-user \
-            libc6-dev-i386 "lib32gcc-$(gcc -dumpversion | cut -d. -f1)-dev" \
-            gcc-s390x-linux-gnu libc6-dev-s390x-cross \
-            gcc-aarch64-linux-gnu libc6-dev-arm64-cross \
-            gcc-arm-linux-gnueabihf libc6-dev-armhf-cross \
-            gcc-arm-none-eabi libnewlib-arm-none-eabi \
-            gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
-          pipx install "clang-tidy==21.1.6"
-          pipx install "clang-format==21.1.6"
-          pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
+          sudo apt-get install -y ninja-build ${{ matrix.packages }}
+
+      - name: Build the library and the firmware image
+        env:
+          PREFIX: ${{ matrix.prefix }}
+          PROCESSOR: ${{ matrix.processor }}
+          FLAGS: ${{ matrix.flags }}
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR="$PROCESSOR" \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_C_COMPILER="$PREFIX-gcc" "-DCMAKE_C_FLAGS=$FLAGS" \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
+          cmake --build build
+          # shellcheck disable=SC2086
+          "$PREFIX-gcc" -std=c11 $FLAGS -Os -Wl,--gc-sections -nostartfiles \
+            -Wl,--entry=main -Iinclude -Ibuild/generated/include \
+            -DSDFIO_STATIC_DEFINE tests/embedded/main.c build/libsdfio.a \
+            -o build/firmware
+          "$PREFIX-size" build/firmware
+          if "$PREFIX-nm" build/firmware \
+            | grep -E "sdfio_(ascii|parse_number|format_scientific)|_reader_codec"
+          then
+            echo "The image contains code that the program does not name."
+            exit 1
+          fi
+
+  # The thread sanitizer cannot be combined with the address sanitizer, so the
+  # builds are two, on one machine.
+  sanitizers:
+    name: Sanitizers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: ASan and UBSan
+        run: |
           # The sanitizers map their memory
           sudo sysctl vm.mmap_rnd_bits=28 || true
-
-      - name: GCC in strict C11, installed and used
-        env:
-          CC: gcc
-          GENERATOR: Ninja
-          CONFIGURE_OPTIONS: >-
-            -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
-            -DCMAKE_C_FLAGS=-pedantic-errors
-            -DSDFIO_BUILD_EXAMPLES=ON
-        run: .github/ci/install-and-use.sh
-
-      - name: Clang with the address and undefined behavior sanitizers
-        if: ${{ !cancelled() }}
-        run: |
           CC=clang cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_SANITIZE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DSDFIO_BUILD_EXAMPLES=ON
+            -DSDFIO_SANITIZE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build/asan
           ctest --test-dir build/asan --output-on-failure --no-tests=error
 
-      - name: GCC with the thread sanitizer
+      - name: TSan
         if: ${{ !cancelled() }}
         run: |
-          CC=gcc cmake -S . -B build/tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+          CC=clang cmake -S . -B build/tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DSDFIO_SANITIZE_THREAD=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build build/tsan
           ctest --test-dir build/tsan --output-on-failure --no-tests=error
 
-      - name: Linux x86 (32-bit), GCC
-        if: ${{ !cancelled() }}
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Analyze
         run: |
-          cmake -S . -B build/x86 -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS=-m32 \
-            -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32 \
-            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DSDFIO_BUILD_EXAMPLES=ON
-          cmake --build build/x86
-          ctest --test-dir build/x86 --output-on-failure --no-tests=error
-
-      - name: Big endian, s390x
-        if: ${{ !cancelled() }}
-        run: |
-          cmake -S . -B build/s390x -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x \
-            -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc \
-            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu" \
-            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DSDFIO_BUILD_EXAMPLES=ON
-          cmake --build build/s390x
-          ctest --test-dir build/s390x --output-on-failure --no-tests=error
-
-      - name: 64-bit ARM, aarch64
-        if: ${{ !cancelled() }}
-        run: |
-          cmake -S . -B build/aarch64 -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-aarch64;-L;/usr/aarch64-linux-gnu" \
-            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DSDFIO_BUILD_EXAMPLES=ON
-          cmake --build build/aarch64
-          ctest --test-dir build/aarch64 --output-on-failure --no-tests=error
-
-      - name: 32-bit ARM, armhf
-        if: ${{ !cancelled() }}
-        run: |
-          cmake -S . -B build/armhf -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm \
-            -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
-            "-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf" \
-            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DSDFIO_BUILD_EXAMPLES=ON
-          cmake --build build/armhf
-          ctest --test-dir build/armhf --output-on-failure --no-tests=error
-
-      - name: Cortex-M4 firmware
-        if: ${{ !cancelled() }}
-        run: |
-          flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs --specs=nosys.specs"
-          cmake -S . -B build/cortex-m -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=arm \
-            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_C_COMPILER=arm-none-eabi-gcc "-DCMAKE_C_FLAGS=$flags" \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
-          cmake --build build/cortex-m
-          arm-none-eabi-gcc -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
-            -Iinclude -Ibuild/cortex-m/generated/include -DSDFIO_STATIC_DEFINE \
-            tests/embedded/main.c build/cortex-m/libsdfio.a -o build/cortex-m/firmware
-          arm-none-eabi-size build/cortex-m/firmware
-
-      - name: RISC-V firmware
-        if: ${{ !cancelled() }}
-        run: |
-          flags="-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections --specs=picolibc.specs"
-          cmake -S . -B build/riscv -G Ninja \
-            -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR=riscv32 \
-            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
-            -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc "-DCMAKE_C_FLAGS=$flags" \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
-          cmake --build build/riscv
-          riscv64-unknown-elf-gcc -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
-            -Iinclude -Ibuild/riscv/generated/include -DSDFIO_STATIC_DEFINE \
-            tests/embedded/main.c build/riscv/libsdfio.a -o build/riscv/firmware
-          riscv64-unknown-elf-size build/riscv/firmware
-
-      - name: Static analysis
-        if: ${{ !cancelled() }}
-        run: |
-          cmake -S . -B build/tidy -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+          pipx install "clang-tidy==21.1.6"
+          export PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
           # The files for Windows cannot be analyzed here
-          clang-tidy -p build/tidy --warnings-as-errors='*' \
+          clang-tidy -p build --warnings-as-errors='*' \
             $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_win32 -e test_wide)
 
-      - name: Format
-        if: ${{ !cancelled() }}
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check
         run: |
+          pipx install "clang-format==21.1.6"
+          export PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
           clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
             tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
             examples/*.c examples/integrations/*.cpp
 
-      - name: Licenses
-        if: ${{ !cancelled() }}
-        uses: fsfe/reuse-action@v5
-
-  macos:
-    name: macOS
-    runs-on: macos-latest
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Build, test, install and use
-        env:
-          GENERATOR: Ninja
-        run: .github/ci/install-and-use.sh
+      - name: Generate
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen ninja-build
+          cmake -S . -B build -G Ninja -DSDFIO_BUILD_DOCS=ON -DBUILD_TESTING=OFF
+          cmake --build build --target docs 2>&1 | tee docs.log
+          if grep -i "warning" docs.log; then exit 1; fi
 
-  windows:
-    name: Windows
-    runs-on: windows-latest
+  licenses:
+    name: Licenses
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Build, test, install and use
-        env:
-          GENERATOR: ""
-        run: .github/ci/install-and-use.sh
+      - uses: fsfe/reuse-action@v5
