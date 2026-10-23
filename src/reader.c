@@ -9,11 +9,11 @@
  * @brief Reading of headers, data and trailers.
  */
 
-#include "codec.h"
 #include "common.h"
 #include "header.h"
 #include "heights.h"
 #include "owner.h"
+#include "reader_codec.h"
 #include "settings.h"
 #include "source.h"
 #include "types.h"
@@ -38,8 +38,8 @@ struct sdfio_reader
     sdfio_header header;
     /** The buffered stream. */
     sdfio_source source;
-    /** What the codec of the file keeps for it. */
-    sdfio_codec_state codec_state;
+    /** What the codec of the file keeps for it, or null. */
+    void *codec_state;
     /** The listed codecs. */
     const sdfio_reader_codec *codecs[SDFIO_CODEC_MAX];
     /** The codec of the open file. */
@@ -136,6 +136,7 @@ void sdfio_reader_free(sdfio_reader *reader)
     sdfio_source_destroy(&reader->source);
     const sdfio_allocator allocator = reader->allocator;
     sdfio_release(&allocator, reader->chunk);
+    sdfio_release(&allocator, reader->codec_state);
     sdfio_release(&allocator, reader);
 }
 
@@ -180,10 +181,28 @@ static sdfio_status open_source(sdfio_reader *reader,
                           "The reader is open already");
     }
     sdfio_source_init(&reader->source, stream);
-    reader->codec_state = (sdfio_codec_state){0};
-    const sdfio_status status = sdfio_read_header(
-        &reader->source, reader->codecs, &reader->codec, &reader->header,
-        &reader->codec_state, &reader->zone, &reader->message);
+    sdfio_status status = sdfio_select_reader_codec(
+        &reader->source, reader->codecs, &reader->codec, &reader->message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    sdfio_release(&reader->allocator, reader->codec_state);
+    reader->codec_state = NULL;
+    if (reader->codec->state_size > 0)
+    {
+        reader->codec_state =
+            sdfio_allocate(&reader->allocator, reader->codec->state_size);
+        if (reader->codec_state == NULL)
+        {
+            return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
+                              "Out of memory");
+        }
+        memset(reader->codec_state, 0, reader->codec->state_size);
+    }
+    status =
+        sdfio_read_header(&reader->source, reader->codec, &reader->header,
+                          reader->codec_state, &reader->zone, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -248,7 +267,7 @@ static sdfio_status require_readable(sdfio_reader *reader)
 static sdfio_status read_values(sdfio_reader *reader, void *dst, size_t count)
 {
     const sdfio_status status = reader->codec->read_values(
-        &reader->source, &reader->header, &reader->codec_state, dst, count,
+        &reader->source, &reader->header, reader->codec_state, dst, count,
         &reader->message);
     if (status == SDFIO_OK)
     {

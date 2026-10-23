@@ -58,7 +58,6 @@ set(SDFIO_SOURCES
     src/binary.h
     src/byte_order.c
     src/byte_order.h
-    src/codec.h
     src/common.c
     src/common.h
     src/dates.c
@@ -74,6 +73,7 @@ set(SDFIO_SOURCES
     src/heights_real.h
     src/owner.h
     src/reader.c
+    src/reader_codec.h
     src/settings.c
     src/settings.h
     src/sink.c
@@ -88,6 +88,7 @@ set(SDFIO_SOURCES
     src/types.c
     src/types.h
     src/writer.c
+    src/writer_codec.h
 )
 
 if(WIN32)

@@ -10,7 +10,6 @@
  */
 
 #include "header.h"
-#include "codec.h"
 #include "common.h"
 #include "dates.h"
 #include "source.h"
@@ -31,12 +30,10 @@ find_codec(const sdfio_reader_codec *const *codecs, char prefix)
     return NULL;
 }
 
-sdfio_status sdfio_read_header(sdfio_source *source,
-                               const sdfio_reader_codec *const *codecs,
-                               const sdfio_reader_codec **codec,
-                               sdfio_header *header, sdfio_codec_state *state,
-                               const sdfio_time_zone *zone,
-                               sdfio_message *message)
+sdfio_status sdfio_select_reader_codec(sdfio_source *source,
+                                       const sdfio_reader_codec *const *codecs,
+                                       const sdfio_reader_codec **codec,
+                                       sdfio_message *message)
 {
     const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
     if (available < SDFIO_MAGIC_SIZE)
@@ -57,8 +54,17 @@ sdfio_status sdfio_read_header(sdfio_source *source,
                           "The codec of this SDF file is not listed in the "
                           "configuration");
     }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_read_header(sdfio_source *source,
+                               const sdfio_reader_codec *codec,
+                               sdfio_header *header, void *state,
+                               const sdfio_time_zone *zone,
+                               sdfio_message *message)
+{
     const sdfio_status status =
-        (*codec)->read_header(source, header, state, zone, message);
+        codec->read_header(source, header, state, zone, message);
     /* The z-scale is a non-zero positive number. */
     if (status == SDFIO_OK
         && !(header->z_scale > 0.0 && isfinite(header->z_scale)))

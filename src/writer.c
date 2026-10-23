@@ -9,7 +9,6 @@
  * @brief Writing of headers, data and trailers.
  */
 
-#include "codec.h"
 #include "common.h"
 #include "header.h"
 #include "heights.h"
@@ -18,6 +17,7 @@
 #include "sink.h"
 #include "tagged.h"
 #include "types.h"
+#include "writer_codec.h"
 
 /** Where a writer is in the life of a file. */
 typedef enum writer_state
@@ -41,8 +41,8 @@ struct sdfio_writer
     sdfio_header header;
     /** The buffered stream. */
     sdfio_sink sink;
-    /** What the codec of the file keeps for it. */
-    sdfio_codec_state codec_state;
+    /** What the codec of the file keeps for it, or null. */
+    void *codec_state;
     /** The listed codecs. */
     const sdfio_writer_codec *codecs[SDFIO_CODEC_MAX];
     /** The codec of the file. */
@@ -116,6 +116,7 @@ void sdfio_writer_free(sdfio_writer *writer)
     const sdfio_allocator allocator = writer->allocator;
     sdfio_release(&allocator, writer->coded);
     sdfio_release(&allocator, writer->scratch);
+    sdfio_release(&allocator, writer->codec_state);
     sdfio_release(&allocator, writer);
 }
 
@@ -204,9 +205,19 @@ static sdfio_status start_stream(sdfio_writer *writer,
                               "Out of memory");
         }
     }
+    if (codec->state_size > 0)
+    {
+        writer->codec_state =
+            sdfio_allocate(&writer->allocator, codec->state_size);
+        if (writer->codec_state == NULL)
+        {
+            return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY,
+                              "Out of memory");
+        }
+        memset(writer->codec_state, 0, codec->state_size);
+    }
     writer->header = *header;
     writer->codec = codec;
-    writer->codec_state = (sdfio_codec_state){0};
     sdfio_sink_init(&writer->sink, stream);
     writer->state = STATE_CREATED;
     return SDFIO_OK;
@@ -254,7 +265,7 @@ static sdfio_status start_data(sdfio_writer *writer)
         }
     }
     const sdfio_status status = writer->codec->write_header(
-        &writer->sink, header, &writer->codec_state, &writer->zone,
+        &writer->sink, header, writer->codec_state, &writer->zone,
         &writer->allocator, &writer->message);
     if (status == SDFIO_ERR_IO)
     {
@@ -269,7 +280,7 @@ static sdfio_status put_values(sdfio_writer *writer, const void *values,
                                size_t count)
 {
     const sdfio_status status = writer->codec->write_values(
-        &writer->sink, &writer->header, &writer->codec_state, values, count,
+        &writer->sink, &writer->header, writer->codec_state, values, count,
         writer->scratch, writer->chunk_values, &writer->message);
     return status == SDFIO_OK ? status : fail_writing(writer, status);
 }

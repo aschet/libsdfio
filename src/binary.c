@@ -14,15 +14,16 @@
 
 #include "binary.h"
 #include "byte_order.h"
-#include "codec.h"
 #include "common.h"
 #include "dates.h"
 #include "fields.h"
-#include "source.h"
+#include "reader_codec.h"
 #include "sink.h"
+#include "source.h"
 #include "tagged.h"
 #include "text.h"
 #include "types.h"
+#include "writer_codec.h"
 
 enum
 {
@@ -275,8 +276,7 @@ static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
 }
 
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
-                                sdfio_codec_state *state,
-                                const sdfio_time_zone *zone,
+                                void *state, const sdfio_time_zone *zone,
                                 sdfio_message *message)
 {
     (void)state;
@@ -305,9 +305,8 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
 }
 
 static sdfio_status read_values(sdfio_source *source,
-                                const sdfio_header *header,
-                                const sdfio_codec_state *state, void *dst,
-                                size_t count, sdfio_message *message)
+                                const sdfio_header *header, const void *state,
+                                void *dst, size_t count, sdfio_message *message)
 {
     (void)state;
     const size_t size = sdfio_data_type_size(header->data_type);
@@ -352,8 +351,7 @@ static size_t scratch_size(size_t chunk_values)
 }
 
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
-                                 sdfio_codec_state *state,
-                                 const sdfio_time_zone *zone,
+                                 void *state, const sdfio_time_zone *zone,
                                  const sdfio_allocator *allocator,
                                  sdfio_message *message)
 {
@@ -371,9 +369,9 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 }
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
-                                 sdfio_codec_state *state, const void *values,
-                                 size_t count, void *scratch,
-                                 size_t chunk_values, sdfio_message *message)
+                                 void *state, const void *values, size_t count,
+                                 void *scratch, size_t chunk_values,
+                                 sdfio_message *message)
 {
     (void)state;
     const size_t size = sdfio_data_type_size(header->data_type);

@@ -10,8 +10,8 @@
  */
 
 #include "settings.h"
-#include "codec.h"
 #include "types.h"
+#include "writer_codec.h"
 
 /**
  * Copies a list of codecs of the configuration, of either direction, and

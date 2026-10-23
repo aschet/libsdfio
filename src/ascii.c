@@ -9,16 +9,17 @@
  * @brief Codecs of the ASCII representation.
  */
 
-#include "codec.h"
 #include "common.h"
 #include "dates.h"
 #include "decimal.h"
 #include "fields.h"
-#include "source.h"
+#include "reader_codec.h"
 #include "sink.h"
+#include "source.h"
 #include "tagged.h"
 #include "text.h"
 #include "types.h"
+#include "writer_codec.h"
 
 #include <stdio.h>
 
@@ -348,13 +349,29 @@ static sdfio_status read_fields(const sdfio_string *header_text,
     return status;
 }
 
+/** What the reader of this codec keeps for a file. */
+struct reading
+{
+    /** The decimal point of the locale, measured when the file was opened. */
+    sdfio_point point;
+};
+
+/** What the writer of this codec keeps for a file. */
+struct writing
+{
+    /** The decimal point of the locale, measured when the file was created. */
+    sdfio_point point;
+    /** The column of the next value to write. */
+    size_t column;
+};
+
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
-                                sdfio_codec_state *state,
-                                const sdfio_time_zone *zone,
+                                void *state, const sdfio_time_zone *zone,
                                 sdfio_message *message)
 {
-    state->point = sdfio_point_now();
-    const sdfio_point *point = &state->point;
+    struct reading *reading = state;
+    reading->point = sdfio_point_now();
+    const sdfio_point *point = &reading->point;
     sdfio_string line = {.allocator = source->allocator};
     sdfio_string header_text = {.allocator = source->allocator};
     sdfio_status status = SDFIO_OK;
@@ -752,14 +769,14 @@ static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
 }
 
 static sdfio_status read_values(sdfio_source *source,
-                                const sdfio_header *header,
-                                const sdfio_codec_state *state, void *dst,
-                                size_t count, sdfio_message *message)
+                                const sdfio_header *header, const void *state,
+                                void *dst, size_t count, sdfio_message *message)
 {
+    const struct reading *reading = state;
     for (size_t i = 0; i < count; ++i)
     {
         const sdfio_status status =
-            read_value(source, header, &state->point, dst, i, message);
+            read_value(source, header, &reading->point, dst, i, message);
         if (status != SDFIO_OK)
         {
             return status;
@@ -998,16 +1015,16 @@ static size_t scratch_size(size_t chunk_values)
 }
 
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
-                                 sdfio_codec_state *state,
-                                 const sdfio_time_zone *zone,
+                                 void *state, const sdfio_time_zone *zone,
                                  const sdfio_allocator *allocator,
                                  sdfio_message *message)
 {
-    state->point = sdfio_point_now();
-    state->column = 0;
+    struct writing *writing = state;
+    writing->point = sdfio_point_now();
+    writing->column = 0;
     sdfio_string text = {.allocator = allocator};
     sdfio_status status =
-        format_header(header, &state->point, zone, &text, message);
+        format_header(header, &writing->point, zone, &text, message);
     if (status == SDFIO_OK
         && !sdfio_sink_write(sink, sdfio_string_text(&text), text.size))
     {
@@ -1018,10 +1035,11 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 }
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
-                                 sdfio_codec_state *state, const void *values,
-                                 size_t count, void *scratch,
-                                 size_t chunk_values, sdfio_message *message)
+                                 void *state, const void *values, size_t count,
+                                 void *scratch, size_t chunk_values,
+                                 sdfio_message *message)
 {
+    struct writing *writing = state;
     char *text = scratch;
     const size_t size = sdfio_data_type_size(header->data_type);
     for (size_t first = 0; first < count; first += chunk_values)
@@ -1031,18 +1049,18 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
         size_t used = 0;
         for (size_t i = 0; i < n; ++i)
         {
-            if (state->column > 0)
+            if (writing->column > 0)
             {
                 text[used++] = ' ';
             }
-            used += format_value(header, &state->point,
+            used += format_value(header, &writing->point,
                                  (const unsigned char *)values + first * size,
                                  i, text + used, SDFIO_TEXT_PER_VALUE);
-            if (++state->column == header->columns)
+            if (++writing->column == header->columns)
             {
                 memcpy(text + used, crlf, sizeof crlf - 1);
                 used += sizeof crlf - 1;
-                state->column = 0;
+                writing->column = 0;
             }
         }
         if (!sdfio_sink_write(sink, text, used))
@@ -1065,6 +1083,7 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
 }
 
 const sdfio_reader_codec sdfio_ascii_reader_codec = {
+    .state_size = sizeof(struct reading),
     .prefix = 'a',
     .magics = {"aISO-1.0", "aISO-2.0"},
     .read_header = read_header,
@@ -1074,6 +1093,7 @@ const sdfio_reader_codec sdfio_ascii_reader_codec = {
 };
 
 const sdfio_writer_codec sdfio_ascii_writer_codec = {
+    .state_size = sizeof(struct writing),
     .representation = SDFIO_ASCII,
     .scratch_size = scratch_size,
     .write_header = write_header,

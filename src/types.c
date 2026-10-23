@@ -10,9 +10,9 @@
  */
 
 #include "types.h"
-#include "codec.h"
 #include "dates.h"
 #include "fields.h"
+#include "reader_codec.h"
 #include "settings.h"
 
 /* What the format needs of the platform, checked here and nowhere else: bytes
