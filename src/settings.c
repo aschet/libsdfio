@@ -11,7 +11,7 @@
 
 #include "settings.h"
 #include "data_type.h"
-#include "writer_codec.h"
+#include "writer_format.h"
 
 bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
 {
@@ -46,15 +46,15 @@ bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
     }
     size_t readers = 0;
     size_t writers = 0;
-    for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        if (config->reader_codecs[i] != NULL)
+        if (config->reader_formats[i] != NULL)
         {
-            settings->reader_codecs[readers++] = config->reader_codecs[i];
+            settings->reader_formats[readers++] = config->reader_formats[i];
         }
-        if (config->writer_codecs[i] != NULL)
+        if (config->writer_formats[i] != NULL)
         {
-            settings->writer_codecs[writers++] = config->writer_codecs[i];
+            settings->writer_formats[writers++] = config->writer_formats[i];
         }
     }
     return settings->chunk <= SIZE_MAX / SDFIO_LARGEST_DATA_ENTRY

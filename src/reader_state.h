@@ -15,7 +15,7 @@
 #include "dynstring.h"
 #include "message.h"
 #include "owner.h"
-#include "reader_codec.h"
+#include "reader_format.h"
 #include "source.h"
 #include <sdfio/sdfio.h>
 
@@ -39,12 +39,12 @@ struct sdfio_reader
     sdfio_header header;
     /** The buffered stream. */
     sdfio_source source;
-    /** What the codec of the file keeps for it, or null. */
-    void *codec_state;
-    /** The listed codecs. */
-    const sdfio_reader_codec *codecs[SDFIO_CODEC_MAX];
-    /** The codec of the open file. */
-    const sdfio_reader_codec *codec;
+    /** What the format of the file keeps for it, or null. */
+    void *format_state;
+    /** The listed formats. */
+    const sdfio_reader_format *formats[SDFIO_FORMAT_MAX];
+    /** The format of the open file. */
+    const sdfio_reader_format *format;
     /** The allocator of the configuration. */
     sdfio_allocator allocator;
     /** The time zone of the configuration. */
@@ -99,7 +99,7 @@ sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status);
 sdfio_status sdfio_reader_require_readable(sdfio_reader *reader);
 
 /**
- * Reads the next values of the data area through the codec of the file. The
+ * Reads the next values of the data area through the format of the file. The
  * values are delivered in the data type of the file.
  *
  * @param reader The reader.

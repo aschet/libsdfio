@@ -15,7 +15,7 @@
 #include "message.h"
 #include "owner.h"
 #include "sink.h"
-#include "writer_codec.h"
+#include "writer_format.h"
 #include <sdfio/sdfio.h>
 
 /** Where a writer is in the life of a file. */
@@ -40,17 +40,17 @@ struct sdfio_writer
     sdfio_header header;
     /** The buffered stream. */
     sdfio_sink sink;
-    /** What the codec of the file keeps for it, or null. */
-    void *codec_state;
-    /** The listed codecs. */
-    const sdfio_writer_codec *codecs[SDFIO_CODEC_MAX];
-    /** The codec of the file. */
-    const sdfio_writer_codec *codec;
+    /** What the format of the file keeps for it, or null. */
+    void *format_state;
+    /** The listed formats. */
+    const sdfio_writer_format *formats[SDFIO_FORMAT_MAX];
+    /** The format of the file. */
+    const sdfio_writer_format *format;
     /** Where the writer is in the life of a file. */
     sdfio_writer_phase state;
     /** Whether the header went to the sink. */
     bool header_written;
-    /** Whether the codec opened the trailer record. */
+    /** Whether the format opened the trailer record. */
     bool trailer_open;
     /** The index of the next row to write. */
     size_t next_row;
@@ -65,7 +65,7 @@ struct sdfio_writer
     /** The room for a chunk of values in the data type of the file, made when
      * the file is created. */
     unsigned char *coded;
-    /** The room that the codec asks for to write a chunk of values. */
+    /** The room that the format asks for to write a chunk of values. */
     void *scratch;
 };
 
@@ -109,7 +109,7 @@ sdfio_status sdfio_writer_require_writable(sdfio_writer *writer);
 sdfio_status sdfio_writer_start_data(sdfio_writer *writer);
 
 /**
- * Writes values of the data area through the codec of the file. The values
+ * Writes values of the data area through the format of the file. The values
  * must be in the data type of the file.
  *
  * @param writer The writer.

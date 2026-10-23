@@ -26,10 +26,10 @@ using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 sdfio_config make_config()
 {
     sdfio_config config = {};
-    config.reader_codecs[0] = &sdfio_binary_reader_codec;
-    config.reader_codecs[1] = &sdfio_ascii_reader_codec;
-    config.writer_codecs[0] = &sdfio_binary_writer_codec;
-    config.writer_codecs[1] = &sdfio_ascii_writer_codec;
+    config.reader_formats[0] = &sdfio_binary_reader_format;
+    config.reader_formats[1] = &sdfio_ascii_reader_format;
+    config.writer_formats[0] = &sdfio_binary_writer_format;
+    config.writer_formats[1] = &sdfio_ascii_writer_format;
     return config;
 }
 

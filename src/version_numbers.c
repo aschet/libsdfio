@@ -6,10 +6,10 @@
 
 /**
  * @file version_numbers.c
- * @brief Version numbers that the listed reader codecs accept.
+ * @brief Version numbers that the listed reader formats accept.
  */
 
-#include "reader_codec.h"
+#include "reader_format.h"
 #include "revision.h"
 #include "settings.h"
 
@@ -21,10 +21,10 @@ size_t sdfio_version_number_count(const sdfio_config *config)
         return 0;
     }
     size_t count = 0;
-    for (size_t i = 0; i < SDFIO_CODEC_MAX && settings.reader_codecs[i] != NULL;
-         ++i)
+    for (size_t i = 0;
+         i < SDFIO_FORMAT_MAX && settings.reader_formats[i] != NULL; ++i)
     {
-        count += settings.reader_codecs[i]->version_number_count;
+        count += settings.reader_formats[i]->version_number_count;
     }
     return count;
 }
@@ -36,15 +36,15 @@ const char *sdfio_version_number(const sdfio_config *config, size_t index)
     {
         return NULL;
     }
-    for (size_t i = 0; i < SDFIO_CODEC_MAX && settings.reader_codecs[i] != NULL;
-         ++i)
+    for (size_t i = 0;
+         i < SDFIO_FORMAT_MAX && settings.reader_formats[i] != NULL; ++i)
     {
-        const sdfio_reader_codec *codec = settings.reader_codecs[i];
-        if (index < codec->version_number_count)
+        const sdfio_reader_format *format = settings.reader_formats[i];
+        if (index < format->version_number_count)
         {
-            return codec->version_numbers[index];
+            return format->version_numbers[index];
         }
-        index -= codec->version_number_count;
+        index -= format->version_number_count;
     }
     return NULL;
 }

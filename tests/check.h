@@ -17,14 +17,16 @@
 
 #include <sdfio/sdfio.h>
 
-/* The codecs of a handle that reads and writes both representations. */
-#define ALL_CODECS                                                             \
-    .reader_codecs = {&sdfio_binary_reader_codec, &sdfio_ascii_reader_codec},  \
-    .writer_codecs = {&sdfio_binary_writer_codec, &sdfio_ascii_writer_codec}
+/* The formats of a handle that reads and writes both representations. */
+#define ALL_FORMATS                                                            \
+    .reader_formats = {&sdfio_binary_reader_format,                            \
+                       &sdfio_ascii_reader_format},                            \
+    .writer_formats = {&sdfio_binary_writer_format,                            \
+                       &sdfio_ascii_writer_format}
 
 /* A configuration with them, made where it is used: a program that links the
- * DLL cannot take the address of its codecs in a constant initializer. */
-#define all_codecs() (&(const sdfio_config){ALL_CODECS})
+ * DLL cannot take the address of its formats in a constant initializer. */
+#define all_formats() (&(const sdfio_config){ALL_FORMATS})
 
 static int failures = 0;
 static int checks = 0;
@@ -129,7 +131,7 @@ static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
                                           const membuf *file)
 {
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
     return reader;
 }

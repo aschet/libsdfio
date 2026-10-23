@@ -10,7 +10,7 @@
  *
  * The functions of the C library that print and parse numbers use the decimal
  * point of the current locale, whereas the files always use `.`. Only the ASCII
- * codec uses this code, so a program that does not list that codec does not
+ * format uses this code, so a program that does not list that format does not
  * contain it.
  */
 

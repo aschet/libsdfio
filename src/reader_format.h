@@ -5,12 +5,12 @@
  */
 
 /**
- * @file reader_codec.h
- * @brief Interface of the codecs that read a representation.
+ * @file reader_format.h
+ * @brief Interface of the formats that a reader reads.
  */
 
-#ifndef SDFIO_SRC_READER_CODEC_H
-#define SDFIO_SRC_READER_CODEC_H
+#ifndef SDFIO_SRC_READER_FORMAT_H
+#define SDFIO_SRC_READER_FORMAT_H
 
 #include "dynstring.h"
 #include "message.h"
@@ -18,22 +18,22 @@
 #include "source.h"
 
 /**
- * A reader codec: the functions that read a representation of the files.
+ * A reader format: the functions that read a representation of the files.
  *
- * The reader knows nothing of the representations. It calls the codecs that
- * the configuration lists, so that the code of a codec that no program names
+ * The reader knows nothing of the representations. It calls the formats that
+ * the configuration lists, so that the code of a format that no program names
  * is not linked.
  */
-struct sdfio_reader_codec
+struct sdfio_reader_format
 {
-    /** The size of what the codec keeps for a file between its calls, which
+    /** The size of what the format keeps for a file between its calls, which
      * the reader allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
     /** The first character of the version numbers, which identifies the
      * representation. */
     char prefix;
-    /** The version numbers that the codec reads, indexed by revision. The
-     * codec determines the revision of a file by comparing the version number
+    /** The version numbers that the format reads, indexed by revision. The
+     * format determines the revision of a file by comparing the version number
      * of the file with these. */
     const char *const *version_numbers;
     /** The number of version numbers in the list. */
@@ -45,8 +45,8 @@ struct sdfio_reader_codec
      *
      * @param source The source, at the start of the file.
      * @param[out] header Receives the header.
-     * @param[out] state The room of `state_size` bytes, zeroed. The codec fills
-     * it.
+     * @param[out] state The room of `state_size` bytes, zeroed. The format
+     * fills it.
      * @param zone The time zone of the caller. May be null.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_FORMAT The header is damaged.
@@ -61,7 +61,7 @@ struct sdfio_reader_codec
      *
      * @param source The source.
      * @param header The header of the file.
-     * @param state What the codec keeps for the file, `state_size` bytes.
+     * @param state What the format keeps for the file, `state_size` bytes.
      * @param[out] dst Receives the values in the data type of the header.
      * @param count The number of values.
      * @param[out] message Receives the reason of a failure.
@@ -81,7 +81,7 @@ struct sdfio_reader_codec
      * @param header The header of the file.
      * @param complete Whether every row was read.
      * @param values_left The number of values that were not read.
-     * @param scratch Room for the codec to read into.
+     * @param scratch Room for the format to read into.
      * @param scratch_size The size of `scratch` in bytes.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_FORMAT The data area is damaged or ends early.
@@ -106,4 +106,4 @@ struct sdfio_reader_codec
                                  bool *present, sdfio_message *message);
 };
 
-#endif /* SDFIO_SRC_READER_CODEC_H */
+#endif /* SDFIO_SRC_READER_FORMAT_H */

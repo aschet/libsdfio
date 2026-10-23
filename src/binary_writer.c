@@ -6,7 +6,7 @@
 
 /**
  * @file binary_writer.c
- * @brief Writer codec of the binary representation.
+ * @brief Writing of the binary format.
  *
  * The files store values in little-endian byte order, regardless of the byte
  * order of the host.
@@ -19,7 +19,7 @@
 #include "fields.h"
 #include "message.h"
 #include "sink.h"
-#include "writer_codec.h"
+#include "writer_format.h"
 #include <limits.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
@@ -154,8 +154,8 @@ static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
     return SDFIO_OK;
 }
 
-const sdfio_writer_codec sdfio_binary_writer_codec = {
-    .representation = SDFIO_BINARY,
+const sdfio_writer_format sdfio_binary_writer_format = {
+    .writes = SDFIO_BINARY,
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,

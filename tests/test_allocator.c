@@ -171,7 +171,7 @@ static void check_counted(void)
         counting state = {-1, 0, 0, 0};
         const sdfio_allocator allocator = {&state, counting_allocate,
                                            counting_release};
-        const sdfio_config config = {.allocator = &allocator, ALL_CODECS};
+        const sdfio_config config = {.allocator = &allocator, ALL_FORMATS};
         bool equal = false;
         CHECK_OK(
             round_trip(&config, representations[i], SDFIO_TYPE_INT16, &equal));
@@ -187,7 +187,7 @@ static void check_counted(void)
             const sdfio_allocator failing_allocator = {
                 &failing, counting_allocate, counting_release};
             const sdfio_config failing_config = {
-                .allocator = &failing_allocator, ALL_CODECS};
+                .allocator = &failing_allocator, ALL_FORMATS};
             const sdfio_status status = round_trip(
                 &failing_config, representations[i], SDFIO_TYPE_INT16, &equal);
             CHECK_STATUS(SDFIO_ERR_MEMORY, status);
@@ -200,10 +200,10 @@ static void check_counted(void)
 static void check_small(void)
 {
     static const sdfio_config small[] = {
-        {.buffer_size = 1, .chunk_values = 1, ALL_CODECS},
-        {.buffer_size = 64, .chunk_values = 3, ALL_CODECS},
-        {.buffer_size = 100, .chunk_values = 7, ALL_CODECS},
-        {.chunk_values = 1, ALL_CODECS}};
+        {.buffer_size = 1, .chunk_values = 1, ALL_FORMATS},
+        {.buffer_size = 64, .chunk_values = 3, ALL_FORMATS},
+        {.buffer_size = 100, .chunk_values = 7, ALL_FORMATS},
+        {.chunk_values = 1, ALL_FORMATS}};
     static const sdfio_data_type types[] = {SDFIO_TYPE_INT16, SDFIO_TYPE_FLOAT};
     for (size_t i = 0; i < sizeof small / sizeof small[0]; ++i)
     {
@@ -261,7 +261,7 @@ static void check_arena(void)
     const sdfio_config config = {.allocator = &allocator,
                                  .buffer_size = 256,
                                  .chunk_values = 16,
-                                 ALL_CODECS};
+                                 ALL_FORMATS};
     bool equal = false;
     CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_TYPE_FLOAT, &equal));
     CHECK(equal);
@@ -273,12 +273,12 @@ static void check_arguments(void)
 {
     /* An allocator needs both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
-    sdfio_config config = {.allocator = &broken, ALL_CODECS};
+    sdfio_config config = {.allocator = &broken, ALL_FORMATS};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 
     /* A chunk that cannot be counted in bytes. */
-    config = (sdfio_config){.chunk_values = (size_t)-1, ALL_CODECS};
+    config = (sdfio_config){.chunk_values = (size_t)-1, ALL_FORMATS};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 
@@ -288,7 +288,7 @@ static void check_arguments(void)
     header.columns = 1;
     header.rows = 1;
     header.creation_date = SDFIO_NO_TIME;
-    sdfio_writer *writer = sdfio_writer_new(all_codecs());
+    sdfio_writer *writer = sdfio_writer_new(all_formats());
     memory_sink sink = {0};
     const sdfio_stream stream = {&sink, NULL, sink_write};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -303,78 +303,78 @@ static void check_arguments(void)
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* Text is written with its codec and refused without it. */
+    /* Text is written with its format and refused without it. */
     sdfio_header_init(&header);
     header.representation = SDFIO_ASCII;
     header.columns = 1;
     header.rows = 1;
-    writer = sdfio_writer_new(all_codecs());
+    writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
     sink = (memory_sink){0};
     const sdfio_config binary_only = {
-        .reader_codecs = {&sdfio_binary_reader_codec},
-        .writer_codecs = {&sdfio_binary_writer_codec}};
+        .reader_formats = {&sdfio_binary_reader_format},
+        .writer_formats = {&sdfio_binary_writer_format}};
     writer = sdfio_writer_new(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* A file is read only if its codec is listed. */
+    /* A file is read only if its format is listed. */
     static const char ascii_version_number[] = "aISO-2.0\r\n";
     sdfio_reader *reader = sdfio_reader_new(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_open_memory(reader, ascii_version_number,
                                    sizeof ascii_version_number));
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, ascii_version_number,
                                    sizeof ascii_version_number));
     sdfio_reader_free(reader);
 
-    /* A handle needs a codec of its direction. */
+    /* A handle needs a format of its direction. */
     CHECK(sdfio_reader_new(NULL) == NULL);
     CHECK(sdfio_writer_new(NULL) == NULL);
     const sdfio_config none = {0};
     CHECK(sdfio_reader_new(&none) == NULL);
     const sdfio_config readers_only = {
-        .reader_codecs = {&sdfio_binary_reader_codec}};
+        .reader_formats = {&sdfio_binary_reader_format}};
     sdfio_reader *only_reader = sdfio_reader_new(&readers_only);
     CHECK(only_reader != NULL);
     sdfio_reader_free(only_reader);
     CHECK(sdfio_writer_new(&readers_only) == NULL);
     const sdfio_config writers_only = {
-        .writer_codecs = {&sdfio_binary_writer_codec}};
+        .writer_formats = {&sdfio_binary_writer_format}};
     CHECK(sdfio_reader_new(&writers_only) == NULL);
 }
 
-/* The version numbers of a configuration: those of its codecs, in their order.
+/* The version numbers of a configuration: those of its formats, in their order.
  */
 static void check_version_numbers(void)
 {
-    CHECK(sdfio_version_number_count(all_codecs()) == 4U);
-    CHECK(strcmp(sdfio_version_number(all_codecs(), 0), "bISO-1.0") == 0);
-    CHECK(strcmp(sdfio_version_number(all_codecs(), 1), "bISO-2.0") == 0);
-    CHECK(strcmp(sdfio_version_number(all_codecs(), 2), "aISO-1.0") == 0);
-    CHECK(strcmp(sdfio_version_number(all_codecs(), 3), "aISO-2.0") == 0);
-    for (size_t i = 0; i < sdfio_version_number_count(all_codecs()); ++i)
+    CHECK(sdfio_version_number_count(all_formats()) == 4U);
+    CHECK(strcmp(sdfio_version_number(all_formats(), 0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_formats(), 1), "bISO-2.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_formats(), 2), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_version_number(all_formats(), 3), "aISO-2.0") == 0);
+    for (size_t i = 0; i < sdfio_version_number_count(all_formats()); ++i)
     {
-        CHECK(strlen(sdfio_version_number(all_codecs(), i))
+        CHECK(strlen(sdfio_version_number(all_formats(), i))
               == SDFIO_VERSION_NUMBER_SIZE);
     }
-    CHECK(sdfio_version_number(all_codecs(),
-                               sdfio_version_number_count(all_codecs()))
+    CHECK(sdfio_version_number(all_formats(),
+                               sdfio_version_number_count(all_formats()))
           == NULL);
 
     const sdfio_config ascii_first = {
-        .reader_codecs = {&sdfio_ascii_reader_codec,
-                          &sdfio_binary_reader_codec}};
+        .reader_formats = {&sdfio_ascii_reader_format,
+                           &sdfio_binary_reader_format}};
     CHECK(strcmp(sdfio_version_number(&ascii_first, 0), "aISO-1.0") == 0);
     const sdfio_config binary_only = {
-        .reader_codecs = {&sdfio_binary_reader_codec}};
+        .reader_formats = {&sdfio_binary_reader_format}};
     CHECK(sdfio_version_number_count(&binary_only) == 2U);
     CHECK(sdfio_version_number(&binary_only, 2) == NULL);
     CHECK(sdfio_version_number_count(NULL) == 0U);

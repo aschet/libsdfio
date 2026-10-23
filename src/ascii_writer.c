@@ -6,7 +6,7 @@
 
 /**
  * @file ascii_writer.c
- * @brief Writer codec of the ASCII representation.
+ * @brief Writing of the ASCII format.
  */
 
 #include "ascii.h"
@@ -17,7 +17,7 @@
 #include "message.h"
 #include "number_text.h"
 #include "sink.h"
-#include "writer_codec.h"
+#include "writer_format.h"
 #include <sdfio/sdfio.h>
 #include <stdio.h>
 #include <string.h>
@@ -25,7 +25,7 @@
 static const char terminator = SDFIO_ASCII_TERMINATOR;
 static const char crlf[] = SDFIO_ASCII_LINE_END;
 
-/** What the writer of this codec keeps for a file. */
+/** What the writer of this format keeps for a file. */
 struct writing
 {
     /** The decimal point of the locale, measured when the file was created. */
@@ -246,9 +246,9 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
     return SDFIO_OK;
 }
 
-const sdfio_writer_codec sdfio_ascii_writer_codec = {
+const sdfio_writer_format sdfio_ascii_writer_format = {
     .state_size = sizeof(struct writing),
-    .representation = SDFIO_ASCII,
+    .writes = SDFIO_ASCII,
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,

@@ -24,7 +24,7 @@ static sdfio_status require_complete(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-/* The header is out, and the codec has opened the record of the trailer. */
+/* The header is out, and the format has opened the record of the trailer. */
 static sdfio_status open_trailer(sdfio_writer *writer)
 {
     sdfio_status status = sdfio_writer_start_data(writer);
@@ -34,7 +34,7 @@ static sdfio_status open_trailer(sdfio_writer *writer)
     }
     if (!writer->trailer_open)
     {
-        status = writer->codec->begin_trailer(&writer->sink, &writer->message);
+        status = writer->format->begin_trailer(&writer->sink, &writer->message);
         if (status != SDFIO_OK)
         {
             return sdfio_writer_fail(writer, status);
@@ -125,7 +125,7 @@ sdfio_status sdfio_end_trailer(sdfio_writer *writer)
     {
         return status;
     }
-    status = writer->codec->end_trailer(&writer->sink, &writer->message);
+    status = writer->format->end_trailer(&writer->sink, &writer->message);
     if (status != SDFIO_OK)
     {
         return sdfio_writer_fail(writer, status);

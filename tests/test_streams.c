@@ -79,7 +79,7 @@ static void check_pipe(const char *path, size_t piece)
     pipe_source pipe = {data, size, 0, piece, SIZE_MAX};
     const sdfio_stream stream = pipe_stream(&pipe);
 
-    sdfio_reader *reader = sdfio_reader_new(all_codecs());
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const sdfio_header *header = sdfio_get_header(reader);
     CHECK(header != NULL);
@@ -89,7 +89,7 @@ static void check_pipe(const char *path, size_t piece)
             malloc(header->rows * header->columns * sizeof(double));
         CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights));
         /* The same heights, in the same places, as from memory. */
-        sdfio_reader *in_memory = sdfio_reader_new(all_codecs());
+        sdfio_reader *in_memory = sdfio_reader_new(all_formats());
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
             malloc(header->rows * header->columns * sizeof(double));
@@ -118,7 +118,7 @@ static void check_pipe(const char *path, size_t piece)
 
     /* The trailer can be asked for first: the data is passed over. */
     pipe = (pipe_source){data, size, 0, piece, SIZE_MAX};
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
     size_t trailer_size = 0;
@@ -144,7 +144,7 @@ static void check_failing_stream(void)
     {
         pipe_source pipe = {data, size, 0, 7, places[i]};
         const sdfio_stream stream = pipe_stream(&pipe);
-        sdfio_reader *reader = sdfio_reader_new(all_codecs());
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
         sdfio_status status = sdfio_open_stream(reader, &stream);
         if (status == SDFIO_OK)
         {
@@ -180,7 +180,7 @@ static void check_damage(const char *path)
     }
     for (size_t length = 0; length < size; length += (length < 400 ? 1 : 7))
     {
-        sdfio_reader *reader = sdfio_reader_new(all_codecs());
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
         if (sdfio_open_memory(reader, data, length) == SDFIO_OK)
         {
             const sdfio_header *header = sdfio_get_header(reader);
@@ -212,7 +212,7 @@ static void check_damage(const char *path)
             const size_t at = state % (round % 2 == 0 ? 400 : size);
             copy[at < size ? at : 0] = (unsigned char)(state >> 8);
         }
-        sdfio_reader *reader = sdfio_reader_new(all_codecs());
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
         if (sdfio_open_memory(reader, copy, size) == SDFIO_OK)
         {
             const sdfio_header *header = sdfio_get_header(reader);
@@ -239,11 +239,11 @@ static void check_header_errors(void)
 {
     size_t size = 0;
     unsigned char *data = load(SAMPLES "iso2_surface_binary.sdf", &size);
-    sdfio_reader *reader = sdfio_reader_new(all_codecs());
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, "", 0));
     sdfio_reader_free(reader);
 
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, "not an sdf file at all", 22));
     CHECK(strlen(sdfio_reader_error_message(reader)) > 0);
@@ -257,17 +257,17 @@ static void check_header_errors(void)
         unsigned char *copy = malloc(size);
         memcpy(copy, data, size);
         copy[header_size - 3] = 1;
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 1] = 1;
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[header_size - 2] = 99;
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         /* The date, the z-scale and the first character of the version number.
@@ -280,17 +280,17 @@ static void check_header_errors(void)
         };
         memcpy(copy, data, size);
         memset(copy + DATES_AT, '0', SDFIO_DATETIME_SIZE);
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         memset(copy + Z_SCALE_AT, 0, sizeof(double));
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         memcpy(copy, data, size);
         copy[0] = 'B';
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
         free(copy);
@@ -301,7 +301,7 @@ static void check_header_errors(void)
         const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
         memcpy(marked, mark, 3);
         memcpy(marked + 3, data, size);
-        reader = sdfio_reader_new(all_codecs());
+        reader = sdfio_reader_new(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT,
                      sdfio_open_memory(reader, marked, size + 3));
         sdfio_reader_free(reader);
@@ -309,7 +309,7 @@ static void check_header_errors(void)
     }
     free(data);
 
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_open_file(reader, SDFIO_TEST_DATA_DIR "/missing.sdf"));
     CHECK(strstr(sdfio_reader_error_message(reader), "cannot be opened")
@@ -345,14 +345,14 @@ static void check_file(void)
     header.rows = 2;
     const double heights[4] = {1, 2, 3, 4};
 
-    sdfio_writer *writer = sdfio_writer_new(all_codecs());
+    sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_file(writer, path, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
 
-    sdfio_reader *reader = sdfio_reader_new(all_codecs());
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_file(reader, path));
     double back[4] = {0};
     CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
@@ -361,13 +361,13 @@ static void check_file(void)
     remove(path);
 
     header.z_scale = -1.0;
-    writer = sdfio_writer_new(all_codecs());
+    writer = sdfio_writer_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file(writer, path, &header));
     CHECK(!file_exists(path));
     sdfio_writer_free(writer);
 
     header.z_scale = 1.0;
-    writer = sdfio_writer_new(all_codecs());
+    writer = sdfio_writer_new(all_formats());
     CHECK_STATUS(SDFIO_ERR_IO,
                  sdfio_create_file(writer, "no_such_folder/out.sdf", &header));
     sdfio_writer_free(writer);
@@ -393,7 +393,7 @@ static void check_huge_matrix(void)
     membuf file = {0};
     const sdfio_stream out = membuf_stream(&file);
     const double height = 0.0;
-    sdfio_writer *writer = sdfio_writer_new(all_codecs());
+    sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &out, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -410,7 +410,7 @@ static void check_huge_matrix(void)
     }
     pipe_source pipe = {file.data, file.size, 0, SIZE_MAX, SIZE_MAX};
     const sdfio_stream stream = pipe_stream(&pipe);
-    sdfio_reader *reader = sdfio_reader_new(all_codecs());
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
     size_t trailer_size = 0;
@@ -452,7 +452,7 @@ static sdfio_status open_ascii(const char *version_number, const char *id,
     add_line(text, sizeof text, "1.00000000000000e+000", "", line_end);
     add_line(text, sizeof text, "*", "", line_end);
     add_line(text, sizeof text, "*", "", line_end);
-    sdfio_reader *reader = sdfio_reader_new(all_codecs());
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
     const sdfio_status status = sdfio_open_memory(reader, text, strlen(text));
     sdfio_reader_free(reader);
     return status;
@@ -527,7 +527,7 @@ static void check_failing_sink(void)
     header.columns = 4;
     header.rows = 4;
     const sdfio_stream stream = {NULL, NULL, refusing_write};
-    sdfio_writer *writer = sdfio_writer_new(all_codecs());
+    sdfio_writer *writer = sdfio_writer_new(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */

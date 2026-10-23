@@ -35,7 +35,7 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
 {
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings)
-        || settings.reader_codecs[0] == NULL)
+        || settings.reader_formats[0] == NULL)
     {
         return NULL;
     }
@@ -47,9 +47,9 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
     *reader = (sdfio_reader){.allocator = settings.allocator,
                              .zone = settings.zone,
                              .chunk_values = settings.chunk};
-    for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        reader->codecs[i] = settings.reader_codecs[i];
+        reader->formats[i] = settings.reader_formats[i];
     }
     reader->trailer.allocator = &reader->allocator;
     reader->chunk = sdfio_allocate(&reader->allocator,
@@ -78,7 +78,7 @@ void sdfio_reader_free(sdfio_reader *reader)
     sdfio_source_destroy(&reader->source);
     const sdfio_allocator allocator = reader->allocator;
     sdfio_release(&allocator, reader->chunk);
-    sdfio_release(&allocator, reader->codec_state);
+    sdfio_release(&allocator, reader->format_state);
     sdfio_release(&allocator, reader);
 }
 
@@ -123,28 +123,28 @@ static sdfio_status open_source(sdfio_reader *reader,
                           "The reader is open already");
     }
     sdfio_source_init(&reader->source, stream);
-    sdfio_status status = sdfio_select_reader_codec(
-        &reader->source, reader->codecs, &reader->codec, &reader->message);
+    sdfio_status status = sdfio_select_reader_format(
+        &reader->source, reader->formats, &reader->format, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    sdfio_release(&reader->allocator, reader->codec_state);
-    reader->codec_state = NULL;
-    if (reader->codec->state_size > 0)
+    sdfio_release(&reader->allocator, reader->format_state);
+    reader->format_state = NULL;
+    if (reader->format->state_size > 0)
     {
-        reader->codec_state =
-            sdfio_allocate(&reader->allocator, reader->codec->state_size);
-        if (reader->codec_state == NULL)
+        reader->format_state =
+            sdfio_allocate(&reader->allocator, reader->format->state_size);
+        if (reader->format_state == NULL)
         {
             return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
                               "Out of memory");
         }
-        memset(reader->codec_state, 0, reader->codec->state_size);
+        memset(reader->format_state, 0, reader->format->state_size);
     }
-    status =
-        sdfio_read_header(&reader->source, reader->codec, &reader->header,
-                          reader->codec_state, &reader->zone, &reader->message);
+    status = sdfio_read_header(&reader->source, reader->format, &reader->header,
+                               reader->format_state, &reader->zone,
+                               &reader->message);
     if (status != SDFIO_OK)
     {
         return status;

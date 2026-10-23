@@ -9,7 +9,7 @@ bytes, which the compiler checks at compile time.
 
 ```c
 const sdfio_config config = {
-    .reader_codecs = {&sdfio_binary_reader_codec, &sdfio_ascii_reader_codec}};
+    .reader_formats = {&sdfio_binary_reader_format, &sdfio_ascii_reader_format}};
 sdfio_reader *reader = sdfio_reader_new(&config);
 if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 {

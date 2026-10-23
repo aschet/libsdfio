@@ -235,7 +235,7 @@ static void check_file(void)
 {
     const sdfio_time_zone zone = {NULL, central_europe_to_utc,
                                   central_europe_to_local};
-    const sdfio_config with_zone = {.time_zone = &zone, ALL_CODECS};
+    const sdfio_config with_zone = {.time_zone = &zone, ALL_FORMATS};
     sdfio_header header;
     sdfio_header_init(&header);
     header.revision = SDFIO_ISO_1_0;
@@ -266,14 +266,14 @@ static void check_file(void)
     CHECK(sdfio_get_header(reader)->modification_date == 1768474800);
     sdfio_reader_free(reader);
 
-    reader = sdfio_reader_new(all_codecs());
+    reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
     CHECK(sdfio_get_header(reader)->creation_date == 1782907200);
     sdfio_reader_free(reader);
 
     /* A writer whose time zone refuses the date creates no file. */
     const sdfio_time_zone refusing = {NULL, refuse, refuse};
-    const sdfio_config refusing_config = {.time_zone = &refusing, ALL_CODECS};
+    const sdfio_config refusing_config = {.time_zone = &refusing, ALL_FORMATS};
     memory_sink refused = {NULL, 0};
     const sdfio_stream refused_stream = {&refused, NULL, sink_write};
     writer = sdfio_writer_new(&refusing_config);

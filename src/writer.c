@@ -21,7 +21,7 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
 {
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings)
-        || settings.writer_codecs[0] == NULL)
+        || settings.writer_formats[0] == NULL)
     {
         return NULL;
     }
@@ -33,9 +33,9 @@ sdfio_writer *sdfio_writer_new(const sdfio_config *config)
     *writer = (sdfio_writer){.allocator = settings.allocator,
                              .zone = settings.zone,
                              .chunk_values = settings.chunk};
-    for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        writer->codecs[i] = settings.writer_codecs[i];
+        writer->formats[i] = settings.writer_formats[i];
     }
     writer->coded = sdfio_allocate(&writer->allocator,
                                    settings.chunk * SDFIO_LARGEST_DATA_ENTRY);
@@ -63,7 +63,7 @@ void sdfio_writer_free(sdfio_writer *writer)
     const sdfio_allocator allocator = writer->allocator;
     sdfio_release(&allocator, writer->coded);
     sdfio_release(&allocator, writer->scratch);
-    sdfio_release(&allocator, writer->codec_state);
+    sdfio_release(&allocator, writer->format_state);
     sdfio_release(&allocator, writer);
 }
 
@@ -89,16 +89,16 @@ sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status)
     return status;
 }
 
-/* The writer codec of a representation, or null if none is listed. */
-static const sdfio_writer_codec *
-writer_codec_for(const sdfio_writer_codec *const *codecs,
-                 sdfio_representation representation)
+/* The listed writer format of a representation, or null. */
+static const sdfio_writer_format *
+writer_format_for(const sdfio_writer_format *const *formats,
+                  sdfio_representation representation)
 {
-    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX && formats[i] != NULL; ++i)
     {
-        if (codecs[i]->representation == representation)
+        if (formats[i]->writes == representation)
         {
-            return codecs[i];
+            return formats[i];
         }
     }
     return NULL;
@@ -118,10 +118,10 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     {
         return status;
     }
-    if (writer_codec_for(writer->codecs, header->representation) == NULL)
+    if (writer_format_for(writer->formats, header->representation) == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
-                          "The codec of the representation is not listed in "
+                          "The format of the representation is not listed in "
                           "the configuration");
     }
     return SDFIO_OK;
@@ -136,9 +136,9 @@ static sdfio_status start_stream(sdfio_writer *writer,
     {
         return status;
     }
-    const sdfio_writer_codec *codec =
-        writer_codec_for(writer->codecs, header->representation);
-    const size_t scratch = codec->scratch_size(writer->chunk_values);
+    const sdfio_writer_format *format =
+        writer_format_for(writer->formats, header->representation);
+    const size_t scratch = format->scratch_size(writer->chunk_values);
     if (scratch > 0)
     {
         writer->scratch = sdfio_allocate(&writer->allocator, scratch);
@@ -148,19 +148,19 @@ static sdfio_status start_stream(sdfio_writer *writer,
                               "Out of memory");
         }
     }
-    if (codec->state_size > 0)
+    if (format->state_size > 0)
     {
-        writer->codec_state =
-            sdfio_allocate(&writer->allocator, codec->state_size);
-        if (writer->codec_state == NULL)
+        writer->format_state =
+            sdfio_allocate(&writer->allocator, format->state_size);
+        if (writer->format_state == NULL)
         {
             return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY,
                               "Out of memory");
         }
-        memset(writer->codec_state, 0, codec->state_size);
+        memset(writer->format_state, 0, format->state_size);
     }
     writer->header = *header;
-    writer->codec = codec;
+    writer->format = format;
     sdfio_sink_init(&writer->sink, stream);
     writer->state = SDFIO_WRITER_CREATED;
     return SDFIO_OK;

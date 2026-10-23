@@ -39,8 +39,8 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
                 "to have one chosen");
         }
     }
-    const sdfio_status status = writer->codec->write_header(
-        &writer->sink, header, writer->codec_state, &writer->zone,
+    const sdfio_status status = writer->format->write_header(
+        &writer->sink, header, writer->format_state, &writer->zone,
         &writer->allocator, &writer->message);
     if (status == SDFIO_ERR_IO)
     {
@@ -54,8 +54,8 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
 sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
                                      size_t count)
 {
-    const sdfio_status status = writer->codec->write_values(
-        &writer->sink, &writer->header, writer->codec_state, values, count,
+    const sdfio_status status = writer->format->write_values(
+        &writer->sink, &writer->header, writer->format_state, values, count,
         writer->scratch, writer->chunk_values, &writer->message);
     return status == SDFIO_OK ? status : sdfio_writer_fail(writer, status);
 }

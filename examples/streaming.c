@@ -19,8 +19,9 @@ int main(void)
     _setmode(_fileno(stdin), _O_BINARY);
 #endif
     const sdfio_stream stream = sdfio_stdio_stream(stdin);
-    const sdfio_config config = {.reader_codecs = {&sdfio_binary_reader_codec,
-                                                   &sdfio_ascii_reader_codec}};
+    const sdfio_config config = {
+        .reader_formats = {&sdfio_binary_reader_format,
+                           &sdfio_ascii_reader_format}};
     sdfio_reader *reader = sdfio_reader_new(&config);
     sdfio_status status = sdfio_open_stream(reader, &stream);
     if (status != SDFIO_OK)

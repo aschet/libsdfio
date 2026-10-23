@@ -89,7 +89,7 @@ set(SDFIO_SOURCES
     src/reader_state.h
     src/reader_trailer.c
     src/reader_file.h
-    src/reader_codec.h
+    src/reader_format.h
     src/revision.c
     src/revision.h
     src/settings.c
@@ -110,7 +110,7 @@ set(SDFIO_SOURCES
     src/writer_state.h
     src/writer_trailer.c
     src/writer_file.h
-    src/writer_codec.h
+    src/writer_format.h
 )
 
 if(WIN32)

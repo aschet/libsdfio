@@ -37,7 +37,7 @@ sdfio_message *sdfio_writer_message(sdfio_writer *writer);
  * @param header The header of the file.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_ARGUMENT The header cannot be written.
- * @retval SDFIO_ERR_UNSUPPORTED The writer codec of the representation is not
+ * @retval SDFIO_ERR_UNSUPPORTED The writer format of the representation is not
  * listed.
  */
 sdfio_status sdfio_writer_check(sdfio_writer *writer,

@@ -38,7 +38,8 @@ static int write_surface(const char *path, sdfio_data_type type)
     header.x_scale = 1e-6;
     header.y_scale = 1e-6;
 
-    const sdfio_config config = {.writer_codecs = {&sdfio_binary_writer_codec}};
+    const sdfio_config config = {
+        .writer_formats = {&sdfio_binary_writer_format}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     if (status == SDFIO_OK)

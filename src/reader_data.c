@@ -16,8 +16,8 @@
 sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
                                       size_t count)
 {
-    const sdfio_status status = reader->codec->read_values(
-        &reader->source, &reader->header, reader->codec_state, dst, count,
+    const sdfio_status status = reader->format->read_values(
+        &reader->source, &reader->header, reader->format_state, dst, count,
         &reader->message);
     if (status == SDFIO_OK)
     {
@@ -33,7 +33,7 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
     {
         return SDFIO_OK;
     }
-    const sdfio_status status = reader->codec->end_data(
+    const sdfio_status status = reader->format->end_data(
         &reader->source, &reader->header,
         reader->next_row == reader->header.rows,
         reader->value_count - reader->next_value, reader->chunk,

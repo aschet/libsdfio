@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 #
-# The magic number check is off: a codec is made of constants, and the ones that
+# The magic number check is off: a format is made of constants, and the ones that
 # carry a meaning are named. The unsafe-buffer check wants the optional bounds
 # checked functions of Annex K. The bool conversion check treats the int of a
 # comparison in C as a conversion. The unchecked results of printing and of

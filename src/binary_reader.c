@@ -6,7 +6,7 @@
 
 /**
  * @file binary_reader.c
- * @brief Reader codec of the binary representation.
+ * @brief Reading of the binary format.
  *
  * The files store values in little-endian byte order, regardless of the byte
  * order of the host.
@@ -19,7 +19,7 @@
 #include "dynstring.h"
 #include "fields.h"
 #include "message.h"
-#include "reader_codec.h"
+#include "reader_format.h"
 #include "revision.h"
 #include "source.h"
 #include "tagged.h"
@@ -56,7 +56,7 @@ static const char *const version_numbers[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
 
 /* The revision whose version number the bytes are, according to the version
- * numbers that the codec lists. */
+ * numbers that the format lists. */
 static bool revision_of(const unsigned char *version_number,
                         sdfio_revision *revision)
 {
@@ -251,7 +251,7 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-const sdfio_reader_codec sdfio_binary_reader_codec = {
+const sdfio_reader_format sdfio_binary_reader_format = {
     .prefix = 'b',
     .version_numbers = version_numbers,
     .version_number_count = sizeof version_numbers / sizeof version_numbers[0],

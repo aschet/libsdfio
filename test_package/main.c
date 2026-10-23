@@ -46,10 +46,11 @@ int main(void)
     header.y_scale = 1.0e-6;
 
     int failed = 0;
-    const sdfio_config config = {.reader_codecs = {&sdfio_binary_reader_codec,
-                                                   &sdfio_ascii_reader_codec},
-                                 .writer_codecs = {&sdfio_binary_writer_codec,
-                                                   &sdfio_ascii_writer_codec}};
+    const sdfio_config config = {
+        .reader_formats = {&sdfio_binary_reader_format,
+                           &sdfio_ascii_reader_format},
+        .writer_formats = {&sdfio_binary_writer_format,
+                           &sdfio_ascii_writer_format}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     failed |= writer == NULL;
     if (writer != NULL)

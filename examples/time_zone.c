@@ -52,8 +52,8 @@ int main(void)
                                        utc_to_local};
     const sdfio_config with_zone = {
         .time_zone = &time_zone,
-        .reader_codecs = {&sdfio_binary_reader_codec},
-        .writer_codecs = {&sdfio_binary_writer_codec}};
+        .reader_formats = {&sdfio_binary_reader_format},
+        .writer_formats = {&sdfio_binary_writer_format}};
 
     sdfio_header header;
     sdfio_header_init(&header);

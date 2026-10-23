@@ -40,7 +40,8 @@ static int write_coded_values(const char *path)
     header.z_resolution = header.z_scale;
 
     const int16_t not_measured = SDFIO_BAD_INT16;
-    const sdfio_config config = {.writer_codecs = {&sdfio_binary_writer_codec}};
+    const sdfio_config config = {
+        .writer_formats = {&sdfio_binary_writer_format}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
@@ -63,7 +64,8 @@ static int write_coded_values(const char *path)
 
 static int read_coded_values(const char *path)
 {
-    const sdfio_config config = {.reader_codecs = {&sdfio_binary_reader_codec}};
+    const sdfio_config config = {
+        .reader_formats = {&sdfio_binary_reader_format}};
     sdfio_reader *reader = sdfio_reader_new(&config);
     sdfio_status status = sdfio_open_file(reader, path);
     const sdfio_header *header = sdfio_get_header(reader);

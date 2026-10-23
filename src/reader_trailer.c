@@ -33,9 +33,9 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
     status = sdfio_reader_finish_data(reader);
     if (status == SDFIO_OK)
     {
-        status = reader->codec->read_trailer(&reader->source, &reader->trailer,
-                                             &reader->trailer_present,
-                                             &reader->message);
+        status = reader->format->read_trailer(&reader->source, &reader->trailer,
+                                              &reader->trailer_present,
+                                              &reader->message);
     }
     if (status != SDFIO_OK)
     {

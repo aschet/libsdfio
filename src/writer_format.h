@@ -5,35 +5,35 @@
  */
 
 /**
- * @file writer_codec.h
- * @brief Interface of the codecs that write a representation.
+ * @file writer_format.h
+ * @brief Interface of the formats that a writer writes.
  */
 
-#ifndef SDFIO_SRC_WRITER_CODEC_H
-#define SDFIO_SRC_WRITER_CODEC_H
+#ifndef SDFIO_SRC_WRITER_FORMAT_H
+#define SDFIO_SRC_WRITER_FORMAT_H
 
 #include "message.h"
 #include "revision.h"
 #include "sink.h"
 
 /** The room for the text of one value in an ASCII data area, with its
- * separator, which is the most that a codec asks for. */
+ * separator, which is the most that a format asks for. */
 enum
 {
     SDFIO_TEXT_PER_VALUE = 32
 };
 
 /**
- * A writer codec: the functions that write a representation of the files.
+ * A writer format: the functions that write a representation of the files.
  * The writer knows nothing of the representations, as the reader does not.
  */
-struct sdfio_writer_codec
+struct sdfio_writer_format
 {
-    /** The size of what the codec keeps for a file between its calls, which
+    /** The size of what the format keeps for a file between its calls, which
      * the writer allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
-    /** The representation that the codec writes. */
-    sdfio_representation representation;
+    /** The representation that the format writes. */
+    sdfio_representation writes;
 
     /**
      * Returns the bytes that the writer has to provide for write_values().
@@ -47,8 +47,8 @@ struct sdfio_writer_codec
      *
      * @param sink The sink.
      * @param header The header.
-     * @param[out] state The room of `state_size` bytes, zeroed. The codec fills
-     * it.
+     * @param[out] state The room of `state_size` bytes, zeroed. The format
+     * fills it.
      * @param zone The time zone of the caller. May be null.
      * @param allocator The allocator of the handle.
      * @param[out] message Receives the reason of a failure.
@@ -66,7 +66,7 @@ struct sdfio_writer_codec
      *
      * @param sink The sink.
      * @param header The header of the file.
-     * @param[in,out] state What the codec keeps for the file, `state_size`
+     * @param[in,out] state What the format keeps for the file, `state_size`
      * bytes.
      * @param values The values in the data type of the header.
      * @param count The number of values.
@@ -101,4 +101,4 @@ struct sdfio_writer_codec
     sdfio_status (*end_trailer)(sdfio_sink *sink, sdfio_message *message);
 };
 
-#endif /* SDFIO_SRC_WRITER_CODEC_H */
+#endif /* SDFIO_SRC_WRITER_FORMAT_H */

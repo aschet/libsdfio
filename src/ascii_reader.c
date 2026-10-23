@@ -6,7 +6,7 @@
 
 /**
  * @file ascii_reader.c
- * @brief Reader codec of the ASCII representation.
+ * @brief Reading of the ASCII format.
  */
 
 #include "ascii.h"
@@ -16,7 +16,7 @@
 #include "fields.h"
 #include "message.h"
 #include "number_text.h"
-#include "reader_codec.h"
+#include "reader_format.h"
 #include "revision.h"
 #include "source.h"
 #include "tagged.h"
@@ -137,7 +137,7 @@ static const char *const version_numbers[] = {
     [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
 
 /* The revision whose version number the text is, according to the version
- * numbers that the codec lists. */
+ * numbers that the format lists. */
 static bool revision_of(const char *version_number, size_t size,
                         sdfio_revision *revision)
 {
@@ -319,7 +319,7 @@ static sdfio_status store_field(header_fields *fields, enum field field,
                               "A field of the SDF header has an invalid value");
 }
 
-/** What the reader of this codec keeps for a file. */
+/** What the reader of this format keeps for a file. */
 struct reading
 {
     /** The decimal point of the locale, measured when the file was opened. */
@@ -795,7 +795,7 @@ done:
 /* ---- Writing ----------------------------------------------------------------
  */
 
-const sdfio_reader_codec sdfio_ascii_reader_codec = {
+const sdfio_reader_format sdfio_ascii_reader_format = {
     .state_size = sizeof(struct reading),
     .prefix = 'a',
     .version_numbers = version_numbers,

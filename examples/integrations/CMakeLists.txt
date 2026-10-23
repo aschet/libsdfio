@@ -32,7 +32,7 @@ endfunction()
 # A C++ class over the C interface needs no other library.
 sdfio_integration(image SOURCE image.cpp)
 
-find_package(OpenCV QUIET COMPONENTS core imgproc imgcodecs)
+find_package(OpenCV QUIET COMPONENTS core imgproc IMGFORMATS_KEEP)
 if(OpenCV_FOUND)
     sdfio_integration(opencv SOURCE opencv.cpp LIBS ${OpenCV_LIBS})
     target_include_directories(integration_opencv SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
