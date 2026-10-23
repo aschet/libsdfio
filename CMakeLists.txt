@@ -23,7 +23,6 @@ include(GNUInstallDirs)
 
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
-option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
 
 set(SDFIO_WARNINGS
@@ -176,10 +175,6 @@ endif()
 if(SDFIO_BUILD_INTEGRATIONS)
     enable_language(CXX)
     add_subdirectory(examples/integrations)
-endif()
-
-if(SDFIO_BUILD_FUZZERS)
-    add_subdirectory(tests/fuzz)
 endif()
 
 if(SDFIO_BUILD_DOCS)

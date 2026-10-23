@@ -39,6 +39,7 @@ jobs=(
   documentation
   licenses
   coverage
+  fuzzers
 )
 
 # Describes a job by setting variables. kind is build, firmware or check.
@@ -120,7 +121,7 @@ describe() {
       flags="-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections --specs=picolibc.specs"
       ;;
     asan-ubsan | tsan | static-analysis | format | documentation | licenses \
-      | coverage)
+      | coverage | fuzzers)
       kind=check
       ;;
     *)
@@ -219,6 +220,22 @@ run_licenses() {
   reuse lint
 }
 
+# Builds the fuzzers of libFuzzer with Clang. The library is instrumented, and
+# each fuzzer is linked with the library. Run one with a folder of inputs:
+#   build/fuzzers/fuzz_reader corpus/ -max_total_time=60
+run_fuzzers() {
+  local sanitizers=address,undefined
+  CC=clang cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    "-DCMAKE_C_FLAGS=-fsanitize=$sanitizers,fuzzer-no-link" -DBUILD_TESTING=OFF \
+    -DSDFIO_BUILD_EXAMPLES=OFF
+  cmake --build "$dir"
+  for fuzzer in fuzz_reader fuzz_writer; do
+    clang "-fsanitize=$sanitizers,fuzzer" -DSDFIO_STATIC_DEFINE -Iinclude \
+      "-I$dir/generated/include" "tests/fuzz/$fuzzer.c" "$dir/libsdfio.a" -lm \
+      -o "$dir/$fuzzer"
+  done
+}
+
 # Measures the coverage of the library sources by the tests, excluding the
 # tests and the examples. The tests use threads, so the profiling counters are
 # updated atomically. The job fails if fewer than 75 percent of the lines are
@@ -255,6 +272,7 @@ main() {
         format) run_format ;;
         documentation) run_documentation ;;
         licenses) run_licenses ;;
+        fuzzers) run_fuzzers ;;
         coverage) run_coverage ;;
         *) "run_$kind" ;;
       esac
