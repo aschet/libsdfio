@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.28...4.2)
 
 project(sdfio
     VERSION 0.1.0
-    DESCRIPTION "Reader and writer for ISO 25178-71 SDF surface data files in C"
+    DESCRIPTION "Bare-bones, portable C library that reads and writes ISO 25178-71 SDF surface data files"
     HOMEPAGE_URL "https://github.com/aschet/libsdfio"
     LANGUAGES C
 )
