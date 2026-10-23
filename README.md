@@ -32,8 +32,3 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build
 ```
-
-A handle reads and writes the representations whose codecs its configuration
-lists. A program that does not list `sdfio_ascii_codec` does not contain the
-code for ASCII files when it links the library statically, and reading an
-ASCII file returns `SDFIO_ERR_UNSUPPORTED`.
