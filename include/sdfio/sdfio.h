@@ -380,7 +380,8 @@ SDFIO_API void sdfio_header_init(sdfio_header *header);
  * Callbacks that provide or accept the bytes of a file.
  *
  * A reader uses `read`. A writer uses `write`. The bytes are processed once and
- * in order, as for a pipe.
+ * in order, as for a pipe. A program that does not use an initializer calls
+ * sdfio_stream_init() before it assigns fields.
  */
 typedef struct sdfio_stream
 {
@@ -398,6 +399,14 @@ typedef struct sdfio_stream
      */
     size_t (*write)(void *user, const void *data, size_t size);
 } sdfio_stream;
+
+/**
+ * Initializes a stream: every field is null, so the stream has no callback.
+ * The caller sets `user` and the callback that its handle uses.
+ *
+ * @param[out] stream The stream to initialize.
+ */
+SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
 
 /**
  * Memory management callbacks that replace malloc() and free(), for example
@@ -429,7 +438,9 @@ typedef struct sdfio_allocator
  * of one minute. A clock reading is expressed as if it were UTC. A callback
  * returns SDFIO_NO_TIME if it cannot convert the time. A callback that is null
  * performs no conversion. ISO-2.0 files store UTC and are not affected. The
- * callbacks are called by the thread that uses the handle.
+ * callbacks are called by the thread that uses the handle. A program that does
+ * not use an initializer calls sdfio_time_zone_init() before it assigns
+ * fields.
  */
 typedef struct sdfio_time_zone
 {
@@ -448,6 +459,14 @@ typedef struct sdfio_time_zone
      */
     time_t (*utc_to_local)(void *user, time_t utc);
 } sdfio_time_zone;
+
+/**
+ * Initializes a time zone: every field is null, so it performs no conversion.
+ * The caller sets `user` and the callbacks.
+ *
+ * @param[out] time_zone The time zone to initialize.
+ */
+SDFIO_API void sdfio_time_zone_init(sdfio_time_zone *time_zone);
 
 /**
  * The reading of a representation of the files: the header, the values of the
@@ -701,7 +720,9 @@ SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
  * or the columns must not overlap. This allows heights and values to be read
  * or written in place where they are not contiguous, for example the z member
  * of an array of points, one channel of an interleaved image or a column-major
- * matrix. sdfio_layout_packed() describes a plain array.
+ * matrix. sdfio_layout_packed() describes a plain array. A program that does
+ * not use an initializer calls sdfio_layout_init() before it assigns fields:
+ * the default of `missing` is NaN, not zero.
  */
 typedef struct sdfio_layout
 {
@@ -730,6 +751,16 @@ typedef struct sdfio_layout
      */
     ptrdiff_t row_stride;
 } sdfio_layout;
+
+/**
+ * Initializes a layout of a plain array of binary32 elements: the elements
+ * follow each other, the rows follow each other, and NaN marks a point of
+ * heights that is not measured. The caller sets the type and every other field
+ * that differs.
+ *
+ * @param[out] layout The layout to initialize.
+ */
+SDFIO_API void sdfio_layout_init(sdfio_layout *layout);
 
 /**
  * Returns the layout of a plain array: the elements follow each other, the rows

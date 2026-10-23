@@ -8,6 +8,7 @@
  * this fails to link if something is not exported. */
 
 #include "check.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,9 +51,31 @@ static void check_memory(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(&header, NULL));
 }
 
-/* Every field of a configuration is zero, whatever the memory held before. */
-static void check_config_init(void)
+/* The initializers set every field to zero, whatever the memory held before. */
+static void check_init(void)
 {
+    sdfio_stream stream;
+    memset(&stream, 0xA5, sizeof stream);
+    sdfio_stream_init(&stream);
+    CHECK(stream.user == NULL);
+    CHECK(stream.read == NULL);
+    CHECK(stream.write == NULL);
+
+    sdfio_layout layout;
+    memset(&layout, 0xA5, sizeof layout);
+    sdfio_layout_init(&layout);
+    CHECK(layout.type == SDFIO_TYPE_FLOAT);
+    CHECK(isnan(layout.missing));
+    CHECK(layout.element_stride == 0);
+    CHECK(layout.row_stride == 0);
+
+    sdfio_time_zone zone;
+    memset(&zone, 0xA5, sizeof zone);
+    sdfio_time_zone_init(&zone);
+    CHECK(zone.user == NULL);
+    CHECK(zone.local_to_utc == NULL);
+    CHECK(zone.utc_to_local == NULL);
+
     sdfio_config config;
     memset(&config, 0xA5, sizeof config);
     sdfio_config_init(&config);
@@ -70,7 +93,7 @@ static void check_config_init(void)
 int main(void)
 {
     check_memory();
-    check_config_init();
+    check_init();
     CHECK(strcmp(sdfio_version(), SDFIO_VERSION_STRING) == 0);
 
     sdfio_header header;

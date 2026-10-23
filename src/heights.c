@@ -20,6 +20,11 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
+void sdfio_layout_init(sdfio_layout *layout)
+{
+    *layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+}
+
 ptrdiff_t sdfio_element_stride(sdfio_layout layout)
 {
     return layout.element_stride != 0

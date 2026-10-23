@@ -6,12 +6,22 @@
 
 /**
  * @file settings.c
- * @brief Resolution of the configuration.
+ * @brief Initialization and resolution of the configuration and its parts.
  */
 
 #include "settings.h"
 #include "data_type.h"
 #include "writer_format.h"
+
+void sdfio_stream_init(sdfio_stream *stream)
+{
+    *stream = (sdfio_stream){0};
+}
+
+void sdfio_time_zone_init(sdfio_time_zone *time_zone)
+{
+    *time_zone = (sdfio_time_zone){0};
+}
 
 void sdfio_config_init(sdfio_config *config)
 {
