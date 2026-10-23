@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
 #
-# SPDX-License-Identifier: 0BSD
+# SPDX-License-Identifier: MIT
 
 foreach(example writing reading streaming coded_values time_zone)
     add_executable(${example} ${example}.c)

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
 #
-# SPDX-License-Identifier: 0BSD
+# SPDX-License-Identifier: MIT
 #
 # Examples with the libraries that process images and surfaces, in C++ over the
 # C interface. They are built with -DSDFIO_BUILD_INTEGRATIONS=ON, each one if
