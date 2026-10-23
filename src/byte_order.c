@@ -38,8 +38,11 @@ static uint64_t swap64(uint64_t value)
            | swap32((uint32_t)(value >> 32));
 }
 
-/* Reverses the bytes of each value of a width. The values are moved through
- * memcpy, so that their alignment in memory does not matter. */
+/**
+ * Defines swap_values<bits>(), which reverses the bytes of each value of a
+ * width. The values are moved through memcpy, so that their alignment in memory
+ * does not matter.
+ */
 #define SWAP_VALUES(bits)                                                      \
     static void swap_values##bits(unsigned char *bytes, size_t count)          \
     {                                                                          \
