@@ -31,8 +31,7 @@ jobs:
       - name: Install the tools
         run: |
           sudo apt-get update
-          # shellcheck disable=SC2046
-          sudo apt-get install -y $(.github/ci/run.sh --apt documentation)
+          sudo apt-get install -y ninja-build doxygen
 
       - name: Build the documentation
         run: .github/ci/run.sh documentation

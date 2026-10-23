@@ -19,8 +19,10 @@ defaults:
 
 jobs:
   # The definition of each job is in .github/ci/run.sh, which a developer runs
-  # the same way with run.sh <job>. The names of the build and firmware jobs
-  # consist of the compiler, the architecture and the operating system.
+  # the same way with run.sh <job>. The packages and Python tools that a job
+  # needs on the runners of GitHub are listed here. The names of the build and
+  # firmware jobs consist of the compiler, the architecture and the operating
+  # system.
   ci:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
@@ -31,24 +33,31 @@ jobs:
           - name: GCC x86-64 Linux
             runner: ubuntu-latest
             job: gcc-x86-64-linux
+            packages: ninja-build gcc
           - name: GCC x86 Linux
             runner: ubuntu-latest
             job: gcc-x86-linux
+            packages: ninja-build gcc gcc-multilib
           - name: GCC AArch64 Linux
             runner: ubuntu-24.04-arm
             job: gcc-aarch64-linux
+            packages: ninja-build gcc
           - name: GCC ARM Linux
             runner: ubuntu-latest
             job: gcc-arm-linux
+            packages: ninja-build qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
           - name: GCC z/Architecture Linux
             runner: ubuntu-latest
             job: gcc-z-architecture-linux
+            packages: ninja-build qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross
           - name: GCC RISC-V Linux
             runner: ubuntu-latest
             job: gcc-risc-v-linux
+            packages: ninja-build qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
           - name: Clang x86-64 Linux
             runner: ubuntu-latest
             job: clang-x86-64-linux
+            packages: ninja-build clang
           - name: Clang AArch64 macOS
             runner: macos-latest
             job: clang-aarch64-macos
@@ -64,44 +73,57 @@ jobs:
           - name: GCC ARM bare metal
             runner: ubuntu-latest
             job: gcc-arm-bare-metal
+            packages: ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi
           - name: GCC RISC-V bare metal
             runner: ubuntu-latest
             job: gcc-risc-v-bare-metal
+            packages: ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
           - name: ASan and UBSan
             runner: ubuntu-latest
             job: asan-ubsan
+            packages: ninja-build clang
           - name: TSan
             runner: ubuntu-latest
             job: tsan
+            packages: ninja-build clang
           - name: Static analysis
             runner: ubuntu-latest
             job: static-analysis
+            packages: ninja-build
+            pipx: clang-tidy==21.1.6
           - name: Format
             runner: ubuntu-latest
             job: format
+            pipx: clang-format==21.1.6
           - name: Documentation
             runner: ubuntu-latest
             job: documentation
+            packages: ninja-build doxygen
           - name: Licenses
             runner: ubuntu-latest
             job: licenses
+            pipx: reuse
           - name: Coverage
             runner: ubuntu-latest
             job: coverage
+            packages: ninja-build gcc
+            pipx: gcovr
     steps:
       - uses: actions/checkout@v7
 
       - name: Install the tools
         if: ${{ runner.os == 'Linux' }}
         env:
-          JOB: ${{ matrix.job }}
+          PACKAGES: ${{ matrix.packages }}
+          PIPX: ${{ matrix.pipx }}
         run: |
           sudo apt-get update
-          # shellcheck disable=SC2046
-          sudo apt-get install -y $(.github/ci/run.sh --apt "$JOB")
-          for package in $(.github/ci/run.sh --pipx "$JOB"); do
+          # shellcheck disable=SC2086
+          sudo apt-get install -y $PACKAGES
+          for package in $PIPX; do
             pipx install "$package"
           done
+          pipx environment --value PIPX_BIN_DIR >> "$GITHUB_PATH"
 
       - name: Run the job
         env:

@@ -8,13 +8,11 @@
 #
 #   run.sh <job>          runs the job in build/<job>
 #   run.sh --list         prints the names of the jobs
-#   run.sh --apt <job>    prints the packages of Debian and Ubuntu that it needs
-#   run.sh --pipx <job>   prints the Python packages that it needs
 #
 # A build job builds the library as a static and as a shared library, runs the
 # tests, installs the library, and builds and runs a consumer project against
 # the installation. A job for a processor architecture that differs from that of
-# the machine requires a cross compiler and qemu, which --apt lists.
+# the machine requires a cross compiler and qemu.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -58,8 +56,6 @@ toolchain=
 configure=
 emulator=
 machine=
-apt=
-pipx=
 prefix=
 processor=
 flags=
@@ -69,38 +65,35 @@ describe() {
     # Strict conformance: ISO C11 without compiler extensions, with every
     # diagnostic that -pedantic-errors reports treated as an error.
     gcc-x86-64-linux)
-      kind=build generator=Ninja machine=x86_64 apt="ninja-build gcc"
+      kind=build generator=Ninja machine=x86_64
       toolchain="-DCMAKE_C_COMPILER=gcc"
       configure="-DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors"
       ;;
     gcc-x86-linux)
-      kind=build generator=Ninja apt="ninja-build gcc gcc-multilib"
+      kind=build generator=Ninja
       toolchain="-DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32"
       ;;
     gcc-aarch64-linux)
-      kind=build generator=Ninja machine=aarch64 apt="ninja-build gcc"
+      kind=build generator=Ninja machine=aarch64
       toolchain="-DCMAKE_C_COMPILER=gcc"
       ;;
     gcc-arm-linux)
       kind=build generator=Ninja
-      apt="ninja-build qemu-user gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
       toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf"
       emulator="qemu-arm -L /usr/arm-linux-gnueabihf"
       ;;
     gcc-z-architecture-linux)
       kind=build generator=Ninja
-      apt="ninja-build qemu-user gcc-s390x-linux-gnu libc6-dev-s390x-cross"
       toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu"
       emulator="qemu-s390x -L /usr/s390x-linux-gnu"
       ;;
     gcc-risc-v-linux)
       kind=build generator=Ninja
-      apt="ninja-build qemu-user gcc-riscv64-linux-gnu libc6-dev-riscv64-cross"
       toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=riscv64 -DCMAKE_C_COMPILER=riscv64-linux-gnu-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-riscv64;-L;/usr/riscv64-linux-gnu"
       emulator="qemu-riscv64 -L /usr/riscv64-linux-gnu"
       ;;
     clang-x86-64-linux)
-      kind=build generator=Ninja machine=x86_64 apt="ninja-build clang"
+      kind=build generator=Ninja machine=x86_64
       toolchain="-DCMAKE_C_COMPILER=clang"
       ;;
     clang-aarch64-macos)
@@ -118,46 +111,23 @@ describe() {
     # Arm Cortex-M4 with a single-precision floating-point unit.
     gcc-arm-bare-metal)
       kind=firmware prefix=arm-none-eabi processor=arm
-      apt="ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi"
       flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs --specs=nosys.specs"
       ;;
     # RV32IMAC: 32-bit RISC-V with the integer, multiplication, atomic and
     # compressed instruction extensions.
     gcc-risc-v-bare-metal)
       kind=firmware prefix=riscv64-unknown-elf processor=riscv32
-      apt="ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf"
       flags="-march=rv32imac -mabi=ilp32 -ffunction-sections -fdata-sections --specs=picolibc.specs"
       ;;
-    asan-ubsan | tsan)
-      kind=check apt="ninja-build clang"
-      ;;
-    static-analysis)
-      kind=check apt="ninja-build" pipx="clang-tidy==21.1.6"
-      ;;
-    format)
-      kind=check pipx="clang-format==21.1.6"
-      ;;
-    documentation)
-      kind=check apt="ninja-build doxygen"
-      ;;
-    licenses)
-      kind=check pipx="reuse"
-      ;;
-    coverage)
-      kind=check apt="ninja-build gcc" pipx="gcovr"
+    asan-ubsan | tsan | static-analysis | format | documentation | licenses \
+      | coverage)
+      kind=check
       ;;
     *)
       echo "Unknown job: $1 (run.sh --list names them)" >&2
       exit 2
       ;;
   esac
-}
-
-# Adds the directory of the executables installed by pipx to PATH.
-use_pipx() {
-  if command -v pipx > /dev/null; then
-    PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
-  fi
 }
 
 # Succeeds if the architecture of the host, as reported by uname -m, is the
@@ -220,7 +190,6 @@ run_sanitizer() {
 }
 
 run_static_analysis() {
-  use_pipx
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
   # The sources specific to Windows cannot be analyzed on this platform and
@@ -231,7 +200,6 @@ run_static_analysis() {
 }
 
 run_format() {
-  use_pipx
   clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
     tests/*.c tests/fuzz/*.c tests/embedded/*.c test_package/*.c \
     examples/*.c examples/integrations/*.cpp
@@ -247,7 +215,6 @@ run_documentation() {
 }
 
 run_licenses() {
-  use_pipx
   reuse lint
 }
 
@@ -256,7 +223,6 @@ run_licenses() {
 # updated atomically. The job fails if fewer than 75 percent of the lines are
 # executed, the threshold of related projects.
 run_coverage() {
-  use_pipx
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER=gcc "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic"
   cmake --build "$dir"
@@ -271,16 +237,8 @@ main() {
     --list)
       printf '%s\n' "${jobs[@]}"
       ;;
-    --apt)
-      describe "${2:?a job}"
-      echo "$apt"
-      ;;
-    --pipx)
-      describe "${2:?a job}"
-      echo "$pipx"
-      ;;
     "" | -*)
-      echo "Usage: run.sh <job> | --list | --apt <job> | --pipx <job>" >&2
+      echo "Usage: run.sh <job> | --list" >&2
       exit 2
       ;;
     *)
