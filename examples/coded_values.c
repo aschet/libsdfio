@@ -12,13 +12,15 @@ enum
     DROPOUT_EVERY = 97
 };
 
-static void scan(int16_t *row, size_t y, int16_t not_measured)
+/* Generates the coded values of the row y: a pattern in which a point is not
+ * measured at intervals of DROPOUT_EVERY points. */
+static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
 {
     for (size_t column = 0; column < COLUMNS; ++column)
     {
         if ((column + y) % DROPOUT_EVERY == 0)
         {
-            row[column] = not_measured;
+            row[column] = bad_value;
         }
         else
         {
@@ -39,16 +41,16 @@ static int write_coded_values(const char *path)
     header.z_scale = sdfio_z_scale_for_range(header.data_type, -80e-6, 80e-6);
     header.z_resolution = header.z_scale;
 
-    const int16_t not_measured = SDFIO_BAD_INT16;
+    const int16_t bad_value = SDFIO_BAD_INT16;
     const sdfio_config config = {
         .writer_formats = {&sdfio_binary_writer_format}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t n = 0; n < header.rows && status == SDFIO_OK; ++n)
+    for (size_t y = 0; y < header.rows && status == SDFIO_OK; ++y)
     {
-        scan(row, n, not_measured);
+        generate_coded_row(row, y, bad_value);
         status = sdfio_write_data(writer, layout, row, 1);
     }
     if (status == SDFIO_OK)
@@ -85,23 +87,23 @@ static int read_coded_values(const char *path)
     {
         status = SDFIO_ERR_MEMORY;
     }
-    const int16_t not_measured = SDFIO_BAD_INT16;
-    size_t unmeasured = 0;
+    const int16_t bad_value = SDFIO_BAD_INT16;
+    size_t not_measured = 0;
     size_t measured = 0;
     size_t out_of_place = 0;
     double sum = 0.0;
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t n = 0; status == SDFIO_OK && n < header->rows; ++n)
+    for (size_t y = 0; status == SDFIO_OK && y < header->rows; ++y)
     {
         status = sdfio_read_data(reader, layout, row, 1);
-        scan(expected, n, not_measured);
+        generate_coded_row(expected, y, bad_value);
         out_of_place +=
             memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;
         for (size_t x = 0; status == SDFIO_OK && x < header->columns; ++x)
         {
             if (row[x] == SDFIO_BAD_INT16)
             {
-                ++unmeasured;
+                ++not_measured;
             }
             else
             {
@@ -122,7 +124,7 @@ static int read_coded_values(const char *path)
                "%g m, "
                "%zu rows out of place\n",
                header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
-               header->columns, header->rows, unmeasured, mean,
+               header->columns, header->rows, not_measured, mean,
                mean * header->z_scale, out_of_place);
     }
     free(row);

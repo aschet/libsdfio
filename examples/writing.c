@@ -13,17 +13,19 @@ enum
 
 static float heights[ROWS * COLUMNS];
 
-static void fill(void)
+/* Generates a ripple of heights in metres, with a region of points that are not
+ * measured, which are NaN. */
+static void generate_heights(void)
 {
     for (size_t row = 0; row < ROWS; ++row)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
         {
-            const bool hole = row > 100 && row < 110 && column < 40;
+            const bool not_measured = row > 100 && row < 110 && column < 40;
             heights[row * COLUMNS + column] =
-                hole ? NAN
-                     : (float)(2e-6 * sin(0.1 * (double)row)
-                               * cos(0.07 * (double)column));
+                not_measured ? NAN
+                             : (float)(2e-6 * sin(0.1 * (double)row)
+                                       * cos(0.07 * (double)column));
         }
     }
 }
@@ -69,7 +71,7 @@ static int write_surface(const char *path, sdfio_data_type type)
 
 int main(void)
 {
-    fill();
+    generate_heights();
     const int floats = write_surface("float.sdf", SDFIO_TYPE_FLOAT);
     const int integers = write_surface("integer.sdf", SDFIO_TYPE_INT16);
     return floats == EXIT_SUCCESS ? integers : floats;

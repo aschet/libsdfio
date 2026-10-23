@@ -80,17 +80,17 @@ vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
 
 // A point that is not measured is NaN. VTK is told which points they are by the
 // ghost array, so that the cells that touch one are left out.
-void hide_missing(vtkImageData *image)
+void hide_points_not_measured(vtkImageData *image)
 {
     const vtkIdType count = image->GetNumberOfPoints();
+    const float *heights = heights_of(image);
     vtkNew<vtkUnsignedCharArray> ghosts;
     ghosts->SetName(vtkDataSetAttributes::GhostArrayName());
     ghosts->SetNumberOfValues(count);
     for (vtkIdType i = 0; i < count; ++i)
     {
-        ghosts->SetValue(i, std::isnan(heights_of(image)[i])
-                                ? vtkDataSetAttributes::HIDDENPOINT
-                                : 0);
+        ghosts->SetValue(
+            i, std::isnan(heights[i]) ? vtkDataSetAttributes::HIDDENPOINT : 0);
     }
     image->GetPointData()->AddArray(ghosts);
 }
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
         check(sdfio_open_file(reader.get(), path),
               sdfio_reader_error_message(reader.get()));
         vtkSmartPointer<vtkImageData> image = read_image(reader.get());
-        hide_missing(image);
+        hide_points_not_measured(image);
         view(image);
     }
     catch (const std::exception &error)
