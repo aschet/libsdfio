@@ -4,24 +4,7 @@
 
 A bare-bones, portable C library that reads and writes ISO 25178-71 SDF
 surface data files: the revisions ISO-1.0 and ISO-2.0, in ASCII or binary
-format. It requires a C11 compiler with IEEE 754 `float` and `double` and 8-bit
-bytes, which the compiler checks at compile time.
-
-```c
-const sdfio_config config = {
-    .reader_formats = {&sdfio_binary_reader_format, &sdfio_ascii_reader_format}};
-sdfio_reader *reader = sdfio_reader_new(&config);
-if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
-{
-    const sdfio_header *header = sdfio_get_header(reader);
-    size_t bytes = 0;
-    sdfio_heights_size(header, SDFIO_TYPE_FLOAT, &bytes);
-    float *heights = malloc(bytes);
-    sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights);
-    free(heights);
-}
-sdfio_reader_free(reader);
-```
+format.
 
 See the [examples](examples) and the
 [API reference](https://aschet.github.io/libsdfio/).
