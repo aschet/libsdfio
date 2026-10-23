@@ -10,7 +10,7 @@
  * the caller.
  */
 
-#include "internal.h"
+#include "text.h"
 
 /* " = " between the name and the value. */
 static const char separator[] = " = ";

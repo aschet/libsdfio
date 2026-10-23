@@ -10,7 +10,13 @@
  * header has to follow to be written.
  */
 
-#include "internal.h"
+#include "header.h"
+#include "codec.h"
+#include "common.h"
+#include "dates.h"
+#include "stream.h"
+#include "text.h"
+#include "types.h"
 
 /* The reader codec whose magics start with a byte. */
 static const sdfio_reader_codec *

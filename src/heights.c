@@ -13,7 +13,9 @@
  * written once in heights_real.h and compiled for float and for double.
  */
 
-#include "internal.h"
+#include "heights.h"
+#include "common.h"
+#include "types.h"
 
 ptrdiff_t sdfio_element_stride(sdfio_format format)
 {

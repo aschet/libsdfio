@@ -9,7 +9,8 @@
 
 #include "check.h"
 
-#include "internal.h"
+#include "dates.h"
+#include "fields.h"
 
 #include <stdlib.h>
 #include <time.h>

@@ -13,7 +13,8 @@
  * They are for text files, and a build without those leaves them out.
  */
 
-#include "internal.h"
+#include "decimal.h"
+#include "text.h"
 
 #include <stdio.h>
 

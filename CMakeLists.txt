@@ -48,24 +48,39 @@ endif()
 set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 
 set(SDFIO_SOURCES
-    src/heights_real.h
-    src/internal.h
     src/ascii.c
     src/binary.c
+    src/binary.h
+    src/byte_order.c
+    src/byte_order.h
+    src/codec.h
     src/common.c
+    src/common.h
     src/dates.c
+    src/dates.h
     src/decimal.c
-    src/endian.c
+    src/decimal.h
+    src/fields.h
     src/file.c
     src/header.c
+    src/header.h
     src/heights.c
-    src/sizes.c
-    src/numbers.c
+    src/heights.h
+    src/heights_real.h
+    src/owner.h
     src/reader.c
+    src/settings.c
+    src/settings.h
+    src/sizes.c
     src/stream.c
+    src/stream.h
     src/tagged.c
+    src/tagged.h
+    src/text.c
+    src/text.h
     src/trailer.c
     src/types.c
+    src/types.h
     src/writer.c
 )
 

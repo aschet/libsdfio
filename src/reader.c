@@ -10,7 +10,14 @@
  * the trailer.
  */
 
-#include "internal.h"
+#include "codec.h"
+#include "common.h"
+#include "header.h"
+#include "heights.h"
+#include "owner.h"
+#include "settings.h"
+#include "stream.h"
+#include "types.h"
 
 /** A stream over memory of the caller, for sdfio_open_memory(). */
 typedef struct memory_stream

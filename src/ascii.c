@@ -10,9 +10,25 @@
  * trailer.
  */
 
-#include "internal.h"
+#include "codec.h"
+#include "common.h"
+#include "dates.h"
+#include "decimal.h"
+#include "fields.h"
+#include "stream.h"
+#include "tagged.h"
+#include "text.h"
+#include "types.h"
 
 #include <stdio.h>
+
+enum
+{
+    /** The size of the longest word of an ASCII data area. */
+    SDFIO_TOKEN_CAPACITY = 64,
+    /** The longest header of an ASCII file. A longer text is not one. */
+    SDFIO_MAX_HEADER_TEXT = 1 << 20
+};
 
 static const char crlf[] = "\r\n";
 static const char terminator = '*';

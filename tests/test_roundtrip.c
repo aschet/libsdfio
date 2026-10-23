@@ -9,7 +9,8 @@
 
 #include "check.h"
 
-#include "internal.h"
+#include "tagged.h"
+#include "types.h"
 
 #include <stdlib.h>
 

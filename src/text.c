@@ -5,11 +5,11 @@
  */
 
 /**
- * @file numbers.c
+ * @file text.c
  * @brief The characters of text, whatever the locale.
  */
 
-#include "internal.h"
+#include "text.h"
 
 bool sdfio_equals_nocase(const char *text, size_t size, const char *lower)
 {

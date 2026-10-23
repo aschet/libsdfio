@@ -10,7 +10,7 @@
  * the heights.
  */
 
-#include "internal.h"
+#include "types.h"
 
 /* The bytes of `rows` rows of `columns` elements, or false if the size does
  * not fit in size_t. */

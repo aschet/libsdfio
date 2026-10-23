@@ -12,7 +12,8 @@
 
 #include <sdfio/file.h>
 
-#include "internal.h"
+#include "common.h"
+#include "owner.h"
 
 static size_t stdio_read(void *user, void *data, size_t size)
 {

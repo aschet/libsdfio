@@ -5,11 +5,11 @@
  */
 
 /**
- * @file endian.c
+ * @file byte_order.c
  * @brief The byte order of the machine, and of the values in a file.
  */
 
-#include "internal.h"
+#include "byte_order.h"
 
 bool sdfio_host_is_little_endian(void)
 {

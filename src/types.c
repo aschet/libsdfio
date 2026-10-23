@@ -10,7 +10,11 @@
  * them.
  */
 
-#include "internal.h"
+#include "types.h"
+#include "codec.h"
+#include "dates.h"
+#include "fields.h"
+#include "settings.h"
 
 /* The spelling of a revision in the magic, in the order of the enumeration. */
 static const char *const revision_texts[] = {"ISO-1.0", "ISO-2.0"};

@@ -15,7 +15,18 @@
  * time zone or a shared result.
  */
 
-#include "internal.h"
+#include "dates.h"
+#include "fields.h"
+#include "text.h"
+#include "types.h"
+
+enum
+{
+    /** The first year that a date field can hold. */
+    SDFIO_FIRST_YEAR = 1,
+    /** The last year that a date field can hold. */
+    SDFIO_LAST_YEAR = 9999
+};
 
 enum
 {

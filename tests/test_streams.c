@@ -11,7 +11,10 @@
 
 #include <sdfio/file.h>
 
-#include "internal.h"
+#include "binary.h"
+#include "common.h"
+#include "fields.h"
+#include "types.h"
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
 

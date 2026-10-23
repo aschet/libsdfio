@@ -10,7 +10,8 @@
  * callbacks of sdfio_stream.
  */
 
-#include "internal.h"
+#include "stream.h"
+#include "common.h"
 
 bool sdfio_source_create(sdfio_source *source, size_t capacity,
                          const sdfio_allocator *allocator)

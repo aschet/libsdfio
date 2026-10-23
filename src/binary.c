@@ -12,7 +12,22 @@
  * Little endian, whatever the machine is.
  */
 
-#include "internal.h"
+#include "binary.h"
+#include "byte_order.h"
+#include "codec.h"
+#include "common.h"
+#include "dates.h"
+#include "fields.h"
+#include "stream.h"
+#include "tagged.h"
+#include "text.h"
+#include "types.h"
+
+enum
+{
+    /** The number of bytes of a trailer that are read at a time. */
+    SDFIO_TRAILER_PIECE = 256
+};
 
 static uint64_t get_le(const unsigned char *bytes, size_t size)
 {

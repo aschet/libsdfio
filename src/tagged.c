@@ -10,7 +10,10 @@
  * of ISO-2.0.
  */
 
-#include "internal.h"
+#include "tagged.h"
+#include "common.h"
+#include "stream.h"
+#include "text.h"
 
 bool sdfio_next_line(const char *text, size_t size, size_t *position,
                      const char **line, size_t *line_size)

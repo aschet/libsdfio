@@ -9,8 +9,6 @@
 
 #include "check.h"
 
-#include "internal.h"
-
 enum
 {
     CAPACITY = 512

@@ -10,7 +10,14 @@
  * written to a stream.
  */
 
-#include "internal.h"
+#include "codec.h"
+#include "common.h"
+#include "header.h"
+#include "heights.h"
+#include "owner.h"
+#include "settings.h"
+#include "stream.h"
+#include "types.h"
 
 /** Where a writer is in the life of a file. */
 typedef enum writer_state
@@ -137,6 +144,21 @@ static sdfio_status fail_writing(sdfio_writer *writer, sdfio_status status)
     return status;
 }
 
+/* The writer codec of a representation, or null if none is listed. */
+static const sdfio_writer_codec *
+writer_codec_for(const sdfio_writer_codec *const *codecs,
+                 sdfio_representation representation)
+{
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
+    {
+        if (codecs[i]->representation == representation)
+        {
+            return codecs[i];
+        }
+    }
+    return NULL;
+}
+
 sdfio_status sdfio_writer_check(sdfio_writer *writer,
                                 const sdfio_header *header)
 {
@@ -150,7 +172,7 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     {
         return status;
     }
-    if (sdfio_writer_codec_for(writer->codecs, header->representation) == NULL)
+    if (writer_codec_for(writer->codecs, header->representation) == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
                           "The codec of the representation is not listed in "
@@ -169,7 +191,7 @@ static sdfio_status start_stream(sdfio_writer *writer,
         return status;
     }
     const sdfio_writer_codec *codec =
-        sdfio_writer_codec_for(writer->codecs, header->representation);
+        writer_codec_for(writer->codecs, header->representation);
     const size_t scratch = codec->scratch_size(writer->chunk_values);
     if (scratch > 0)
     {

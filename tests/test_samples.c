@@ -12,7 +12,8 @@
 
 #include <sdfio/file.h>
 
-#include "internal.h"
+#include "dates.h"
+#include "fields.h"
 
 enum
 {

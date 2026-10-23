@@ -8,7 +8,8 @@
 
 #include "check.h"
 
-#include "internal.h"
+#include "heights.h"
+#include "types.h"
 
 static sdfio_header description(sdfio_revision revision, sdfio_data_type type,
                                 double z_scale)

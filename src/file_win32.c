@@ -14,7 +14,7 @@
 
 #include <sdfio/file.h>
 
-#include "internal.h"
+#include "owner.h"
 
 #include <wchar.h>
 
