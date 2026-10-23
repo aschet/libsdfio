@@ -16,8 +16,7 @@ endfunction()
 
 find_package(OpenCV QUIET COMPONENTS core imgproc)
 if(OpenCV_FOUND)
-    sdfio_integration(opencv SOURCE opencv.cpp LIBS ${OpenCV_LIBS})
-    target_include_directories(integration_opencv SYSTEM PRIVATE ${OpenCV_INCLUDE_DIRS})
+    sdfio_integration(opencv SOURCE opencv.cpp LIBS opencv_core opencv_imgproc)
 else()
     message(STATUS "Integration example for OpenCV: not found, skipped")
 endif()
@@ -26,8 +25,11 @@ find_package(VTK QUIET COMPONENTS CommonCore CommonDataModel FiltersCore
     FiltersGeneral FiltersGeometry InteractionStyle RenderingCore
     RenderingOpenGL2)
 if(VTK_FOUND)
-    sdfio_integration(vtk SOURCE vtk.cpp LIBS ${VTK_LIBRARIES})
-    vtk_module_autoinit(TARGETS integration_vtk MODULES ${VTK_LIBRARIES})
+    set(vtk_modules VTK::CommonCore VTK::CommonDataModel VTK::FiltersCore
+        VTK::FiltersGeneral VTK::FiltersGeometry VTK::InteractionStyle
+        VTK::RenderingCore VTK::RenderingOpenGL2)
+    sdfio_integration(vtk SOURCE vtk.cpp LIBS ${vtk_modules})
+    vtk_module_autoinit(TARGETS integration_vtk MODULES ${vtk_modules})
 else()
     message(STATUS "Integration example for VTK: not found, skipped")
 endif()
