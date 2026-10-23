@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 #
-# Examples that use the library together with OpenCV, VTK and Eigen, written in
+# Examples that use the library together with third-party libraries, written in
 # C++ over the C interface. They are built with -DSDFIO_BUILD_INTEGRATIONS=ON,
 # each one if its library is found and skipped with a note if not.
 
