@@ -269,7 +269,7 @@ enum
  */
 typedef struct sdfio_header
 {
-    /** Revision of the layout. */
+    /** Revision of the format. */
     sdfio_revision revision;
     /** Representation of the file. */
     sdfio_representation representation;

@@ -293,7 +293,7 @@ static void check_element_stride(void)
     CHECK_OK(sdfio_decode_heights(&header, layout, coded, 1, mirrored));
 }
 
-/* The check of a layout whose row stride is given apart from the layout. */
+/* The check of a layout whose row stride is given separately. */
 static sdfio_status layout_with(sdfio_layout layout, size_t rows,
                                 size_t columns, ptrdiff_t row_stride)
 {

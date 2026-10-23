@@ -4,7 +4,7 @@
 
 A bare-bones, portable C library that reads and writes ISO 25178-71 SDF
 surface data files: the revisions ISO-1.0 and ISO-2.0, in ASCII or binary
-layout. It requires a C11 compiler with IEEE 754 `float` and `double` and 8-bit
+format. It requires a C11 compiler with IEEE 754 `float` and `double` and 8-bit
 bytes, which the compiler checks at compile time.
 
 ```c
