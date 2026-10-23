@@ -557,33 +557,30 @@ static bool store_integer(sdfio_data_type type, void *dst, size_t index,
     return false;
 }
 
-/**
- * A case of the storing of a real number, for SDFIO_SCALARS(): false if the
- * type is not a floating point type or a finite number does not fit.
- */
-#define STORE_REAL_CASE(data, type, low, high, floating)                       \
-    case data:                                                                 \
-    {                                                                          \
-        if (!(floating)                                                        \
-            || (sizeof(type) < sizeof value && isfinite(value)                 \
-                && fabs(value) > (double)(high)))                              \
-        {                                                                      \
-            return false;                                                      \
-        }                                                                      \
-        const type stored = (type)value;                                       \
-        memcpy((unsigned char *)dst + index * sizeof stored, &stored,          \
-               sizeof stored);                                                 \
-        return true;                                                           \
-    }
-
-static bool store_real(sdfio_data_type type, void *dst, size_t index,
-                       double value)
+/* Parses a floating point value in the type of the data area, so that the
+ * text is rounded once and not first to a double. */
+static bool store_real(sdfio_data_type type,
+                       const sdfio_decimal_point *decimal_point,
+                       const char *token, size_t size, void *dst, size_t index)
 {
-    switch (type)
+    if (type == SDFIO_TYPE_FLOAT)
     {
-        SDFIO_SCALARS(STORE_REAL_CASE)
+        float value = 0.0F;
+        if (!sdfio_parse_float(decimal_point, token, size, &value))
+        {
+            return false;
+        }
+        memcpy((unsigned char *)dst + index * sizeof value, &value,
+               sizeof value);
+        return true;
     }
-    return false;
+    double value = 0.0;
+    if (!sdfio_parse_number(decimal_point, token, size, &value))
+    {
+        return false;
+    }
+    memcpy((unsigned char *)dst + index * sizeof value, &value, sizeof value);
+    return true;
 }
 
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
@@ -617,13 +614,10 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     sdfio_status status = SDFIO_ERR_FORMAT;
     if (sdfio_is_floating(header->data_type))
     {
-        double value = 0.0;
-        if (sdfio_parse_number(decimal_point, token, size, &value))
-        {
-            status = store_real(header->data_type, dst, index, value)
-                         ? SDFIO_OK
-                         : SDFIO_ERR_FORMAT;
-        }
+        status = store_real(header->data_type, decimal_point, token, size, dst,
+                            index)
+                     ? SDFIO_OK
+                     : SDFIO_ERR_FORMAT;
     }
     else
     {

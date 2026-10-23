@@ -140,7 +140,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                     const REAL number = quotient + correction;                 \
                     if (!REAL_NAME(is_finite)(number)                          \
                         || (sizeof(type) < sizeof(REAL)                        \
-                            && fabs((double)number) > (double)(high)))         \
+                            && REAL_ABS(number) > (REAL)(high)))               \
                     {                                                          \
                         return SDFIO_ERR_RANGE;                                \
                     }                                                          \
@@ -148,15 +148,13 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                 }                                                              \
                 else                                                           \
                 {                                                              \
-                    const double lowest = (double)(low);                       \
-                    const double highest = (double)(high);                     \
                     REAL number = REAL_NEARBY(quotient);                       \
                     const REAL difference = (quotient - number) + correction;  \
                     number += difference > (REAL)0.5      ? (REAL)1            \
                               : difference < (REAL) - 0.5 ? (REAL) - 1         \
                                                           : (REAL)0;           \
-                    if (number < (REAL)lowest                                  \
-                        || number >= (REAL)highest + (REAL)1)                  \
+                    if (number < (REAL)(low)                                   \
+                        || number >= (REAL)(high) + (REAL)1)                   \
                     {                                                          \
                         return SDFIO_ERR_RANGE;                                \
                     }                                                          \

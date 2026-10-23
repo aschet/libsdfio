@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <locale.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,14 +39,19 @@ sdfio_decimal_point sdfio_decimal_point_now(void)
     return decimal_point;
 }
 
-bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
-                        const char *text, size_t size, double *out)
+/* Checks the text against the grammar of a number and copies it into a buffer
+ * with the decimal point of the locale, which strtod() and strtof() want. The
+ * sign is not copied. */
+static bool scan_number(const sdfio_decimal_point *decimal_point,
+                        const char *text, size_t size,
+                        char buffer[SDFIO_NUMBER_CAPACITY], size_t *length,
+                        bool *negative)
 {
     sdfio_trim(&text, &size);
-    bool negative = false;
+    *negative = false;
     if (size > 0 && (text[0] == '+' || text[0] == '-'))
     {
-        negative = text[0] == '-';
+        *negative = text[0] == '-';
         ++text;
         --size;
     }
@@ -53,7 +59,6 @@ bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
     {
         return false;
     }
-    const double sign = negative ? -1.0 : 1.0;
 
     /* digits [. digits] [e [sign] digits], with a digit before or after the
      * dot */
@@ -102,34 +107,65 @@ bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
         return false;
     }
 
-    /* strtod wants the point of the locale. */
     const size_t decimal_point_size = strlen(decimal_point->text);
-    char buffer[SDFIO_NUMBER_CAPACITY];
-    if (size + decimal_point_size >= sizeof buffer)
+    if (size + decimal_point_size >= SDFIO_NUMBER_CAPACITY)
     {
         return false;
     }
-    size_t length = 0;
+    *length = 0;
     for (size_t k = 0; k < size; ++k)
     {
         if (k == dot)
         {
-            memcpy(buffer + length, decimal_point->text, decimal_point_size);
-            length += decimal_point_size;
+            memcpy(buffer + *length, decimal_point->text, decimal_point_size);
+            *length += decimal_point_size;
         }
         else
         {
-            buffer[length++] = text[k];
+            buffer[(*length)++] = text[k];
         }
     }
-    buffer[length] = '\0';
+    buffer[*length] = '\0';
+    return true;
+}
+
+bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
+                        const char *text, size_t size, double *out)
+{
+    char buffer[SDFIO_NUMBER_CAPACITY];
+    size_t length = 0;
+    bool negative = false;
+    if (!scan_number(decimal_point, text, size, buffer, &length, &negative))
+    {
+        return false;
+    }
     char *end = NULL;
     const double value = strtod(buffer, &end);
     if (end != buffer + length)
     {
         return false;
     }
-    *out = sign * value;
+    *out = negative ? -value : value;
+    return true;
+}
+
+bool sdfio_parse_float(const sdfio_decimal_point *decimal_point,
+                       const char *text, size_t size, float *out)
+{
+    char buffer[SDFIO_NUMBER_CAPACITY];
+    size_t length = 0;
+    bool negative = false;
+    if (!scan_number(decimal_point, text, size, buffer, &length, &negative))
+    {
+        return false;
+    }
+    char *end = NULL;
+    const float value = strtof(buffer, &end);
+    if (end != buffer + length || isinf(value))
+    {
+        return false;
+    }
+    *out = negative ? -value : value;
     return true;
 }
 

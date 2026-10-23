@@ -62,6 +62,20 @@ bool sdfio_parse_number(const sdfio_decimal_point *decimal_point,
                         const char *text, size_t size, double *out);
 
 /**
+ * Parses a number as sdfio_parse_number() does, rounded once to the nearest
+ * float, which rounding a double to a float would not guarantee.
+ *
+ * @param decimal_point The decimal point of the locale.
+ * @param text The text.
+ * @param size The length of the text.
+ * @param[out] out Receives the number.
+ * @return False if the text is not a number or the number is too large for a
+ * float.
+ */
+bool sdfio_parse_float(const sdfio_decimal_point *decimal_point,
+                       const char *text, size_t size, float *out);
+
+/**
  * Parses an integer in decimal digits, with an optional sign.
  *
  * @param text The text.

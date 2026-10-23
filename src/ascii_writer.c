@@ -53,23 +53,44 @@ static bool is_bad(sdfio_data_type type, const void *src, size_t index)
     return false;
 }
 
-/** A case of the loading of a number, for SDFIO_SCALARS(). */
-#define LOAD_CASE(data, type, low, high, floating)                             \
+/** A case of the loading of an integer, for SDFIO_SCALARS(). */
+#define LOAD_INTEGER_CASE(data, type, low, high, floating)                     \
     case data:                                                                 \
     {                                                                          \
         type stored;                                                           \
         memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
                sizeof stored);                                                 \
-        return (double)stored;                                                 \
+        return (floating) ? 0 : (long long)stored;                             \
     }
 
-/* The number at an index as a double, which holds every type of the data area
- * exactly. */
-static double load_number(sdfio_data_type type, const void *src, size_t index)
+/* The integer at an index, for a data type that is an integer type. */
+static long long load_integer(sdfio_data_type type, const void *src,
+                              size_t index)
 {
     switch (type)
     {
-        SDFIO_SCALARS(LOAD_CASE)
+        SDFIO_SCALARS(LOAD_INTEGER_CASE)
+    }
+    return 0;
+}
+
+/** A case of the loading of a real number, for SDFIO_SCALARS(). */
+#define LOAD_REAL_CASE(data, type, low, high, floating)                        \
+    case data:                                                                 \
+    {                                                                          \
+        type stored;                                                           \
+        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
+               sizeof stored);                                                 \
+        return (floating) ? (double)stored : 0.0;                              \
+    }
+
+/* The number at an index as a double, which holds a float exactly, for a data
+ * type that is a floating point type. */
+static double load_real(sdfio_data_type type, const void *src, size_t index)
+{
+    switch (type)
+    {
+        SDFIO_SCALARS(LOAD_REAL_CASE)
     }
     return 0.0;
 }
@@ -164,11 +185,12 @@ static size_t format_value(const sdfio_header *header,
         memcpy(out, bad, sizeof bad);
         return sizeof bad - 1;
     }
-    const double value = load_number(type, coded, index);
     if (!sdfio_is_floating(type))
     {
-        return (size_t)snprintf(out, capacity, "%lld", (long long)value);
+        return (size_t)snprintf(out, capacity, "%lld",
+                                load_integer(type, coded, index));
     }
+    const double value = load_real(type, coded, index);
     if (type == SDFIO_TYPE_FLOAT)
     {
         return sdfio_format_scientific(decimal_point, out, capacity, value,

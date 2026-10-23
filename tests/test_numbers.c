@@ -8,6 +8,7 @@
 
 #include "check.h"
 #include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -60,6 +61,20 @@ static void check_numbers(const sdfio_decimal_point *decimal_point)
     CHECK(refuses(decimal_point, "0x10"));
     CHECK(refuses(decimal_point, "1,5"));
     CHECK(refuses(decimal_point, "12abc"));
+
+    /* A decimal just above the middle of two floats is rounded up. As a double
+     * it is the middle itself, which rounds to the even float below. */
+    static const char above_middle[] = "1.00000005960464477539062501";
+    float real = 0.0F;
+    CHECK(sdfio_parse_float(decimal_point, above_middle, strlen(above_middle),
+                            &real)
+          && real == nextafterf(1.0F, 2.0F));
+    CHECK(sdfio_parse_float(decimal_point, "-1.5", 4, &real) && real == -1.5F);
+    CHECK(sdfio_parse_float(decimal_point, "1e-50", 5, &real) && real == 0.0F);
+    CHECK(!sdfio_parse_float(decimal_point, "1e50", 4, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "1e400", 5, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "1,5", 3, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "", 0, &real));
 
     long long integer = 0;
     CHECK(sdfio_parse_integer("123", 3, &integer) && integer == 123);
