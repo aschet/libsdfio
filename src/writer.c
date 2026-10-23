@@ -34,16 +34,18 @@ struct sdfio_writer
     sdfio_header header;
     /** The buffered stream. */
     sdfio_sink sink;
-    /** The decimal point of the locale, measured when the file was created. */
-    sdfio_point point;
+    /** What the codec of the file keeps for it. */
+    sdfio_codec_state codec_state;
+    /** The registered codecs. */
+    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    /** The codec of the file. */
+    const sdfio_codec *codec;
     /** Where the writer is in the life of a file. */
     writer_state state;
     /** Whether the header went to the sink. */
     bool header_written;
     /** The index of the next row to write. */
     size_t next_row;
-    /** The column of the next value in an ASCII file. */
-    size_t column;
     /** The allocator of the configuration. */
     sdfio_allocator allocator;
     /** The time zone of the configuration. */
@@ -55,33 +57,34 @@ struct sdfio_writer
     /** The room for a chunk of values in the data type of the file, made when
      * the file is created. */
     unsigned char *coded;
-    /** The room for the same values in file byte order, if the host differs. */
-    unsigned char *swapped;
-    /** The room for the text of a chunk of values in an ASCII file. */
-    char *text;
+    /** The room that the codec asks for to write a chunk of values. */
+    void *scratch;
 };
 
 sdfio_writer *sdfio_writer_new(const sdfio_config *config)
 {
-    sdfio_allocator allocator;
-    sdfio_time_zone zone;
-    size_t buffer = 0;
-    size_t chunk = 0;
-    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk, &zone))
+    sdfio_settings settings;
+    if (!sdfio_config_resolve(config, &settings))
     {
         return NULL;
     }
-    sdfio_writer *writer = sdfio_allocate(&allocator, sizeof *writer);
+    sdfio_writer *writer = sdfio_allocate(&settings.allocator, sizeof *writer);
     if (writer == NULL)
     {
         return NULL;
     }
-    *writer = (sdfio_writer){
-        .allocator = allocator, .zone = zone, .chunk_values = chunk};
-    writer->coded =
-        sdfio_allocate(&writer->allocator, chunk * SDFIO_LARGEST_SAMPLE);
+    *writer = (sdfio_writer){.allocator = settings.allocator,
+                             .zone = settings.zone,
+                             .chunk_values = settings.chunk};
+    for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
+    {
+        writer->codecs[i] = settings.codecs[i];
+    }
+    writer->coded = sdfio_allocate(&writer->allocator,
+                                   settings.chunk * SDFIO_LARGEST_SAMPLE);
     if (writer->coded == NULL
-        || !sdfio_sink_create(&writer->sink, buffer, &writer->allocator))
+        || !sdfio_sink_create(&writer->sink, settings.buffer,
+                              &writer->allocator))
     {
         sdfio_writer_free(writer);
         return NULL;
@@ -102,8 +105,7 @@ void sdfio_writer_free(sdfio_writer *writer)
     sdfio_sink_destroy(&writer->sink);
     const sdfio_allocator allocator = writer->allocator;
     sdfio_release(&allocator, writer->coded);
-    sdfio_release(&allocator, writer->swapped);
-    sdfio_release(&allocator, writer->text);
+    sdfio_release(&allocator, writer->scratch);
     sdfio_release(&allocator, writer);
 }
 
@@ -134,9 +136,8 @@ static sdfio_status fail_writing(sdfio_writer *writer, sdfio_status status)
     return status;
 }
 
-static sdfio_status start_stream(sdfio_writer *writer,
-                                 const sdfio_stream *stream,
-                                 const sdfio_header *header)
+sdfio_status sdfio_writer_check(sdfio_writer *writer,
+                                const sdfio_header *header)
 {
     if (writer->state != STATE_NEW)
     {
@@ -148,24 +149,40 @@ static sdfio_status start_stream(sdfio_writer *writer,
     {
         return status;
     }
-    if (header->representation == SDFIO_ASCII)
+    if (sdfio_codec_for_representation(writer->codecs, header->representation)
+        == NULL)
     {
-        writer->text = sdfio_allocate(
-            &writer->allocator, writer->chunk_values * SDFIO_TEXT_PER_VALUE);
+        return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
+                          "The codec of the representation is not registered "
+                          "in the configuration");
     }
-    else if (!sdfio_host_is_little_endian())
+    return SDFIO_OK;
+}
+
+static sdfio_status start_stream(sdfio_writer *writer,
+                                 const sdfio_stream *stream,
+                                 const sdfio_header *header)
+{
+    const sdfio_status status = sdfio_writer_check(writer, header);
+    if (status != SDFIO_OK)
     {
-        writer->swapped = sdfio_allocate(
-            &writer->allocator, writer->chunk_values * SDFIO_LARGEST_SAMPLE);
+        return status;
     }
-    if ((header->representation == SDFIO_ASCII && writer->text == NULL)
-        || (header->representation == SDFIO_BINARY
-            && !sdfio_host_is_little_endian() && writer->swapped == NULL))
+    const sdfio_codec *codec =
+        sdfio_codec_for_representation(writer->codecs, header->representation);
+    const size_t scratch = codec->scratch_size(writer->chunk_values);
+    if (scratch > 0)
     {
-        return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY, "Out of memory");
+        writer->scratch = sdfio_allocate(&writer->allocator, scratch);
+        if (writer->scratch == NULL)
+        {
+            return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY,
+                              "Out of memory");
+        }
     }
     writer->header = *header;
-    writer->point = sdfio_point_now();
+    writer->codec = codec;
+    writer->codec_state = (sdfio_codec_state){0};
     sdfio_sink_init(&writer->sink, stream);
     writer->state = STATE_CREATED;
     return SDFIO_OK;
@@ -185,8 +202,7 @@ sdfio_status sdfio_create_stream(sdfio_writer *writer,
 
 static sdfio_status write_failed(sdfio_writer *writer)
 {
-    return fail_writing(writer, sdfio_fail(&writer->message, SDFIO_ERR_IO,
-                                           "The stream could not be written"));
+    return fail_writing(writer, sdfio_sink_failure(&writer->message));
 }
 
 /* The header goes out with the first values, when the z-scale is known. */
@@ -213,31 +229,12 @@ static sdfio_status start_data(sdfio_writer *writer)
                               "to have one chosen");
         }
     }
-    sdfio_status status = SDFIO_OK;
-    if (header->representation == SDFIO_BINARY)
+    const sdfio_status status = writer->codec->write_header(
+        &writer->sink, header, &writer->codec_state, &writer->zone,
+        &writer->allocator, &writer->message);
+    if (status == SDFIO_ERR_IO)
     {
-        unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
-        size_t size = 0;
-        status = sdfio_binary_header(header, &writer->zone, bytes, &size,
-                                     &writer->message);
-        if (status == SDFIO_OK && !sdfio_sink_write(&writer->sink, bytes, size))
-        {
-            return write_failed(writer);
-        }
-    }
-    else
-    {
-        sdfio_string text = {.allocator = &writer->allocator};
-        status = sdfio_ascii_header(header, &writer->point, &writer->zone,
-                                    &text, &writer->message);
-        if (status == SDFIO_OK
-            && !sdfio_sink_write(&writer->sink, sdfio_string_text(&text),
-                                 text.size))
-        {
-            sdfio_string_free(&text);
-            return write_failed(writer);
-        }
-        sdfio_string_free(&text);
+        return fail_writing(writer, status);
     }
     writer->header_written = true;
     return status;
@@ -247,61 +244,10 @@ static sdfio_status start_data(sdfio_writer *writer)
 static sdfio_status put_values(sdfio_writer *writer, const void *values,
                                size_t count)
 {
-    const sdfio_header *header = &writer->header;
-    const size_t size = sdfio_data_type_size(header->data_type);
-    if (header->representation == SDFIO_BINARY)
-    {
-        if (sdfio_host_is_little_endian())
-        {
-            return sdfio_sink_write(&writer->sink, values, count * size)
-                       ? SDFIO_OK
-                       : write_failed(writer);
-        }
-        for (size_t first = 0; first < count; first += writer->chunk_values)
-        {
-            const size_t n = count - first < writer->chunk_values
-                                 ? count - first
-                                 : writer->chunk_values;
-            memcpy(writer->swapped,
-                   (const unsigned char *)values + first * size, n * size);
-            sdfio_fix_endianness(writer->swapped, n, size);
-            if (!sdfio_sink_write(&writer->sink, writer->swapped, n * size))
-            {
-                return write_failed(writer);
-            }
-        }
-        return SDFIO_OK;
-    }
-    static const char crlf[] = "\r\n";
-    for (size_t first = 0; first < count; first += writer->chunk_values)
-    {
-        const size_t n = count - first < writer->chunk_values
-                             ? count - first
-                             : writer->chunk_values;
-        size_t used = 0;
-        for (size_t i = 0; i < n; ++i)
-        {
-            if (writer->column > 0)
-            {
-                writer->text[used++] = ' ';
-            }
-            used += sdfio_ascii_format(
-                header, &writer->point,
-                (const unsigned char *)values + first * size, i,
-                writer->text + used, SDFIO_TEXT_PER_VALUE);
-            if (++writer->column == header->columns)
-            {
-                memcpy(writer->text + used, crlf, sizeof crlf - 1);
-                used += sizeof crlf - 1;
-                writer->column = 0;
-            }
-        }
-        if (!sdfio_sink_write(&writer->sink, writer->text, used))
-        {
-            return write_failed(writer);
-        }
-    }
-    return SDFIO_OK;
+    const sdfio_status status = writer->codec->write_values(
+        &writer->sink, &writer->header, &writer->codec_state, values, count,
+        writer->scratch, writer->chunk_values, &writer->message);
+    return status == SDFIO_OK ? status : fail_writing(writer, status);
 }
 
 static sdfio_status require_writable(sdfio_writer *writer)
@@ -511,29 +457,11 @@ sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
     {
         return status;
     }
-    if (header->representation == SDFIO_BINARY)
+    status = writer->codec->write_trailer(&writer->sink, trailer, size,
+                                          &writer->allocator, &writer->message);
+    if (status != SDFIO_OK)
     {
-        if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, trailer, size))
-        {
-            return write_failed(writer);
-        }
-    }
-    else
-    {
-        sdfio_string tail = {.allocator = &writer->allocator};
-        status = sdfio_ascii_tail(trailer != NULL ? trailer : "", size, &tail,
-                                  &writer->message);
-        if (status == SDFIO_OK
-            && !sdfio_sink_write(&writer->sink, sdfio_string_text(&tail),
-                                 tail.size))
-        {
-            status = write_failed(writer);
-        }
-        sdfio_string_free(&tail);
-        if (status != SDFIO_OK)
-        {
-            return fail_writing(writer, status);
-        }
+        return fail_writing(writer, status);
     }
     if (!sdfio_sink_flush(&writer->sink))
     {

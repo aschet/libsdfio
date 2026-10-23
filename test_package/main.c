@@ -46,7 +46,9 @@ int main(void)
     header.y_scale = 1.0e-6;
 
     int failed = 0;
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    const sdfio_config config = {
+        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+    sdfio_writer *writer = sdfio_writer_new(&config);
     failed |= writer == NULL;
     if (writer != NULL)
     {
@@ -57,7 +59,7 @@ int main(void)
     }
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(NULL);
+    sdfio_reader *reader = sdfio_reader_new(&config);
     failed |= reader == NULL;
     if (reader != NULL)
     {

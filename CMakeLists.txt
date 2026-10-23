@@ -19,10 +19,6 @@ include(GNUInstallDirs)
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
 option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
-# For a small program: a build can leave out what it does not use. Each option
-# swaps one file for a stub with the same functions, so that nothing is
-# conditional in the code.
-option(SDFIO_WITH_ASCII_FORMAT "Support for ASCII format" ON)
 option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
@@ -54,9 +50,11 @@ set(SDFIO_GENERATED_INCLUDE_DIR "${PROJECT_BINARY_DIR}/generated/include")
 set(SDFIO_SOURCES
     src/heights_real.h
     src/internal.h
+    src/ascii.c
     src/binary.c
     src/common.c
     src/dates.c
+    src/decimal.c
     src/endian.c
     src/file.c
     src/header.c
@@ -72,12 +70,7 @@ set(SDFIO_SOURCES
 )
 
 if(WIN32)
-    list(APPEND SDFIO_SOURCES src/file_windows.c)
-endif()
-if(SDFIO_WITH_ASCII_FORMAT)
-    list(APPEND SDFIO_SOURCES src/ascii.c src/decimal.c)
-else()
-    list(APPEND SDFIO_SOURCES src/ascii_stub.c)
+    list(APPEND SDFIO_SOURCES src/file_win32.c)
 endif()
 
 # The code is compiled once. The tests link the objects, which have the

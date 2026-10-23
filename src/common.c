@@ -70,17 +70,13 @@ void sdfio_release(const sdfio_allocator *allocator, void *memory)
     }
 }
 
-bool sdfio_config_resolve(const sdfio_config *config,
-                          sdfio_allocator *allocator, size_t *buffer,
-                          size_t *chunk, sdfio_time_zone *zone)
+bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
 {
-    *allocator = (sdfio_allocator){0};
-    *zone = (sdfio_time_zone){0};
-    *buffer = SDFIO_DEFAULT_BUFFER;
-    *chunk = SDFIO_DEFAULT_CHUNK;
+    *settings = (sdfio_settings){.buffer = SDFIO_DEFAULT_BUFFER,
+                                 .chunk = SDFIO_DEFAULT_CHUNK};
     if (config == NULL)
     {
-        return true;
+        return false;
     }
     if (config->allocator != NULL)
     {
@@ -89,24 +85,71 @@ bool sdfio_config_resolve(const sdfio_config *config,
         {
             return false;
         }
-        *allocator = *config->allocator;
+        settings->allocator = *config->allocator;
     }
     if (config->time_zone != NULL)
     {
-        *zone = *config->time_zone;
+        settings->zone = *config->time_zone;
     }
     if (config->buffer_size != 0)
     {
-        *buffer = config->buffer_size < SDFIO_MINIMUM_BUFFER
-                      ? SDFIO_MINIMUM_BUFFER
-                      : config->buffer_size;
+        settings->buffer = config->buffer_size < SDFIO_MINIMUM_BUFFER
+                               ? SDFIO_MINIMUM_BUFFER
+                               : config->buffer_size;
     }
     if (config->chunk_values != 0)
     {
-        *chunk = config->chunk_values;
+        settings->chunk = config->chunk_values;
     }
-    return *chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
-           && *chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
+    /* The codecs are listed without gaps, and each is listed once. */
+    size_t count = 0;
+    for (; count < SDFIO_CODEC_MAX && config->codecs[count] != NULL; ++count)
+    {
+        for (size_t before = 0; before < count; ++before)
+        {
+            if (config->codecs[before] == config->codecs[count])
+            {
+                return false;
+            }
+        }
+        settings->codecs[count] = config->codecs[count];
+    }
+    for (size_t gap = count; gap < SDFIO_CODEC_MAX; ++gap)
+    {
+        if (config->codecs[gap] != NULL)
+        {
+            return false;
+        }
+    }
+    return count > 0 && settings->chunk <= SIZE_MAX / SDFIO_LARGEST_SAMPLE
+           && settings->chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
+}
+
+const sdfio_codec *sdfio_codec_for_prefix(const sdfio_codec *const *codecs,
+                                          char prefix)
+{
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
+    {
+        if (codecs[i]->prefix == prefix)
+        {
+            return codecs[i];
+        }
+    }
+    return NULL;
+}
+
+const sdfio_codec *
+sdfio_codec_for_representation(const sdfio_codec *const *codecs,
+                               sdfio_representation representation)
+{
+    for (size_t i = 0; i < SDFIO_CODEC_MAX && codecs[i] != NULL; ++i)
+    {
+        if (codecs[i]->representation == representation)
+        {
+            return codecs[i];
+        }
+    }
+    return NULL;
 }
 
 bool sdfio_string_append(sdfio_string *string, const char *text, size_t size)

@@ -50,7 +50,8 @@ int main(void)
     zone central_europe = {3600};
     const sdfio_time_zone time_zone = {&central_europe, local_to_utc,
                                        utc_to_local};
-    const sdfio_config with_zone = {NULL, 0, 0, &time_zone};
+    const sdfio_config with_zone = {.time_zone = &time_zone,
+                                    .codecs = {&sdfio_binary_codec}};
 
     sdfio_header header;
     sdfio_header_init(&header);

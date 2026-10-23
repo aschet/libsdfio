@@ -191,21 +191,30 @@ void *sdfio_allocate(const sdfio_allocator *allocator, size_t size);
  */
 void sdfio_release(const sdfio_allocator *allocator, void *memory);
 
+/** A configuration with its defaults filled in. */
+typedef struct sdfio_settings
+{
+    /** The allocator: malloc and free if the configuration has none. */
+    sdfio_allocator allocator;
+    /** The time zone: no conversion if the configuration has none. */
+    sdfio_time_zone zone;
+    /** The size of the buffer between the handle and its stream in bytes. */
+    size_t buffer;
+    /** The number of values converted at a time. */
+    size_t chunk;
+    /** The registered codecs without the gaps, null after the last. */
+    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+} sdfio_settings;
+
 /**
- * Resolves a configuration: the allocator, the size of the buffer, the size of
- * a chunk and the time zone that it means, with the defaults for what it does
- * not set.
+ * Resolves a configuration with the defaults for what it does not set.
  *
- * @param config The configuration. May be null.
- * @param[out] allocator The allocator.
- * @param[out] buffer The size of the buffer in bytes.
- * @param[out] chunk The number of values converted at a time.
- * @param[out] zone The time zone.
- * @return False if the allocator is not complete.
+ * @param config The configuration. May be null, which registers no codec.
+ * @param[out] settings Receives the settings.
+ * @return False if the allocator is not complete, no codec is registered, or
+ * the chunk is too large for its buffers.
  */
-bool sdfio_config_resolve(const sdfio_config *config,
-                          sdfio_allocator *allocator, size_t *buffer,
-                          size_t *chunk, sdfio_time_zone *zone);
+bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings);
 
 /**
  * Appends text to a string.
@@ -897,11 +906,11 @@ sdfio_status sdfio_file_check_reader(sdfio_reader *reader);
  * @param header The header of the file.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_ARGUMENT The header cannot be written.
- * @retval SDFIO_ERR_UNSUPPORTED The header is ASCII and the build has no
- * support for it.
+ * @retval SDFIO_ERR_UNSUPPORTED The codec of the representation is not
+ * registered.
  */
-sdfio_status sdfio_file_check_writer(sdfio_writer *writer,
-                                     const sdfio_header *header);
+sdfio_status sdfio_writer_check(sdfio_writer *writer,
+                                const sdfio_header *header);
 
 /**
  * Opens a file that is open already as the source of a reader. The reader
@@ -929,21 +938,218 @@ sdfio_status sdfio_file_adopt_writer(sdfio_writer *writer, FILE *file,
  */
 
 /**
- * Reads the header at the start of the source, ASCII or binary, and leaves the
- * source at the data area.
+ * What the codecs keep for one file between their calls. The binary codec
+ * keeps nothing.
+ */
+typedef struct sdfio_codec_state
+{
+    /** The decimal point of the locale, measured when the file was opened or
+     * created. */
+    sdfio_point point;
+    /** The column of the next value that an ASCII writer writes. */
+    size_t column;
+} sdfio_codec_state;
+
+/**
+ * A codec: the functions of a representation of the files.
+ *
+ * The reader and the writer know nothing of the representations. They call the
+ * codecs that the configuration registers, so that the code of a codec that
+ * no program names is not linked.
+ */
+struct sdfio_codec
+{
+    /** The representation that the codec reads and writes. */
+    sdfio_representation representation;
+    /** The first byte of the magics. */
+    char prefix;
+    /** The magics, one for each revision in the order of the enumeration. */
+    const char *magics[2];
+
+    /**
+     * Reads the header at the start of the source and leaves the source at the
+     * data area.
+     *
+     * @param source The source, at the start of the file.
+     * @param[out] header Receives the header.
+     * @param[out] state Receives what the codec keeps for the file.
+     * @param zone The time zone of the caller. May be null.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_FORMAT The header is damaged.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*read_header)(sdfio_source *source, sdfio_header *header,
+                                sdfio_codec_state *state,
+                                const sdfio_time_zone *zone,
+                                sdfio_message *message);
+
+    /**
+     * Reads values of the data area.
+     *
+     * @param source The source.
+     * @param header The header of the file.
+     * @param state What the codec keeps for the file.
+     * @param[out] dst Receives the values in the data type of the header.
+     * @param count The number of values.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_FORMAT The data area is damaged or ends early.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*read_values)(sdfio_source *source,
+                                const sdfio_header *header,
+                                const sdfio_codec_state *state, void *dst,
+                                size_t count, sdfio_message *message);
+
+    /**
+     * Ends the data area: passes the values that were not read, and what closes
+     * the area.
+     *
+     * @param source The source.
+     * @param header The header of the file.
+     * @param complete Whether every row was read.
+     * @param values_left The number of values that were not read.
+     * @param scratch Room for the codec to read into.
+     * @param scratch_size The size of `scratch` in bytes.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_FORMAT The data area is damaged or ends early.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*end_data)(sdfio_source *source, const sdfio_header *header,
+                             bool complete, size_t values_left, void *scratch,
+                             size_t scratch_size, sdfio_message *message);
+
+    /**
+     * Reads the trailer.
+     *
+     * @param source The source, after the data area.
+     * @param[in,out] out Receives the trailer.
+     * @param[out] present False if the file ends with the data.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_FORMAT The trailer is damaged or too long.
+     * @retval SDFIO_ERR_MEMORY There is no memory.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*read_trailer)(sdfio_source *source, sdfio_string *out,
+                                 bool *present, sdfio_message *message);
+
+    /**
+     * Returns the bytes that the writer has to provide for write_values().
+     *
+     * @param chunk_values The number of values that a call gets at most.
+     */
+    size_t (*scratch_size)(size_t chunk_values);
+
+    /**
+     * Writes the header.
+     *
+     * @param sink The sink.
+     * @param header The header.
+     * @param[out] state Receives what the codec keeps for the file.
+     * @param zone The time zone of the caller. May be null.
+     * @param allocator The allocator of the handle.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_RANGE A date cannot be written.
+     * @retval SDFIO_ERR_MEMORY There is no memory.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*write_header)(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state,
+                                 const sdfio_time_zone *zone,
+                                 const sdfio_allocator *allocator,
+                                 sdfio_message *message);
+
+    /**
+     * Writes values of the data area.
+     *
+     * @param sink The sink.
+     * @param header The header of the file.
+     * @param[in,out] state What the codec keeps for the file.
+     * @param values The values in the data type of the header.
+     * @param count The number of values.
+     * @param scratch Room of scratch_size() bytes.
+     * @param chunk_values The number of values that `scratch` serves.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*write_values)(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state, const void *values,
+                                 size_t count, void *scratch,
+                                 size_t chunk_values, sdfio_message *message);
+
+    /**
+     * Writes what closes the data area, and the trailer.
+     *
+     * @param sink The sink.
+     * @param trailer The trailer. May be null.
+     * @param size The length of the trailer.
+     * @param allocator The allocator of the handle.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_MEMORY There is no memory.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*write_trailer)(sdfio_sink *sink, const char *trailer,
+                                  size_t size, const sdfio_allocator *allocator,
+                                  sdfio_message *message);
+};
+
+/**
+ * Finds the registered codec whose magics start with a byte.
+ *
+ * @param codecs The registered codecs.
+ * @param prefix The first byte of a file.
+ * @return The codec, or null if none is registered for it.
+ */
+const sdfio_codec *sdfio_codec_for_prefix(const sdfio_codec *const *codecs,
+                                          char prefix);
+
+/**
+ * Finds the registered codec of a representation.
+ *
+ * @param codecs The registered codecs.
+ * @param representation The representation.
+ * @return The codec, or null if none is registered for it.
+ */
+const sdfio_codec *
+sdfio_codec_for_representation(const sdfio_codec *const *codecs,
+                               sdfio_representation representation);
+
+/**
+ * Why a read of a source failed: the memory, the stream, or the damaged file,
+ * whose text is `format_text`.
  *
  * @param source The source.
+ * @param[out] message Receives the reason.
+ * @param format_text The reason if the file is damaged.
+ * @return The status.
+ */
+sdfio_status sdfio_source_failure(const sdfio_source *source,
+                                  sdfio_message *message,
+                                  const char *format_text);
+
+/**
+ * Records that the stream of a sink failed.
+ *
+ * @param[out] message Receives the reason.
+ * @return SDFIO_ERR_IO.
+ */
+sdfio_status sdfio_sink_failure(sdfio_message *message);
+
+/**
+ * Reads the header at the start of the source with the codec of its magic.
+ *
+ * @param source The source.
+ * @param codecs The registered codecs.
  * @param[out] header Receives the header.
- * @param point The decimal point of the locale.
+ * @param[out] state Receives what the codec keeps for the file.
  * @param zone The time zone of the caller. May be null.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The header is damaged.
- * @retval SDFIO_ERR_UNSUPPORTED The file is ASCII and the build has no support
- * for it.
+ * @retval SDFIO_ERR_UNSUPPORTED The codec of the file is not registered.
  * @retval SDFIO_ERR_IO The stream failed.
  */
-sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
-                               const sdfio_point *point,
+sdfio_status sdfio_read_header(sdfio_source *source,
+                               const sdfio_codec *const *codecs,
+                               sdfio_header *header, sdfio_codec_state *state,
                                const sdfio_time_zone *zone,
                                sdfio_message *message);
 
@@ -989,139 +1195,11 @@ sdfio_status sdfio_binary_header(const sdfio_header *header,
                                  sdfio_message *message);
 
 /**
- * Reads the rest of the source as the trailer of a binary file.
- *
- * @param source The source, after the data area.
- * @param[in,out] out Receives the trailer.
- * @param[out] present False if the source is empty.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The trailer is too long.
- * @retval SDFIO_ERR_MEMORY There is no memory.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-sdfio_status sdfio_binary_trailer(sdfio_source *source, sdfio_string *out,
-                                  bool *present, sdfio_message *message);
-
-/**
- * Parses the header of an ASCII file.
- *
- * @param source The source, at the start of the file.
- * @param[out] header Receives the header.
- * @param point The decimal point of the locale.
- * @param zone The time zone of the caller. May be null.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The header is damaged.
- * @retval SDFIO_ERR_UNSUPPORTED The build has no support for ASCII files.
- */
-sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
-                                      sdfio_header *header,
-                                      const sdfio_point *point,
-                                      const sdfio_time_zone *zone,
-                                      sdfio_message *message);
-
-/**
- * Parses the next value of an ASCII data area.
- *
- * @param source The source.
- * @param header The header of the file.
- * @param point The decimal point of the locale.
- * @param[out] dst The data area in memory, in the data type of the header.
- * @param index Where the value goes in `dst`.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The value is not a number that the data type can
- * hold, or the data area ends early.
- * @retval SDFIO_ERR_RANGE The number does not fit the data type.
- * @retval SDFIO_ERR_IO The stream failed.
- */
-sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
-                               const sdfio_point *point, void *dst,
-                               size_t index, sdfio_message *message);
-
-/**
- * Reads the closing "*" of a data area that all its values were read from.
- *
- * @param source The source.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The data area does not end here.
- */
-sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message);
-
-/**
- * Passes the values up to the closing "*".
- *
- * @param source The source.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The data area is damaged.
- */
-sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message);
-
-/**
- * Reads the trailer record of an ASCII file.
- *
- * @param source The source, after the data area.
- * @param[in,out] out Receives the trailer.
- * @param[out] present False if the file ends with the data.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_FORMAT The record is damaged.
- */
-sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, sdfio_message *message);
-
-/**
- * Writes the header of an ASCII file as text.
- *
- * @param header The header.
- * @param point The decimal point of the locale.
- * @param zone The time zone of the caller. May be null.
- * @param[in,out] out Receives the text.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_RANGE A date cannot be written.
- * @retval SDFIO_ERR_MEMORY There is no memory.
- */
-sdfio_status sdfio_ascii_header(const sdfio_header *header,
-                                const sdfio_point *point,
-                                const sdfio_time_zone *zone, sdfio_string *out,
-                                sdfio_message *message);
-
-/**
- * Writes the text of the value at an index: a number, or BAD.
- *
- * @param header The header of the file.
- * @param point The decimal point of the locale.
- * @param coded The data area in memory, in the data type of the header.
- * @param index The index of the value.
- * @param[out] out Receives the text, followed by the separator.
- * @param capacity The size of `out`, `SDFIO_TEXT_PER_VALUE` at least.
- * @return The length of the text.
- */
-size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
-                          const void *coded, size_t index, char *out,
-                          size_t capacity);
-
-/**
- * Writes the end of an ASCII file: the closing "*" of the data area, the
- * trailer record and its "*".
- *
- * @param trailer The trailer. May be null.
- * @param size The length of the trailer.
- * @param[in,out] out Receives the text.
- * @param[out] message Receives the reason of a failure.
- * @retval SDFIO_ERR_MEMORY There is no memory.
- */
-sdfio_status sdfio_ascii_tail(const char *trailer, size_t size,
-                              sdfio_string *out, sdfio_message *message);
-
-/** Tells whether the build reads and writes ASCII files. */
-bool sdfio_has_text(void);
-
-/**
  * Checks what makes a file that cannot be written.
  *
  * @param header The header.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_ARGUMENT A field of the header is invalid.
- * @retval SDFIO_ERR_UNSUPPORTED The header is ASCII and the build has no
- * support for it.
  */
 sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message);
 

@@ -47,7 +47,8 @@ static int write_surface(const char *path, sdfio_data_type type)
     {
         status = sdfio_trailer_add_field(&trailer, "Magnification", "20.5");
     }
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    const sdfio_config config = {.codecs = {&sdfio_binary_codec}};
+    sdfio_writer *writer = sdfio_writer_new(&config);
     if (status == SDFIO_OK)
     {
         status = sdfio_create_file(writer, path, &header);

@@ -84,7 +84,10 @@ int main(void)
 {
     static int16_t counts[COLUMNS];
     const sdfio_allocator allocator = {NULL, take, give};
-    const sdfio_config config = {&allocator, 128, 16, NULL};
+    const sdfio_config config = {.allocator = &allocator,
+                                 .buffer_size = 128,
+                                 .chunk_values = 16,
+                                 .codecs = {&sdfio_binary_codec}};
     sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_header header;
     sdfio_header_init(&header);

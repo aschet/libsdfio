@@ -10,12 +10,6 @@
 
 #include "check.h"
 
-/* What the build has, as 0 or 1. */
-enum
-{
-    WITH_TEXT = SDFIO_TEST_TEXT
-};
-
 enum
 {
     COLUMNS = 37,
@@ -165,12 +159,14 @@ static void check_counted(void)
 {
     static const sdfio_representation representations[] = {SDFIO_BINARY,
                                                            SDFIO_ASCII};
-    for (size_t i = 0; i < (WITH_TEXT ? 2U : 1U); ++i)
+    for (size_t i = 0; i < sizeof representations / sizeof representations[0];
+         ++i)
     {
         counting state = {-1, 0, 0, 0};
         const sdfio_allocator allocator = {&state, counting_allocate,
                                            counting_release};
-        const sdfio_config config = {&allocator, 0, 0, NULL};
+        const sdfio_config config = {.allocator = &allocator,
+                                     .codecs = ALL_CODECS};
         bool equal = false;
         CHECK_OK(
             round_trip(&config, representations[i], SDFIO_TYPE_INT16, &equal));
@@ -185,8 +181,8 @@ static void check_counted(void)
             counting failing = {allow, 0, 0, 0};
             const sdfio_allocator failing_allocator = {
                 &failing, counting_allocate, counting_release};
-            const sdfio_config failing_config = {&failing_allocator, 0, 0,
-                                                 NULL};
+            const sdfio_config failing_config = {
+                .allocator = &failing_allocator, .codecs = ALL_CODECS};
             const sdfio_status status = round_trip(
                 &failing_config, representations[i], SDFIO_TYPE_INT16, &equal);
             CHECK_STATUS(SDFIO_ERR_MEMORY, status);
@@ -198,10 +194,11 @@ static void check_counted(void)
 /* A handle that is small: a buffer of a few bytes, a chunk of a few values. */
 static void check_small(void)
 {
-    static const sdfio_config small[] = {{NULL, 1, 1, NULL},
-                                         {NULL, 64, 3, NULL},
-                                         {NULL, 100, 7, NULL},
-                                         {NULL, 0, 1, NULL}};
+    static const sdfio_config small[] = {
+        {.buffer_size = 1, .chunk_values = 1, .codecs = ALL_CODECS},
+        {.buffer_size = 64, .chunk_values = 3, .codecs = ALL_CODECS},
+        {.buffer_size = 100, .chunk_values = 7, .codecs = ALL_CODECS},
+        {.chunk_values = 1, .codecs = ALL_CODECS}};
     static const sdfio_data_type types[] = {SDFIO_TYPE_INT16, SDFIO_TYPE_FLOAT};
     for (size_t i = 0; i < sizeof small / sizeof small[0]; ++i)
     {
@@ -210,11 +207,8 @@ static void check_small(void)
             bool equal = false;
             CHECK_OK(round_trip(&small[i], SDFIO_BINARY, *type, &equal));
             CHECK(equal);
-            if (WITH_TEXT)
-            {
-                CHECK_OK(round_trip(&small[i], SDFIO_ASCII, *type, &equal));
-                CHECK(equal);
-            }
+            CHECK_OK(round_trip(&small[i], SDFIO_ASCII, *type, &equal));
+            CHECK(equal);
         }
     }
 }
@@ -259,7 +253,10 @@ static void check_arena(void)
 {
     static arena state;
     const sdfio_allocator allocator = {&state, arena_allocate, arena_release};
-    const sdfio_config config = {&allocator, 256, 16, NULL};
+    const sdfio_config config = {.allocator = &allocator,
+                                 .buffer_size = 256,
+                                 .chunk_values = 16,
+                                 .codecs = ALL_CODECS};
     bool equal = false;
     CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_TYPE_FLOAT, &equal));
     CHECK(equal);
@@ -271,12 +268,12 @@ static void check_arguments(void)
 {
     /* An allocator needs both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
-    sdfio_config config = {&broken, 0, 0, NULL};
+    sdfio_config config = {.allocator = &broken, .codecs = ALL_CODECS};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 
     /* A chunk that cannot be counted in bytes. */
-    config = (sdfio_config){NULL, 0, (size_t)-1, NULL};
+    config = (sdfio_config){.chunk_values = (size_t)-1, .codecs = ALL_CODECS};
     CHECK(sdfio_reader_new(&config) == NULL);
     CHECK(sdfio_writer_new(&config) == NULL);
 
@@ -286,7 +283,7 @@ static void check_arguments(void)
     header.columns = 1;
     header.rows = 1;
     header.creation_date = SDFIO_NO_TIME;
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
     memory_sink sink = {0};
     const sdfio_stream stream = {&sink, NULL, sink_write};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -301,35 +298,68 @@ static void check_arguments(void)
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* Text is written or refused, by what the build has. */
+    /* Text is written with its codec and refused without it. */
     sdfio_header_init(&header);
     header.representation = SDFIO_ASCII;
     header.columns = 1;
     header.rows = 1;
-    writer = sdfio_writer_new(NULL);
-    CHECK_STATUS(WITH_TEXT ? SDFIO_OK : SDFIO_ERR_UNSUPPORTED,
+    writer = sdfio_writer_new(&all_codecs);
+    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    sdfio_writer_free(writer);
+    free(sink.data);
+    sink = (memory_sink){0};
+    const sdfio_config binary_only = {.codecs = {&sdfio_binary_codec}};
+    writer = sdfio_writer_new(&binary_only);
+    CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
+
+    /* A file is read only if its codec is registered. */
+    static const char ascii_magic[] = "aISO-2.0\r\n";
+    sdfio_reader *reader = sdfio_reader_new(&binary_only);
+    CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
+                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
+    sdfio_reader_free(reader);
+    reader = sdfio_reader_new(&all_codecs);
+    CHECK_STATUS(SDFIO_ERR_FORMAT,
+                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
+    sdfio_reader_free(reader);
+
+    /* A configuration needs a codec, each only once and without a gap. */
+    CHECK(sdfio_reader_new(NULL) == NULL);
+    CHECK(sdfio_writer_new(NULL) == NULL);
+    const sdfio_config none = {0};
+    CHECK(sdfio_reader_new(&none) == NULL);
+    const sdfio_config twice = {
+        .codecs = {&sdfio_binary_codec, &sdfio_binary_codec}};
+    CHECK(sdfio_writer_new(&twice) == NULL);
+    const sdfio_config gap = {.codecs = {NULL, &sdfio_binary_codec}};
+    CHECK(sdfio_reader_new(&gap) == NULL);
 }
 
-/* The magics a build reads: the binary ones, and the ASCII ones if they are
- * built. */
+/* The magics of a configuration: those of its codecs, in their order. */
 static void check_magics(void)
 {
-    CHECK(sdfio_magic_count() == (WITH_TEXT ? 4U : 2U));
-    CHECK(strcmp(sdfio_magic(0), "bISO-1.0") == 0);
-    CHECK(strcmp(sdfio_magic(1), "bISO-2.0") == 0);
-    if (WITH_TEXT)
+    CHECK(sdfio_magic_count(&all_codecs) == 4U);
+    CHECK(strcmp(sdfio_magic(&all_codecs, 0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_magic(&all_codecs, 1), "bISO-2.0") == 0);
+    CHECK(strcmp(sdfio_magic(&all_codecs, 2), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_magic(&all_codecs, 3), "aISO-2.0") == 0);
+    for (size_t i = 0; i < sdfio_magic_count(&all_codecs); ++i)
     {
-        CHECK(strcmp(sdfio_magic(2), "aISO-1.0") == 0);
-        CHECK(strcmp(sdfio_magic(3), "aISO-2.0") == 0);
+        CHECK(strlen(sdfio_magic(&all_codecs, i)) == SDFIO_MAGIC_SIZE);
     }
-    for (size_t i = 0; i < sdfio_magic_count(); ++i)
-    {
-        CHECK(strlen(sdfio_magic(i)) == SDFIO_MAGIC_SIZE);
-    }
-    CHECK(sdfio_magic(sdfio_magic_count()) == NULL);
+    CHECK(sdfio_magic(&all_codecs, sdfio_magic_count(&all_codecs)) == NULL);
+
+    const sdfio_config ascii_first = {
+        .codecs = {&sdfio_ascii_codec, &sdfio_binary_codec}};
+    CHECK(strcmp(sdfio_magic(&ascii_first, 0), "aISO-1.0") == 0);
+    const sdfio_config binary_only = {.codecs = {&sdfio_binary_codec}};
+    CHECK(sdfio_magic_count(&binary_only) == 2U);
+    CHECK(sdfio_magic(&binary_only, 2) == NULL);
+    CHECK(sdfio_magic_count(NULL) == 0U);
+    CHECK(sdfio_magic(NULL, 0) == NULL);
 }
 
 int main(void)

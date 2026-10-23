@@ -68,14 +68,6 @@ jobs:
           cmake --build build/tsan
           ctest --test-dir build/tsan --output-on-failure --no-tests=error
 
-      - name: Without text and local time
-        if: ${{ !cancelled() }}
-        run: |
-          CC=gcc cmake -S . -B build/minimal -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DSDFIO_SANITIZE=ON -DSDFIO_WITH_ASCII_FORMAT=OFF
-          cmake --build build/minimal
-          ctest --test-dir build/minimal --output-on-failure --no-tests=error
-
       - name: Linux x86 (32-bit), GCC
         if: ${{ !cancelled() }}
         run: |
@@ -131,7 +123,7 @@ jobs:
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_C_COMPILER=arm-none-eabi-gcc "-DCMAKE_C_FLAGS=$flags" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_WITH_ASCII_FORMAT=OFF
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
           cmake --build build/cortex-m
           arm-none-eabi-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
             -Iinclude -Ibuild/cortex-m/generated/include -DSDFIO_STATIC_DEFINE \
@@ -147,7 +139,7 @@ jobs:
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc "-DCMAKE_C_FLAGS=$flags" \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF -DSDFIO_WITH_ASCII_FORMAT=OFF
+            -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
           cmake --build build/riscv
           riscv64-unknown-elf-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
             -Iinclude -Ibuild/riscv/generated/include -DSDFIO_STATIC_DEFINE \
@@ -161,7 +153,7 @@ jobs:
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
           # The files for Windows cannot be analyzed here
           clang-tidy -p build/tidy --warnings-as-errors='*' \
-            $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_windows -e test_wide)
+            $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_win32 -e test_wide)
 
       - name: Format
         if: ${{ !cancelled() }}

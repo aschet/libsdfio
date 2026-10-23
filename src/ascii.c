@@ -69,24 +69,6 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
     }
 }
 
-/* Why a line or a token could not be read: the memory, the stream, or what
- * the text is, which is `format_text`. */
-static sdfio_status read_failure(const sdfio_source *source,
-                                 sdfio_message *message,
-                                 const char *format_text)
-{
-    if (source->no_memory)
-    {
-        return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-    }
-    if (source->failed)
-    {
-        return sdfio_fail(message, SDFIO_ERR_IO,
-                          "The stream could not be read");
-    }
-    return sdfio_fail(message, SDFIO_ERR_FORMAT, format_text);
-}
-
 static void skip_line(sdfio_source *source)
 {
     int c = 0;
@@ -350,17 +332,13 @@ static sdfio_status read_fields(const sdfio_string *header_text,
     return status;
 }
 
-bool sdfio_has_text(void)
+static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
+                                sdfio_codec_state *state,
+                                const sdfio_time_zone *zone,
+                                sdfio_message *message)
 {
-    return true;
-}
-
-sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
-                                      sdfio_header *header,
-                                      const sdfio_point *point,
-                                      const sdfio_time_zone *zone,
-                                      sdfio_message *message)
-{
+    state->point = sdfio_point_now();
+    const sdfio_point *point = &state->point;
     sdfio_string line = {.allocator = source->allocator};
     sdfio_string header_text = {.allocator = source->allocator};
     sdfio_status status = SDFIO_OK;
@@ -370,8 +348,8 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
         next_line(source, &line, &ended, &done, SDFIO_MAX_HEADER_TEXT);
     if (got == GOT_ERROR)
     {
-        status = read_failure(source, message,
-                              "The first line of the file is not a magic");
+        status = sdfio_source_failure(
+            source, message, "The first line of the file is not a magic");
         goto done;
     }
     if (got != GOT_ONE || !ended)
@@ -435,9 +413,10 @@ sdfio_status sdfio_ascii_parse_header(sdfio_source *source,
     }
     if (!header_ended)
     {
-        status = read_failure(source, message,
-                              "SDF file must contain the header, the data "
-                              "area and the trailer");
+        status =
+            sdfio_source_failure(source, message,
+                                 "SDF file must contain the header, the data "
+                                 "area and the trailer");
         goto done;
     }
     if (!sdfio_tagged_valid(sdfio_string_text(&header_text), header_text.size))
@@ -663,7 +642,7 @@ static double load_number(sdfio_data_type type, const void *src, size_t index)
     return 0.0;
 }
 
-sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
+static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_point *point, void *dst,
                                size_t index, sdfio_message *message)
 {
@@ -723,7 +702,7 @@ sdfio_status sdfio_ascii_value(sdfio_source *source, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message)
+static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
 {
     char token[SDFIO_TOKEN_CAPACITY];
     size_t size = 0;
@@ -742,7 +721,7 @@ sdfio_status sdfio_ascii_finish(sdfio_source *source, sdfio_message *message)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message)
+static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
 {
     char token[SDFIO_TOKEN_CAPACITY];
     size_t size = 0;
@@ -757,7 +736,35 @@ sdfio_status sdfio_ascii_skip(sdfio_source *source, sdfio_message *message)
     return ended_early(source, message);
 }
 
-sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
+static sdfio_status read_values(sdfio_source *source,
+                                const sdfio_header *header,
+                                const sdfio_codec_state *state, void *dst,
+                                size_t count, sdfio_message *message)
+{
+    for (size_t i = 0; i < count; ++i)
+    {
+        const sdfio_status status =
+            read_value(source, header, &state->point, dst, i, message);
+        if (status != SDFIO_OK)
+        {
+            return status;
+        }
+    }
+    return SDFIO_OK;
+}
+
+static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
+                             bool complete, size_t values_left, void *scratch,
+                             size_t scratch_size, sdfio_message *message)
+{
+    (void)header;
+    (void)values_left;
+    (void)scratch;
+    (void)scratch_size;
+    return complete ? finish_data(source, message) : skip_data(source, message);
+}
+
+static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
                                  bool *present, sdfio_message *message)
 {
     sdfio_string line = {.allocator = source->allocator};
@@ -815,7 +822,8 @@ sdfio_status sdfio_ascii_trailer(sdfio_source *source, sdfio_string *out,
     }
     if (got == GOT_ERROR)
     {
-        status = read_failure(source, message, "The SDF trailer is too long");
+        status = sdfio_source_failure(source, message,
+                                      "The SDF trailer is too long");
         goto done;
     }
     /* The trailer is itself ended by its own "*": the empty part that follows
@@ -868,10 +876,10 @@ static bool append_scale(sdfio_string *out, const sdfio_point *point,
     return append_field(out, name, text);
 }
 
-sdfio_status sdfio_ascii_header(const sdfio_header *header,
-                                const sdfio_point *point,
-                                const sdfio_time_zone *zone, sdfio_string *out,
-                                sdfio_message *message)
+static sdfio_status format_header(const sdfio_header *header,
+                                  const sdfio_point *point,
+                                  const sdfio_time_zone *zone,
+                                  sdfio_string *out, sdfio_message *message)
 {
     char magic[SDFIO_MAGIC_SIZE + 1];
     snprintf(magic, sizeof magic, "a%s", sdfio_revision_text(header->revision));
@@ -943,9 +951,9 @@ static size_t format_integer(long long value, char *out)
     return used;
 }
 
-size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
-                          const void *coded, size_t index, char *out,
-                          size_t capacity)
+static size_t format_value(const sdfio_header *header, const sdfio_point *point,
+                           const void *coded, size_t index, char *out,
+                           size_t capacity)
 {
     const sdfio_data_type type = header->data_type;
     if (is_bad(type, coded, index))
@@ -969,8 +977,8 @@ size_t sdfio_ascii_format(const sdfio_header *header, const sdfio_point *point,
                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
 }
 
-sdfio_status sdfio_ascii_tail(const char *trailer, size_t size,
-                              sdfio_string *out, sdfio_message *message)
+static sdfio_status format_tail(const char *trailer, size_t size,
+                                sdfio_string *out, sdfio_message *message)
 {
     /* The record is always closed, also if it is empty. */
     const bool ok =
@@ -980,3 +988,94 @@ sdfio_status sdfio_ascii_tail(const char *trailer, size_t size,
     return ok ? SDFIO_OK
               : sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
 }
+
+static size_t scratch_size(size_t chunk_values)
+{
+    return chunk_values * SDFIO_TEXT_PER_VALUE;
+}
+
+static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state,
+                                 const sdfio_time_zone *zone,
+                                 const sdfio_allocator *allocator,
+                                 sdfio_message *message)
+{
+    state->point = sdfio_point_now();
+    state->column = 0;
+    sdfio_string text = {.allocator = allocator};
+    sdfio_status status =
+        format_header(header, &state->point, zone, &text, message);
+    if (status == SDFIO_OK
+        && !sdfio_sink_write(sink, sdfio_string_text(&text), text.size))
+    {
+        status = sdfio_sink_failure(message);
+    }
+    sdfio_string_free(&text);
+    return status;
+}
+
+static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state, const void *values,
+                                 size_t count, void *scratch,
+                                 size_t chunk_values, sdfio_message *message)
+{
+    char *text = scratch;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    for (size_t first = 0; first < count; first += chunk_values)
+    {
+        const size_t n =
+            count - first < chunk_values ? count - first : chunk_values;
+        size_t used = 0;
+        for (size_t i = 0; i < n; ++i)
+        {
+            if (state->column > 0)
+            {
+                text[used++] = ' ';
+            }
+            used += format_value(header, &state->point,
+                                 (const unsigned char *)values + first * size,
+                                 i, text + used, SDFIO_TEXT_PER_VALUE);
+            if (++state->column == header->columns)
+            {
+                memcpy(text + used, crlf, sizeof crlf - 1);
+                used += sizeof crlf - 1;
+                state->column = 0;
+            }
+        }
+        if (!sdfio_sink_write(sink, text, used))
+        {
+            return sdfio_sink_failure(message);
+        }
+    }
+    return SDFIO_OK;
+}
+
+static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
+                                  size_t size, const sdfio_allocator *allocator,
+                                  sdfio_message *message)
+{
+    sdfio_string tail = {.allocator = allocator};
+    sdfio_status status =
+        format_tail(trailer != NULL ? trailer : "", size, &tail, message);
+    if (status == SDFIO_OK
+        && !sdfio_sink_write(sink, sdfio_string_text(&tail), tail.size))
+    {
+        status = sdfio_sink_failure(message);
+    }
+    sdfio_string_free(&tail);
+    return status;
+}
+
+const sdfio_codec sdfio_ascii_codec = {
+    .representation = SDFIO_ASCII,
+    .prefix = 'a',
+    .magics = {"aISO-1.0", "aISO-2.0"},
+    .read_header = read_header,
+    .read_values = read_values,
+    .end_data = end_data,
+    .read_trailer = read_trailer,
+    .scratch_size = scratch_size,
+    .write_header = write_header,
+    .write_values = write_values,
+    .write_trailer = write_trailer,
+};

@@ -67,18 +67,6 @@ sdfio_status sdfio_file_check_reader(sdfio_reader *reader)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_file_check_writer(sdfio_writer *writer,
-                                     const sdfio_header *header)
-{
-    if (!sdfio_writer_is_new(writer))
-    {
-        return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_STATE,
-                          "The writer has created a file already");
-    }
-    /* A header that cannot be written does not create a file. */
-    return sdfio_validate(header, sdfio_writer_message(writer));
-}
-
 sdfio_status sdfio_file_adopt_reader(sdfio_reader *reader, FILE *file)
 {
     if (file == NULL)
@@ -137,7 +125,7 @@ sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const sdfio_status ready = sdfio_file_check_writer(writer, header);
+    const sdfio_status ready = sdfio_writer_check(writer, header);
     if (ready != SDFIO_OK)
     {
         return ready;

@@ -8,7 +8,9 @@ requires a C99 compiler with IEEE 754 `float` and `double` and 8-bit bytes,
 which a C11 compiler checks at compile time.
 
 ```c
-sdfio_reader *reader = sdfio_reader_new(NULL);
+const sdfio_config config = {
+    .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+sdfio_reader *reader = sdfio_reader_new(&config);
 if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 {
     const sdfio_header *header = sdfio_get_header(reader);
@@ -31,5 +33,7 @@ cmake --build build
 ctest --test-dir build
 ```
 
-`SDFIO_WITH_ASCII_FORMAT=OFF` removes ASCII support and reduces the size of
-the library: ASCII files return `SDFIO_ERR_UNSUPPORTED`.
+A handle reads and writes the representations whose codecs its configuration
+lists. A program that does not list `sdfio_ascii_codec` does not contain the
+code for ASCII files when it links the library statically, and reading an
+ASCII file returns `SDFIO_ERR_UNSUPPORTED`.

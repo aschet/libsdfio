@@ -12,57 +12,33 @@
 
 #include "internal.h"
 
-static sdfio_status parse_header(sdfio_source *source, sdfio_header *header,
-                                 const sdfio_point *point,
-                                 const sdfio_time_zone *zone,
-                                 sdfio_message *message)
+sdfio_status sdfio_read_header(sdfio_source *source,
+                               const sdfio_codec *const *codecs,
+                               sdfio_header *header, sdfio_codec_state *state,
+                               const sdfio_time_zone *zone,
+                               sdfio_message *message)
 {
     const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
     if (available < SDFIO_MAGIC_SIZE)
     {
-        return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
-                                           "The stream could not be read")
-                              : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                           "Not an SDF file, unexpected magic");
+        return sdfio_source_failure(source, message,
+                                    "Not an SDF file, unexpected magic");
     }
-    const unsigned char *magic = source->buffer + source->position;
-    const char prefix = (char)magic[0];
-    if (prefix == 'a')
-    {
-        return sdfio_ascii_parse_header(source, header, point, zone, message);
-    }
-    if (prefix != 'b')
+    const char prefix = (char)source->buffer[source->position];
+    if (prefix != 'a' && prefix != 'b')
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "Not an SDF file, unexpected magic");
     }
-    sdfio_revision revision = SDFIO_ISO_2_0;
-    const sdfio_status status =
-        sdfio_binary_revision(magic, &revision, message);
-    if (status != SDFIO_OK)
+    const sdfio_codec *codec = sdfio_codec_for_prefix(codecs, prefix);
+    if (codec == NULL)
     {
-        return status;
+        return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
+                          "The codec of this SDF file is not registered in the "
+                          "configuration");
     }
-    unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
-    const size_t size = sdfio_binary_header_size(revision);
-    if (sdfio_source_read(source, bytes, size) != size)
-    {
-        return source->failed ? sdfio_fail(message, SDFIO_ERR_IO,
-                                           "The stream could not be read")
-                              : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                           "File is too short to contain an "
-                                           "SDF header");
-    }
-    return sdfio_binary_parse(bytes, header, zone, message);
-}
-
-sdfio_status sdfio_read_header(sdfio_source *source, sdfio_header *header,
-                               const sdfio_point *point,
-                               const sdfio_time_zone *zone,
-                               sdfio_message *message)
-{
     const sdfio_status status =
-        parse_header(source, header, point, zone, message);
+        codec->read_header(source, header, state, zone, message);
     /* The z-scale is a non-zero positive number. */
     if (status == SDFIO_OK
         && !(header->z_scale > 0.0 && isfinite(header->z_scale)))
@@ -93,11 +69,6 @@ static bool positive(double value)
 
 sdfio_status sdfio_validate(const sdfio_header *header, sdfio_message *message)
 {
-    if (header->representation == SDFIO_ASCII && !sdfio_has_text())
-    {
-        return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "Text SDF files are not supported by this build");
-    }
     if ((unsigned)header->revision > (unsigned)SDFIO_ISO_2_0
         || (header->representation != SDFIO_BINARY
             && header->representation != SDFIO_ASCII)

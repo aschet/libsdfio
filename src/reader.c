@@ -32,8 +32,12 @@ struct sdfio_reader
     sdfio_header header;
     /** The buffered stream. */
     sdfio_source source;
-    /** The decimal point of the locale, measured when the file was opened. */
-    sdfio_point point;
+    /** What the codec of the file keeps for it. */
+    sdfio_codec_state codec_state;
+    /** The registered codecs. */
+    const sdfio_codec *codecs[SDFIO_CODEC_MAX];
+    /** The codec of the open file. */
+    const sdfio_codec *codec;
     /** The allocator of the configuration. */
     sdfio_allocator allocator;
     /** The time zone of the configuration. */
@@ -81,26 +85,29 @@ static size_t memory_read(void *user, void *data, size_t size)
 
 sdfio_reader *sdfio_reader_new(const sdfio_config *config)
 {
-    sdfio_allocator allocator;
-    sdfio_time_zone zone;
-    size_t buffer = 0;
-    size_t chunk = 0;
-    if (!sdfio_config_resolve(config, &allocator, &buffer, &chunk, &zone))
+    sdfio_settings settings;
+    if (!sdfio_config_resolve(config, &settings))
     {
         return NULL;
     }
-    sdfio_reader *reader = sdfio_allocate(&allocator, sizeof *reader);
+    sdfio_reader *reader = sdfio_allocate(&settings.allocator, sizeof *reader);
     if (reader == NULL)
     {
         return NULL;
     }
-    *reader = (sdfio_reader){
-        .allocator = allocator, .zone = zone, .chunk_values = chunk};
+    *reader = (sdfio_reader){.allocator = settings.allocator,
+                             .zone = settings.zone,
+                             .chunk_values = settings.chunk};
+    for (size_t i = 0; i < SDFIO_CODEC_MAX; ++i)
+    {
+        reader->codecs[i] = settings.codecs[i];
+    }
     reader->trailer.allocator = &reader->allocator;
-    reader->chunk =
-        sdfio_allocate(&reader->allocator, chunk * SDFIO_LARGEST_SAMPLE);
+    reader->chunk = sdfio_allocate(&reader->allocator,
+                                   settings.chunk * SDFIO_LARGEST_SAMPLE);
     if (reader->chunk == NULL
-        || !sdfio_source_create(&reader->source, buffer, &reader->allocator))
+        || !sdfio_source_create(&reader->source, settings.buffer,
+                                &reader->allocator))
     {
         sdfio_reader_free(reader);
         return NULL;
@@ -166,15 +173,17 @@ static sdfio_status open_source(sdfio_reader *reader,
                           "The reader is open already");
     }
     sdfio_source_init(&reader->source, stream);
-    reader->point = sdfio_point_now();
-    sdfio_status status =
-        sdfio_read_header(&reader->source, &reader->header, &reader->point,
-                          &reader->zone, &reader->message);
+    reader->codec_state = (sdfio_codec_state){0};
+    const sdfio_status status = sdfio_read_header(
+        &reader->source, reader->codecs, &reader->header, &reader->codec_state,
+        &reader->zone, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
     const sdfio_header *header = &reader->header;
+    reader->codec =
+        sdfio_codec_for_representation(reader->codecs, header->representation);
     const size_t type_size = sdfio_data_type_size(header->data_type);
     if (!sdfio_count(header, &reader->value_count)
         || reader->value_count > SIZE_MAX / type_size)
@@ -230,45 +239,17 @@ static sdfio_status require_readable(sdfio_reader *reader)
     return SDFIO_OK;
 }
 
-static sdfio_status stream_error(sdfio_reader *reader)
-{
-    return reader->source.failed
-               ? sdfio_fail(&reader->message, SDFIO_ERR_IO,
-                            "The stream could not be read")
-               : sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
-                            "Unexpected end of file while reading the SDF data "
-                            "area");
-}
-
 /* The next `count` values of the data area, as the file stores them. */
 static sdfio_status read_values(sdfio_reader *reader, void *dst, size_t count)
 {
-    const sdfio_header *header = &reader->header;
-    if (header->representation == SDFIO_ASCII)
+    const sdfio_status status = reader->codec->read_values(
+        &reader->source, &reader->header, &reader->codec_state, dst, count,
+        &reader->message);
+    if (status == SDFIO_OK)
     {
-        for (size_t i = 0; i < count; ++i)
-        {
-            const sdfio_status status =
-                sdfio_ascii_value(&reader->source, header, &reader->point, dst,
-                                  i, &reader->message);
-            if (status != SDFIO_OK)
-            {
-                return status;
-            }
-        }
+        reader->next_value += count;
     }
-    else
-    {
-        const size_t size = sdfio_data_type_size(header->data_type);
-        if (sdfio_source_read(&reader->source, dst, count * size)
-            != count * size)
-        {
-            return stream_error(reader);
-        }
-        sdfio_fix_endianness(dst, count, size);
-    }
-    reader->next_value += count;
-    return SDFIO_OK;
+    return status;
 }
 
 /* Reads or skips to the end of the data area. */
@@ -278,32 +259,14 @@ static sdfio_status finish_data(sdfio_reader *reader)
     {
         return SDFIO_OK;
     }
-    const sdfio_header *header = &reader->header;
-    const bool all_read = reader->next_row == header->rows;
-    if (header->representation == SDFIO_ASCII)
+    const sdfio_status status = reader->codec->end_data(
+        &reader->source, &reader->header,
+        reader->next_row == reader->header.rows,
+        reader->value_count - reader->next_value, reader->chunk,
+        reader->chunk_values * SDFIO_LARGEST_SAMPLE, &reader->message);
+    if (status != SDFIO_OK)
     {
-        const sdfio_status status =
-            all_read ? sdfio_ascii_finish(&reader->source, &reader->message)
-                     : sdfio_ascii_skip(&reader->source, &reader->message);
-        if (status != SDFIO_OK)
-        {
-            return status;
-        }
-    }
-    else if (!all_read)
-    {
-        const size_t size = sdfio_data_type_size(header->data_type);
-        const size_t left = (reader->value_count - reader->next_value) * size;
-        const size_t piece = reader->chunk_values * SDFIO_LARGEST_SAMPLE;
-        for (size_t done = 0; done < left;)
-        {
-            const size_t step = left - done < piece ? left - done : piece;
-            if (sdfio_source_read(&reader->source, reader->chunk, step) != step)
-            {
-                return stream_error(reader);
-            }
-            done += step;
-        }
+        return status;
     }
     reader->data_done = true;
     return SDFIO_OK;
@@ -478,13 +441,9 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
     status = finish_data(reader);
     if (status == SDFIO_OK)
     {
-        status = reader->header.representation == SDFIO_ASCII
-                     ? sdfio_ascii_trailer(&reader->source, &reader->trailer,
-                                           &reader->trailer_present,
-                                           &reader->message)
-                     : sdfio_binary_trailer(&reader->source, &reader->trailer,
-                                            &reader->trailer_present,
-                                            &reader->message);
+        status = reader->codec->read_trailer(&reader->source, &reader->trailer,
+                                             &reader->trailer_present,
+                                             &reader->message);
     }
     if (status != SDFIO_OK)
     {

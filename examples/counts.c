@@ -40,7 +40,8 @@ static int write_counts(const char *path)
     header.z_resolution = header.z_scale;
 
     const int16_t not_measured = SDFIO_BAD_INT16;
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    const sdfio_config config = {.codecs = {&sdfio_binary_codec}};
+    sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = sdfio_create_file(writer, path, &header);
     int16_t row[COLUMNS];
     for (size_t n = 0; n < header.rows && status == SDFIO_OK; ++n)
@@ -62,7 +63,8 @@ static int write_counts(const char *path)
 
 static int read_counts(const char *path)
 {
-    sdfio_reader *reader = sdfio_reader_new(NULL);
+    const sdfio_config config = {.codecs = {&sdfio_binary_codec}};
+    sdfio_reader *reader = sdfio_reader_new(&config);
     sdfio_status status = sdfio_open_file(reader, path);
     const sdfio_header *header = sdfio_get_header(reader);
     if (status == SDFIO_OK && header->data_type != SDFIO_TYPE_INT16)

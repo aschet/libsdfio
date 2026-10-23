@@ -5,7 +5,7 @@
  */
 
 /**
- * @file file_windows.c
+ * @file file_win32.c
  * @brief Files of Windows by a path of wide characters.
  *
  * The functions are those of file.c with the functions of the C library for
@@ -39,7 +39,7 @@ sdfio_status sdfio_create_file_w(sdfio_writer *writer, const wchar_t *path,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const sdfio_status ready = sdfio_file_check_writer(writer, header);
+    const sdfio_status ready = sdfio_writer_check(writer, header);
     if (ready != SDFIO_OK)
     {
         return ready;

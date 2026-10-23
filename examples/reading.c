@@ -8,7 +8,9 @@
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "integer.sdf";
-    sdfio_reader *reader = sdfio_reader_new(NULL);
+    const sdfio_config config = {
+        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
+    sdfio_reader *reader = sdfio_reader_new(&config);
     sdfio_status status = sdfio_open_file(reader, path);
     if (status != SDFIO_OK)
     {

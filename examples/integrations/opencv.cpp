@@ -25,6 +25,17 @@ namespace
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 
+sdfio_config make_config()
+{
+    sdfio_config config = {};
+    config.codecs[0] = &sdfio_binary_codec;
+    config.codecs[1] = &sdfio_ascii_codec;
+    return config;
+}
+
+/* Reads and writes both representations. */
+const sdfio_config config = make_config();
+
 void check(sdfio_status status, const char *message)
 {
     if (status != SDFIO_OK)
@@ -36,7 +47,7 @@ void check(sdfio_status status, const char *message)
 
 Reader open(const char *path)
 {
-    Reader reader(sdfio_reader_new(NULL), sdfio_reader_free);
+    Reader reader(sdfio_reader_new(&config), sdfio_reader_free);
     check(sdfio_open_file(reader.get(), path),
           sdfio_reader_error_message(reader.get()));
     return reader;
@@ -82,7 +93,7 @@ void write_heights(const char *path, sdfio_header header,
 {
     header.data_type = SDFIO_TYPE_FLOAT;
     header.z_scale = SDFIO_AUTO_Z_SCALE;
-    Writer writer(sdfio_writer_new(NULL), sdfio_writer_free);
+    Writer writer(sdfio_writer_new(&config), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights_strided(writer.get(), bottom_up(heights),

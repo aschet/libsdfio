@@ -17,6 +17,10 @@
 
 #include <sdfio/sdfio.h>
 
+/* The configuration of a handle that reads and writes both representations. */
+#define ALL_CODECS {&sdfio_binary_codec, &sdfio_ascii_codec}
+static const sdfio_config all_codecs = {.codecs = ALL_CODECS};
+
 static int failures = 0;
 static int checks = 0;
 
@@ -109,7 +113,7 @@ static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
                                           const membuf *file)
 {
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(NULL);
+    reader = sdfio_reader_new(&all_codecs);
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
     return reader;
 }

@@ -87,8 +87,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(&heights[i], rest + i * sizeof(float), sizeof(float));
     }
 
+    const sdfio_config config = {
+        .codecs = {&sdfio_binary_codec, &sdfio_ascii_codec}};
     sink output = {NULL, 0};
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    sdfio_writer *writer = sdfio_writer_new(&config);
     sdfio_status status = SDFIO_ERR_MEMORY;
     if (writer != NULL)
     {
@@ -110,7 +112,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         /* A file that was written is a file that can be read: the rows as
          * they are coded, and the trailer. Heights in metres may overflow the
          * sample type, which is not a fault of the file. */
-        sdfio_reader *reader = sdfio_reader_new(NULL);
+        sdfio_reader *reader = sdfio_reader_new(&config);
         sdfio_status read_status = SDFIO_ERR_MEMORY;
         if (reader != NULL)
         {

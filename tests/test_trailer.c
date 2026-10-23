@@ -128,14 +128,14 @@ static void check_the_text_is_written_as_given(void)
             const double height = 1e-6;
             membuf file = {0};
             const sdfio_stream stream = membuf_stream(&file);
-            sdfio_writer *writer = sdfio_writer_new(NULL);
+            sdfio_writer *writer = sdfio_writer_new(&all_codecs);
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
             CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
             CHECK_OK(
                 sdfio_write_trailer(writer, trailers[t], strlen(trailers[t])));
             sdfio_writer_free(writer);
 
-            sdfio_reader *reader = sdfio_reader_new(NULL);
+            sdfio_reader *reader = sdfio_reader_new(&all_codecs);
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
             const char *read = NULL;
             size_t size = 0;
@@ -153,7 +153,7 @@ static void check_the_text_is_written_as_given(void)
     const float height = 1e-6F;
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(NULL);
+    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, &height));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer(writer, NULL, 5));
@@ -183,13 +183,13 @@ static void check_through_a_file(void)
         const float heights[4] = {1e-6F, 2e-6F, 3e-6F, 4e-6F};
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
-        sdfio_writer *writer = sdfio_writer_new(NULL);
+        sdfio_writer *writer = sdfio_writer_new(&all_codecs);
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
         CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
         CHECK_OK(sdfio_write_trailer(writer, trailer.text, trailer.size));
         sdfio_writer_free(writer);
 
-        sdfio_reader *reader = sdfio_reader_new(NULL);
+        sdfio_reader *reader = sdfio_reader_new(&all_codecs);
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         const char *read = NULL;
         size_t read_size = 0;

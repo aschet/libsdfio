@@ -33,19 +33,31 @@ static const bool allowed[REVISION_COUNT][8] = {
                        [SDFIO_TYPE_DOUBLE] = true},
 };
 
-/* The magics, the binary ones first. */
-static const char *const magics[] = {"bISO-1.0", "bISO-2.0", "aISO-1.0",
-                                     "aISO-2.0"};
-
-size_t sdfio_magic_count(void)
+size_t sdfio_magic_count(const sdfio_config *config)
 {
-    return sdfio_has_text() ? sizeof magics / sizeof magics[0]
-                            : sizeof magics / sizeof magics[0] / 2;
+    sdfio_settings settings;
+    if (!sdfio_config_resolve(config, &settings))
+    {
+        return 0;
+    }
+    size_t count = 0;
+    while (count < SDFIO_CODEC_MAX && settings.codecs[count] != NULL)
+    {
+        ++count;
+    }
+    return count * REVISION_COUNT;
 }
 
-const char *sdfio_magic(size_t index)
+const char *sdfio_magic(const sdfio_config *config, size_t index)
 {
-    return index < sdfio_magic_count() ? magics[index] : NULL;
+    sdfio_settings settings;
+    if (!sdfio_config_resolve(config, &settings)
+        || index >= sdfio_magic_count(config))
+    {
+        return NULL;
+    }
+    return settings.codecs[index / REVISION_COUNT]
+        ->magics[index % REVISION_COUNT];
 }
 
 bool sdfio_valid_height_type(sdfio_data_type type)

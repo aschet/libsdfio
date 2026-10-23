@@ -6,8 +6,8 @@
 
 /**
  * @file binary.c
- * @brief The binary representation: the fixed header, and the trailer that
- * follows the data.
+ * @brief The binary representation and its codec: the fixed header, the
+ * values, and the trailer that follows the data.
  *
  * Little endian, whatever the machine is.
  */
@@ -232,8 +232,8 @@ sdfio_status sdfio_binary_header(const sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_binary_trailer(sdfio_source *source, sdfio_string *out,
-                                  bool *present, sdfio_message *message)
+static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
+                                 bool *present, sdfio_message *message)
 {
     char piece[SDFIO_TRAILER_PIECE];
     size_t count = 0;
@@ -251,10 +251,158 @@ sdfio_status sdfio_binary_trailer(sdfio_source *source, sdfio_string *out,
     }
     if (source->failed)
     {
-        return sdfio_fail(message, SDFIO_ERR_IO,
-                          "The stream could not be read");
+        return sdfio_source_failure(source, message, "");
     }
     *present = out->size > 0; /* the file ends with the data */
     sdfio_lines_to_lf(out);
     return SDFIO_OK;
 }
+
+static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
+                                sdfio_codec_state *state,
+                                const sdfio_time_zone *zone,
+                                sdfio_message *message)
+{
+    (void)state;
+    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
+    if (available < SDFIO_MAGIC_SIZE)
+    {
+        return sdfio_source_failure(source, message,
+                                    "Not an SDF file, unexpected magic");
+    }
+    sdfio_revision revision = SDFIO_ISO_2_0;
+    const sdfio_status status = sdfio_binary_revision(
+        source->buffer + source->position, &revision, message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
+    const size_t size = sdfio_binary_header_size(revision);
+    if (sdfio_source_read(source, bytes, size) != size)
+    {
+        return sdfio_source_failure(source, message,
+                                    "File is too short to contain an SDF "
+                                    "header");
+    }
+    return sdfio_binary_parse(bytes, header, zone, message);
+}
+
+static sdfio_status read_values(sdfio_source *source,
+                                const sdfio_header *header,
+                                const sdfio_codec_state *state, void *dst,
+                                size_t count, sdfio_message *message)
+{
+    (void)state;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    if (sdfio_source_read(source, dst, count * size) != count * size)
+    {
+        return sdfio_source_failure(source, message,
+                                    "Unexpected end of file while reading the "
+                                    "SDF data area");
+    }
+    sdfio_fix_endianness(dst, count, size);
+    return SDFIO_OK;
+}
+
+static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
+                             bool complete, size_t values_left, void *scratch,
+                             size_t scratch_size, sdfio_message *message)
+{
+    if (complete)
+    {
+        return SDFIO_OK;
+    }
+    const size_t left = values_left * sdfio_data_type_size(header->data_type);
+    for (size_t done = 0; done < left;)
+    {
+        const size_t step =
+            left - done < scratch_size ? left - done : scratch_size;
+        if (sdfio_source_read(source, scratch, step) != step)
+        {
+            return sdfio_source_failure(source, message,
+                                        "Unexpected end of file while reading "
+                                        "the SDF data area");
+        }
+        done += step;
+    }
+    return SDFIO_OK;
+}
+
+static size_t scratch_size(size_t chunk_values)
+{
+    return sdfio_host_is_little_endian() ? 0
+                                         : chunk_values * SDFIO_LARGEST_SAMPLE;
+}
+
+static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state,
+                                 const sdfio_time_zone *zone,
+                                 const sdfio_allocator *allocator,
+                                 sdfio_message *message)
+{
+    (void)state;
+    (void)allocator;
+    unsigned char bytes[SDFIO_BINARY_HEADER_MAX];
+    size_t size = 0;
+    const sdfio_status status =
+        sdfio_binary_header(header, zone, bytes, &size, message);
+    if (status == SDFIO_OK && !sdfio_sink_write(sink, bytes, size))
+    {
+        return sdfio_sink_failure(message);
+    }
+    return status;
+}
+
+static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
+                                 sdfio_codec_state *state, const void *values,
+                                 size_t count, void *scratch,
+                                 size_t chunk_values, sdfio_message *message)
+{
+    (void)state;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    if (sdfio_host_is_little_endian())
+    {
+        return sdfio_sink_write(sink, values, count * size)
+                   ? SDFIO_OK
+                   : sdfio_sink_failure(message);
+    }
+    for (size_t first = 0; first < count; first += chunk_values)
+    {
+        const size_t n =
+            count - first < chunk_values ? count - first : chunk_values;
+        memcpy(scratch, (const unsigned char *)values + first * size, n * size);
+        sdfio_fix_endianness(scratch, n, size);
+        if (!sdfio_sink_write(sink, scratch, n * size))
+        {
+            return sdfio_sink_failure(message);
+        }
+    }
+    return SDFIO_OK;
+}
+
+static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
+                                  size_t size, const sdfio_allocator *allocator,
+                                  sdfio_message *message)
+{
+    (void)allocator;
+    if (size > 0 && !sdfio_write_crlf_lines(sink, trailer, size))
+    {
+        return sdfio_sink_failure(message);
+    }
+    return SDFIO_OK;
+}
+
+const sdfio_codec sdfio_binary_codec = {
+    .representation = SDFIO_BINARY,
+    .prefix = 'b',
+    .magics = {"bISO-1.0", "bISO-2.0"},
+    .read_header = read_header,
+    .read_values = read_values,
+    .end_data = end_data,
+    .read_trailer = read_trailer,
+    .scratch_size = scratch_size,
+    .write_header = write_header,
+    .write_values = write_values,
+    .write_trailer = write_trailer,
+};

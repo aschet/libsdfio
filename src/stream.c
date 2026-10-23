@@ -188,3 +188,24 @@ bool sdfio_sink_write(sdfio_sink *sink, const void *data, size_t size)
     sink->used += size;
     return true;
 }
+
+sdfio_status sdfio_source_failure(const sdfio_source *source,
+                                  sdfio_message *message,
+                                  const char *format_text)
+{
+    if (source->no_memory)
+    {
+        return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
+    }
+    if (source->failed)
+    {
+        return sdfio_fail(message, SDFIO_ERR_IO,
+                          "The stream could not be read");
+    }
+    return sdfio_fail(message, SDFIO_ERR_FORMAT, format_text);
+}
+
+sdfio_status sdfio_sink_failure(sdfio_message *message)
+{
+    return sdfio_fail(message, SDFIO_ERR_IO, "The stream could not be written");
+}
