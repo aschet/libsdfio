@@ -13,6 +13,11 @@
 #include "data_type.h"
 #include "writer_format.h"
 
+void sdfio_config_init(sdfio_config *config)
+{
+    *config = (sdfio_config){0};
+}
+
 bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
 {
     *settings = (sdfio_settings){.buffer = SDFIO_DEFAULT_BUFFER,

@@ -50,9 +50,27 @@ static void check_memory(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(&header, NULL));
 }
 
+/* Every field of a configuration is zero, whatever the memory held before. */
+static void check_config_init(void)
+{
+    sdfio_config config;
+    memset(&config, 0xA5, sizeof config);
+    sdfio_config_init(&config);
+    CHECK(config.allocator == NULL);
+    CHECK(config.buffer_size == 0);
+    CHECK(config.chunk_values == 0);
+    CHECK(config.time_zone == NULL);
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
+    {
+        CHECK(config.reader_formats[i] == NULL);
+        CHECK(config.writer_formats[i] == NULL);
+    }
+}
+
 int main(void)
 {
     check_memory();
+    check_config_init();
     CHECK(strcmp(sdfio_version(), SDFIO_VERSION_STRING) == 0);
 
     sdfio_header header;

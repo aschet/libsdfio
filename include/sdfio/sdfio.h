@@ -488,8 +488,9 @@ SDFIO_API extern const sdfio_writer_format sdfio_ascii_writer_format;
  * Configuration of a reader or a writer.
  *
  * A field that is zero selects its default, except the formats, which the
- * program lists. A null pointer in place of a configuration lists no format and
- * so is invalid.
+ * program lists. sdfio_config_init() sets every field to zero; a program that
+ * does not use an initializer must call it before it assigns fields. A null
+ * pointer in place of a configuration lists no format and so is invalid.
  */
 typedef struct sdfio_config
 {
@@ -529,6 +530,15 @@ typedef struct sdfio_config
      */
     const sdfio_writer_format *writer_formats[SDFIO_FORMAT_MAX];
 } sdfio_config;
+
+/**
+ * Initializes a configuration: every field is zero, so each selects its
+ * default and no format is listed. The caller lists the formats and sets
+ * every other field that differs.
+ *
+ * @param[out] config The configuration to initialize.
+ */
+SDFIO_API void sdfio_config_init(sdfio_config *config);
 
 /**
  * Returns the number of version numbers that a file can start with for the

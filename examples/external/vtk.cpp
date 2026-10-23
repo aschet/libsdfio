@@ -37,7 +37,8 @@ using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 
 sdfio_config make_config()
 {
-    sdfio_config config = {};
+    sdfio_config config;
+    sdfio_config_init(&config);
     config.reader_formats[0] = &sdfio_binary_reader_format;
     config.reader_formats[1] = &sdfio_ascii_reader_format;
     return config;
