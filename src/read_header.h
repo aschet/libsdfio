@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_READ_HEADER_H
 #define SDFIO_SRC_READ_HEADER_H
 
+#include "message.h"
 #include "reader_codec.h"
 
 /**

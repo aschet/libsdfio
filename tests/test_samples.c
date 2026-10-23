@@ -9,6 +9,8 @@
  * read the same. */
 
 #include "check.h"
+#include <stdlib.h>
+#include <string.h>
 
 #include <sdfio/file.h>
 

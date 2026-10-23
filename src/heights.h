@@ -12,7 +12,8 @@
 #ifndef SDFIO_SRC_HEIGHTS_H
 #define SDFIO_SRC_HEIGHTS_H
 
-#include "common.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
 
 /**
  * Returns the distance in bytes between the samples of a row of the heights of

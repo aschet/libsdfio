@@ -12,8 +12,10 @@
 #include "header.h"
 #include "data_type.h"
 #include "dates.h"
+#include "message.h"
 #include "revision.h"
 #include "text.h"
+#include <string.h>
 
 void sdfio_header_init(sdfio_header *header)
 {

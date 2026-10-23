@@ -10,6 +10,7 @@
  */
 
 #include "byte_order.h"
+#include <string.h>
 
 bool sdfio_host_is_little_endian(void)
 {

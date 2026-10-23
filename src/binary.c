@@ -13,10 +13,11 @@
  */
 
 #include "byte_order.h"
-#include "common.h"
 #include "data_type.h"
 #include "dates.h"
+#include "dynstring.h"
 #include "fields.h"
+#include "message.h"
 #include "reader_codec.h"
 #include "revision.h"
 #include "sink.h"
@@ -24,6 +25,9 @@
 #include "tagged.h"
 #include "text.h"
 #include "writer_codec.h"
+#include <limits.h>
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 enum
 {

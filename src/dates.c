@@ -19,6 +19,7 @@
 #include "fields.h"
 #include "revision.h"
 #include "text.h"
+#include <string.h>
 
 enum
 {

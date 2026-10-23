@@ -9,15 +9,19 @@
  * @brief Reading of headers, data and trailers.
  */
 
-#include "common.h"
 #include "data_type.h"
+#include "dynstring.h"
 #include "header.h"
 #include "heights.h"
+#include "memory.h"
+#include "message.h"
 #include "owner.h"
 #include "read_header.h"
 #include "reader_codec.h"
 #include "settings.h"
 #include "source.h"
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 /** A stream over memory of the caller, for sdfio_open_memory(). */
 typedef struct memory_stream

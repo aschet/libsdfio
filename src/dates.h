@@ -12,8 +12,8 @@
 #ifndef SDFIO_SRC_DATES_H
 #define SDFIO_SRC_DATES_H
 
-#include "common.h"
 #include "fields.h"
+#include <sdfio/sdfio.h>
 
 /**
  * Returns the time now, in whole minutes.

@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_SETTINGS_H
 #define SDFIO_SRC_SETTINGS_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** The defaults of a configuration. */
 enum

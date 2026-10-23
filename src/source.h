@@ -12,7 +12,8 @@
 #ifndef SDFIO_SRC_SOURCE_H
 #define SDFIO_SRC_SOURCE_H
 
-#include "common.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
 
 /**
  * A buffered stream for reading.

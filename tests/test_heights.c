@@ -9,6 +9,9 @@
 #include "check.h"
 #include "data_type.h"
 #include "revision.h"
+#include <float.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "heights.h"
 

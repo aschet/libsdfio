@@ -9,6 +9,8 @@
  * configuration works. This is what a program without a heap relies on. */
 
 #include "check.h"
+#include <stdlib.h>
+#include <string.h>
 
 enum
 {

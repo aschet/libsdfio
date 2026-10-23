@@ -8,6 +8,8 @@
  * this fails to link if something is not exported. */
 
 #include "check.h"
+#include <stdlib.h>
+#include <string.h>
 
 /* The size is that of the matrix, and one that cannot be counted is refused. */
 static void check_memory(void)

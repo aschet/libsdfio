@@ -5,75 +5,20 @@
  */
 
 /**
- * @file common.c
- * @brief Version, status text, allocation and strings.
+ * @file dynstring.c
+ * @brief Growable text.
  */
 
-#include "common.h"
-
-#include <stdio.h>
+#include "dynstring.h"
+#include "memory.h"
+#include <stdint.h>
+#include <string.h>
 
 enum
 {
     /** The room that a string starts with. */
     SDFIO_STRING_MINIMUM = 64
 };
-
-const char *sdfio_version(void)
-{
-    return SDFIO_VERSION_STRING;
-}
-
-const char *sdfio_status_string(sdfio_status status)
-{
-    switch (status)
-    {
-    case SDFIO_OK:
-        return "no error";
-    case SDFIO_ERR_ARGUMENT:
-        return "invalid argument";
-    case SDFIO_ERR_STATE:
-        return "the call does not fit the state of the handle";
-    case SDFIO_ERR_IO:
-        return "input or output error";
-    case SDFIO_ERR_FORMAT:
-        return "not an SDF file, or a damaged one";
-    case SDFIO_ERR_UNSUPPORTED:
-        return "a feature of the file is not supported";
-    case SDFIO_ERR_RANGE:
-        return "a number does not fit its type";
-    case SDFIO_ERR_BAD_VALUE:
-        return "a height equals the marker of a point that is not measured";
-    case SDFIO_ERR_MEMORY:
-        return "out of memory";
-    }
-    return "unknown status";
-}
-
-void *sdfio_allocate(const sdfio_allocator *allocator, size_t size)
-{
-    if (allocator != NULL && allocator->allocate != NULL)
-    {
-        return allocator->allocate(allocator->user, size);
-    }
-    return malloc(size);
-}
-
-void sdfio_release(const sdfio_allocator *allocator, void *memory)
-{
-    if (memory == NULL)
-    {
-        return;
-    }
-    if (allocator != NULL && allocator->release != NULL)
-    {
-        allocator->release(allocator->user, memory);
-    }
-    else
-    {
-        free(memory);
-    }
-}
 
 bool sdfio_string_append(sdfio_string *string, const char *text, size_t size)
 {

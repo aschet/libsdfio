@@ -9,6 +9,7 @@
  * library. */
 
 #include "check.h"
+#include <stdlib.h>
 
 #include <sdfio/file.h>
 

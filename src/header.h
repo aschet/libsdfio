@@ -12,7 +12,8 @@
 #ifndef SDFIO_SRC_HEADER_H
 #define SDFIO_SRC_HEADER_H
 
-#include "common.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
 
 /**
  * Counts the values of the data area, with a check for overflow.

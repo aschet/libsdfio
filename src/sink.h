@@ -12,7 +12,8 @@
 #ifndef SDFIO_SRC_SINK_H
 #define SDFIO_SRC_SINK_H
 
-#include "common.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
 
 /** A buffered stream for writing. */
 typedef struct sdfio_sink

@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_TEXT_H
 #define SDFIO_SRC_TEXT_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** The first number that is not a character of ASCII. */
 enum

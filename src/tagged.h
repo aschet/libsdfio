@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_TAGGED_H
 #define SDFIO_SRC_TAGGED_H
 
+#include "dynstring.h"
 #include "sink.h"
 
 /**

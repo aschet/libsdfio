@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_REVISION_H
 #define SDFIO_SRC_REVISION_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** The revisions of the format. */
 enum

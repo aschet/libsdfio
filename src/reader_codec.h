@@ -12,6 +12,8 @@
 #ifndef SDFIO_SRC_READER_CODEC_H
 #define SDFIO_SRC_READER_CODEC_H
 
+#include "dynstring.h"
+#include "message.h"
 #include "source.h"
 
 /**

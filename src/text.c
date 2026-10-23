@@ -10,6 +10,7 @@
  */
 
 #include "text.h"
+#include <string.h>
 
 bool sdfio_equals_nocase(const char *text, size_t size, const char *lower)
 {

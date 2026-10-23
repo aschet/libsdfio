@@ -10,9 +10,11 @@
  */
 
 #include "tagged.h"
-#include "common.h"
+#include "dynstring.h"
 #include "sink.h"
 #include "text.h"
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 bool sdfio_next_line(const char *text, size_t size, size_t *position,
                      const char **line, size_t *line_size)

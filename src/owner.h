@@ -14,7 +14,8 @@
 
 #include <stdio.h>
 
-#include "common.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
 
 /**
  * What a file adds to a reader or a writer, made by sdfio_open_file() and

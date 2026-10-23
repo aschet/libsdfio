@@ -10,7 +10,10 @@
  */
 
 #include "sink.h"
-#include "common.h"
+#include "memory.h"
+#include "message.h"
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 bool sdfio_sink_create(sdfio_sink *sink, size_t capacity,
                        const sdfio_allocator *allocator)

@@ -10,6 +10,8 @@
 #include "check.h"
 #include "data_type.h"
 #include "revision.h"
+#include <limits.h>
+#include <string.h>
 
 #include "tagged.h"
 

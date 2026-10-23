@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_BYTE_ORDER_H
 #define SDFIO_SRC_BYTE_ORDER_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** Tells whether the machine stores the least significant byte first. */
 bool sdfio_host_is_little_endian(void);

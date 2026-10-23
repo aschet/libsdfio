@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_FIELDS_H
 #define SDFIO_SRC_FIELDS_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** The fields of the file. */
 enum

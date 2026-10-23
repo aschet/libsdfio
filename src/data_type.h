@@ -12,7 +12,8 @@
 #ifndef SDFIO_SRC_DATA_TYPE_H
 #define SDFIO_SRC_DATA_TYPE_H
 
-#include "common.h"
+#include <float.h>
+#include <sdfio/sdfio.h>
 
 /** The size of the largest sample of the data area, a binary64. */
 enum

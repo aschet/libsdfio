@@ -11,6 +11,7 @@
 
 #include "revision.h"
 #include "data_type.h"
+#include <string.h>
 
 /* The spelling of a revision in the magic, in the order of the enumeration. */
 static const char *const revision_texts[] = {"ISO-1.0", "ISO-2.0"};

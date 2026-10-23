@@ -9,11 +9,12 @@
  * @brief Codecs of the ASCII representation.
  */
 
-#include "common.h"
 #include "data_type.h"
 #include "dates.h"
 #include "decimal.h"
+#include "dynstring.h"
 #include "fields.h"
+#include "message.h"
 #include "reader_codec.h"
 #include "revision.h"
 #include "sink.h"
@@ -21,6 +22,8 @@
 #include "tagged.h"
 #include "text.h"
 #include "writer_codec.h"
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 #include <stdio.h>
 

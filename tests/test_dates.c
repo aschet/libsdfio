@@ -8,6 +8,7 @@
  * revisions, which the time zone of the caller converts. */
 
 #include "check.h"
+#include <string.h>
 
 #include "dates.h"
 #include "fields.h"

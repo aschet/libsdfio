@@ -14,8 +14,11 @@
  */
 
 #include "heights.h"
-#include "common.h"
 #include "data_type.h"
+#include "message.h"
+#include <float.h>
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 ptrdiff_t sdfio_element_stride(sdfio_format format)
 {

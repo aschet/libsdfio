@@ -8,6 +8,8 @@
  * the text it is given. */
 
 #include "check.h"
+#include <stdlib.h>
+#include <string.h>
 
 static bool same(const char *text, size_t size, const char *expected)
 {

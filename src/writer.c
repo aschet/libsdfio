@@ -9,15 +9,18 @@
  * @brief Writing of headers, data and trailers.
  */
 
-#include "common.h"
 #include "data_type.h"
 #include "header.h"
 #include "heights.h"
+#include "memory.h"
+#include "message.h"
 #include "owner.h"
 #include "settings.h"
 #include "sink.h"
 #include "tagged.h"
 #include "writer_codec.h"
+#include <sdfio/sdfio.h>
+#include <string.h>
 
 /** Where a writer is in the life of a file. */
 typedef enum writer_state

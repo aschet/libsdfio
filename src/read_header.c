@@ -10,9 +10,10 @@
  */
 
 #include "read_header.h"
-#include "common.h"
 #include "fields.h"
+#include "message.h"
 #include "source.h"
+#include <sdfio/sdfio.h>
 
 /* The reader codec whose magics start with a byte. */
 static const sdfio_reader_codec *

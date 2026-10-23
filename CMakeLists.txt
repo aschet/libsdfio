@@ -57,14 +57,14 @@ set(SDFIO_SOURCES
     src/binary.c
     src/byte_order.c
     src/byte_order.h
-    src/common.c
-    src/common.h
     src/data_type.c
     src/data_type.h
     src/dates.c
     src/dates.h
     src/decimal.c
     src/decimal.h
+    src/dynstring.c
+    src/dynstring.h
     src/fields.h
     src/file.c
     src/header.c
@@ -73,6 +73,9 @@ set(SDFIO_SOURCES
     src/heights.h
     src/heights_real.h
     src/magic.c
+    src/memory.c
+    src/memory.h
+    src/message.h
     src/owner.h
     src/read_header.c
     src/read_header.h
@@ -87,11 +90,12 @@ set(SDFIO_SOURCES
     src/sizes.c
     src/source.c
     src/source.h
+    src/status.c
     src/tagged.c
     src/tagged.h
     src/text.c
     src/text.h
-        src/writer.c
+    src/writer.c
     src/writer_codec.h
 )
 

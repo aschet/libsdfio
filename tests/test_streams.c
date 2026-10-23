@@ -8,10 +8,11 @@
  * file that a writer leaves. */
 
 #include "check.h"
+#include <stdlib.h>
+#include <string.h>
 
 #include <sdfio/file.h>
 
-#include "common.h"
 #include "fields.h"
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"

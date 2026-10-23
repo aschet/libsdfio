@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_WRITER_CODEC_H
 #define SDFIO_SRC_WRITER_CODEC_H
 
+#include "message.h"
 #include "sink.h"
 
 /** The room for the text of one value in an ASCII data area, with its

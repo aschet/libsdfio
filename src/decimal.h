@@ -12,7 +12,7 @@
 #ifndef SDFIO_SRC_DECIMAL_H
 #define SDFIO_SRC_DECIMAL_H
 
-#include "common.h"
+#include <sdfio/sdfio.h>
 
 /** The sizes and the digits of numbers. */
 enum

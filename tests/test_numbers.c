@@ -7,6 +7,9 @@
 /* Numbers as text, also where the locale writes a decimal comma. */
 
 #include "check.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "decimal.h"
 
