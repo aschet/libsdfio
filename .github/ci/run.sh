@@ -12,7 +12,8 @@
 # A build job builds the library as a static and as a shared library, runs the
 # tests, installs the library, and builds and runs a consumer project against
 # the installation. A job for a processor architecture that differs from that of
-# the machine requires a cross compiler and qemu.
+# the machine uses a cross compiler and runs the programs with qemu; it needs
+# no emulator on a machine of the architecture of the job.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -46,6 +47,9 @@ jobs=(
 #   generator  the CMake generator; empty selects the default of the platform
 #   toolchain  CMake options shared by the library and the consumer project
 #   configure  CMake options for the library only
+#   arch       the architecture of GCC jobs, which sets toolchain and emulator:
+#              native GCC on a machine of this architecture, else a cross GCC
+#              and qemu
 #   emulator   the command that runs a program built for another architecture
 #   machine    the architecture that the job requires natively
 # A firmware job sets prefix (the prefix of the toolchain executables),
@@ -54,6 +58,7 @@ kind=
 generator=
 toolchain=
 configure=
+arch=
 emulator=
 machine=
 prefix=
@@ -65,8 +70,7 @@ describe() {
     # Strict conformance: ISO C11 without compiler extensions, with every
     # diagnostic that -pedantic-errors reports treated as an error.
     gcc-x86-64-linux)
-      kind=build generator=Ninja machine=x86_64
-      toolchain="-DCMAKE_C_COMPILER=gcc"
+      kind=build generator=Ninja arch=x86_64
       configure="-DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors"
       ;;
     gcc-x86-linux)
@@ -74,23 +78,16 @@ describe() {
       toolchain="-DCMAKE_C_COMPILER=gcc -DCMAKE_C_FLAGS=-m32 -DCMAKE_EXE_LINKER_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32"
       ;;
     gcc-aarch64-linux)
-      kind=build generator=Ninja machine=aarch64
-      toolchain="-DCMAKE_C_COMPILER=gcc"
+      kind=build generator=Ninja arch=aarch64
       ;;
     gcc-arm-linux)
-      kind=build generator=Ninja
-      toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=arm -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-arm;-L;/usr/arm-linux-gnueabihf"
-      emulator="qemu-arm -L /usr/arm-linux-gnueabihf"
+      kind=build generator=Ninja arch=arm
       ;;
     gcc-z-architecture-linux)
-      kind=build generator=Ninja
-      toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=s390x -DCMAKE_C_COMPILER=s390x-linux-gnu-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-s390x;-L;/usr/s390x-linux-gnu"
-      emulator="qemu-s390x -L /usr/s390x-linux-gnu"
+      kind=build generator=Ninja arch=s390x
       ;;
     gcc-risc-v-linux)
-      kind=build generator=Ninja
-      toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=riscv64 -DCMAKE_C_COMPILER=riscv64-linux-gnu-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-riscv64;-L;/usr/riscv64-linux-gnu"
-      emulator="qemu-riscv64 -L /usr/riscv64-linux-gnu"
+      kind=build generator=Ninja arch=riscv64
       ;;
     clang-x86-64-linux)
       kind=build generator=Ninja machine=x86_64
@@ -131,16 +128,37 @@ describe() {
 }
 
 # Succeeds if the architecture of the host, as reported by uname -m, is the
-# one given as the argument: x86_64 or aarch64.
+# one given as the argument: x86_64, aarch64, arm, riscv64 or s390x.
 machine_is() {
   case "$(uname -m)" in
     arm64 | aarch64) [ "$1" = aarch64 ] ;;
     x86_64 | amd64) [ "$1" = x86_64 ] ;;
-    *) false ;;
+    armv7* | armv8l) [ "$1" = arm ] ;;
+    *) [ "$(uname -m)" = "$1" ] ;;
   esac
 }
 
+# Sets the toolchain and the emulator of a GCC job for an architecture: the GCC
+# of the machine if the machine has the architecture, otherwise the cross GCC
+# of the GNU triplet and the qemu user-mode emulator for that architecture.
+select_gcc() {
+  local triplet
+  case "$1" in
+    arm) triplet=arm-linux-gnueabihf ;;
+    *) triplet=$1-linux-gnu ;;
+  esac
+  if machine_is "$1"; then
+    toolchain="-DCMAKE_C_COMPILER=gcc"
+  else
+    toolchain="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=$1 -DCMAKE_C_COMPILER=$triplet-gcc -DCMAKE_CROSSCOMPILING_EMULATOR=qemu-$1;-L;/usr/$triplet"
+    emulator="qemu-$1 -L /usr/$triplet"
+  fi
+}
+
 run_build() {
+  if [ -n "$arch" ]; then
+    select_gcc "$arch"
+  fi
   if [ -n "$machine" ] && ! machine_is "$machine"; then
     echo "This job needs a machine of the architecture $machine." >&2
     exit 1
