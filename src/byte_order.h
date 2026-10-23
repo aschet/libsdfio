@@ -22,7 +22,8 @@ bool sdfio_host_is_little_endian(void);
  *
  * @param[in,out] values The values.
  * @param count The number of values.
- * @param size The size of a value in bytes.
+ * @param size The size of a value in bytes: 1, 2, 4 or 8. A value of one byte
+ * is left as it is.
  */
 void sdfio_fix_endianness(void *values, size_t count, size_t size);
 
