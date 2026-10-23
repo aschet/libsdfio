@@ -3,18 +3,18 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Runs a job of the continuous integration, on GitHub and on a machine of a
-# developer alike:
+# Runs a job of the continuous integration. GitHub and a developer machine run
+# the jobs with this same script.
 #
 #   run.sh <job>          runs the job in build/<job>
 #   run.sh --list         prints the names of the jobs
 #   run.sh --apt <job>    prints the packages of Debian and Ubuntu that it needs
 #   run.sh --pipx <job>   prints the Python packages that it needs
 #
-# The build jobs build the library as a static and as a shared library, test
-# it, install it, and build and run a project against the installation. A
-# job for a processor that the machine does not have needs the cross compiler
-# and qemu, which --apt lists.
+# A build job builds the library as a static and as a shared library, runs the
+# tests, installs the library, and builds and runs a consumer project against
+# the installation. A job for a processor architecture that differs from that of
+# the machine requires a cross compiler and qemu, which --apt lists.
 set -euo pipefail
 
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -43,12 +43,15 @@ jobs=(
   coverage
 )
 
-# What a job is and needs. kind is build, firmware or check. A build job sets
-# generator (empty for the one of the platform), toolchain (options for CMake
-# of the library and of the project against it), configure (options of the
-# library only), emulator (the command that runs a program of another
-# processor) and machine (the processor that a job needs natively). A firmware
-# job sets prefix, processor and flags.
+# Describes a job by setting variables. kind is build, firmware or check.
+# A build job sets:
+#   generator  the CMake generator; empty selects the default of the platform
+#   toolchain  CMake options shared by the library and the consumer project
+#   configure  CMake options for the library only
+#   emulator   the command that runs a program built for another architecture
+#   machine    the architecture that the job requires natively
+# A firmware job sets prefix (the prefix of the toolchain executables),
+# processor (CMAKE_SYSTEM_PROCESSOR) and flags (the compiler flags).
 kind=
 generator=
 toolchain=
@@ -63,8 +66,8 @@ flags=
 
 describe() {
   case "$1" in
-    # The strict one: exactly C11, without the extensions of the compiler and
-    # without a diagnostic that a flag could silence.
+    # Strict conformance: ISO C11 without compiler extensions, with every
+    # diagnostic that -pedantic-errors reports treated as an error.
     gcc-x86-64-linux)
       kind=build generator=Ninja machine=x86_64 apt="ninja-build gcc"
       toolchain="-DCMAKE_C_COMPILER=gcc"
@@ -112,13 +115,14 @@ describe() {
     msvc-aarch64-windows)
       kind=build toolchain="-A ARM64"
       ;;
-    # A Cortex-M4 with a floating point unit.
+    # Arm Cortex-M4 with a single-precision floating-point unit.
     gcc-arm-bare-metal)
       kind=firmware prefix=arm-none-eabi processor=arm
       apt="ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi"
       flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs --specs=nosys.specs"
       ;;
-    # RV32IMAC.
+    # RV32IMAC: 32-bit RISC-V with the integer, multiplication, atomic and
+    # compressed instruction extensions.
     gcc-risc-v-bare-metal)
       kind=firmware prefix=riscv64-unknown-elf processor=riscv32
       apt="ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf"
@@ -149,14 +153,15 @@ describe() {
   esac
 }
 
-# Makes the tools that pipx installed findable.
+# Adds the directory of the executables installed by pipx to PATH.
 use_pipx() {
   if command -v pipx > /dev/null; then
     PATH="$(pipx environment --value PIPX_BIN_DIR):$PATH"
   fi
 }
 
-# The processor of the machine, as uname -m names it.
+# Succeeds if the architecture of the host, as reported by uname -m, is the
+# one given as the argument: x86_64 or aarch64.
 machine_is() {
   case "$(uname -m)" in
     arm64 | aarch64) [ "$1" = aarch64 ] ;;
@@ -175,9 +180,10 @@ run_build() {
     "$here/install-and-use.sh"
 }
 
-# The library as a static library, and the image of a program that writes a
-# file into memory. The image has to contain no code to read files or to
-# handle ASCII.
+# Builds the library as a static library and links the firmware image of a
+# program that writes a file to memory. The image must contain neither code
+# that reads files nor code that handles the ASCII representation. The job
+# verifies this by searching the symbols of the image.
 run_firmware() {
   cmake -S . -B "$dir" -G Ninja \
     -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR="$processor" \
@@ -199,11 +205,12 @@ run_firmware() {
   fi
 }
 
-# The thread sanitizer cannot be combined with the address sanitizer, so the
-# builds are two.
+# ThreadSanitizer cannot be combined with AddressSanitizer, so each runs in a
+# build of its own.
 run_sanitizer() {
   if [ -n "${CI:-}" ]; then
-    # The sanitizers map their memory
+    # Lowers the entropy of address-space layout randomization. At the default
+    # setting of the runners, the sanitizers cannot map their shadow memory.
     sudo sysctl vm.mmap_rnd_bits=28 || true
   fi
   CC=clang cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
@@ -216,7 +223,8 @@ run_static_analysis() {
   use_pipx
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DSDFIO_BUILD_EXAMPLES=ON
-  # The files for Windows cannot be analyzed here
+  # The sources specific to Windows cannot be analyzed on this platform and
+  # are excluded.
   # shellcheck disable=SC2046
   clang-tidy -p "$dir" --warnings-as-errors='*' \
     $(ls src/*.c tests/*.c examples/*.c | grep -v -e file_win32 -e test_wide)
@@ -243,10 +251,10 @@ run_licenses() {
   reuse lint
 }
 
-# The lines and branches of the library that the tests run, without those of
-# the tests and the examples. The tests run threads, so the counters are atomic.
-# The job fails when fewer than 75 percent of the lines run, the floor of the
-# other libraries.
+# Measures the coverage of the library sources by the tests, excluding the
+# tests and the examples. The tests use threads, so the profiling counters are
+# updated atomically. The job fails if fewer than 75 percent of the lines are
+# executed, the threshold of related projects.
 run_coverage() {
   use_pipx
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \

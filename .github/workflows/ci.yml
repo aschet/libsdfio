@@ -18,9 +18,9 @@ defaults:
     shell: bash
 
 jobs:
-  # What a job does and needs is in .github/ci/run.sh, which a developer runs
-  # in the same way: run.sh <job>. The jobs of the first three groups are named
-  # compiler, architecture and operating system.
+  # The definition of each job is in .github/ci/run.sh, which a developer runs
+  # the same way with run.sh <job>. The names of the build and firmware jobs
+  # consist of the compiler, the architecture and the operating system.
   ci:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.runner }}

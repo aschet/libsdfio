@@ -21,7 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # The API reference, built as the documentation job of the CI builds it.
+  # Builds the API reference with the same script as the documentation job of
+  # the CI.
   build:
     runs-on: ubuntu-latest
     steps:

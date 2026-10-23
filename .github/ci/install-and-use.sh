@@ -3,17 +3,22 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Builds the library, tests it, installs it, and builds and runs a project of
-# its own against the installation, as a shared and as a static library.
-# GENERATOR picks a generator (a single-configuration one is built as Release).
-# TOOLCHAIN_OPTIONS are options for CMake that the library and the project of
-# its own share: the compiler, the architecture. CONFIGURE_OPTIONS are options
-# for the library only. EMULATOR is the command that runs a program of another
-# architecture. WORKDIR is where the build and the installation go, the current
-# directory if it is not set.
+# Builds the library, runs the tests and installs the library, then builds and
+# runs a consumer project against the installation. This is done for the shared
+# library and for the static library. The script reads these environment
+# variables:
+#   GENERATOR          the CMake generator; a single-configuration generator
+#                      builds the Release configuration
+#   TOOLCHAIN_OPTIONS  CMake options shared by the library and the consumer
+#                      project, such as the compiler and the architecture
+#   CONFIGURE_OPTIONS  CMake options for the library only
+#   EMULATOR           the command that runs a program built for another
+#                      architecture
+#   WORKDIR            the directory for the build and the installation; the
+#                      current directory if unset
 #
-# Where pkg-config is available, a program is also built with the flags that
-# it gives, with the compiler of the build.
+# If pkg-config is available, the script also builds a program with the flags
+# that pkg-config reports, using the compiler of the build.
 set -e
 
 workdir=${WORKDIR:-$PWD}
@@ -49,7 +54,8 @@ for linkage in ON OFF; do
     echo "== pkg-config, BUILD_SHARED_LIBS=$linkage"
     compiler=$(sed -n 's/^CMAKE_C_COMPILER:[A-Z]*=//p' "$build/CMakeCache.txt")
     flags=$(sed -n 's/^CMAKE_C_FLAGS:[A-Z]*=//p' "$build/CMakeCache.txt")
-    # A static library needs the libraries that it uses, which are private.
+    # A static library requires its private dependencies, which pkg-config
+    # reports only with --static.
     static=""
     if [ "$linkage" = OFF ]; then static="--static"; fi
     # shellcheck disable=SC2046,SC2086
