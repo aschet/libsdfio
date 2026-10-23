@@ -84,7 +84,7 @@ class Image
         check(
             sdfio_write_heights(writer.get(), SDFIO_TYPE_FLOAT, heights_.get()),
             sdfio_writer_error_message(writer.get()));
-        check(sdfio_end_file(writer.get()),
+        check(sdfio_end_trailer(writer.get()),
               sdfio_writer_error_message(writer.get()));
     }
 

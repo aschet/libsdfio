@@ -108,7 +108,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         if (status == SDFIO_OK)
         {
-            status = sdfio_end_file(writer);
+            status = sdfio_end_trailer(writer);
         }
     }
     sdfio_writer_free(writer);

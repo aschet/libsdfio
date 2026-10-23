@@ -116,7 +116,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         }
         if (status == SDFIO_OK)
         {
-            status = sdfio_end_file(writer);
+            status = sdfio_end_trailer(writer);
         }
         sdfio_writer_free(writer);
     }

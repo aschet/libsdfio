@@ -109,7 +109,7 @@ int main(void)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_end_file(writer);
+        status = sdfio_end_trailer(writer);
     }
     sdfio_writer_free(writer);
     result = status == SDFIO_OK ? image_used : 0;

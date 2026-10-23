@@ -348,7 +348,7 @@ static void check_file(void)
     sdfio_writer *writer = sdfio_writer_new(&all_codecs);
     CHECK_OK(sdfio_create_file(writer, path, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
-    CHECK_OK(sdfio_end_file(writer));
+    CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
 
@@ -516,8 +516,8 @@ static void check_failing_sink(void)
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
-    CHECK_STATUS(SDFIO_ERR_IO, sdfio_end_file(writer));
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_file(writer));
+    CHECK_STATUS(SDFIO_ERR_IO, sdfio_end_trailer(writer));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 }
 

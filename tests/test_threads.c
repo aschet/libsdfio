@@ -114,7 +114,7 @@ static void *write_and_read(void *argument)
         if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
             || sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights)
                    != SDFIO_OK
-            || sdfio_end_file(writer) != SDFIO_OK)
+            || sdfio_end_trailer(writer) != SDFIO_OK)
         {
             ++self->errors;
         }

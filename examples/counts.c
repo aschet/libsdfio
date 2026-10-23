@@ -51,7 +51,7 @@ static int write_counts(const char *path)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_end_file(writer);
+        status = sdfio_end_trailer(writer);
     }
     if (status != SDFIO_OK)
     {
