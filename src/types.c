@@ -15,6 +15,18 @@
 #include "fields.h"
 #include "settings.h"
 
+/* What the format needs of the platform, checked here and nowhere else: bytes
+ * of 8 bits, and IEEE 754 binary32 and binary64 for float and double. The
+ * integer types of the data area have exact widths, which the standard
+ * guarantees for the types of <stdint.h>. */
+_Static_assert(CHAR_BIT == 8, "the format counts in 8-bit bytes");
+_Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
+               "float has to be IEEE 754 binary32");
+_Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
+               "double has to be IEEE 754 binary64");
+_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
+               "the largest sample has to be a binary64");
+
 /* The spelling of a revision in the magic, in the order of the enumeration. */
 static const char *const revision_texts[] = {"ISO-1.0", "ISO-2.0"};
 enum

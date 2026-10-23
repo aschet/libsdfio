@@ -14,6 +14,12 @@
 
 #include "common.h"
 
+/** The size of the largest sample of the data area, a binary64. */
+enum
+{
+    SDFIO_LARGEST_SAMPLE = 8
+};
+
 /**
  * The data types of the format as a list for X-macros.
  *

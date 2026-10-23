@@ -6,7 +6,7 @@
 
 /**
  * @file common.h
- * @brief Shared facilities: platform checks, errors, allocation and strings.
+ * @brief Shared facilities: errors, allocation and strings.
  */
 
 #ifndef SDFIO_SRC_COMMON_H
@@ -18,24 +18,6 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* What the format needs of the platform, checked here and nowhere else: bytes
- * of 8 bits, and IEEE 754 binary32 and binary64 for float and double. The
- * integer types of the data area have exact widths, which the standard
- * guarantees for the types of <stdint.h>. */
-_Static_assert(CHAR_BIT == 8, "the format counts in 8-bit bytes");
-_Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
-               "float has to be IEEE 754 binary32");
-_Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
-               "double has to be IEEE 754 binary64");
-
-/** The size of the largest sample of the data area, a binary64. */
-enum
-{
-    SDFIO_LARGEST_SAMPLE = 8
-};
-_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
-               "the largest sample has to be a binary64");
 
 /**
  * The text of the last failure of a handle.
