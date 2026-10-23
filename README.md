@@ -23,7 +23,8 @@ if (sdfio_open_file(reader, "surface.sdf") == SDFIO_OK)
 sdfio_reader_free(reader);
 ```
 
-See the [examples](examples).
+See the [examples](examples) and the
+[API reference](https://aschet.github.io/libsdfio/).
 
 ## Building
 
