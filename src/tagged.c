@@ -138,8 +138,8 @@ bool sdfio_tagged_value_valid(const char *value)
 {
     for (size_t i = 0; value[i] != '\0'; ++i)
     {
-        const unsigned char c = (unsigned char)value[i];
-        if (c == '\r' || c == '\n' || c >= SDFIO_FIRST_NON_ASCII)
+        const char c = value[i];
+        if (c == '\r' || c == '\n' || !sdfio_is_ascii(c))
         {
             return false;
         }

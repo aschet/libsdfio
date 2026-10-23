@@ -14,11 +14,16 @@
 
 #include <sdfio/sdfio.h>
 
-/** The first number that is not a character of ASCII. */
-enum
+/**
+ * Tells whether a character belongs to 7-bit ASCII, whatever the signedness of
+ * `char`.
+ *
+ * @param c The character.
+ */
+static inline bool sdfio_is_ascii(char c)
 {
-    SDFIO_FIRST_NON_ASCII = 0x80
-};
+    return (unsigned char)c < 0x80;
+}
 
 /**
  * Tells whether a character is white space, whatever the locale: a space, a

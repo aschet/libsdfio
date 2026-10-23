@@ -47,7 +47,7 @@ static bool is_ascii_text(const char *text, size_t size)
 {
     for (size_t i = 0; i < size; ++i)
     {
-        if ((unsigned char)text[i] >= SDFIO_FIRST_NON_ASCII)
+        if (!sdfio_is_ascii(text[i]))
         {
             return false;
         }
