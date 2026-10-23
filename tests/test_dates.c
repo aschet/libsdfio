@@ -261,7 +261,7 @@ static void check_file(void)
     CHECK(sdfio_get_header(reader)->modification_date == 1768474800);
     sdfio_reader_free(reader);
 
-    reader = sdfio_reader_new(&all_codecs);
+    reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
     CHECK(sdfio_get_header(reader)->creation_date == 1782907200);
     sdfio_reader_free(reader);

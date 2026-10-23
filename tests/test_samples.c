@@ -145,7 +145,7 @@ static void check_against(const expectation *e)
     snprintf(path, sizeof path, "%s/%s", SDFIO_TEST_DATA_DIR, e->path);
     printf("%s\n", e->path);
 
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK(reader != NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     const sdfio_header *header = sdfio_get_header(reader);

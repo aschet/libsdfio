@@ -73,7 +73,7 @@ static void check_roundtrip(sdfio_revision revision,
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(sdfio_write_trailer_text(writer, tagged_trailer,
@@ -81,7 +81,7 @@ static void check_roundtrip(sdfio_revision revision,
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     const sdfio_header *read = sdfio_get_header(reader);
     CHECK(read != NULL);
@@ -183,14 +183,14 @@ static void check_rows(sdfio_revision revision,
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_data(writer, counts, 3));
     CHECK_OK(sdfio_write_data(writer, counts + 3 * COLUMNS, ROWS - 3));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     int16_t back[ROWS * COLUMNS];
     CHECK_OK(sdfio_read_data(reader, back, 2));
@@ -235,7 +235,7 @@ static void check_typed_rows(void)
     const float floats[ROWS * COLUMNS] = {0};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_data_int16(writer, counts, 1));
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data_float(writer, floats, 1));
@@ -244,7 +244,7 @@ static void check_typed_rows(void)
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     int16_t back[ROWS * COLUMNS] = {0};
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_read_data_int16(reader, back, 1));
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
@@ -271,12 +271,12 @@ static void check_profile_scale(void)
         const double heights[COLUMNS] = {1e-6};
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
-        sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+        sdfio_writer *writer = sdfio_writer_new(all_codecs());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
         CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
         CHECK_OK(sdfio_end_trailer(writer));
         sdfio_writer_free(writer);
-        sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+        sdfio_reader *reader = sdfio_reader_new(all_codecs());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         CHECK(sdfio_get_header(reader)->y_scale == scales[i]);
         sdfio_reader_free(reader);
@@ -294,7 +294,7 @@ static void check_errors(void)
     const sdfio_stream stream = membuf_stream(&file);
 
     /* Counts need a z-scale: the writer cannot know what they mean. */
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     int16_t counts[ROWS * COLUMNS] = {0};
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_data(writer, counts, 1));
@@ -303,7 +303,7 @@ static void check_errors(void)
 
     /* A height that does not fit the z-scale that was asked for. */
     header.z_scale = 1e-12;
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
@@ -314,7 +314,7 @@ static void check_errors(void)
     double marker[1] = {-32768.0};
     header.columns = 1;
     header.rows = 1;
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
                  sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, marker));
@@ -322,20 +322,20 @@ static void check_errors(void)
 
     /* A description that cannot be written. */
     describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT8);
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     describe(&header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
     header.columns = (size_t)UINT16_MAX + 1;
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
 
     /* The end before the rows, and a trailer ISO-2.0 cannot have. */
     describe(&header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_trailer(writer));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
@@ -370,7 +370,7 @@ static void check_stride(void)
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights_strided(
         writer, format_with_rows(SDFIO_TYPE_DOUBLE, -stride),
@@ -380,7 +380,7 @@ static void check_stride(void)
 
     double up[ROWS * COLUMNS];
     double down[ROWS * COLUMNS];
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, up));
     reader = membuf_reopen(reader, &file);
@@ -464,7 +464,7 @@ static void check_element_stride(void)
             format.row_stride = COLUMNS * sizeof(point);
             source = &points[0].z;
         }
-        sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+        sdfio_writer *writer = sdfio_writer_new(all_codecs());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
         CHECK_OK(sdfio_write_heights_strided(writer, format, source));
         CHECK_OK(sdfio_end_trailer(writer));
@@ -483,7 +483,7 @@ static void check_element_stride(void)
     {
         read_points[i] = (point){-1.0, -2.0, 0.0, -4.0};
     }
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, from_plain.data, from_plain.size));
     sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
     format.element_stride = ROWS * sizeof(double);
@@ -526,7 +526,7 @@ static void check_element_stride(void)
     sdfio_reader_free(reader);
 
     const sdfio_stream stream = membuf_stream(&from_plain);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_write_heights_strided(writer, format, plain));
@@ -549,7 +549,7 @@ static void write_with_resolution(membuf *file,
     double heights[ROWS * COLUMNS];
     make_heights(heights);
     const sdfio_stream stream = membuf_stream(file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -558,7 +558,7 @@ static void write_with_resolution(membuf *file,
 
 static double resolution_read(const membuf *file)
 {
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     double resolution = 0.0;
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
     if (sdfio_get_header(reader) != NULL)
@@ -644,7 +644,7 @@ static void check_resolution(void)
         header.z_resolution = refused[i];
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
-        sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+        sdfio_writer *writer = sdfio_writer_new(all_codecs());
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                      sdfio_create_stream(writer, &stream, &header));
         sdfio_writer_free(writer);
@@ -663,14 +663,14 @@ static void check_rows_without_columns(void)
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_data(writer, NULL, header.rows));
     CHECK_OK(sdfio_write_trailer_text(writer, "a = 1\n", 6));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     CHECK_OK(sdfio_read_data(reader, NULL, header.rows));
     const char *trailer = NULL;
@@ -699,13 +699,13 @@ static void check_defaults(void)
     const float heights[6] = {1e-6F, -2.5e-7F, NAN, 3e-7F, 0.0F, 7.5e-6F};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
     CHECK_OK(sdfio_end_trailer(writer));
     sdfio_writer_free(writer);
     float back[6];
-    sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+    sdfio_reader *reader = sdfio_reader_new(all_codecs());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, back));
     for (size_t i = 0; i < 6; ++i)
@@ -765,7 +765,7 @@ static void check_trailer_line_ends(void)
             const double height = 1e-6;
             membuf file = {0};
             const sdfio_stream stream = membuf_stream(&file);
-            sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+            sdfio_writer *writer = sdfio_writer_new(all_codecs());
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
             CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, &height));
             CHECK_OK(sdfio_write_trailer_text(writer, variants[v].written,
@@ -788,7 +788,7 @@ static void check_trailer_line_ends(void)
                 CHECK(only_crlf(file.data, file.size));
             }
 
-            sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+            sdfio_reader *reader = sdfio_reader_new(all_codecs());
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
             const char *trailer = NULL;
             size_t size = 0;
@@ -834,7 +834,7 @@ static void check_read_line_ends(void)
         make_heights(heights);
         membuf crlf = {0};
         const sdfio_stream stream = membuf_stream(&crlf);
-        sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+        sdfio_writer *writer = sdfio_writer_new(all_codecs());
         CHECK_OK(sdfio_create_stream(writer, &stream, &header));
         CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_DOUBLE, heights));
         CHECK_OK(sdfio_write_trailer_text(writer, tagged_trailer,
@@ -843,7 +843,7 @@ static void check_read_line_ends(void)
         sdfio_writer_free(writer);
 
         double expected[ROWS * COLUMNS];
-        sdfio_reader *reader = sdfio_reader_new(&all_codecs);
+        sdfio_reader *reader = sdfio_reader_new(all_codecs());
         CHECK_OK(sdfio_open_memory(reader, crlf.data, crlf.size));
         CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, expected));
         sdfio_reader_free(reader);
@@ -853,7 +853,7 @@ static void check_read_line_ends(void)
             membuf other = with_line_ends(&crlf, line_ends[e]);
             CHECK(other.size < crlf.size);
             double read[ROWS * COLUMNS];
-            reader = sdfio_reader_new(&all_codecs);
+            reader = sdfio_reader_new(all_codecs());
             CHECK_OK(sdfio_open_memory(reader, other.data, other.size));
             const sdfio_header *got = sdfio_get_header(reader);
             CHECK(got != NULL && got->columns == COLUMNS && got->rows == ROWS

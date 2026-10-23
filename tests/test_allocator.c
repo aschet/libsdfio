@@ -286,7 +286,7 @@ static void check_arguments(void)
     header.columns = 1;
     header.rows = 1;
     header.creation_date = SDFIO_NO_TIME;
-    sdfio_writer *writer = sdfio_writer_new(&all_codecs);
+    sdfio_writer *writer = sdfio_writer_new(all_codecs());
     memory_sink sink = {0};
     const sdfio_stream stream = {&sink, NULL, sink_write};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -306,7 +306,7 @@ static void check_arguments(void)
     header.representation = SDFIO_ASCII;
     header.columns = 1;
     header.rows = 1;
-    writer = sdfio_writer_new(&all_codecs);
+    writer = sdfio_writer_new(all_codecs());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
@@ -326,7 +326,7 @@ static void check_arguments(void)
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(&all_codecs);
+    reader = sdfio_reader_new(all_codecs());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
     sdfio_reader_free(reader);
@@ -357,16 +357,16 @@ static void check_arguments(void)
 /* The magics of a configuration: those of its codecs, in their order. */
 static void check_magics(void)
 {
-    CHECK(sdfio_magic_count(&all_codecs) == 4U);
-    CHECK(strcmp(sdfio_magic(&all_codecs, 0), "bISO-1.0") == 0);
-    CHECK(strcmp(sdfio_magic(&all_codecs, 1), "bISO-2.0") == 0);
-    CHECK(strcmp(sdfio_magic(&all_codecs, 2), "aISO-1.0") == 0);
-    CHECK(strcmp(sdfio_magic(&all_codecs, 3), "aISO-2.0") == 0);
-    for (size_t i = 0; i < sdfio_magic_count(&all_codecs); ++i)
+    CHECK(sdfio_magic_count(all_codecs()) == 4U);
+    CHECK(strcmp(sdfio_magic(all_codecs(), 0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_magic(all_codecs(), 1), "bISO-2.0") == 0);
+    CHECK(strcmp(sdfio_magic(all_codecs(), 2), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_magic(all_codecs(), 3), "aISO-2.0") == 0);
+    for (size_t i = 0; i < sdfio_magic_count(all_codecs()); ++i)
     {
-        CHECK(strlen(sdfio_magic(&all_codecs, i)) == SDFIO_MAGIC_SIZE);
+        CHECK(strlen(sdfio_magic(all_codecs(), i)) == SDFIO_MAGIC_SIZE);
     }
-    CHECK(sdfio_magic(&all_codecs, sdfio_magic_count(&all_codecs)) == NULL);
+    CHECK(sdfio_magic(all_codecs(), sdfio_magic_count(all_codecs())) == NULL);
 
     const sdfio_config ascii_first = {
         .reader_codecs = {&sdfio_ascii_reader_codec,
