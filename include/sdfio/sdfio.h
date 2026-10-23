@@ -859,9 +859,9 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * character, which the size does not count. It remains valid until the reader
  * is freed. A repeated call returns the same trailer.
  *
- * In memory every line end is LF, whichever of CRLF, CR or LF the file
- * contains, in ASCII and in binary files. The end of the last line is not part
- * of the text. In an ASCII file, white space around the trailer is removed.
+ * In memory every line end is LF, whether the file has CRLF or LF, in ASCII
+ * and in binary files. The end of the last line is not part of the text. In an
+ * ASCII file, white space around the trailer is removed.
  *
  * @param reader The reader.
  * @param[out] trailer The text of the trailer.
@@ -1018,7 +1018,7 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
  * text and the fields of sdfio_write_trailer_field() can follow each other in
  * any order. sdfio_end_trailer() ends the trailer.
  *
- * The text is not interpreted. Every line end of the text (LF, CR or CRLF) is
+ * The text is not interpreted. Every line end of the text (LF or CRLF) is
  * written as CRLF, as the standard specifies, in ASCII and in binary files, and
  * the last line is terminated. sdfio_read_trailer() returns the lines with LF.
  * In an ASCII file a line that consists only of `*` ends the record, so the
