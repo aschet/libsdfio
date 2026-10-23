@@ -176,7 +176,7 @@ run_firmware() {
 }
 
 # ThreadSanitizer cannot be combined with AddressSanitizer, so each runs in a
-# build of its own.
+# build of its own. The argument holds the flags of the compiler and the linker.
 run_sanitizer() {
   if [ -n "${CI:-}" ]; then
     # Lowers the entropy of address-space layout randomization. At the default
@@ -184,7 +184,8 @@ run_sanitizer() {
     sudo sysctl vm.mmap_rnd_bits=28 || true
   fi
   CC=clang cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-    "$1" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+    "-DCMAKE_C_FLAGS=$1" "-DCMAKE_EXE_LINKER_FLAGS=$1" \
+    "-DCMAKE_SHARED_LINKER_FLAGS=$1" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
   cmake --build "$dir"
   ctest --test-dir "$dir" --output-on-failure --no-tests=error
 }
@@ -246,8 +247,10 @@ main() {
       cd "$root"
       dir="$root/build/$1"
       case "$1" in
-        asan-ubsan) run_sanitizer -DSDFIO_SANITIZE=ON ;;
-        tsan) run_sanitizer -DSDFIO_SANITIZE_THREAD=ON ;;
+        asan-ubsan)
+          run_sanitizer "-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer"
+          ;;
+        tsan) run_sanitizer "-fsanitize=thread -fno-omit-frame-pointer" ;;
         static-analysis) run_static_analysis ;;
         format) run_format ;;
         documentation) run_documentation ;;

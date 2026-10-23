@@ -23,8 +23,6 @@ include(GNUInstallDirs)
 
 option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
 option(SDFIO_BUILD_INTEGRATIONS "Build the examples with OpenCV and other libraries" OFF)
-option(SDFIO_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
-option(SDFIO_SANITIZE_THREAD "Build with ThreadSanitizer" OFF)
 option(SDFIO_BUILD_FUZZERS "Build the fuzzers of libFuzzer, with Clang" OFF)
 option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
 
@@ -32,17 +30,6 @@ set(SDFIO_WARNINGS
     $<$<C_COMPILER_ID:MSVC>:/W4;/permissive-;/utf-8>
     $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wcast-qual;-Wformat=2;-Wundef>
 )
-
-set(SDFIO_SANITIZER_FLAGS "")
-if(SDFIO_SANITIZE)
-    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
-endif()
-if(SDFIO_BUILD_FUZZERS)
-    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=address,undefined,fuzzer-no-link -fno-omit-frame-pointer)
-endif()
-if(SDFIO_SANITIZE_THREAD)
-    list(APPEND SDFIO_SANITIZER_FLAGS -fsanitize=thread -fno-omit-frame-pointer)
-endif()
 
 # A Windows program finds the DLL beside itself: the tests, the examples and the
 # library go to one folder.
@@ -128,7 +115,7 @@ target_include_directories(sdfio_objects
         "${PROJECT_SOURCE_DIR}/src"
 )
 target_compile_features(sdfio_objects PUBLIC c_std_11)
-target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
+target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS})
 # The library is standard C11, with no feature macros. fopen is a function of
 # the standard, and the file functions of Windows use it.
 target_compile_definitions(sdfio_objects PRIVATE
@@ -171,9 +158,7 @@ target_sources(sdfio
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h"
 )
-target_compile_features(sdfio PUBLIC c_std_99)
 target_link_libraries(sdfio PUBLIC $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
-target_link_options(sdfio PUBLIC ${SDFIO_SANITIZER_FLAGS})
 
 set_target_properties(sdfio PROPERTIES
     VERSION ${PROJECT_VERSION}

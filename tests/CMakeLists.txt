@@ -10,8 +10,7 @@ function(sdfio_add_test name)
     add_executable(${name} ${name}.c)
     target_link_libraries(${name} PRIVATE sdfio_objects $<$<NOT:$<PLATFORM_ID:Windows>>:m>)
     target_include_directories(${name} PRIVATE "${PROJECT_SOURCE_DIR}/src")
-    target_compile_options(${name} PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
-    target_link_options(${name} PRIVATE ${SDFIO_SANITIZER_FLAGS})
+    target_compile_options(${name} PRIVATE ${SDFIO_WARNINGS})
     # The tests link the objects of the library, also when it is shared: its
     # functions are not imported from the DLL.
     target_compile_definitions(${name} PRIVATE
@@ -41,5 +40,5 @@ endif()
 # The public interface only, through the library that is installed.
 add_executable(test_public test_public.c)
 target_link_libraries(test_public PRIVATE sdfio)
-target_compile_options(test_public PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
+target_compile_options(test_public PRIVATE ${SDFIO_WARNINGS})
 add_test(NAME test_public COMMAND test_public)

@@ -5,7 +5,7 @@
 foreach(example writing reading streaming coded_values time_zone)
     add_executable(${example} ${example}.c)
     target_link_libraries(${example} PRIVATE sdfio)
-    target_compile_options(${example} PRIVATE ${SDFIO_WARNINGS} ${SDFIO_SANITIZER_FLAGS})
+    target_compile_options(${example} PRIVATE ${SDFIO_WARNINGS})
     target_compile_definitions(${example} PRIVATE
         $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>
     )
