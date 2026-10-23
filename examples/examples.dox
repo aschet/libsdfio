@@ -50,8 +50,17 @@
 
 /**
  * @example opencv.cpp
- * A surface as an OpenCV image of heights. A negative row stride turns the surface
- * into an image without a copy, and a region of interest is read.
+ * Reads the SDF file given as the argument into an OpenCV image, smooths it and
+ * writes it to a file, and reads the file into a region of a larger image. A
+ * negative row stride turns the surface into an image without a copy.
+ */
+
+/**
+ * @example eigen.cpp
+ * Reads the SDF file given as the argument into an Eigen matrix, removes the
+ * plane that fits its heights best, and writes the matrix to a file. The
+ * strides of the layout are those of the matrix, so the heights are read into
+ * it in place.
  */
 
 /**
@@ -59,11 +68,4 @@
  * Shows the SDF file given as the argument as VTK image data: the heights are
  * read in place into the array of the image, points that are not measured are
  * hidden, and the surface is displayed as a height field in a window.
- */
-
-/**
- * @example eigen.cpp
- * A surface as an Eigen matrix: the heights are read into the matrix in place,
- * a plane is fitted by least squares for the form removal, and the matrix is
- * written back in the same layout.
  */
