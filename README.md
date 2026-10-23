@@ -44,6 +44,17 @@ target `sdfio::sdfio`. On Linux and macOS the installation also has a
 pkg-config file: `pkg-config --cflags --libs sdfio`, with `--static` for the
 static library.
 
+With Visual Studio, in PowerShell, the generator builds every configuration, so
+the commands name the one to build, test and install. `-A` selects `x64`,
+`Win32` or `ARM64`:
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Release
+ctest --test-dir build -C Release
+cmake --install build --config Release --prefix C:\sdfio
+```
+
 ## Checks
 
 The jobs of the continuous integration are one script, which runs the same
