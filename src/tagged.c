@@ -25,11 +25,8 @@ static bool next_line(const char *text, size_t size, size_t *position,
         return false;
     }
     const size_t start = *position;
-    size_t end = start;
-    while (end < size && text[end] != '\n')
-    {
-        ++end;
-    }
+    const char *newline = memchr(text + start, '\n', size - start);
+    const size_t end = newline != NULL ? (size_t)(newline - text) : size;
     *line = text + start;
     *line_size = end - start;
     /* The CR of a CRLF is not part of the line. */

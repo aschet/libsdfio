@@ -18,6 +18,7 @@
 #include "text.h"
 #include <ctype.h>
 #include <limits.h>
+#include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -25,19 +26,14 @@
 
 sdfio_point sdfio_point_now(void)
 {
-    /* 1.5 printed: the digit 1, the point, the digit 5. */
-    const size_t digits_around = 2;
-    char probe[SDFIO_NUMBER_CAPACITY];
-    const int length = snprintf(probe, sizeof probe, "%.1f", 1.5);
     sdfio_point point = {{'.', '\0'}};
-    if (length > (int)digits_around && (size_t)length < sizeof probe)
+    const struct lconv *locale = localeconv();
+    if (locale != NULL && locale->decimal_point != NULL
+        && locale->decimal_point[0] != '\0'
+        && strlen(locale->decimal_point) < sizeof point.text)
     {
-        const size_t size = (size_t)length - digits_around;
-        if (size < sizeof point.text)
-        {
-            memcpy(point.text, probe + 1, size);
-            point.text[size] = '\0';
-        }
+        memcpy(point.text, locale->decimal_point,
+               strlen(locale->decimal_point) + 1);
     }
     return point;
 }

@@ -20,6 +20,7 @@
 #include "revision.h"
 #include "text.h"
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 enum
@@ -36,14 +37,7 @@ enum
     MINUTES_PER_HOUR = 60,
     HOURS_PER_DAY = 24,
     MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY,
-    MONTHS_PER_YEAR = 12,
-    TWO_DIGITS = 2,
-    YEAR_DIGITS = 4,
-    DAY_AT = 0,
-    MONTH_AT = 2,
-    YEAR_AT = 4,
-    HOUR_AT = 8,
-    MINUTE_AT = 10
+    MONTHS_PER_YEAR = 12
 };
 
 /* The proleptic Gregorian calendar. Days are counted from 1970-01-01. */
@@ -165,16 +159,6 @@ bool sdfio_datetime_representable(time_t time)
     return year >= SDFIO_FIRST_YEAR && year <= SDFIO_LAST_YEAR;
 }
 
-/* A non-negative number as decimal digits, filled with zeros. */
-static void put_digits(char *out, int value, size_t width)
-{
-    for (size_t i = width; i > 0; --i)
-    {
-        out[i - 1] = (char)('0' + value % 10);
-        value /= 10;
-    }
-}
-
 bool sdfio_datetime_format(time_t time, sdfio_revision revision,
                            const sdfio_time_zone *zone,
                            char out[SDFIO_DATETIME_SIZE])
@@ -200,24 +184,12 @@ bool sdfio_datetime_format(time_t time, sdfio_revision revision,
     unsigned month = 0;
     unsigned day = 0;
     civil_from_days(days, &year, &month, &day);
-    put_digits(out + DAY_AT, (int)day, TWO_DIGITS);
-    put_digits(out + MONTH_AT, (int)month, TWO_DIGITS);
-    put_digits(out + YEAR_AT, (int)year, YEAR_DIGITS);
-    put_digits(out + HOUR_AT, (int)(minute_of_day / MINUTES_PER_HOUR),
-               TWO_DIGITS);
-    put_digits(out + MINUTE_AT, (int)(minute_of_day % MINUTES_PER_HOUR),
-               TWO_DIGITS);
+    char text[SDFIO_DATETIME_SIZE + 1];
+    snprintf(text, sizeof text, "%02u%02u%04u%02u%02u", day, month,
+             (unsigned)year, (unsigned)(minute_of_day / MINUTES_PER_HOUR),
+             (unsigned)(minute_of_day % MINUTES_PER_HOUR));
+    memcpy(out, text, SDFIO_DATETIME_SIZE);
     return true;
-}
-
-static int digits_at(const char *text, size_t at, size_t count)
-{
-    int number = 0;
-    for (size_t i = 0; i < count; ++i)
-    {
-        number = number * 10 + (text[at + i] - '0');
-    }
-    return number;
 }
 
 /** The fields of a date in the text DDMMYYYYhhmm. */
@@ -251,11 +223,17 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
             return false;
         }
     }
-    fields->day = digits_at(text, DAY_AT, TWO_DIGITS);
-    fields->month = digits_at(text, MONTH_AT, TWO_DIGITS);
-    fields->year = digits_at(text, YEAR_AT, YEAR_DIGITS);
-    fields->hour = digits_at(text, HOUR_AT, TWO_DIGITS);
-    fields->minute = digits_at(text, MINUTE_AT, TWO_DIGITS);
+    char terminated[SDFIO_DATETIME_SIZE + 1];
+    memcpy(terminated, text, size);
+    terminated[size] = '\0';
+    // The text is all digits, and the number of conversions is checked.
+    // NOLINTNEXTLINE(cert-err34-c)
+    if (sscanf(terminated, "%2d%2d%4d%2d%2d", &fields->day, &fields->month,
+               &fields->year, &fields->hour, &fields->minute)
+        != 5)
+    {
+        return false;
+    }
     return fields->year >= SDFIO_FIRST_YEAR && fields->month >= 1
            && fields->month <= MONTHS_PER_YEAR && fields->day >= 1
            && (unsigned)fields->day

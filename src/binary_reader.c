@@ -80,11 +80,8 @@ static bool revision_of(const unsigned char *version_number,
  * whatever was in memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
-    size_t size = 0;
-    while (size < SDFIO_ID_SIZE && field[size] != '\0')
-    {
-        ++size;
-    }
+    const unsigned char *end = memchr(field, '\0', SDFIO_ID_SIZE);
+    size_t size = end != NULL ? (size_t)(end - field) : SDFIO_ID_SIZE;
     while (size > 0 && sdfio_is_space((char)field[size - 1]))
     {
         --size;

@@ -147,32 +147,6 @@ static sdfio_status format_header(const sdfio_header *header,
     return SDFIO_OK;
 }
 
-/* The decimal digits of an integer, without a terminator, which the C library
- * would format by a call per value. */
-static size_t format_integer(long long value, char *out)
-{
-    unsigned long long magnitude = value < 0 ? 0ULL - (unsigned long long)value
-                                             : (unsigned long long)value;
-    char reversed[SDFIO_NUMBER_CAPACITY];
-    size_t digits = 0;
-    do
-    {
-        reversed[digits++] = (char)('0' + magnitude % 10);
-        magnitude /= 10;
-    } while (magnitude != 0);
-    size_t used = 0;
-    if (value < 0)
-    {
-        out[used++] = '-';
-    }
-    while (digits > 0)
-    {
-        out[used++] = reversed[--digits];
-    }
-    out[used] = '\0';
-    return used;
-}
-
 static size_t format_value(const sdfio_header *header, const sdfio_point *point,
                            const void *coded, size_t index, char *out,
                            size_t capacity)
@@ -187,7 +161,7 @@ static size_t format_value(const sdfio_header *header, const sdfio_point *point,
     const double value = load_number(type, coded, index);
     if (!sdfio_is_floating(type))
     {
-        return format_integer((long long)value, out);
+        return (size_t)snprintf(out, capacity, "%lld", (long long)value);
     }
     if (type == SDFIO_TYPE_FLOAT)
     {
