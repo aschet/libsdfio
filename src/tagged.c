@@ -57,22 +57,6 @@ bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size)
     return true;
 }
 
-bool sdfio_append_crlf_lines(sdfio_string *out, const char *text, size_t size)
-{
-    size_t position = 0;
-    const char *line = NULL;
-    size_t line_size = 0;
-    while (sdfio_next_line(text, size, &position, &line, &line_size))
-    {
-        if (!sdfio_string_append(out, line, line_size)
-            || !sdfio_string_append(out, line_end, sizeof line_end - 1))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 void sdfio_lines_to_lf(sdfio_string *text)
 {
     size_t used = 0;
@@ -201,4 +185,34 @@ bool sdfio_tagged_find(const char *text, size_t size, const char *name,
         }
     }
     return found;
+}
+
+bool sdfio_tagged_name_valid(const char *name)
+{
+    if (name[0] == '\0')
+    {
+        return false;
+    }
+    for (size_t i = 0; name[i] != '\0'; ++i)
+    {
+        const char c = sdfio_lower(name[i]);
+        if (!sdfio_is_digit(c) && !(c >= 'a' && c <= 'z') && c != '_')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool sdfio_tagged_value_valid(const char *value)
+{
+    for (size_t i = 0; value[i] != '\0'; ++i)
+    {
+        const unsigned char c = (unsigned char)value[i];
+        if (c == '\r' || c == '\n' || c >= SDFIO_FIRST_NON_ASCII)
+        {
+            return false;
+        }
+    }
+    return true;
 }

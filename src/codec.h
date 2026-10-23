@@ -174,19 +174,24 @@ struct sdfio_writer_codec
                                  size_t chunk_values, sdfio_message *message);
 
     /**
-     * Writes what closes the data area, and the trailer.
+     * Closes the data area and opens the trailer record. Called before the
+     * first line of the trailer, or alone if the file has none.
      *
      * @param sink The sink.
-     * @param trailer The trailer. May be null.
-     * @param size The length of the trailer.
-     * @param allocator The allocator of the handle.
      * @param[out] message Receives the reason of a failure.
-     * @retval SDFIO_ERR_MEMORY There is no memory.
      * @retval SDFIO_ERR_IO The stream failed.
      */
-    sdfio_status (*write_trailer)(sdfio_sink *sink, const char *trailer,
-                                  size_t size, const sdfio_allocator *allocator,
-                                  sdfio_message *message);
+    sdfio_status (*begin_trailer)(sdfio_sink *sink, sdfio_message *message);
+
+    /**
+     * Closes the trailer record and so the file. The lines of the trailer
+     * were written between begin_trailer() and this call.
+     *
+     * @param sink The sink.
+     * @param[out] message Receives the reason of a failure.
+     * @retval SDFIO_ERR_IO The stream failed.
+     */
+    sdfio_status (*end_trailer)(sdfio_sink *sink, sdfio_message *message);
 };
 
 #endif /* SDFIO_SRC_CODEC_H */

@@ -396,15 +396,17 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
-                                  size_t size, const sdfio_allocator *allocator,
-                                  sdfio_message *message)
+static sdfio_status begin_trailer(sdfio_sink *sink, sdfio_message *message)
 {
-    (void)allocator;
-    if (size > 0 && !sdfio_write_crlf_lines(sink, trailer, size))
-    {
-        return sdfio_sink_failure(message);
-    }
+    (void)sink;
+    (void)message;
+    return SDFIO_OK;
+}
+
+static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
+{
+    (void)sink;
+    (void)message;
     return SDFIO_OK;
 }
 
@@ -422,5 +424,6 @@ const sdfio_writer_codec sdfio_binary_writer_codec = {
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,
-    .write_trailer = write_trailer,
+    .begin_trailer = begin_trailer,
+    .end_trailer = end_trailer,
 };

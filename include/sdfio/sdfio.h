@@ -20,8 +20,8 @@
  *    conversion chunk of the file, never the whole file.
  * 2. Records. sdfio_get_header() provides the header. sdfio_read_data() and
  *    sdfio_write_data() transfer the data area row by row in the coded form of
- *    the file. sdfio_read_trailer() and sdfio_write_trailer() transfer the
- *    trailer.
+ *    the file. sdfio_read_trailer(), sdfio_write_trailer_field() and
+ *    sdfio_write_trailer() transfer the trailer.
  * 3. Heights. sdfio_decode_heights() and sdfio_encode_heights() convert between
  *    the coded values of the data area and heights in metres. They require
  *    only a header, no handle.
@@ -1122,19 +1122,42 @@ SDFIO_API sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
                                                    const void *src);
 
 /**
- * Writes the trailer (record 3) and ends the file. All rows of the data area
- * must have been written. A file that sdfio_create_file() created is closed.
+ * Writes a line `field = value` of the trailer (record 3), which ISO-2.0
+ * expects. The fields go to the stream as they are given, so the program
+ * assembles nothing in memory. All rows of the data area must have been
+ * written. Call it for each field, then sdfio_write_trailer() to end the file.
  *
- * The text is not interpreted. ISO-2.0 expects lines of the form
- * `field name = value`, which sdfio_trailer_add_field() assembles. Every line
- * end of the text (LF, CR or CRLF) is written as CRLF, as the standard
- * specifies, in ASCII and in binary files, and the last line is terminated.
- * sdfio_read_trailer() returns the lines with LF. In an ASCII file a line that
- * consists only of `*` ends the record, so the text must not contain one;
- * lines assembled by sdfio_trailer_add_field() never do.
+ * The value is text. The caller formats numbers, for instance with snprintf()
+ * in the C locale, because a locale with a decimal comma would produce `20,5`.
+ * White space around a value is lost when the line is read.
  *
  * @param writer The writer.
- * @param[in] trailer The text, or null for no trailer.
+ * @param[in] field The field name: letters, digits and `_`.
+ * @param[in] value The value: one line of 7-bit ASCII.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the field name is empty or
+ * contains another character, or the value is not one line of 7-bit ASCII.
+ * @retval SDFIO_ERR_STATE No file is created, rows are missing, the file is
+ * ended, or an earlier error ended the writing.
+ * @retval SDFIO_ERR_IO The stream failed.
+ */
+SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
+                                                 const char *field,
+                                                 const char *value);
+
+/**
+ * Writes the rest of the trailer (record 3) and ends the file. The fields of
+ * sdfio_write_trailer_field() come first. All rows of the data area must have
+ * been written. A file that sdfio_create_file() created is closed.
+ *
+ * The text is not interpreted. Every line end of the text (LF, CR or CRLF) is
+ * written as CRLF, as the standard specifies, in ASCII and in binary files, and
+ * the last line is terminated. sdfio_read_trailer() returns the lines with LF.
+ * In an ASCII file a line that consists only of `*` ends the record, so the
+ * text must not contain one; lines of sdfio_write_trailer_field() never do. A
+ * file whose trailer consists of fields, or of none, ends with a null text.
+ *
+ * @param writer The writer.
+ * @param[in] trailer The text, or null for no more text.
  * @param size The length of the text in bytes.
  * @retval SDFIO_ERR_ARGUMENT `trailer` is null and `size` is not 0.
  * @retval SDFIO_ERR_STATE No file is created, rows are missing, or an earlier
@@ -1230,66 +1253,6 @@ SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
                                              sdfio_format format,
                                              const void *heights, size_t rows,
                                              size_t columns, double *z_scale);
-
-/* ---- Trailer ------------------------------------------------------------ */
-
-/**
- * A trailer (record 3) under assembly, in memory of the caller.
- *
- * The trailer consists of lines of the form `field name = value`, which ISO-2.0
- * expects. In memory the lines end with LF; sdfio_write_trailer() writes them
- * as the standard specifies. Pass `text` and `size` to sdfio_write_trailer().
- * The library does not interpret a trailer; reading one returns the text.
- *
- * ~~~
- * char memory[512];
- * sdfio_trailer trailer;
- * sdfio_trailer_init(&trailer, memory, sizeof memory);
- * sdfio_trailer_add_field(&trailer, "OperatorName", "Jane Doe");
- * sdfio_trailer_add_field(&trailer, "Magnification", "20.5");
- * ...
- * sdfio_write_trailer(writer, trailer.text, trailer.size);
- * ~~~
- */
-typedef struct sdfio_trailer
-{
-    /** The lines so far, terminated by a null character. */
-    char *text;
-    /** The length of the text in bytes, not counting the null character. */
-    size_t size;
-    /** The capacity of the memory in bytes. */
-    size_t capacity;
-} sdfio_trailer;
-
-/**
- * Initializes an empty trailer that stores its text in a block of memory.
- * Nothing is allocated.
- *
- * @param[out] trailer The trailer.
- * @param memory The memory for the text.
- * @param capacity The size of the memory in bytes.
- */
-SDFIO_API void sdfio_trailer_init(sdfio_trailer *trailer, char *memory,
-                                  size_t capacity);
-
-/**
- * Appends the line `field = value`.
- *
- * The value is text. The caller formats numbers, for instance with snprintf()
- * in the C locale, because a locale with a decimal comma would produce `20,5`.
- * White space around a value is lost when the line is read.
- *
- * @param trailer The trailer.
- * @param[in] field The field name: letters, digits and `_`.
- * @param[in] value The value: one line of 7-bit ASCII.
- * @retval SDFIO_ERR_ARGUMENT The field name is empty or contains another
- * character, or the value is not one line of 7-bit ASCII.
- * @retval SDFIO_ERR_RANGE The line and the null character do not fit. The
- * trailer is unchanged.
- */
-SDFIO_API sdfio_status sdfio_trailer_add_field(sdfio_trailer *trailer,
-                                               const char *field,
-                                               const char *value);
 
 #ifdef __cplusplus
 }

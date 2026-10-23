@@ -65,12 +65,9 @@ int main(void)
     sdfio_writer *writer = sdfio_writer_new(&all_codecs);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights));
-    char composed[128];
-    sdfio_trailer assembled;
-    sdfio_trailer_init(&assembled, composed, sizeof composed);
-    CHECK_OK(sdfio_trailer_add_field(&assembled, "Note", "public"));
-    CHECK_OK(sdfio_trailer_add_field(&assembled, "Averages", "16"));
-    CHECK_OK(sdfio_write_trailer(writer, assembled.text, assembled.size));
+    CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
+    CHECK_OK(sdfio_write_trailer_field(writer, "Averages", "16"));
+    CHECK_OK(sdfio_write_trailer(writer, NULL, 0));
     CHECK(strcmp(sdfio_writer_error_message(writer), "") == 0);
     sdfio_writer_free(writer);
 

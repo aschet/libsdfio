@@ -17,6 +17,7 @@
 #include "owner.h"
 #include "settings.h"
 #include "stream.h"
+#include "tagged.h"
 #include "types.h"
 
 /** Where a writer is in the life of a file. */
@@ -51,6 +52,8 @@ struct sdfio_writer
     writer_state state;
     /** Whether the header went to the sink. */
     bool header_written;
+    /** Whether the codec opened the trailer record. */
+    bool trailer_open;
     /** The index of the next row to write. */
     size_t next_row;
     /** The allocator of the configuration. */
@@ -455,32 +458,101 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
-                                 size_t size)
+/* Every row of the data area has to be written before the trailer. */
+static sdfio_status require_complete(sdfio_writer *writer)
 {
-    sdfio_status status = require_writable(writer);
+    if (writer->next_row != writer->header.rows)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "Not all rows of the data area were written");
+    }
+    return SDFIO_OK;
+}
+
+/* The header is out, and the codec has opened the record of the trailer. */
+static sdfio_status open_trailer(sdfio_writer *writer)
+{
+    sdfio_status status = start_data(writer);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    const sdfio_header *header = &writer->header;
-    if (writer->next_row != header->rows)
+    if (!writer->trailer_open)
     {
-        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "Not all rows of the data area were written");
+        status = writer->codec->begin_trailer(&writer->sink, &writer->message);
+        if (status != SDFIO_OK)
+        {
+            return fail_writing(writer, status);
+        }
+        writer->trailer_open = true;
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
+                                       const char *value)
+{
+    static const char separator[] = " = ";
+    static const char line_end[] = "\r\n";
+    sdfio_status status = require_writable(writer);
+    if (status == SDFIO_OK)
+    {
+        status = require_complete(writer);
+    }
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (field == NULL || value == NULL || !sdfio_tagged_name_valid(field)
+        || !sdfio_tagged_value_valid(value))
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "A field name has letters, digits and _ and a value "
+                          "is one line of 7-bit ASCII");
+    }
+    status = open_trailer(writer);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    sdfio_sink *sink = &writer->sink;
+    if (!sdfio_sink_write(sink, field, strlen(field))
+        || !sdfio_sink_write(sink, separator, sizeof separator - 1)
+        || !sdfio_sink_write(sink, value, strlen(value))
+        || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
+    {
+        return write_failed(writer);
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_write_trailer(sdfio_writer *writer, const char *trailer,
+                                 size_t size)
+{
+    sdfio_status status = require_writable(writer);
+    if (status == SDFIO_OK)
+    {
+        status = require_complete(writer);
+    }
+    if (status != SDFIO_OK)
+    {
+        return status;
     }
     if (trailer == NULL && size > 0)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "A trailer with a size needs its text");
     }
-    status = start_data(writer);
+    status = open_trailer(writer);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    status = writer->codec->write_trailer(&writer->sink, trailer, size,
-                                          &writer->allocator, &writer->message);
+    if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, trailer, size))
+    {
+        return write_failed(writer);
+    }
+    status = writer->codec->end_trailer(&writer->sink, &writer->message);
     if (status != SDFIO_OK)
     {
         return fail_writing(writer, status);

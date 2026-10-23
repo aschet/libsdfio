@@ -38,28 +38,24 @@ static int write_surface(const char *path, sdfio_data_type type)
     header.x_scale = 1e-6;
     header.y_scale = 1e-6;
 
-    char memory[256];
-    sdfio_trailer trailer;
-    sdfio_trailer_init(&trailer, memory, sizeof memory);
-    sdfio_status status =
-        sdfio_trailer_add_field(&trailer, "OperatorName", "Jane Doe");
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_trailer_add_field(&trailer, "Magnification", "20.5");
-    }
     const sdfio_config config = {.writer_codecs = {&sdfio_binary_writer_codec}};
     sdfio_writer *writer = sdfio_writer_new(&config);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_create_file(writer, path, &header);
-    }
+    sdfio_status status = sdfio_create_file(writer, path, &header);
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(writer, SDFIO_TYPE_FLOAT, heights);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_trailer(writer, trailer.text, trailer.size);
+        status = sdfio_write_trailer_field(writer, "OperatorName", "Jane Doe");
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_write_trailer_field(writer, "Magnification", "20.5");
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_write_trailer(writer, NULL, 0);
     }
     if (status != SDFIO_OK)
     {

@@ -89,14 +89,17 @@ bool sdfio_tagged_find(const char *text, size_t size, const char *name,
 bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size);
 
 /**
- * Appends a trailer to a string, with the line ends of
- * sdfio_write_crlf_lines().
+ * Tells whether a text is the name of a field: letters, digits and `_`.
  *
- * @param[in,out] out The string.
- * @param text The trailer.
- * @param size The length of the trailer.
- * @return False if there is no memory.
+ * @param name The name, 0-terminated.
  */
-bool sdfio_append_crlf_lines(sdfio_string *out, const char *text, size_t size);
+bool sdfio_tagged_name_valid(const char *name);
+
+/**
+ * Tells whether a text is the value of a field: one line of 7-bit ASCII.
+ *
+ * @param value The value, 0-terminated.
+ */
+bool sdfio_tagged_value_valid(const char *value);
 
 #endif /* SDFIO_SRC_TAGGED_H */

@@ -78,7 +78,6 @@ set(SDFIO_SOURCES
     src/tagged.h
     src/text.c
     src/text.h
-    src/trailer.c
     src/types.c
     src/types.h
     src/writer.c

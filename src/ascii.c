@@ -993,18 +993,6 @@ static size_t format_value(const sdfio_header *header, const sdfio_point *point,
                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
 }
 
-static sdfio_status format_tail(const char *trailer, size_t size,
-                                sdfio_string *out, sdfio_message *message)
-{
-    /* The record is always closed, also if it is empty. */
-    const bool ok =
-        sdfio_string_append(out, &terminator, 1) && append_text(out, crlf)
-        && sdfio_append_crlf_lines(out, trailer, size)
-        && sdfio_string_append(out, &terminator, 1) && append_text(out, crlf);
-    return ok ? SDFIO_OK
-              : sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-}
-
 static size_t scratch_size(size_t chunk_values)
 {
     return chunk_values * SDFIO_TEXT_PER_VALUE;
@@ -1066,20 +1054,15 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-static sdfio_status write_trailer(sdfio_sink *sink, const char *trailer,
-                                  size_t size, const sdfio_allocator *allocator,
-                                  sdfio_message *message)
+/* The line that closes a record: the data area, and the trailer. */
+static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
 {
-    sdfio_string tail = {.allocator = allocator};
-    sdfio_status status =
-        format_tail(trailer != NULL ? trailer : "", size, &tail, message);
-    if (status == SDFIO_OK
-        && !sdfio_sink_write(sink, sdfio_string_text(&tail), tail.size))
+    if (!sdfio_sink_write(sink, &terminator, 1)
+        || !sdfio_sink_write(sink, crlf, sizeof crlf - 1))
     {
-        status = sdfio_sink_failure(message);
+        return sdfio_sink_failure(message);
     }
-    sdfio_string_free(&tail);
-    return status;
+    return SDFIO_OK;
 }
 
 const sdfio_reader_codec sdfio_ascii_reader_codec = {
@@ -1096,5 +1079,6 @@ const sdfio_writer_codec sdfio_ascii_writer_codec = {
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,
-    .write_trailer = write_trailer,
+    .begin_trailer = write_terminator,
+    .end_trailer = write_terminator,
 };
