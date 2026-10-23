@@ -239,15 +239,17 @@ run_licenses() {
 
 # Measures the coverage of the library sources by the tests, excluding the
 # tests and the examples. The tests use threads, so the profiling counters are
-# updated atomically. The job fails if fewer than 75 percent of the lines are
-# executed, the threshold of related projects.
+# updated atomically. Some tests run a second build of the library, so a
+# function can have two positions, and the first one counts. The job fails if
+# fewer than 75 percent of the lines are executed, the threshold of related
+# projects.
 run_coverage() {
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER=gcc "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic"
   cmake --build "$dir"
   ctest --test-dir "$dir" --output-on-failure --no-tests=error
   gcovr --root . --filter 'src/' --exclude-throw-branches \
-    --fail-under-line 75 \
+    --merge-mode-functions=merge-use-line-min --fail-under-line 75 \
     --print-summary --txt "$dir/coverage.txt" "$dir"
 }
 

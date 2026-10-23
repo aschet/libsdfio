@@ -106,6 +106,77 @@ static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 }
 
 /**
+ * @def SDFIO_FLOAT_HEIGHTS_CHOSEN
+ * Whether the processor favours calculating heights of type float in double.
+ * A processor with hardware for single precision only, or with none, favours
+ * float, where double precision arithmetic is a slow software routine. Every
+ * other processor favours double, where float arithmetic with the correction
+ * that keeps its accuracy is the slower one.
+ */
+#if (defined(__ARM_ARCH) && !(defined(__ARM_FP) && (__ARM_FP & 8)))            \
+    || (defined(__riscv) && (!defined(__riscv_flen) || __riscv_flen < 64))
+#define SDFIO_FLOAT_HEIGHTS_CHOSEN 0
+#else
+#define SDFIO_FLOAT_HEIGHTS_CHOSEN 1
+#endif
+
+/**
+ * @def SDFIO_FLOAT_HEIGHTS_IN_DOUBLE
+ * Whether heights of type float are calculated in double: what the processor
+ * favours. The tests define SDFIO_FLOAT_HEIGHTS_OTHER to run the other
+ * variant.
+ */
+#ifdef SDFIO_FLOAT_HEIGHTS_OTHER
+#define SDFIO_FLOAT_HEIGHTS_IN_DOUBLE (!SDFIO_FLOAT_HEIGHTS_CHOSEN)
+#else
+#define SDFIO_FLOAT_HEIGHTS_IN_DOUBLE SDFIO_FLOAT_HEIGHTS_CHOSEN
+#endif
+
+#if SDFIO_FLOAT_HEIGHTS_IN_DOUBLE
+
+/** The scale for heights of type float, which are calculated in double. */
+typedef struct scale_float
+{
+    /** The scale. */
+    double exact;
+} scale_float;
+
+static void make_scale_float(double scale, scale_float *out)
+{
+    out->exact = scale;
+}
+
+/* The height of a stored number, or false if it does not fit a float. */
+static bool scale_multiply_float(const scale_float *scale, float number,
+                                 float *height)
+{
+    const double product = (double)number * scale->exact;
+    if (!(fabs(product) <= (double)FLT_MAX))
+    {
+        return false;
+    }
+    *height = (float)product;
+    return true;
+}
+
+/* The quotient of a height and the scale as a float and the correction that
+ * the rounding of the quotient needs, or false if it does not fit a float. */
+static bool scale_divide_float(const scale_float *scale, float height,
+                               float *quotient, float *correction)
+{
+    const double divided = (double)height / scale->exact;
+    if (!(fabs(divided) <= (double)FLT_MAX))
+    {
+        return false;
+    }
+    *quotient = (float)divided;
+    *correction = (float)(divided - (double)*quotient);
+    return true;
+}
+
+#else
+
+/**
  * The scale for heights of type float, as two floats that add up to the z-scale
  * more closely than one does, so that a calculation in float rounds as the one
  * in double would. A scale far from 1 is calculated in double instead.
@@ -116,6 +187,8 @@ typedef struct scale_float
     float head;
     /** What the float lacks of the scale. */
     float tail;
+    /** The reciprocal of head, which the correction of a quotient needs. */
+    float inverse;
     /** The scale itself. */
     double exact;
     /** Whether the scale is too far from 1 for the pair of floats. */
@@ -128,6 +201,7 @@ static void make_scale_float(double scale, scale_float *out)
     out->far = !(scale >= 1e-30 && scale <= 1e30);
     out->head = out->far ? 0.0F : (float)scale;
     out->tail = out->far ? 0.0F : (float)(scale - (double)out->head);
+    out->inverse = out->far ? 0.0F : 1.0F / out->head;
 }
 
 /* The height of a stored number, or false if it does not fit a float. */
@@ -149,7 +223,9 @@ static bool scale_multiply_float(const scale_float *scale, float number,
 }
 
 /* The quotient of a height and the scale as a float and the correction that
- * the rounding of the quotient needs, or false if it does not fit a float. */
+ * the rounding of the quotient needs, or false if it does not fit a float. The
+ * correction is less than the last digit of the quotient, so the reciprocal of
+ * the scale gives it as accurately as a division. */
 static bool scale_divide_float(const scale_float *scale, float height,
                                float *quotient, float *correction)
 {
@@ -171,15 +247,56 @@ static bool scale_divide_float(const scale_float *scale, float height,
         return false;
     }
     const float rest = fmaf(-*quotient, scale->head, height);
-    *correction = fmaf(-*quotient, scale->tail, rest) / scale->head;
+    *correction = fmaf(-*quotient, scale->tail, rest) * scale->inverse;
     return true;
 }
+
+#endif
+
+/* Rounds to an integer in the current rounding mode. Where the arithmetic is
+ * evaluated in the type of the operands, a number from 2^23 on has no fraction,
+ * and below it adding and subtracting 2^23 rounds, which a processor without a
+ * rounding instruction does faster than the C library. Where an operation can
+ * have a wider type, as on the x87 unit, the sum would keep the fraction, so
+ * the C library rounds. */
+#if FLT_EVAL_METHOD == 0
+static float nearby_float(float x)
+{
+    const float magic = 8388608.0F;
+    if (!(fabsf(x) < magic))
+    {
+        return x;
+    }
+    return x < 0.0F ? (x - magic) + magic : (x + magic) - magic;
+}
+
+/* The same for double, from 2^52 on. */
+static double nearby_double(double x)
+{
+    const double magic = 4503599627370496.0;
+    if (!(fabs(x) < magic))
+    {
+        return x;
+    }
+    return x < 0.0 ? (x - magic) + magic : (x + magic) - magic;
+}
+#else
+static float nearby_float(float x)
+{
+    return nearbyintf(x);
+}
+
+static double nearby_double(double x)
+{
+    return nearbyint(x);
+}
+#endif
 
 #define REAL float
 #define REAL_SUFFIX float
 #define REAL_MAX FLT_MAX
 #define REAL_ABS fabsf
-#define REAL_NEARBY nearbyintf
+#define REAL_NEARBY nearby_float
 #define scale_type_float scale_float
 #include "heights_real.h"
 #undef scale_type_float
@@ -220,7 +337,7 @@ static bool scale_divide_double(const scale_double *scale, double height,
 #define REAL_SUFFIX double
 #define REAL_MAX DBL_MAX
 #define REAL_ABS fabs
-#define REAL_NEARBY nearbyint
+#define REAL_NEARBY nearby_double
 #define scale_type_double scale_double
 #include "heights_real.h"
 #undef scale_type_double

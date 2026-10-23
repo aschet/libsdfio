@@ -136,11 +136,7 @@ extern "C"
 {
 #endif
 
-/**
- * Returns the version of the library that is loaded, as the string
- * "major.minor.patch". With a shared library it can differ from
- * SDFIO_VERSION_STRING, which describes the headers that the program was
- * compiled with. The string is a constant.
+/** Returns the version of the library that is loaded, as "major.minor.patch".
  */
 SDFIO_API const char *sdfio_version(void);
 
