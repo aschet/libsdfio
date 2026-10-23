@@ -1,9 +1,6 @@
-// A C++ image class over the C interface, as most programs write it first.
-//
-// The handles belong to objects that free them, a call that fails is an
-// exception with the message of the library, and the heights are read into a
-// two-dimensional array where it is: image[y][x]. Everything else a program
-// does with a surface works on this class and never sees the C interface again.
+// A C++ class for a surface over the C interface. It owns the handles of the
+// library, reports a failed call as an exception, and gives the heights as
+// image[y][x].
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -33,7 +30,6 @@ sdfio_config make_config()
     return config;
 }
 
-/* Reads and writes both representations. */
 const sdfio_config config = make_config();
 
 void check(sdfio_status status, const char *message)
@@ -52,6 +48,7 @@ class Image
         : columns_(columns), rows_(rows), x_scale_(x_scale), y_scale_(y_scale),
           heights_(std::make_unique<float[]>(columns * rows))
     {
+        // A point that is not measured is NaN.
         std::fill_n(heights_.get(), columns * rows, NAN);
     }
 
@@ -96,18 +93,9 @@ class Image
     {
         return rows_;
     }
-    double x_scale() const
-    {
-        return x_scale_;
-    }
-    double y_scale() const
-    {
-        return y_scale_;
-    }
 
-    // The row y, an array of columns() heights: image[y][x]. The rows follow
-    // each other in one block of memory, as the interface of the library reads
-    // and writes them.
+    // The library reads and writes the rows one after the other in one block
+    // of memory, so that the row y starts at y * columns().
     float *operator[](std::size_t y)
     {
         return heights_.get() + y * columns_;
@@ -115,10 +103,6 @@ class Image
     const float *operator[](std::size_t y) const
     {
         return heights_.get() + y * columns_;
-    }
-    bool measured(std::size_t x, std::size_t y) const
-    {
-        return !std::isnan((*this)[y][x]);
     }
 
   private:
@@ -154,24 +138,9 @@ int main()
 {
     try
     {
-        const Image written = ripples();
-        written.write("image.sdf");
-        const Image read = Image::read("image.sdf");
-        std::size_t differing = 0;
-        for (std::size_t y = 0; y < read.rows(); ++y)
-        {
-            for (std::size_t x = 0; x < read.columns(); ++x)
-            {
-                const bool same =
-                    read.measured(x, y) == written.measured(x, y)
-                    && (!read.measured(x, y)
-                        || std::fabs(read[y][x] - written[y][x]) < 1e-10F);
-                differing += same ? 0 : 1;
-            }
-        }
-        std::cout << read.columns() << " x " << read.rows() << ", " << differing
-                  << " points differ\n";
-        return differing == 0 ? 0 : 1;
+        ripples().write("image.sdf");
+        const Image image = Image::read("image.sdf");
+        std::cout << image.columns() << " x " << image.rows() << "\n";
     }
     catch (const std::exception &error)
     {

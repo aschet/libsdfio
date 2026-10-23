@@ -1,13 +1,5 @@
-// VTK: a surface as image data, shown as a height field.
-//
-// The rows of vtkImageData start at y = 0 and the system is right-handed, as in
-// the standard: nothing is flipped, and the heights are read into the array of
-// the image where it is. A point that was not measured is NaN in the scalars,
-// and VTK is told which points they are by its ghost array, so that the cells
-// that touch one are left out.
-//
-// The program takes an SDF file as its argument and opens a window with the
-// height field coloured by height, which is turned and zoomed with the mouse.
+// VTK: reads a surface into image data and shows it as a height field in a
+// window. The argument is the SDF file to show.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -28,7 +20,6 @@
 #include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
 #include <vtkUnsignedCharArray.h>
-#include <vtkVersion.h>
 #include <vtkWarpScalar.h>
 
 #include <algorithm>
@@ -54,7 +45,6 @@ sdfio_config make_config()
     return config;
 }
 
-/* Reads and writes both representations. */
 const sdfio_config config = make_config();
 
 void check(sdfio_status status, const char *message)
@@ -71,6 +61,9 @@ float *heights_of(vtkImageData *image)
     return static_cast<float *>(image->GetScalarPointer());
 }
 
+// The rows of vtkImageData start at y = 0 and the coordinate system is
+// right-handed, as in the standard, so nothing is flipped and the heights are
+// read into the array of the image.
 vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
 {
     const sdfio_header *header = sdfio_get_header(reader);
@@ -85,6 +78,8 @@ vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
     return image;
 }
 
+// A point that is not measured is NaN. VTK is told which points they are by the
+// ghost array, so that the cells that touch one are left out.
 void hide_missing(vtkImageData *image)
 {
     const vtkIdType count = image->GetNumberOfPoints();
@@ -98,14 +93,6 @@ void hide_missing(vtkImageData *image)
                                 : 0);
     }
     image->GetPointData()->AddArray(ghosts);
-}
-
-vtkIdType visible_cells(vtkImageData *image)
-{
-    vtkNew<vtkGeometryFilter> surface;
-    surface->SetInputData(image);
-    surface->Update();
-    return surface->GetOutput()->GetNumberOfCells();
 }
 
 // The height field: the polygons of the image, warped by the scalars times a
@@ -138,10 +125,9 @@ std::array<double, 2> z_range(vtkImageData *image)
     return {bounds[4], bounds[5]};
 }
 
-// The viewer. The relief is raised to a quarter of the width of the surface,
-// as a few micrometres of height would not be seen. Returns false if the
-// machine cannot draw.
-bool view(vtkImageData *image)
+// The relief is raised to a quarter of the width of the surface, as a few
+// micrometres of height would not be seen.
+void view(vtkImageData *image)
 {
     const std::array<double, 2> z = z_range(image);
     double bounds[6];
@@ -167,17 +153,12 @@ bool view(vtkImageData *image)
     vtkNew<vtkRenderWindow> window;
     window->AddRenderer(renderer);
     window->SetSize(800, 600);
-    if (!window->SupportsOpenGL())
-    {
-        return false;
-    }
     vtkNew<vtkRenderWindowInteractor> interactor;
     vtkNew<vtkInteractorStyleTrackballCamera> style;
     interactor->SetRenderWindow(window);
     interactor->SetInteractorStyle(style);
     window->Render();
     interactor->Start();
-    return true;
 }
 
 } // namespace
@@ -191,19 +172,8 @@ int main(int argc, char **argv)
         check(sdfio_open_file(reader.get(), path),
               sdfio_reader_error_message(reader.get()));
         vtkSmartPointer<vtkImageData> image = read_image(reader.get());
-        const vtkIdType all_cells = visible_cells(image);
         hide_missing(image);
-        const vtkIdType cells = visible_cells(image);
-        const std::array<double, 2> z = z_range(image);
-        std::cout << "VTK " << vtkVersion::GetVTKVersion() << ": " << cells
-                  << " of " << all_cells << " cells, z from " << z[0] * 1e6
-                  << " to " << z[1] * 1e6 << " um\n";
-        if (!view(image))
-        {
-            std::cerr << "no OpenGL here: the viewer cannot open\n";
-            return 1;
-        }
-        return 0;
+        view(image);
     }
     catch (const std::exception &error)
     {

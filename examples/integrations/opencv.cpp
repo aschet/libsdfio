@@ -1,15 +1,9 @@
-// OpenCV: a surface as an image of heights.
-//
-// The row stride of a call may be negative, with the pointer at the last row:
-// the rows are then written from the bottom up. An image counts its rows from
-// the top and a surface from y = 0, so the first row of a Mat is the largest y,
-// and no copy is made. A Mat that is not continuous, such as a region of
-// interest, is read into as it is: its step is the stride.
+// OpenCV: reads a surface into an image, smooths it, writes it back, and reads
+// a surface into a region of an image.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
-#include <opencv2/IMGFORMATS_KEEP.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -35,7 +29,6 @@ sdfio_config make_config()
     return config;
 }
 
-/* Reads and writes both representations. */
 const sdfio_config config = make_config();
 
 void check(sdfio_status status, const char *message)
@@ -55,8 +48,11 @@ Reader open(const char *path)
     return reader;
 }
 
-// The layout of an image that is read and written bottom up: the first row of
-// the file is the last row in memory, so the rows run backwards.
+// An image counts its rows from the top and a surface from y = 0. The layout
+// has a negative row stride and the pointer given with it is at the last row,
+// so the first row of the file is the last row in memory and no copy is made.
+// The step of the image is the row stride, so that an image that is not
+// continuous, such as a region of interest, is used as it is.
 sdfio_layout bottom_up(const cv::Mat &image)
 {
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
@@ -78,23 +74,16 @@ cv::Mat read_heights(sdfio_reader *reader)
 cv::Mat smooth(const cv::Mat &heights)
 {
     cv::Mat filled = heights.clone();
+    // A point that is not measured is NaN.
     cv::patchNaNs(filled, 0.0);
     cv::GaussianBlur(filled, filled, cv::Size(5, 5), 1.0);
     return filled;
-}
-
-void save_preview(const cv::Mat &heights, const char *path)
-{
-    cv::Mat preview;
-    cv::normalize(heights, preview, 0, 255, cv::NORM_MINMAX, CV_8U);
-    cv::imwrite(path, preview);
 }
 
 void write_heights(const char *path, sdfio_header header,
                    const cv::Mat &heights)
 {
     header.data_type = SDFIO_TYPE_FLOAT;
-    header.z_scale = SDFIO_AUTO_Z_SCALE;
     Writer writer(sdfio_writer_new(&config), sdfio_writer_free);
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
@@ -105,8 +94,6 @@ void write_heights(const char *path, sdfio_header header,
           sdfio_writer_error_message(writer.get()));
 }
 
-// A region of interest is read into without a copy; the rest of the image is
-// left alone.
 cv::Mat read_into_region(const char *path)
 {
     const Reader reader = open(path);
@@ -128,15 +115,9 @@ int main(int argc, char **argv)
     try
     {
         const Reader reader = open(path);
-        const cv::Mat heights = read_heights(reader.get());
-        const cv::Mat blurred = smooth(heights);
-        save_preview(blurred, "preview.png");
-        write_heights("smooth.sdf", *sdfio_get_header(reader.get()), blurred);
-        const cv::Mat canvas = read_into_region(path);
-        std::cout << "OpenCV " << CV_VERSION << ": " << heights.cols << " x "
-                  << heights.rows << ", canvas " << canvas.cols << " x "
-                  << canvas.rows << "\n";
-        return 0;
+        const cv::Mat smoothed = smooth(read_heights(reader.get()));
+        write_heights("smooth.sdf", *sdfio_get_header(reader.get()), smoothed);
+        read_into_region(path);
     }
     catch (const std::exception &error)
     {
