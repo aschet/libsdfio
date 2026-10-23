@@ -40,4 +40,6 @@ cmake --install build --prefix /path/to/prefix
 ```
 
 A project then uses it with `find_package(sdfio REQUIRED)` and links the
-target `sdfio::sdfio`.
+target `sdfio::sdfio`. On Linux and macOS the installation also has a
+pkg-config file: `pkg-config --cflags --libs sdfio`, with `--static` for the
+static library.

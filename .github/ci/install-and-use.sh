@@ -10,6 +10,9 @@
 # its own share: the compiler, the architecture. CONFIGURE_OPTIONS are options
 # for the library only. EMULATOR is the command that runs a program of another
 # architecture.
+#
+# Where pkg-config is available, a program is also built with the flags that
+# it gives, with the compiler of the build.
 set -e
 
 generator=()
@@ -38,4 +41,22 @@ for linkage in ON OFF; do
   # shellcheck disable=SC2086
   PATH="$stage/bin:$PATH" LD_LIBRARY_PATH="$stage/lib" \
     DYLD_LIBRARY_PATH="$stage/lib" $EMULATOR "$consumer"
+
+  pc=$(find "$stage" -name sdfio.pc | head -1)
+  if [ -n "$pc" ] && command -v pkg-config > /dev/null; then
+    echo "== pkg-config, BUILD_SHARED_LIBS=$linkage"
+    compiler=$(sed -n 's/^CMAKE_C_COMPILER:[A-Z]*=//p' "$build/CMakeCache.txt")
+    flags=$(sed -n 's/^CMAKE_C_FLAGS:[A-Z]*=//p' "$build/CMakeCache.txt")
+    # A static library needs the libraries that it uses, which are private.
+    static=""
+    if [ "$linkage" = OFF ]; then static="--static"; fi
+    # shellcheck disable=SC2046,SC2086
+    $compiler $flags test_package/main.c \
+      $(PKG_CONFIG_PATH="$(dirname "$pc")" pkg-config $static --cflags --libs \
+        sdfio) -o "$build/pkg-config-consumer"
+    # shellcheck disable=SC2086
+    LD_LIBRARY_PATH="$(dirname "$(dirname "$pc")")" \
+      DYLD_LIBRARY_PATH="$(dirname "$(dirname "$pc")")" \
+      $EMULATOR "$build/pkg-config-consumer"
+  fi
 done

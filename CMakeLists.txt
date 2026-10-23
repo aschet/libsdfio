@@ -213,3 +213,15 @@ install(FILES
     DESTINATION "${sdfio_cmakedir}"
 )
 install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/sdfio")
+
+# For programs that find libraries with pkg-config. A static library needs the
+# macro that tells the headers that it is not a DLL.
+if(UNIX)
+    set(SDFIO_PC_CFLAGS "")
+    if(NOT BUILD_SHARED_LIBS)
+        set(SDFIO_PC_CFLAGS " -DSDFIO_STATIC_DEFINE")
+    endif()
+    configure_file(cmake/sdfio.pc.in "${PROJECT_BINARY_DIR}/sdfio.pc" @ONLY)
+    install(FILES "${PROJECT_BINARY_DIR}/sdfio.pc"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+endif()
