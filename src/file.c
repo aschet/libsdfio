@@ -12,7 +12,8 @@
 #include <sdfio/file.h>
 
 #include "message.h"
-#include "owner.h"
+#include "reader_file.h"
+#include "writer_file.h"
 #include <sdfio/sdfio.h>
 
 static size_t stdio_read(void *user, void *data, size_t size)

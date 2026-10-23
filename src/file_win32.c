@@ -14,7 +14,8 @@
 
 #include <sdfio/file.h>
 
-#include "owner.h"
+#include "reader_file.h"
+#include "writer_file.h"
 
 #include <wchar.h>
 

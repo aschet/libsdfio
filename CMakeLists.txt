@@ -80,6 +80,7 @@ set(SDFIO_SOURCES
     src/read_header.c
     src/read_header.h
     src/reader.c
+    src/reader_file.h
     src/reader_codec.h
     src/revision.c
     src/revision.h
@@ -96,6 +97,7 @@ set(SDFIO_SOURCES
     src/text.c
     src/text.h
     src/writer.c
+    src/writer_file.h
     src/writer_codec.h
 )
 
