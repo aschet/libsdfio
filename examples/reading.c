@@ -30,7 +30,8 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights);
+        status = sdfio_read_heights(
+            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
     }
     const char *trailer = NULL;
     size_t trailer_size = 0;

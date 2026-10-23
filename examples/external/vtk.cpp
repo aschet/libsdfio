@@ -73,7 +73,8 @@ vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
     image->SetSpacing(header->x_scale, header->y_scale, 1.0);
     image->SetOrigin(0.0, 0.0, 0.0);
     image->AllocateScalars(VTK_FLOAT, 1);
-    check(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights_of(image)),
+    check(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                             heights_of(image)),
           sdfio_reader_error_message(reader));
     return image;
 }

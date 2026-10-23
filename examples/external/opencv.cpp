@@ -65,8 +65,8 @@ cv::Mat read_heights(sdfio_reader *reader)
     const sdfio_header *header = sdfio_get_header(reader);
     cv::Mat heights(static_cast<int>(header->rows),
                     static_cast<int>(header->columns), CV_32F);
-    check(sdfio_read_heights_strided(reader, bottom_up(heights),
-                                     heights.ptr(heights.rows - 1)),
+    check(sdfio_read_heights(reader, bottom_up(heights),
+                             heights.ptr(heights.rows - 1)),
           sdfio_reader_error_message(reader));
     return heights;
 }
@@ -101,8 +101,8 @@ cv::Mat read_into_region(const char *path)
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
                                      static_cast<int>(header->rows)));
-    check(sdfio_read_heights_strided(reader.get(), bottom_up(region),
-                                     region.ptr(region.rows - 1)),
+    check(sdfio_read_heights(reader.get(), bottom_up(region),
+                             region.ptr(region.rows - 1)),
           sdfio_reader_error_message(reader.get()));
     return canvas;
 }

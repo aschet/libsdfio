@@ -135,7 +135,8 @@ static sdfio_status round_trip(const sdfio_config *config,
         status = sdfio_open_memory(reader, sink.data, sink.size);
         if (status == SDFIO_OK)
         {
-            status = sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, read);
+            status = sdfio_read_heights(
+                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), read);
         }
         const char *trailer = NULL;
         size_t trailer_size = 0;

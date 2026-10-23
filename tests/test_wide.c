@@ -47,7 +47,8 @@ int main(void)
     sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_file_w(reader, path));
     double back[4] = {0};
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                back));
     CHECK(back[0] == 1.0 && back[3] == 4.0);
     sdfio_reader_free(reader);
     _wremove(path);

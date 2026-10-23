@@ -72,7 +72,8 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
             }
             if (heights != NULL)
             {
-                (void)sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, heights);
+                (void)sdfio_read_heights(
+                    reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
                 free(heights);
             }
         }

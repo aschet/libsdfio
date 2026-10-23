@@ -57,9 +57,8 @@ Eigen::MatrixXd read_matrix(sdfio_reader *reader)
     const sdfio_header *header = sdfio_get_header(reader);
     Eigen::MatrixXd heights(static_cast<Eigen::Index>(header->rows),
                             static_cast<Eigen::Index>(header->columns));
-    check(
-        sdfio_read_heights_strided(reader, layout_of(heights), heights.data()),
-        sdfio_reader_error_message(reader));
+    check(sdfio_read_heights(reader, layout_of(heights), heights.data()),
+          sdfio_reader_error_message(reader));
     return heights;
 }
 

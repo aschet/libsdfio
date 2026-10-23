@@ -142,7 +142,8 @@ static void check_locale(void)
     sdfio_reader *reader = sdfio_reader_new(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     double back[3];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                back));
     CHECK(near_relative(back[0], 1.25e-6, 1e-12) && isnan(back[1])
           && near_relative(back[2], -3.5e-7, 1e-12));
     /* A variable has the precision of its type, a constant may have more. */

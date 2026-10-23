@@ -82,7 +82,8 @@ int main(void)
         return finish_tests();
     }
     float back[6];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                back));
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
@@ -92,7 +93,8 @@ int main(void)
     /* A row stride of 0 means rows that follow each other. */
     reader = membuf_reopen(reader, &file);
     float packed[6];
-    CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, packed));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                packed));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);

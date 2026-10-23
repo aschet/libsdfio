@@ -12,14 +12,8 @@
 #include "heights.h"
 #include "reader_state.h"
 
-sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_data_type type,
+sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
                                 void *dst)
-{
-    return sdfio_read_heights_strided(reader, sdfio_layout_packed(type), dst);
-}
-
-sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
-                                        sdfio_layout layout, void *dst)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)

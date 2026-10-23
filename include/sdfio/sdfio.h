@@ -852,37 +852,15 @@ static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
 }
 
 /**
- * Reads the remaining rows as heights in metres into a plain array of
- * `header->rows` rows of `header->columns` elements. A point that is not
- * measured is NaN. The row y = 0 is the first row.
- *
- * The function reads from the first row of the data area, so no rows may have
- * been read before. It is sdfio_read_heights_strided() with
- * sdfio_layout_packed().
- *
- * @param reader The reader.
- * @param type The type of the array: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
- * @param[out] dst The array for the heights. sdfio_heights_size() gives its
- * size.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null or the type is not
- * SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
- * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
- * or rows were read already.
- * @retval SDFIO_ERR_RANGE A height does not fit the type of the buffer.
- * @retval SDFIO_ERR_IO The stream failed.
- * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
- */
-SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
-                                          sdfio_data_type type, void *dst);
-
-/**
  * Reads the remaining rows as heights in metres into a buffer that lies in
- * memory as the layout describes.
+ * memory as the layout describes. sdfio_layout_packed() describes a plain
+ * array.
  *
  * The element (y, x) is stored at `dst + y * layout.row_stride + x *
  * layout.element_stride`. The row y = 0 is the first row. A negative row
  * stride, with `dst` at the first element of the row y = 0, which is the last
- * row in memory, stores the matrix upside down.
+ * row in memory, stores the matrix upside down. A point that is not measured
+ * becomes `layout.missing`.
  *
  * The function reads from the first row of the data area, so no rows may have
  * been read before.
@@ -897,9 +875,8 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
  */
-SDFIO_API sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
-                                                  sdfio_layout layout,
-                                                  void *dst);
+SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
+                                          sdfio_layout layout, void *dst);
 
 /**
  * Reads the trailer (record 3), the free text after the data area.
@@ -1119,7 +1096,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * Writes the whole data area from a matrix of heights in metres that lies in
  * memory as the layout describes.
  *
- * The layout is that of sdfio_read_heights_strided(): the element (y, x) is at
+ * The layout is that of sdfio_read_heights(): the element (y, x) is at
  * `src + y * layout.row_stride + x * layout.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
  * z-scale is selected from the heights. NaN, infinity and `layout.missing`

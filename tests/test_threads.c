@@ -53,7 +53,9 @@ static double read_sum(const char *path, sdfio_reader *reader)
     double *heights = malloc(count * sizeof *heights);
     double sum = NAN;
     if (heights != NULL
-        && sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights) == SDFIO_OK)
+        && sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                              heights)
+               == SDFIO_OK)
     {
         sum = 0.0;
         for (size_t i = 0; i < count; ++i)
@@ -124,7 +126,9 @@ static void *write_and_read(void *argument)
         double back[ROWS * COLUMNS];
         sdfio_reader *reader = sdfio_reader_new(all_formats());
         if (sdfio_open_memory(reader, file.data, file.size) != SDFIO_OK
-            || sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back) != SDFIO_OK)
+            || sdfio_read_heights(reader,
+                                  sdfio_layout_packed(SDFIO_TYPE_DOUBLE), back)
+                   != SDFIO_OK)
         {
             ++self->errors;
         }
@@ -164,7 +168,8 @@ static void *read_shared(void *argument)
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
                 malloc(header->rows * header->columns * sizeof *heights);
-            if (sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, heights)
+            if (sdfio_read_heights(
+                    reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights)
                 != SDFIO_OK)
             {
                 ++self->errors;

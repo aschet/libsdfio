@@ -68,7 +68,9 @@ int main(void)
     {
         failed |= check(sdfio_open_file(reader, path), "open");
         failed |=
-            check(sdfio_read_heights(reader, SDFIO_TYPE_FLOAT, read), "read");
+            check(sdfio_read_heights(
+                      reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), read),
+                  "read");
     }
     sdfio_reader_free(reader);
     remove(path);
