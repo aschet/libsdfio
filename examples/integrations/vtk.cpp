@@ -165,7 +165,12 @@ void view(vtkImageData *image)
 
 int main(int argc, char **argv)
 {
-    const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
+    if (argc < 2)
+    {
+        std::cerr << "usage: " << argv[0] << " file.sdf\n";
+        return 1;
+    }
+    const char *path = argv[1];
     try
     {
         Reader reader(sdfio_reader_new(&config), sdfio_reader_free);

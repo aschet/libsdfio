@@ -1,5 +1,5 @@
 // OpenCV: reads a surface into an image, smooths it, writes it back, and reads
-// a surface into a region of an image.
+// a surface into a region of an image. The argument is the SDF file to read.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -111,7 +111,12 @@ cv::Mat read_into_region(const char *path)
 
 int main(int argc, char **argv)
 {
-    const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
+    if (argc < 2)
+    {
+        std::cerr << "usage: " << argv[0] << " file.sdf\n";
+        return 1;
+    }
+    const char *path = argv[1];
     try
     {
         const Reader reader = open(path);

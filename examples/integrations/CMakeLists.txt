@@ -7,18 +7,11 @@
 # its library is found and skipped with a note if not.
 
 function(sdfio_integration name)
-    cmake_parse_arguments(ARG "" "SOURCE" "LIBS;DEFINITIONS" ${ARGN})
+    cmake_parse_arguments(ARG "" "SOURCE" "LIBS" ${ARGN})
     add_executable(integration_${name} ${ARG_SOURCE})
     target_link_libraries(integration_${name} PRIVATE sdfio ${ARG_LIBS})
-    target_compile_definitions(integration_${name} PRIVATE ${ARG_DEFINITIONS}
-        SDFIO_EXAMPLE_FILE="${PROJECT_SOURCE_DIR}/tests/data/samples/iso25178-71-2026/iso2_surface_binary.sdf")
-    if(ARG_SOURCE MATCHES "\\.cpp$")
-        target_compile_features(integration_${name} PRIVATE cxx_std_17)
-        set_target_properties(integration_${name} PROPERTIES CXX_EXTENSIONS OFF)
-    else()
-        target_compile_features(integration_${name} PRIVATE c_std_11)
-        set_target_properties(integration_${name} PROPERTIES C_EXTENSIONS OFF)
-    endif()
+    target_compile_features(integration_${name} PRIVATE cxx_std_17)
+    set_target_properties(integration_${name} PROPERTIES CXX_EXTENSIONS OFF)
 endfunction()
 
 # A C++ class over the C interface needs no other library.

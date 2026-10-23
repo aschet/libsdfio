@@ -1,5 +1,5 @@
 // Eigen: reads a surface into a matrix, removes the plane that fits its heights
-// best, and writes the matrix back.
+// best, and writes the matrix back. The argument is the SDF file to read.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -125,7 +125,12 @@ void write_matrix(const char *path, sdfio_header header,
 
 int main(int argc, char **argv)
 {
-    const char *path = argc > 1 ? argv[1] : SDFIO_EXAMPLE_FILE;
+    if (argc < 2)
+    {
+        std::cerr << "usage: " << argv[0] << " file.sdf\n";
+        return 1;
+    }
+    const char *path = argv[1];
     try
     {
         Reader reader(sdfio_reader_new(&config), sdfio_reader_free);
