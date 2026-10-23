@@ -52,14 +52,14 @@ void check(sdfio_status status, const char *message)
 
 // Eigen stores a matrix column by column: the elements of a row are one column
 // apart, and the rows are one element apart.
-sdfio_format layout_of(const Eigen::MatrixXd &matrix)
+sdfio_layout layout_of(const Eigen::MatrixXd &matrix)
 {
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
-    format.element_stride =
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
+    layout.element_stride =
         static_cast<ptrdiff_t>(matrix.outerStride() * sizeof(double));
-    format.row_stride =
+    layout.row_stride =
         static_cast<ptrdiff_t>(matrix.innerStride() * sizeof(double));
-    return format;
+    return layout;
 }
 
 Eigen::MatrixXd read_matrix(sdfio_reader *reader)

@@ -103,7 +103,7 @@ int main(void)
     CHECK_OK(sdfio_read_data(reader, coded, 2));
     CHECK(coded[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
-                               read, sdfio_format_packed(SDFIO_TYPE_FLOAT),
+                               read, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                coded, 6, back));
     sdfio_reader_free(reader);
     free(file.data);

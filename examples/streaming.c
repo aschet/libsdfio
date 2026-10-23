@@ -55,7 +55,7 @@ int main(void)
         if (status == SDFIO_OK)
         {
             status = sdfio_decode_heights(
-                header, sdfio_format_packed(SDFIO_TYPE_DOUBLE), coded,
+                header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), coded,
                 header->columns, heights);
         }
         for (size_t column = 0; column < header->columns && status == SDFIO_OK;

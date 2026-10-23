@@ -33,17 +33,17 @@ static void check_decode(void)
     const int16_t coded[] = {100, -200, INT16_MIN, 0};
     float heights[4];
     CHECK_OK(sdfio_decode_heights(
-        &header, sdfio_format_packed(SDFIO_TYPE_FLOAT), coded, 4, heights));
+        &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), coded, 4, heights));
     CHECK(near_relative(heights[0], 1e-7f, 1e-6));
     CHECK(near_relative(heights[1], -2e-7f, 1e-6));
     CHECK(isnan(heights[2]));
     CHECK(heights[3] == 0.0f);
 
     /* A marker of the caller instead of NaN. */
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
-    format.missing = -9999.0;
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
+    layout.missing = -9999.0;
     double doubles[4];
-    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, doubles));
+    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, doubles));
     CHECK(doubles[2] == -9999.0);
 
     /* A height that does not fit a float. */
@@ -53,7 +53,7 @@ static void check_decode(void)
     float narrow[2];
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_decode_heights(&scaled,
-                                      sdfio_format_packed(SDFIO_TYPE_FLOAT),
+                                      sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                       large, 2, narrow));
 
     /* The minimum of a binary32 marks the point. */
@@ -62,19 +62,19 @@ static void check_decode(void)
     const float floats[] = {1.5f, -FLT_MAX, FLT_MAX};
     double back[3];
     CHECK_OK(sdfio_decode_heights(
-        &binary, sdfio_format_packed(SDFIO_TYPE_DOUBLE), floats, 3, back));
+        &binary, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), floats, 3, back));
     CHECK(back[0] == 1.5 && isnan(back[1]) && back[2] == (double)FLT_MAX);
 
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_decode_heights(NULL,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       coded, 4, doubles));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_decode_heights(&header,
-                                      sdfio_format_packed((sdfio_data_type)99),
+                                      sdfio_layout_packed((sdfio_data_type)99),
                                       coded, 4, doubles));
     CHECK_OK(sdfio_decode_heights(
-        &header, sdfio_format_packed(SDFIO_TYPE_DOUBLE), NULL, 0, NULL));
+        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NULL, 0, NULL));
 }
 
 static void check_encode(void)
@@ -82,10 +82,10 @@ static void check_encode(void)
     const sdfio_header header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-9);
     const double heights[] = {1.004e-7, -2e-7, NAN, INFINITY, -9999.0};
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
-    format.missing = -9999.0;
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
+    layout.missing = -9999.0;
     int16_t coded[5];
-    CHECK_OK(sdfio_encode_heights(&header, format, heights, 5, coded));
+    CHECK_OK(sdfio_encode_heights(&header, layout, heights, 5, coded));
     CHECK(coded[0] == 100 && coded[1] == -200);
     CHECK(coded[2] == INT16_MIN && coded[3] == INT16_MIN
           && coded[4] == INT16_MIN);
@@ -93,18 +93,18 @@ static void check_encode(void)
     const double too_high[] = {1.0};
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_encode_heights(&header,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
     const double marker[] = {-32768e-9};
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
                  sdfio_encode_heights(&header,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       marker, 1, coded));
 
     /* The maximum is a height. */
     const double top[] = {32767e-9};
     CHECK_OK(sdfio_encode_heights(
-        &header, sdfio_format_packed(SDFIO_TYPE_DOUBLE), top, 1, coded));
+        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), top, 1, coded));
     CHECK(coded[0] == INT16_MAX);
 
     /* Without a z-scale there is no way to a count. */
@@ -112,7 +112,7 @@ static void check_encode(void)
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, SDFIO_AUTO_Z_SCALE);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_encode_heights(&unscaled,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
 
     /* A float element holds a float file, and is checked against its range. */
@@ -122,7 +122,7 @@ static void check_encode(void)
     float floats[1];
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_encode_heights(&single,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       large, 1, floats));
 }
 
@@ -143,10 +143,10 @@ static void check_chunks(void)
             heights[i] = i % 17 == 0 ? NAN : (double)i * 1e-3 - 1.0;
         }
         CHECK_OK(sdfio_encode_heights(&header,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       heights, count, coded));
         CHECK_OK(sdfio_decode_heights(&header,
-                                      sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                                      sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       coded, count, back));
         for (size_t i = 0; i < count; ++i)
         {
@@ -163,27 +163,27 @@ static void check_range(void)
 {
     const float heights[] = {0.5f, NAN, -2.0f, 9999.1f, 3.0f, 1.0f};
     /* A marker of a double literal for the floats that hold 9999.1f. */
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.missing = 9999.1;
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.missing = 9999.1;
     double z_scale = 0.0;
     /* Two rows of three, the second one read bottom up. */
-    format.row_stride = -(ptrdiff_t)(3 * sizeof(float));
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, format, heights + 3, 2, 3,
+    layout.row_stride = -(ptrdiff_t)(3 * sizeof(float));
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, layout, heights + 3, 2, 3,
                                    &z_scale));
     CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-12));
     /* Without the marker the large height sets the scale. */
-    format.missing = NAN;
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, format, heights + 3, 2, 3,
+    layout.missing = NAN;
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, layout, heights + 3, 2, 3,
                                    &z_scale));
     CHECK(z_scale > 0.3);
     const float none[] = {NAN, INFINITY};
     CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16,
-                                   sdfio_format_packed(SDFIO_TYPE_FLOAT), none,
+                                   sdfio_layout_packed(SDFIO_TYPE_FLOAT), none,
                                    1, 2, &z_scale));
     CHECK(z_scale == 1.0);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_suggest_z_scale(SDFIO_TYPE_INT16,
-                                       sdfio_format_packed(SDFIO_TYPE_FLOAT),
+                                       sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                        none, 1, 2, NULL));
 }
 
@@ -193,15 +193,15 @@ static void check_float_marker(void)
 {
     const sdfio_header header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-3);
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.missing = -9999.1;
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.missing = -9999.1;
     const float heights[] = {1.0f, -9999.1f, NAN, 2.0f};
     int16_t coded[4];
-    CHECK_OK(sdfio_encode_heights(&header, format, heights, 4, coded));
+    CHECK_OK(sdfio_encode_heights(&header, layout, heights, 4, coded));
     CHECK(coded[0] == 1000 && coded[1] == INT16_MIN && coded[2] == INT16_MIN
           && coded[3] == 2000);
     float back[4];
-    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, back));
+    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, back));
     /* A variable has the precision of its type, a constant may have more. */
     const float marker = -9999.1f;
     CHECK(back[0] == 1.0f && back[1] == marker && back[2] == marker
@@ -252,9 +252,9 @@ static void check_element_stride(void)
     {
         points[i] = (point){1.0F, 2.0F, 99.0F, 4.0F};
     }
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.element_stride = sizeof(point);
-    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, &points[0].z));
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.element_stride = sizeof(point);
+    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, &points[0].z));
     CHECK(points[0].z == 1.0F && isnan(points[1].z) && points[2].z == -2.0F
           && points[3].z == 3.0F);
     for (size_t i = 0; i < 4; ++i)
@@ -265,7 +265,7 @@ static void check_element_stride(void)
 
     /* Encoded from them. */
     int16_t back[4];
-    CHECK_OK(sdfio_encode_heights(&header, format, &points[0].z, 4, back));
+    CHECK_OK(sdfio_encode_heights(&header, layout, &points[0].z, 4, back));
     CHECK(back[0] == 1000 && back[1] == INT16_MIN && back[2] == -2000
           && back[3] == 3000);
 
@@ -273,66 +273,66 @@ static void check_element_stride(void)
     points[0].x = 1e30F;
     points[3].w = -1e30F;
     double z_scale = 0.0;
-    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, format, &points[0].z, 1, 4,
+    CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, layout, &points[0].z, 1, 4,
                                    &z_scale));
     CHECK(near_relative(z_scale, 3.0 / 32767.0, 1e-9));
 
     /* A negative stride runs backwards from the pointer. */
     float mirrored[4] = {0};
-    format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.element_stride = -(ptrdiff_t)sizeof(float);
-    CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, &mirrored[3]));
+    layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.element_stride = -(ptrdiff_t)sizeof(float);
+    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, &mirrored[3]));
     CHECK(mirrored[3] == 1.0F && isnan(mirrored[2]) && mirrored[1] == -2.0F
           && mirrored[0] == 3.0F);
 
     /* A stride that is smaller than a element would overwrite itself. */
-    format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.element_stride = 2;
+    layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.element_stride = 2;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_decode_heights(&header, format, coded, 4, mirrored));
-    CHECK_OK(sdfio_decode_heights(&header, format, coded, 1, mirrored));
+                 sdfio_decode_heights(&header, layout, coded, 4, mirrored));
+    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 1, mirrored));
 }
 
-/* The check of a layout whose row stride is given apart from the format. */
-static sdfio_status layout_with(sdfio_format format, size_t rows,
+/* The check of a layout whose row stride is given apart from the layout. */
+static sdfio_status layout_with(sdfio_layout layout, size_t rows,
                                 size_t columns, ptrdiff_t row_stride)
 {
-    format.row_stride = row_stride;
-    return sdfio_check_layout(&format, rows, columns, NULL);
+    layout.row_stride = row_stride;
+    return sdfio_check_layout(&layout, rows, columns, NULL);
 }
 
 static void check_layout(void)
 {
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     const ptrdiff_t size = sizeof(double);
     /* Row-major, with padding at the end of the rows. */
-    CHECK_OK(layout_with(format, 3, 4, 5 * size));
+    CHECK_OK(layout_with(layout, 3, 4, 5 * size));
     /* Column-major: the columns lie beside each other. */
-    format.element_stride = 3 * size;
-    CHECK_OK(layout_with(format, 3, 4, size));
+    layout.element_stride = 3 * size;
+    CHECK_OK(layout_with(layout, 3, 4, size));
     /* Interleaved: one of three channels. */
-    format.element_stride = 3 * size;
-    CHECK_OK(layout_with(format, 3, 4, 12 * size));
+    layout.element_stride = 3 * size;
+    CHECK_OK(layout_with(layout, 3, 4, 12 * size));
     /* Mirrored. */
-    format.element_stride = -size;
-    CHECK_OK(layout_with(format, 3, 4, -4 * size));
+    layout.element_stride = -size;
+    CHECK_OK(layout_with(layout, 3, 4, -4 * size));
     /* Overlapping: both strides a element. */
-    format.element_stride = 0;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(format, 3, 4, size));
+    layout.element_stride = 0;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 3, 4, size));
     /* Rows that interleave but do not fit: a stride between. */
-    format.element_stride = 2 * size;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(format, 3, 4, 3 * size));
+    layout.element_stride = 2 * size;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 3, 4, 3 * size));
     /* A matrix of one row or column needs only one of the strides. */
-    format.element_stride = 0;
-    CHECK_OK(layout_with(format, 1, 4, 0));
-    format = sdfio_format_packed(SDFIO_TYPE_DOUBLE);
-    format.element_stride = 0;
-    CHECK_OK(layout_with(format, 4, 1, size));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(format, 4, 1, 3));
+    layout.element_stride = 0;
+    CHECK_OK(layout_with(layout, 1, 4, 0));
+    layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
+    layout.element_stride = 0;
+    CHECK_OK(layout_with(layout, 4, 1, size));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 4, 1, 3));
     /* Not countable. */
-    format.element_stride = PTRDIFF_MAX;
+    layout.element_stride = PTRDIFF_MAX;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 layout_with(format, 2, SIZE_MAX / 2, PTRDIFF_MAX));
+                 layout_with(layout, 2, SIZE_MAX / 2, PTRDIFF_MAX));
 }
 
 /* A generator of numbers that does not depend on the library of the C
@@ -519,10 +519,10 @@ static void check_float_path(void)
                 const size_t count = stored_values(types[t], &state, bytes);
                 CHECK(count <= ALL_VALUES);
                 const sdfio_status decoded_single = sdfio_decode_heights(
-                    &header, sdfio_format_packed(SDFIO_TYPE_FLOAT), bytes,
+                    &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), bytes,
                     count, singles);
                 const sdfio_status decoded_double = sdfio_decode_heights(
-                    &header, sdfio_format_packed(SDFIO_TYPE_DOUBLE), bytes,
+                    &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), bytes,
                     count, doubles);
                 CHECK(decoded_double == SDFIO_OK);
                 CHECK(decoded_single == SDFIO_OK);
@@ -550,10 +550,10 @@ static void check_float_path(void)
                         i % 101 == 0 ? INFINITY : (float)(fraction * top);
                     const double widened = height;
                     const sdfio_status single = sdfio_encode_heights(
-                        &header, sdfio_format_packed(SDFIO_TYPE_FLOAT), &height,
+                        &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height,
                         1, coded_single);
                     const sdfio_status wide_status = sdfio_encode_heights(
-                        &header, sdfio_format_packed(SDFIO_TYPE_DOUBLE),
+                        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                         &widened, 1, coded_double);
                     disagree +=
                         single != wide_status

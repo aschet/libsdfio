@@ -16,11 +16,11 @@
 sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_data_type type,
                                  const void *src)
 {
-    return sdfio_write_heights_strided(writer, sdfio_format_packed(type), src);
+    return sdfio_write_heights_strided(writer, sdfio_layout_packed(type), src);
 }
 
 sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
-                                         sdfio_format format, const void *src)
+                                         sdfio_layout layout, const void *src)
 {
     sdfio_status status = sdfio_writer_require_writable(writer);
     if (status != SDFIO_OK)
@@ -33,13 +33,13 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "Rows were written already");
     }
-    status = sdfio_check_layout(&format, header->rows, header->columns,
+    status = sdfio_check_layout(&layout, header->rows, header->columns,
                                 &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    const ptrdiff_t element = sdfio_element_stride(format);
+    const ptrdiff_t element = sdfio_element_stride(layout);
     if (header->rows > 0 && header->columns > 0 && src == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
@@ -49,7 +49,7 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
         && !sdfio_is_floating(header->data_type))
     {
         status =
-            sdfio_suggest_z_scale(header->data_type, format, src, header->rows,
+            sdfio_suggest_z_scale(header->data_type, layout, src, header->rows,
                                   header->columns, &header->z_scale);
         if (status != SDFIO_OK)
         {
@@ -65,14 +65,14 @@ sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
     for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
         const unsigned char *row = (const unsigned char *)src
-                                   + (ptrdiff_t)file_row * format.row_stride;
+                                   + (ptrdiff_t)file_row * layout.row_stride;
         for (size_t first = 0; first < header->columns;
              first += writer->chunk_values)
         {
             const size_t count = header->columns - first < writer->chunk_values
                                      ? header->columns - first
                                      : writer->chunk_values;
-            status = sdfio_encode_heights(header, format,
+            status = sdfio_encode_heights(header, layout,
                                           row + (ptrdiff_t)first * element,
                                           count, writer->coded);
             if (status == SDFIO_ERR_RANGE || status == SDFIO_ERR_BAD_VALUE)

@@ -55,13 +55,13 @@ Reader open(const char *path)
     return reader;
 }
 
-// The format of an image that is read and written bottom up: the first row of
+// The layout of an image that is read and written bottom up: the first row of
 // the file is the last row in memory, so the rows run backwards.
-sdfio_format bottom_up(const cv::Mat &image)
+sdfio_layout bottom_up(const cv::Mat &image)
 {
-    sdfio_format format = sdfio_format_packed(SDFIO_TYPE_FLOAT);
-    format.row_stride = -static_cast<ptrdiff_t>(image.step);
-    return format;
+    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    layout.row_stride = -static_cast<ptrdiff_t>(image.step);
+    return layout;
 }
 
 cv::Mat read_heights(sdfio_reader *reader)

@@ -15,11 +15,11 @@
 sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_data_type type,
                                 void *dst)
 {
-    return sdfio_read_heights_strided(reader, sdfio_format_packed(type), dst);
+    return sdfio_read_heights_strided(reader, sdfio_layout_packed(type), dst);
 }
 
 sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
-                                        sdfio_format format, void *dst)
+                                        sdfio_layout layout, void *dst)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
@@ -32,13 +32,13 @@ sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Rows were read already");
     }
-    status = sdfio_check_layout(&format, header->rows, header->columns,
+    status = sdfio_check_layout(&layout, header->rows, header->columns,
                                 &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    const ptrdiff_t element = sdfio_element_stride(format);
+    const ptrdiff_t element = sdfio_element_stride(layout);
     if (reader->value_count > 0 && dst == NULL)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
@@ -48,7 +48,7 @@ sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
     for (size_t file_row = 0; file_row < valued_rows; ++file_row)
     {
         unsigned char *row =
-            (unsigned char *)dst + (ptrdiff_t)file_row * format.row_stride;
+            (unsigned char *)dst + (ptrdiff_t)file_row * layout.row_stride;
         for (size_t first = 0; first < header->columns;
              first += reader->chunk_values)
         {
@@ -59,7 +59,7 @@ sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
             if (status == SDFIO_OK)
             {
                 status =
-                    sdfio_decode_heights(header, format, reader->chunk, count,
+                    sdfio_decode_heights(header, layout, reader->chunk, count,
                                          row + (ptrdiff_t)first * element);
                 if (status != SDFIO_OK)
                 {

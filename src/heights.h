@@ -19,11 +19,11 @@
  * Returns the distance in bytes between the elements of a row of the heights of
  * the caller.
  *
- * @param format The format of the buffer.
- * @return The element stride of the format, or the size of an element if that
+ * @param layout The layout of the buffer.
+ * @return The element stride of the layout, or the size of an element if that
  * is 0.
  */
-ptrdiff_t sdfio_element_stride(sdfio_format format);
+ptrdiff_t sdfio_element_stride(sdfio_layout layout);
 
 /**
  * Checks that the strides of a matrix of heights keep its elements apart.
@@ -33,7 +33,7 @@ ptrdiff_t sdfio_element_stride(sdfio_format format);
  * that follow each other: the number of columns times the distance between the
  * elements.
  *
- * @param[in,out] format The format of the buffer, whose row stride is
+ * @param[in,out] layout The layout of the buffer, whose row stride is
  * resolved.
  * @param rows The number of rows.
  * @param columns The number of columns.
@@ -41,7 +41,7 @@ ptrdiff_t sdfio_element_stride(sdfio_format format);
  * @retval SDFIO_ERR_ARGUMENT The strides do not keep the elements apart, or
  * the matrix is larger than memory.
  */
-sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
+sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message);
 
 #endif /* SDFIO_SRC_HEIGHTS_H */

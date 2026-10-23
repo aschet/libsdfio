@@ -70,7 +70,7 @@
  *
  * @par Points that are not measured
  * Heights in metres represent a point that is not measured by NaN or by a
- * marker chosen by the caller (see sdfio_format). The coded values of the data
+ * marker chosen by the caller (see sdfio_layout). The coded values of the data
  * area represent it by the bad value of the data type: SDFIO_BAD_INT16 and the
  * like. ASCII files write the string `BAD`.
  *
@@ -269,7 +269,7 @@ enum
  */
 typedef struct sdfio_header
 {
-    /** Revision of the format. */
+    /** Revision of the layout. */
     sdfio_revision revision;
     /** Representation of the file. */
     sdfio_representation representation;
@@ -796,9 +796,9 @@ SDFIO_API sdfio_status sdfio_read_data_double(sdfio_reader *reader, double *dst,
  * or the columns must not overlap. This allows heights to be read or written in
  * place where they are not contiguous, for example the z member of an array of
  * points, one channel of an interleaved image or a column-major matrix.
- * sdfio_format_packed() describes a plain array.
+ * sdfio_layout_packed() describes a plain array.
  */
-typedef struct sdfio_format
+typedef struct sdfio_layout
 {
     /** Type of the elements of the buffer: SDFIO_TYPE_FLOAT or
      * SDFIO_TYPE_DOUBLE. */
@@ -822,19 +822,19 @@ typedef struct sdfio_format
      * sdfio_encode_heights() convert one row and ignore it.
      */
     ptrdiff_t row_stride;
-} sdfio_format;
+} sdfio_layout;
 
 /**
- * Returns the format of a plain array of heights: the elements follow each
+ * Returns the layout of a plain array of heights: the elements follow each
  * other, the rows follow each other, and NaN marks a point that is not
  * measured.
  *
  * @param type The type of the elements: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
  */
-static inline sdfio_format sdfio_format_packed(sdfio_data_type type)
+static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
 {
-    sdfio_format format = {type, NAN, 0, 0};
-    return format;
+    sdfio_layout layout = {type, NAN, 0, 0};
+    return layout;
 }
 
 /**
@@ -844,7 +844,7 @@ static inline sdfio_format sdfio_format_packed(sdfio_data_type type)
  *
  * The function reads from the first row of the data area, so no rows may have
  * been read before. It is sdfio_read_heights_strided() with
- * sdfio_format_packed().
+ * sdfio_layout_packed().
  *
  * @param reader The reader.
  * @param type The type of the array: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
@@ -863,10 +863,10 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
 
 /**
  * Reads the remaining rows as heights in metres into a buffer that lies in
- * memory as the format describes.
+ * memory as the layout describes.
  *
- * The element (y, x) is stored at `dst + y * format.row_stride + x *
- * format.element_stride`. The row y = 0 is the first row. A negative row
+ * The element (y, x) is stored at `dst + y * layout.row_stride + x *
+ * layout.element_stride`. The row y = 0 is the first row. A negative row
  * stride, with `dst` at the first element of the row y = 0, which is the last
  * row in memory, stores the matrix upside down.
  *
@@ -874,7 +874,7 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * been read before.
  *
  * @param reader The reader.
- * @param format The format of the buffer.
+ * @param layout The layout of the buffer.
  * @param[out] dst The buffer for the heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
@@ -884,7 +884,7 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
  */
 SDFIO_API sdfio_status sdfio_read_heights_strided(sdfio_reader *reader,
-                                                  sdfio_format format,
+                                                  sdfio_layout layout,
                                                   void *dst);
 
 /**
@@ -1083,7 +1083,7 @@ SDFIO_API sdfio_status sdfio_write_data_double(sdfio_writer *writer,
  * z-scale is selected from the heights. NaN and infinity label points that are
  * not measured. Call sdfio_end_trailer() afterwards.
  *
- * It is sdfio_write_heights_strided() with sdfio_format_packed().
+ * It is sdfio_write_heights_strided() with sdfio_layout_packed().
  *
  * @param writer The writer.
  * @param type The type of the array: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE.
@@ -1103,16 +1103,16 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
 
 /**
  * Writes the whole data area from a matrix of heights in metres that lies in
- * memory as the format describes.
+ * memory as the layout describes.
  *
  * The layout is that of sdfio_read_heights_strided(): the element (y, x) is at
- * `src + y * format.row_stride + x * format.element_stride`, and the row y = 0
+ * `src + y * layout.row_stride + x * layout.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
- * z-scale is selected from the heights. NaN, infinity and `format.missing`
+ * z-scale is selected from the heights. NaN, infinity and `layout.missing`
  * label points that are not measured. Call sdfio_end_trailer() afterwards.
  *
  * @param writer The writer.
- * @param format The format of the buffer.
+ * @param layout The layout of the buffer.
  * @param[in] src The heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
@@ -1123,7 +1123,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * @retval SDFIO_ERR_IO The stream failed.
  */
 SDFIO_API sdfio_status sdfio_write_heights_strided(sdfio_writer *writer,
-                                                   sdfio_format format,
+                                                   sdfio_layout layout,
                                                    const void *src);
 
 /**
@@ -1200,12 +1200,12 @@ SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
  * Converts values of the data area into heights in metres.
  *
  * `count` values of `header->data_type` are converted with `header->z_scale`.
- * The height i is stored at `heights + i * format.element_stride`. A point that
- * is not measured becomes `format.missing`. The function needs no handle, so it
+ * The height i is stored at `heights + i * layout.element_stride`. A point that
+ * is not measured becomes `layout.missing`. The function needs no handle, so it
  * works on data from any source.
  *
  * @param[in] header The header that describes the values.
- * @param format The format of the output buffer.
+ * @param layout The layout of the output buffer.
  * @param[in] data The values of the data area.
  * @param count The number of values.
  * @param[out] heights The output buffer.
@@ -1213,7 +1213,7 @@ SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
  * @retval SDFIO_ERR_RANGE A height does not fit the type of the buffer.
  */
 SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
-                                            sdfio_format format,
+                                            sdfio_layout layout,
                                             const void *data, size_t count,
                                             void *heights);
 
@@ -1222,11 +1222,11 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * sdfio_decode_heights().
  *
  * The heights are divided by `header->z_scale`. NaN, infinity and
- * `format.missing` become the bad value. Integer results are rounded to the
+ * `layout.missing` become the bad value. Integer results are rounded to the
  * nearest value.
  *
  * @param[in] header The header that describes the values.
- * @param format The format of the input buffer.
+ * @param layout The layout of the input buffer.
  * @param[in] heights The heights.
  * @param count The number of heights.
  * @param[out] data The values of the data area.
@@ -1237,7 +1237,7 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * measured.
  */
 SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
-                                            sdfio_format format,
+                                            sdfio_layout layout,
                                             const void *heights, size_t count,
                                             void *data);
 
@@ -1256,12 +1256,12 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
 /**
  * Determines the z-scale for a matrix of heights in metres, as
  * sdfio_write_heights() does: the range of the finite heights, excluding the
- * points that `format.missing` marks, is determined and passed to
+ * points that `layout.missing` marks, is determined and passed to
  * sdfio_z_scale_for_range(). It is intended for sdfio_write_data() with an
  * integer data type.
  *
  * @param type The data type.
- * @param format The format of the buffer.
+ * @param layout The layout of the buffer.
  * @param[in] heights The heights.
  * @param rows The number of rows.
  * @param columns The number of columns.
@@ -1269,7 +1269,7 @@ SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  */
 SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
-                                             sdfio_format format,
+                                             sdfio_layout layout,
                                              const void *heights, size_t rows,
                                              size_t columns, double *z_scale);
 

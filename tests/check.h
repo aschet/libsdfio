@@ -114,13 +114,13 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
     return stream;
 }
 
-/* The format of an array whose rows are `row_stride` bytes apart. */
-static inline sdfio_format format_with_rows(sdfio_data_type type,
+/* The layout of an array whose rows are `row_stride` bytes apart. */
+static inline sdfio_layout layout_with_rows(sdfio_data_type type,
                                             ptrdiff_t row_stride)
 {
-    sdfio_format format = sdfio_format_packed(type);
-    format.row_stride = row_stride;
-    return format;
+    sdfio_layout layout = sdfio_layout_packed(type);
+    layout.row_stride = row_stride;
+    return layout;
 }
 
 /* Frees a reader and opens the file in memory again, to read it from the

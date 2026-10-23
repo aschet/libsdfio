@@ -20,11 +20,11 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-ptrdiff_t sdfio_element_stride(sdfio_format format)
+ptrdiff_t sdfio_element_stride(sdfio_layout layout)
 {
-    return format.element_stride != 0
-               ? format.element_stride
-               : (ptrdiff_t)sdfio_data_type_size(format.type);
+    return layout.element_stride != 0
+               ? layout.element_stride
+               : (ptrdiff_t)sdfio_data_type_size(layout.type);
 }
 
 static size_t magnitude(ptrdiff_t stride)
@@ -47,18 +47,18 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
     return (count - 1) * stride + size;
 }
 
-sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
+sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message)
 {
-    if (!sdfio_valid_height_type(format->type))
+    if (!sdfio_valid_height_type(layout->type))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The type of the heights is not SDFIO_TYPE_FLOAT or "
                           "SDFIO_TYPE_DOUBLE");
     }
-    const size_t size = sdfio_data_type_size(format->type);
-    const size_t element = magnitude(sdfio_element_stride(*format));
-    if (format->row_stride == 0)
+    const size_t size = sdfio_data_type_size(layout->type);
+    const size_t element = magnitude(sdfio_element_stride(*layout));
+    if (layout->row_stride == 0)
     {
         /* Rows that follow each other. */
         if (columns != 0 && element > (size_t)PTRDIFF_MAX / columns)
@@ -66,9 +66,9 @@ sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
             return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                               "The matrix is larger than memory");
         }
-        format->row_stride = (ptrdiff_t)(columns * element);
+        layout->row_stride = (ptrdiff_t)(columns * element);
     }
-    const size_t row = magnitude(format->row_stride);
+    const size_t row = magnitude(layout->row_stride);
     if (columns > 1 && element < size)
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
@@ -95,10 +95,10 @@ sdfio_status sdfio_check_layout(sdfio_format *format, size_t rows,
     return SDFIO_OK;
 }
 
-static bool usable_description(const sdfio_header *header, sdfio_format format)
+static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 {
     return header != NULL && sdfio_valid_data_type(header->data_type)
-           && sdfio_valid_height_type(format.type);
+           && sdfio_valid_height_type(layout.type);
 }
 
 /**
@@ -227,42 +227,40 @@ static bool scale_divide_double(const scale_double *scale, double height,
 #undef REAL
 
 sdfio_status sdfio_decode_heights(const sdfio_header *header,
-                                  sdfio_format format, const void *data,
+                                  sdfio_layout layout, const void *data,
                                   size_t count, void *heights)
 {
-    sdfio_format layout = format;
-    if (!usable_description(header, format)
+    if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
         || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const ptrdiff_t element = sdfio_element_stride(format);
-    return format.type == SDFIO_TYPE_FLOAT
+    const ptrdiff_t element = sdfio_element_stride(layout);
+    return layout.type == SDFIO_TYPE_FLOAT
                ? decode_float(header, data, count, heights, element,
-                              format.missing)
+                              layout.missing)
                : decode_double(header, data, count, heights, element,
-                               format.missing);
+                               layout.missing);
 }
 
 sdfio_status sdfio_encode_heights(const sdfio_header *header,
-                                  sdfio_format format, const void *heights,
+                                  sdfio_layout layout, const void *heights,
                                   size_t count, void *data)
 {
-    sdfio_format layout = format;
-    if (!usable_description(header, format)
+    if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
         || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK
         || !(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const ptrdiff_t element = sdfio_element_stride(format);
-    return format.type == SDFIO_TYPE_FLOAT
+    const ptrdiff_t element = sdfio_element_stride(layout);
+    return layout.type == SDFIO_TYPE_FLOAT
                ? encode_float(header, heights, element, count, data,
-                              format.missing)
+                              layout.missing)
                : encode_double(header, heights, element, count, data,
-                               format.missing);
+                               layout.missing);
 }
 
 double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
@@ -305,42 +303,42 @@ double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
     return z_scale > 0.0 ? z_scale : 1.0;
 }
 
-static sdfio_status find_range(sdfio_format format, const void *heights,
+static sdfio_status find_range(sdfio_layout layout, const void *heights,
                                size_t rows, size_t columns, double *lowest,
                                double *highest)
 {
-    if (!sdfio_valid_height_type(format.type) || lowest == NULL
+    if (!sdfio_valid_height_type(layout.type) || lowest == NULL
         || highest == NULL || (rows > 0 && columns > 0 && heights == NULL)
-        || sdfio_check_layout(&format, rows, columns, NULL) != SDFIO_OK)
+        || sdfio_check_layout(&layout, rows, columns, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const ptrdiff_t element = sdfio_element_stride(format);
+    const ptrdiff_t element = sdfio_element_stride(layout);
     bool has_marker = false;
-    if (format.type == SDFIO_TYPE_FLOAT)
+    if (layout.type == SDFIO_TYPE_FLOAT)
     {
         float marker = 0.0F;
-        if (!marker_of_float(format.missing, &marker, &has_marker))
+        if (!marker_of_float(layout.missing, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }
-        find_range_float(heights, rows, columns, format.row_stride, element,
+        find_range_float(heights, rows, columns, layout.row_stride, element,
                          marker, has_marker, lowest, highest);
     }
     else
     {
         double marker = 0.0;
-        if (!marker_of_double(format.missing, &marker, &has_marker))
+        if (!marker_of_double(layout.missing, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }
-        find_range_double(heights, rows, columns, format.row_stride, element,
+        find_range_double(heights, rows, columns, layout.row_stride, element,
                           marker, has_marker, lowest, highest);
     }
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_format format,
+sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_layout layout,
                                    const void *heights, size_t rows,
                                    size_t columns, double *z_scale)
 {
@@ -351,7 +349,7 @@ sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_format format,
     double lowest = 0.0;
     double highest = 0.0;
     const sdfio_status status =
-        find_range(format, heights, rows, columns, &lowest, &highest);
+        find_range(layout, heights, rows, columns, &lowest, &highest);
     if (status == SDFIO_OK)
     {
         *z_scale = sdfio_z_scale_for_range(type, lowest, highest);
