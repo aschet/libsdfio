@@ -6,7 +6,7 @@
 
 /**
  * @file file_win32.c
- * @brief Implements file access for paths of wide characters on Windows.
+ * @brief File access with wide-character paths on Windows.
  *
  * The functions correspond to those of file.c and open files with the functions
  * of the C library that take wide-character paths.

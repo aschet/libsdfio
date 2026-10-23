@@ -6,8 +6,7 @@
 
 /**
  * @file byte_order.c
- * @brief Implements the detection of the host byte order and the conversion of
- * values to and from the little-endian order of the files.
+ * @brief Byte order handling.
  */
 
 #include "byte_order.h"

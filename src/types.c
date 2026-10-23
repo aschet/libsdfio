@@ -6,8 +6,7 @@
 
 /**
  * @file types.c
- * @brief Implements the lookup functions for data types and revisions and the
- * rules that depend on them.
+ * @brief Tables of data types and revisions.
  */
 
 #include "types.h"

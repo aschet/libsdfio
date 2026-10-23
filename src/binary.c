@@ -6,8 +6,7 @@
 
 /**
  * @file binary.c
- * @brief Implements the codecs of the binary representation: the fixed header,
- * the values and the trailer that follows the data area.
+ * @brief Codecs of the binary representation.
  *
  * The files store values in little-endian byte order, regardless of the byte
  * order of the host.

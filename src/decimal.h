@@ -6,8 +6,7 @@
 
 /**
  * @file decimal.h
- * @brief Declares the conversion between numbers and text without dependence on
- * the locale, using the dot as the decimal point that the files require.
+ * @brief Locale-independent number conversion.
  */
 
 #ifndef SDFIO_SRC_DECIMAL_H

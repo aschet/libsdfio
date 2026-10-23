@@ -6,9 +6,7 @@
 
 /**
  * @file types.h
- * @brief Defines the tables of data types and revisions and the rules that
- * depend on them, such as the sizes of values, the limits of counts and the
- * sizes of headers.
+ * @brief Data types, revisions and their rules.
  */
 
 #ifndef SDFIO_SRC_TYPES_H

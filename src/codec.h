@@ -6,9 +6,7 @@
 
 /**
  * @file codec.h
- * @brief Defines the interfaces that a representation implements to read and
- * write the header, the data area and the trailer of a file, and the state that
- * their calls share.
+ * @brief Interfaces of the representation codecs.
  */
 
 #ifndef SDFIO_SRC_CODEC_H

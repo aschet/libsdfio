@@ -6,9 +6,7 @@
 
 /**
  * @file common.h
- * @brief Declares the facilities that all modules share: compile-time checks of
- * the platform, error messages, allocation through the allocator of a handle,
- * and a growable string.
+ * @brief Shared facilities: platform checks, errors, allocation and strings.
  */
 
 #ifndef SDFIO_SRC_COMMON_H

@@ -6,8 +6,7 @@
 
 /**
  * @file decimal.c
- * @brief Implements the conversion between numbers and text without dependence
- * on the locale.
+ * @brief Locale-independent number conversion.
  *
  * The functions of the C library that print and parse numbers use the decimal
  * point of the current locale, whereas the files always use `.`. Only the ASCII

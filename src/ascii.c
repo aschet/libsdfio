@@ -6,8 +6,7 @@
 
 /**
  * @file ascii.c
- * @brief Implements the codecs of the ASCII representation: reading and writing
- * the header lines, the values and the trailer.
+ * @brief Codecs of the ASCII representation.
  */
 
 #include "codec.h"

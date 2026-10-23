@@ -6,8 +6,7 @@
 
 /**
  * @file common.c
- * @brief Implements the version, the text of the status codes, the allocation
- * through the allocator of a configuration, and the growable string.
+ * @brief Version, status text, allocation and strings.
  */
 
 #include "common.h"

@@ -6,8 +6,7 @@
 
 /**
  * @file tagged.h
- * @brief Declares the functions that split a text into lines and that find,
- * validate and write the `Name = Value` fields of a header and of a trailer.
+ * @brief Handling of Name = Value fields.
  */
 
 #ifndef SDFIO_SRC_TAGGED_H

@@ -6,8 +6,7 @@
 
 /**
  * @file binary.h
- * @brief Declares the functions that parse and format the fixed-size header of
- * the binary representation.
+ * @brief Header of the binary representation.
  */
 
 #ifndef SDFIO_SRC_BINARY_H

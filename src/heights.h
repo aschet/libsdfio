@@ -6,8 +6,7 @@
 
 /**
  * @file heights.h
- * @brief Declares the functions that compute and check the memory layout,
- * including the strides, of a matrix of heights supplied by the caller.
+ * @brief Memory layout of height matrices.
  */
 
 #ifndef SDFIO_SRC_HEIGHTS_H

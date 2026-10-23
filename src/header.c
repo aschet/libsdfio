@@ -6,8 +6,7 @@
 
 /**
  * @file header.c
- * @brief Implements the selection of a codec by the magic of a file and the
- * validation of a header before it is written.
+ * @brief Header reading and validation.
  */
 
 #include "header.h"

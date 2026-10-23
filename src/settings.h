@@ -6,8 +6,7 @@
 
 /**
  * @file settings.h
- * @brief Defines the settings of a handle, which are a configuration with every
- * default filled in and the codec lists validated.
+ * @brief Resolved configuration of a handle.
  */
 
 #ifndef SDFIO_SRC_SETTINGS_H

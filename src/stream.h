@@ -6,8 +6,7 @@
 
 /**
  * @file stream.h
- * @brief Declares the buffered source and sink that read and write the bytes of
- * a file through the callbacks of sdfio_stream.
+ * @brief Buffered byte sources and sinks.
  */
 
 #ifndef SDFIO_SRC_STREAM_H
