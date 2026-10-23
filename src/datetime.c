@@ -20,7 +20,6 @@
 #include "revision.h"
 #include "text.h"
 #include <ctype.h>
-#include <stdio.h>
 #include <string.h>
 
 enum
@@ -139,6 +138,46 @@ static bool seconds_to_time(int64_t seconds, time_t *out)
     return true;
 }
 
+/* The positions and the widths of the fields in the text DDMMYYYYhhmm. */
+enum
+{
+    DAY_AT = 0,
+    DAY_WIDTH = 2,
+    MONTH_AT = DAY_AT + DAY_WIDTH,
+    MONTH_WIDTH = 2,
+    YEAR_AT = MONTH_AT + MONTH_WIDTH,
+    YEAR_WIDTH = 4,
+    HOUR_AT = YEAR_AT + YEAR_WIDTH,
+    HOUR_WIDTH = 2,
+    MINUTE_AT = HOUR_AT + HOUR_WIDTH,
+    MINUTE_WIDTH = 2
+};
+
+_Static_assert(MINUTE_AT + MINUTE_WIDTH == SDFIO_DATETIME_SIZE,
+               "the fields have to fill the date");
+
+/* Writes a number as `width` decimal digits with leading zeros. Digits above
+ * the width are dropped. */
+static void put_digits(char *out, unsigned value, size_t width)
+{
+    while (width > 0)
+    {
+        out[--width] = (char)('0' + value % 10);
+        value /= 10;
+    }
+}
+
+/* The number that `width` decimal digits give. */
+static int get_digits(const char *text, size_t width)
+{
+    int value = 0;
+    for (size_t i = 0; i < width; ++i)
+    {
+        value = value * 10 + (text[i] - '0');
+    }
+    return value;
+}
+
 time_t sdfio_now(void)
 {
     const time_t now = time(NULL);
@@ -184,11 +223,13 @@ bool sdfio_datetime_format(time_t time, sdfio_revision revision,
     unsigned month = 0;
     unsigned day = 0;
     civil_from_days(days, &year, &month, &day);
-    char text[SDFIO_DATETIME_SIZE + 1];
-    snprintf(text, sizeof text, "%02u%02u%04u%02u%02u", day, month,
-             (unsigned)year, (unsigned)(minute_of_day / MINUTES_PER_HOUR),
-             (unsigned)(minute_of_day % MINUTES_PER_HOUR));
-    memcpy(out, text, SDFIO_DATETIME_SIZE);
+    put_digits(out + DAY_AT, day, DAY_WIDTH);
+    put_digits(out + MONTH_AT, month, MONTH_WIDTH);
+    put_digits(out + YEAR_AT, (unsigned)year, YEAR_WIDTH);
+    put_digits(out + HOUR_AT, (unsigned)(minute_of_day / MINUTES_PER_HOUR),
+               HOUR_WIDTH);
+    put_digits(out + MINUTE_AT, (unsigned)(minute_of_day % MINUTES_PER_HOUR),
+               MINUTE_WIDTH);
     return true;
 }
 
@@ -223,17 +264,11 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
             return false;
         }
     }
-    char terminated[SDFIO_DATETIME_SIZE + 1];
-    memcpy(terminated, text, size);
-    terminated[size] = '\0';
-    // The text is all digits, and the number of conversions is checked.
-    // NOLINTNEXTLINE(cert-err34-c)
-    if (sscanf(terminated, "%2d%2d%4d%2d%2d", &fields->day, &fields->month,
-               &fields->year, &fields->hour, &fields->minute)
-        != 5)
-    {
-        return false;
-    }
+    fields->day = get_digits(text + DAY_AT, DAY_WIDTH);
+    fields->month = get_digits(text + MONTH_AT, MONTH_WIDTH);
+    fields->year = get_digits(text + YEAR_AT, YEAR_WIDTH);
+    fields->hour = get_digits(text + HOUR_AT, HOUR_WIDTH);
+    fields->minute = get_digits(text + MINUTE_AT, MINUTE_WIDTH);
     return fields->year >= SDFIO_FIRST_YEAR && fields->month >= 1
            && fields->month <= MONTHS_PER_YEAR && fields->day >= 1
            && (unsigned)fields->day
