@@ -54,12 +54,12 @@ enum
     SDFIO_MAX_TRAILER = 1 << 28
 };
 
-SDFIO_STATIC_ASSERT(SDFIO_BINARY_HEADER_MAX
-                        == SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE
-                               + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
-                               + SDFIO_HEADER_COUNTS * sizeof(uint32_t)
-                               + SDFIO_HEADER_DOUBLES * sizeof(double)
-                               + SDFIO_HEADER_CODES,
-                    "the largest binary header is the sum of its fields");
+_Static_assert(SDFIO_BINARY_HEADER_MAX
+                   == SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE
+                          + SDFIO_HEADER_DATES * SDFIO_DATE_SIZE
+                          + SDFIO_HEADER_COUNTS * sizeof(uint32_t)
+                          + SDFIO_HEADER_DOUBLES * sizeof(double)
+                          + SDFIO_HEADER_CODES,
+               "the largest binary header is the sum of its fields");
 
 #endif /* SDFIO_SRC_FIELDS_H */

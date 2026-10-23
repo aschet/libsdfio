@@ -7,6 +7,10 @@
 cmake_minimum_required(VERSION 3.28)
 project(sdfio_test_package LANGUAGES C)
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
 find_package(sdfio REQUIRED)
 
 add_executable(test_package main.c)

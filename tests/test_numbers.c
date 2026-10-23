@@ -142,7 +142,9 @@ static void check_locale(void)
     CHECK_OK(sdfio_read_heights(reader, SDFIO_TYPE_DOUBLE, back));
     CHECK(near_relative(back[0], 1.25e-6, 1e-12) && isnan(back[1])
           && near_relative(back[2], -3.5e-7, 1e-12));
-    CHECK(sdfio_get_header(reader)->x_scale == 1.5e-6);
+    /* A variable has the precision of its type, a constant may have more. */
+    const double x_scale = 1.5e-6;
+    CHECK(sdfio_get_header(reader)->x_scale == x_scale);
     sdfio_reader_free(reader);
     free(file.data);
     setlocale(LC_NUMERIC, "C");

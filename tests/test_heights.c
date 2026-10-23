@@ -198,7 +198,9 @@ static void check_float_marker(void)
           && coded[3] == 2000);
     float back[4];
     CHECK_OK(sdfio_decode_heights(&header, format, coded, 4, back));
-    CHECK(back[0] == 1.0f && back[1] == -9999.1f && back[2] == -9999.1f
+    /* A variable has the precision of its type, a constant may have more. */
+    const float marker = -9999.1f;
+    CHECK(back[0] == 1.0f && back[1] == marker && back[2] == marker
           && back[3] == 2.0f);
 }
 

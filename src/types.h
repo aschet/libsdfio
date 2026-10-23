@@ -47,18 +47,17 @@ enum
  * and no value is larger than the largest that a buffer is made for.
  */
 #define SDFIO_CHECK_SCALAR(data, name, ctype, stored, low, high, floating)     \
-    SDFIO_STATIC_ASSERT(sizeof(ctype) == sizeof(stored), name                  \
-                        ": the type and its stored bytes differ in size");     \
-    SDFIO_STATIC_ASSERT(sizeof(ctype) <= SDFIO_LARGEST_SAMPLE,                 \
-                        name ": larger than the largest sample");
+    _Static_assert(sizeof(ctype) == sizeof(stored),                            \
+                   name ": the type and its stored bytes differ in size");     \
+    _Static_assert(sizeof(ctype) <= SDFIO_LARGEST_SAMPLE,                      \
+                   name ": larger than the largest sample");
 SDFIO_SCALARS(SDFIO_CHECK_SCALAR)
 #undef SDFIO_CHECK_SCALAR
-SDFIO_STATIC_ASSERT(
-    sizeof(int8_t) == 1 && sizeof(int16_t) == 2 && sizeof(int32_t) == 4
-        && sizeof(uint64_t) == 8,
-    "the integer types of the file have the sizes of the format");
-SDFIO_STATIC_ASSERT(SDFIO_LARGEST_SAMPLE == sizeof(double),
-                    "the largest sample is a binary64");
+_Static_assert(sizeof(int8_t) == 1 && sizeof(int16_t) == 2
+                   && sizeof(int32_t) == 4 && sizeof(uint64_t) == 8,
+               "the integer types of the file have the sizes of the format");
+_Static_assert(SDFIO_LARGEST_SAMPLE == sizeof(double),
+               "the largest sample is a binary64");
 
 /**
  * Tells whether a value is a type of heights: SDFIO_TYPE_FLOAT or

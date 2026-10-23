@@ -24,28 +24,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * A check at compile time, where the compiler has C11: without it the check is
- * not made. The expansion without C11 is a declaration that can repeat, so that
- * the use ends with a semicolon in both cases.
- *
- * @param condition The condition that has to hold.
- * @param message The text of the error if it does not.
- */
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-#define SDFIO_STATIC_ASSERT(condition, message)                                \
-    _Static_assert(condition, message)
-#else
-#define SDFIO_STATIC_ASSERT(condition, message) extern int sdfio_not_checked
-#endif
-
 /* What the format needs of the platform, checked here and nowhere else: bytes
  * of 8 bits, and IEEE 754 binary32 and binary64 for float and double. */
-SDFIO_STATIC_ASSERT(CHAR_BIT == 8, "the format counts in 8-bit bytes");
-SDFIO_STATIC_ASSERT(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
-                    "float has to be IEEE 754 binary32");
-SDFIO_STATIC_ASSERT(sizeof(double) == 8 && DBL_MANT_DIG == 53,
-                    "double has to be IEEE 754 binary64");
+_Static_assert(CHAR_BIT == 8, "the format counts in 8-bit bytes");
+_Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
+               "float has to be IEEE 754 binary32");
+_Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
+               "double has to be IEEE 754 binary64");
 
 /**
  * The text of the last failure of a handle.

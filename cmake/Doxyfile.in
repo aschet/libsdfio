@@ -27,7 +27,7 @@ EXCLUDE_SYMBOLS        = REAL REAL_SUFFIX REAL_MAX REAL_ABS REAL_NEARBY \
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = "SDFIO_API=" \
-                         "SDFIO_STATIC_ASSERT(condition,message)=" \
+                         "_Static_assert(condition,message)=" \
                          _WIN32
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO

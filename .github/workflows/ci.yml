@@ -47,7 +47,6 @@ jobs:
           CC: gcc
           GENERATOR: Ninja
           CONFIGURE_OPTIONS: >-
-            -DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON
             -DCMAKE_C_FLAGS=-pedantic-errors -DSDFIO_BUILD_EXAMPLES=ON
         run: .github/ci/install-and-use.sh
 
@@ -125,7 +124,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
           cmake --build build/cortex-m
-          arm-none-eabi-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
+          arm-none-eabi-gcc -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
             -Iinclude -Ibuild/cortex-m/generated/include -DSDFIO_STATIC_DEFINE \
             tests/embedded/main.c build/cortex-m/libsdfio.a -o build/cortex-m/firmware
           arm-none-eabi-size build/cortex-m/firmware
@@ -141,7 +140,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DBUILD_TESTING=OFF -DSDFIO_BUILD_EXAMPLES=OFF
           cmake --build build/riscv
-          riscv64-unknown-elf-gcc $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
+          riscv64-unknown-elf-gcc -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles -Wl,--entry=main \
             -Iinclude -Ibuild/riscv/generated/include -DSDFIO_STATIC_DEFINE \
             tests/embedded/main.c build/riscv/libsdfio.a -o build/riscv/firmware
           riscv64-unknown-elf-size build/riscv/firmware
