@@ -384,8 +384,6 @@ SDFIO_API void sdfio_header_init(sdfio_header *header);
 /** The size of the version number that starts every file, in bytes. */
 #define SDFIO_VERSION_NUMBER_SIZE 8
 
-/* ---- Streams ------------------------------------------------------------ */
-
 /** Return value of a read callback that failed. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)
 
@@ -595,8 +593,6 @@ SDFIO_API size_t sdfio_version_number_count(const sdfio_config *config);
 SDFIO_API const char *sdfio_version_number(const sdfio_config *config,
                                            size_t index);
 
-/* ---- Memory ------------------------------------------------------------- */
-
 /**
  * Returns the size in bytes of a buffer for the whole data area: `header->rows`
  * times `header->columns` coded values of `header->data_type`. The size is
@@ -653,8 +649,6 @@ SDFIO_API sdfio_status sdfio_heights_size(const sdfio_header *header,
 SDFIO_API sdfio_status sdfio_heights_row_size(const sdfio_header *header,
                                               sdfio_data_type type,
                                               size_t *bytes);
-
-/* ---- Reading ------------------------------------------------------------ */
 
 /** Opaque handle of a reader. */
 typedef struct sdfio_reader sdfio_reader;
@@ -886,8 +880,6 @@ SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
  */
 SDFIO_API const char *sdfio_reader_error_message(const sdfio_reader *reader);
 
-/* ---- Writing ------------------------------------------------------------ */
-
 /** Opaque handle of a writer. */
 typedef struct sdfio_writer sdfio_writer;
 
@@ -1057,8 +1049,6 @@ SDFIO_API sdfio_status sdfio_end_trailer(sdfio_writer *writer);
  * @param[in] writer The writer.
  */
 SDFIO_API const char *sdfio_writer_error_message(const sdfio_writer *writer);
-
-/* ---- Heights ------------------------------------------------------------ */
 
 /**
  * Converts values of the data area into heights in metres.

@@ -157,9 +157,6 @@ static bool revision_of(const char *version_number, size_t size,
     return false;
 }
 
-/* ---- The header -----------------------------------------------------------
- */
-
 /** The fields of the header, in the order of their ASCII field names. */
 enum field
 {
@@ -520,9 +517,6 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     return SDFIO_OK;
 }
 
-/* ---- The data area ---------------------------------------------------------
- */
-
 static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 {
     return sdfio_source_failure(source, message,
@@ -530,9 +524,8 @@ static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
                                 "area and the trailer");
 }
 
-/* ---- The values in memory -------------------------------------------------
- * A value of the data area is read and written in the type of the data type,
- * and the text of the file is converted to it here. */
+/* The values of the data area are stored in the type of the data type; the
+ * functions below convert the text of the file to it. */
 
 /** A case of the storing of the bad value, for SDFIO_SCALARS(). */
 #define STORE_BAD_CASE(data, type, low, high, floating)                        \
@@ -815,9 +808,6 @@ done:
     sdfio_string_free(&part);
     return status;
 }
-
-/* ---- Writing ----------------------------------------------------------------
- */
 
 const sdfio_reader_format sdfio_ascii_reader_format = {
     .state_size = sizeof(struct reading),
