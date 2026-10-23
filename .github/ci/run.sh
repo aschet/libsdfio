@@ -40,6 +40,7 @@ jobs=(
   format
   documentation
   licenses
+  coverage
 )
 
 # What a job is and needs. kind is build, firmware or check. A build job sets
@@ -137,6 +138,9 @@ describe() {
       ;;
     licenses)
       kind=check pipx="reuse"
+      ;;
+    coverage)
+      kind=check apt="ninja-build gcc" pipx="gcovr"
       ;;
     *)
       echo "Unknown job: $1 (run.sh --list names them)" >&2
@@ -239,6 +243,21 @@ run_licenses() {
   reuse lint
 }
 
+# The lines and branches of the library that the tests run, without those of
+# the tests and the examples. The tests run threads, so the counters are atomic.
+# The job fails when a figure falls below the floor that is a little under the
+# present one.
+run_coverage() {
+  use_pipx
+  cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_C_COMPILER=gcc "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic"
+  cmake --build "$dir"
+  ctest --test-dir "$dir" --output-on-failure --no-tests=error
+  gcovr --root . --filter 'src/' --exclude-throw-branches \
+    --fail-under-line 90 --fail-under-branch 78 \
+    --print-summary --txt "$dir/coverage.txt" "$dir"
+}
+
 main() {
   case "${1:-}" in
     --list)
@@ -267,6 +286,7 @@ main() {
         format) run_format ;;
         documentation) run_documentation ;;
         licenses) run_licenses ;;
+        coverage) run_coverage ;;
         *) "run_$kind" ;;
       esac
       ;;

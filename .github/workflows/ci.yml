@@ -85,6 +85,9 @@ jobs:
           - name: Licenses
             runner: ubuntu-latest
             job: licenses
+          - name: Coverage
+            runner: ubuntu-latest
+            job: coverage
     steps:
       - uses: actions/checkout@v7
 
