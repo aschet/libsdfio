@@ -100,14 +100,14 @@ int main(void)
     header.z_scale = 1.0e-9;
     const sdfio_stream stream = {NULL, NULL, store};
     sdfio_status status = sdfio_create_stream(writer, &stream, &header);
+    const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
         {
             coded[column] = (int16_t)(row * COLUMNS + column);
         }
-        status = sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_INT16),
-                                  coded, 1);
+        status = sdfio_write_data(writer, layout, coded, 1);
     }
     if (status == SDFIO_OK)
     {

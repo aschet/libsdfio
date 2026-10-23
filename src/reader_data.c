@@ -49,12 +49,11 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
 }
 
 /* Reads the values of a row into a buffer whose elements are `element` bytes
- * apart. */
+ * apart, each of them `size` bytes. */
 static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
-                             ptrdiff_t element)
+                             ptrdiff_t element, size_t size)
 {
     const sdfio_header *header = &reader->header;
-    const size_t size = sdfio_data_type_size(header->data_type);
     if (element == (ptrdiff_t)size)
     {
         return sdfio_reader_take_values(reader, row, header->columns);
@@ -115,13 +114,14 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
         return status;
     }
     const ptrdiff_t element = sdfio_element_stride(layout);
+    const size_t size = sdfio_data_type_size(header->data_type);
     /* Rows without a column hold nothing, however many a file declares. */
     const size_t valued_rows = header->columns > 0 ? rows : 0;
     for (size_t i = 0; i < valued_rows; ++i)
     {
         status = read_row(
             reader, (unsigned char *)dst + (ptrdiff_t)i * layout.row_stride,
-            element);
+            element, size);
         if (status != SDFIO_OK)
         {
             return sdfio_reader_fail(reader, status);

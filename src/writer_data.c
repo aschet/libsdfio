@@ -63,12 +63,11 @@ sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
 }
 
 /* Writes the values of a row from a buffer whose elements are `element` bytes
- * apart. */
+ * apart, each of them `size` bytes. */
 static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
-                              ptrdiff_t element)
+                              ptrdiff_t element, size_t size)
 {
     const sdfio_header *header = &writer->header;
-    const size_t size = sdfio_data_type_size(header->data_type);
     if (element == (ptrdiff_t)size)
     {
         return sdfio_writer_put_values(writer, row, header->columns);
@@ -135,6 +134,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
                                             : sdfio_writer_fail(writer, status);
     }
     const ptrdiff_t element = sdfio_element_stride(layout);
+    const size_t size = sdfio_data_type_size(header->data_type);
     /* Rows without a column hold nothing, however many a file declares. */
     const size_t valued_rows = header->columns > 0 ? rows : 0;
     for (size_t i = 0; i < valued_rows; ++i)
@@ -142,7 +142,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
         status = write_row(writer,
                            (const unsigned char *)src
                                + (ptrdiff_t)i * layout.row_stride,
-                           element);
+                           element, size);
         if (status != SDFIO_OK)
         {
             return status;

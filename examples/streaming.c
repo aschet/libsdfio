@@ -50,15 +50,15 @@ int main(void)
     }
     double lowest = INFINITY;
     double highest = -INFINITY;
+    const sdfio_layout coded_layout = sdfio_layout_packed(header->data_type);
+    const sdfio_layout heights_layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
     {
-        status = sdfio_read_data(reader, sdfio_layout_packed(header->data_type),
-                                 coded, 1);
+        status = sdfio_read_data(reader, coded_layout, coded, 1);
         if (status == SDFIO_OK)
         {
-            status = sdfio_decode_heights(
-                header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), coded,
-                header->columns, heights);
+            status = sdfio_decode_heights(header, heights_layout, coded,
+                                          header->columns, heights);
         }
         for (size_t column = 0; column < header->columns && status == SDFIO_OK;
              ++column)
