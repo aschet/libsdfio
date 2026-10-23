@@ -160,29 +160,33 @@ jobs:
           fi
 
   # The thread sanitizer cannot be combined with the address sanitizer, so the
-  # builds are two, on one machine.
-  sanitizers:
-    name: Sanitizers
+  # builds are two, and so are the jobs.
+  asan-ubsan:
+    name: ASan and UBSan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      - name: ASan and UBSan
+      - name: Build and test
         run: |
           # The sanitizers map their memory
           sudo sysctl vm.mmap_rnd_bits=28 || true
-          CC=clang cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+          CC=clang cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DSDFIO_SANITIZE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          cmake --build build/asan
-          ctest --test-dir build/asan --output-on-failure --no-tests=error
+          cmake --build build
+          ctest --test-dir build --output-on-failure --no-tests=error
 
-      - name: TSan
-        if: ${{ !cancelled() }}
+  tsan:
+    name: TSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and test
         run: |
-          CC=clang cmake -S . -B build/tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+          sudo sysctl vm.mmap_rnd_bits=28 || true
+          CC=clang cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DSDFIO_SANITIZE_THREAD=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-          cmake --build build/tsan
-          ctest --test-dir build/tsan --output-on-failure --no-tests=error
+          cmake --build build
+          ctest --test-dir build --output-on-failure --no-tests=error
 
   static-analysis:
     name: Static analysis
