@@ -72,8 +72,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         1 + (uint32_t)((data[3] / DIMENSION_LIMIT) % DIMENSION_LIMIT);
     (void)sdfio_header_set_revision(header,
                                     (sdfio_revision)(data[0] % REVISIONS));
-    (void)sdfio_header_set_representation(
-        header, (data[1] & 1) != 0 ? SDFIO_ASCII : SDFIO_BINARY);
+    (void)sdfio_header_set_format(header, (data[1] & 1) != 0 ? SDFIO_ASCII
+                                                             : SDFIO_BINARY);
     (void)sdfio_header_set_data_type(header,
                                      (sdfio_data_type)(data[2] % TYPES));
     (void)sdfio_header_set_columns(header, columns);
@@ -174,9 +174,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                     "%lu x %lu, z_scale %g)\n",
                     sdfio_status_string(read_status),
                     (int)sdfio_header_revision(header),
-                    sdfio_header_representation(header) == SDFIO_ASCII
-                        ? "text"
-                        : "binary",
+                    sdfio_header_format(header) == SDFIO_ASCII ? "text"
+                                                               : "binary",
                     (int)sdfio_header_data_type(header), (unsigned long)columns,
                     (unsigned long)rows, sdfio_header_z_scale(header));
             abort();

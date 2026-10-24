@@ -6,20 +6,20 @@
 
 /**
  * @file ascii.h
- * @brief Spelling of the ASCII representation.
+ * @brief Spelling of the ASCII format.
  */
 
 #ifndef SDFIO_SRC_ASCII_H
 #define SDFIO_SRC_ASCII_H
 
-/** Line terminator of the ASCII representation: a carriage return followed by a
+/** Line terminator of the ASCII format: a carriage return followed by a
  * line feed. */
 #define SDFIO_ASCII_LINE_END "\r\n"
 /** Character of the line that terminates a record of the ASCII
- * representation. */
+ * format. */
 #define SDFIO_ASCII_TERMINATOR '*'
 /** String that labels a non-measured or spurious point in the data area of the
- * ASCII representation. */
+ * ASCII format. */
 #define SDFIO_ASCII_BAD "BAD"
 
 /** ASCII field name of the manufacturer's ID. */

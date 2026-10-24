@@ -23,10 +23,10 @@ typedef struct small_file
     sdfio_writer *writer;
 } small_file;
 
-static void start_file(small_file *small, sdfio_representation representation)
+static void start_file(small_file *small, sdfio_format format)
 {
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_representation(header, representation));
+    CHECK_OK(sdfio_header_set_format(header, format));
     CHECK_OK(sdfio_header_set_columns(header, 2));
     CHECK_OK(sdfio_header_set_rows(header, 2));
     const float heights[4] = {1e-6F, 2e-6F, 3e-6F, 4e-6F};
@@ -59,11 +59,11 @@ static bool read_trailer_of(small_file *small, const char *expected)
 
 static void check_fields(void)
 {
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t i = 0; i < 2; ++i)
     {
         small_file small;
-        start_file(&small, representations[i]);
+        start_file(&small, formats[i]);
         CHECK_OK(sdfio_write_trailer_field(small.writer, "OperatorName",
                                            "Jane Doe"));
         CHECK_OK(sdfio_write_trailer_field(small.writer, "Empty", ""));
@@ -75,11 +75,11 @@ static void check_fields(void)
                                       "Scans = -42\nMagnification = 20.5"));
 
         /* No field and no text: no trailer. */
-        start_file(&small, representations[i]);
+        start_file(&small, formats[i]);
         CHECK(read_trailer_of(&small, NULL));
 
         /* Fields and text follow each other in any order. */
-        start_file(&small, representations[i]);
+        start_file(&small, formats[i]);
         CHECK_OK(sdfio_write_trailer_text(small.writer, "free text", 9));
         CHECK_OK(sdfio_write_trailer_field(small.writer, "A", "b"));
         CHECK_OK(sdfio_write_trailer_text(small.writer, "more\ntext", 9));
@@ -216,11 +216,10 @@ static size_t read_in_parts(const membuf *file, size_t part, char *out,
 }
 
 /* A file whose trailer is the text, written as given. */
-static membuf file_with_text(sdfio_representation representation,
-                             const char *text)
+static membuf file_with_text(sdfio_format format, const char *text)
 {
     small_file small;
-    start_file(&small, representation);
+    start_file(&small, format);
     CHECK_OK(sdfio_write_trailer_text(small.writer, text, strlen(text)));
     CHECK_OK(sdfio_end_trailer(small.writer));
     sdfio_writer_free(small.writer);
@@ -238,12 +237,12 @@ static void check_parts(void)
     const char *const texts[] = {"A = 1\r\nB = 2\r\nC = 3",
                                  "A = 1\n\n\nB = 2\n\n", "x", long_line,
                                  "one\r\n\r\ntwo\r\n"};
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
         for (size_t t = 0; t < sizeof texts / sizeof texts[0]; ++t)
         {
-            membuf file = file_with_text(representations[r], texts[t]);
+            membuf file = file_with_text(formats[r], texts[t]);
             char whole[512];
             const size_t whole_size =
                 read_in_parts(&file, 0, whole, sizeof whole);
@@ -265,10 +264,10 @@ static void check_parts(void)
  * from the next call, and a file without a trailer gets 0 at once. */
 static void check_the_end(void)
 {
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
-        membuf file = file_with_text(representations[r], "abc");
+        membuf file = file_with_text(formats[r], "abc");
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         char buffer[3];
@@ -285,7 +284,7 @@ static void check_the_end(void)
         free(file.data);
 
         small_file none;
-        start_file(&none, representations[r]);
+        start_file(&none, formats[r]);
         CHECK_OK(sdfio_end_trailer(none.writer));
         sdfio_writer_free(none.writer);
         reader = new_reader(all_formats());
@@ -340,10 +339,10 @@ static void check_the_ascii_record(void)
  * were read before: the position is behind the data area. */
 static void check_rows_after_the_trailer(void)
 {
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
-        membuf file = file_with_text(representations[r], "abc");
+        membuf file = file_with_text(formats[r], "abc");
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         float row[2];
@@ -369,11 +368,11 @@ static void check_rows_after_the_trailer(void)
 
 /* The bytes of a file whose trailer text is written in parts of a size, and in
  * a single call for the size 0. */
-static membuf file_with_text_in_parts(sdfio_representation representation,
-                                      const char *text, size_t part)
+static membuf file_with_text_in_parts(sdfio_format format, const char *text,
+                                      size_t part)
 {
     small_file small;
-    start_file(&small, representation);
+    start_file(&small, format);
     const size_t length = strlen(text);
     for (size_t at = 0; at < length;)
     {
@@ -396,17 +395,16 @@ static void check_text_in_parts(void)
                                  "a\r\n\r\nb",    "x\ry\r\n",
                                  "tail\r",        "\r\r\n",
                                  "open"};
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
         for (size_t i = 0; i < sizeof texts / sizeof texts[0]; ++i)
         {
-            membuf whole =
-                file_with_text_in_parts(representations[r], texts[i], 0);
+            membuf whole = file_with_text_in_parts(formats[r], texts[i], 0);
             for (size_t part = 1; part <= 4; ++part)
             {
                 membuf split =
-                    file_with_text_in_parts(representations[r], texts[i], part);
+                    file_with_text_in_parts(formats[r], texts[i], part);
                 CHECK(split.size == whole.size
                       && memcmp(split.data, whole.data, whole.size) == 0);
                 free(split.data);
@@ -419,11 +417,11 @@ static void check_text_in_parts(void)
 /* A field ends the line that a text leaves open. */
 static void check_a_field_ends_an_open_line(void)
 {
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
         small_file small;
-        start_file(&small, representations[r]);
+        start_file(&small, formats[r]);
         CHECK_OK(sdfio_write_trailer_text(small.writer, "open", 4));
         CHECK_OK(sdfio_write_trailer_field(small.writer, "Field", "value"));
         CHECK_OK(sdfio_write_trailer_text(small.writer, "tail\r", 5));
@@ -431,25 +429,24 @@ static void check_a_field_ends_an_open_line(void)
     }
 }
 
-/* The rows of a source go to a destination of any representation, and the
+/* The rows of a source go to a destination of any format, and the
  * trailer follows with a field of the program at its end. */
 static void check_copy_trailer(void)
 {
     static const char text[] = "Operator = Ada\nfree text\nsecond line";
     static const char copied[] =
         "Operator = Ada\nfree text\nsecond line\nNote = cropped";
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t from = 0; from < 2; ++from)
     {
         for (size_t to = 0; to < 2; ++to)
         {
-            membuf source = file_with_text(representations[from], text);
+            membuf source = file_with_text(formats[from], text);
             sdfio_reader *reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, source.data, source.size));
             sdfio_header *header = new_header();
             CHECK_OK(sdfio_header_copy(header, sdfio_get_header(reader)));
-            CHECK_OK(
-                sdfio_header_set_representation(header, representations[to]));
+            CHECK_OK(sdfio_header_set_format(header, formats[to]));
 
             membuf file = {0};
             const sdfio_stream stream = membuf_stream(&file);
@@ -469,8 +466,7 @@ static void check_copy_trailer(void)
 
             reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-            CHECK(sdfio_header_representation(sdfio_get_header(reader))
-                  == representations[to]);
+            CHECK(sdfio_header_format(sdfio_get_header(reader)) == formats[to]);
             const char *read = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &read, &size));
@@ -614,14 +610,14 @@ static void check_find_field(void)
 }
 
 /* The fields that a writer wrote are found in the text that a reader returns,
- * in both representations. */
+ * in both formats. */
 static void check_fields_of_a_file(void)
 {
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
         small_file small;
-        start_file(&small, representations[r]);
+        start_file(&small, formats[r]);
         CHECK_OK(sdfio_write_trailer_field(small.writer, "OperatorName",
                                            "Jane Doe"));
         CHECK_OK(

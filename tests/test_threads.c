@@ -115,7 +115,7 @@ static void *write_and_read(void *argument)
             || sdfio_header_set_revision(
                    header, revisions[(self->id + (size_t)round) % 2])
                    != SDFIO_OK
-            || sdfio_header_set_representation(
+            || sdfio_header_set_format(
                    header, (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY
                                                                : SDFIO_ASCII)
                    != SDFIO_OK

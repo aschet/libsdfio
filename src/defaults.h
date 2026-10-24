@@ -28,7 +28,7 @@ enum
     /** The smallest size of a buffer. */
     SDFIO_MINIMUM_BUFFER = 64,
     /** The number of formats of a direction that a handle can list: the
-     * binary and the ASCII representation. */
+     * binary and the ASCII format. */
     SDFIO_FORMAT_MAX = 2
 };
 

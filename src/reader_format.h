@@ -19,9 +19,9 @@
 typedef struct sdfio_reader_format sdfio_reader_format;
 
 /**
- * A reader format: the functions that read a representation of the files.
+ * A reader format: the functions that read one format of the files.
  *
- * The reader knows nothing of the representations. It calls the formats that
+ * The reader knows nothing of the file formats. It calls the formats that
  * the program lists, so that the code of a format that no program names is
  * not linked.
  */
@@ -31,7 +31,7 @@ struct sdfio_reader_format
      * the reader allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
     /** The first character of the version numbers, which identifies the
-     * representation. */
+     * format. */
     char prefix;
     /** The version numbers that the format reads, indexed by revision. The
      * format determines the revision of a file by comparing the version number

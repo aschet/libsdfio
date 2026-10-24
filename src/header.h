@@ -20,8 +20,8 @@ struct sdfio_header
 {
     /** Revision of the format. */
     sdfio_revision revision;
-    /** Representation of the file. */
-    sdfio_representation representation;
+    /** Format of the file. */
+    sdfio_format format;
     /** Data type of the coded values in the data area. */
     sdfio_data_type data_type;
     /** Number of columns M of the data matrix. */

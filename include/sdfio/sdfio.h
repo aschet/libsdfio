@@ -123,14 +123,14 @@ typedef enum sdfio_revision
     SDFIO_ISO_2_0
 } sdfio_revision;
 
-/** Representation of a file. */
-typedef enum sdfio_representation
+/** Format of a file. */
+typedef enum sdfio_format
 {
-    /** Binary representation. */
+    /** Binary format. */
     SDFIO_BINARY,
-    /** ASCII representation. */
+    /** ASCII format. */
     SDFIO_ASCII
-} sdfio_representation;
+} sdfio_format;
 
 /**
  * The type of the coded values of the data area of a file, and of the elements
@@ -258,7 +258,7 @@ typedef struct sdfio_header sdfio_header;
 /**
  * Creates a header with default values.
  *
- * The defaults are: revision ISO-2.0, binary representation, data type
+ * The defaults are: revision ISO-2.0, binary format, data type
  * binary32, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE, z_resolution
  * SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer_id "libsdfio",
  * and zero columns and rows. The caller sets the number of columns and rows,
@@ -329,23 +329,22 @@ SDFIO_API sdfio_status sdfio_header_set_revision(sdfio_header *header,
                                                  sdfio_revision revision);
 
 /**
- * Returns the representation of the file.
+ * Returns the format of the file.
  *
  * @param[in] header The header.
  */
-SDFIO_API sdfio_representation
-sdfio_header_representation(const sdfio_header *header);
+SDFIO_API sdfio_format sdfio_header_format(const sdfio_header *header);
 
 /**
- * Sets the representation of the file.
+ * Sets the format of the file.
  *
  * @param[in,out] header The header.
- * @param representation The representation.
+ * @param format The format.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the value is not an
  * enumerator.
  */
-SDFIO_API sdfio_status sdfio_header_set_representation(
-    sdfio_header *header, sdfio_representation representation);
+SDFIO_API sdfio_status sdfio_header_set_format(sdfio_header *header,
+                                               sdfio_format format);
 
 /**
  * Returns the data type of the coded values in the data area.
@@ -723,9 +722,9 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
                                            sdfio_reader **reader);
 
 /**
- * Lists the binary representation among the formats that the reader reads, the
- * version numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format
- * before a file is opened. The formats are tried in the order in which they are
+ * Adds the binary format to the formats that the reader reads, the version
+ * numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format before
+ * a file is opened. The formats are tried in the order in which they are
  * listed, and sdfio_reader_version_number() lists their version numbers in that
  * order. A program that links the library statically contains the code of the
  * formats it lists and no other.
@@ -740,10 +739,10 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
 SDFIO_API sdfio_status sdfio_reader_add_binary_format(sdfio_reader *reader);
 
 /**
- * Lists the ASCII representation among the formats that the reader reads, the
- * version numbers `aISO-1.0` and `aISO-2.0`. The rules of
+ * Adds the ASCII format to the formats that the reader reads, the version
+ * numbers `aISO-1.0` and `aISO-2.0`. The rules of
  * sdfio_reader_add_binary_format() apply. The code to parse numbers is part of
- * the format, so a program that does not list it does not contain that code.
+ * the format, so a program that does not add it does not contain that code.
  *
  * @param reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
@@ -800,7 +799,7 @@ SDFIO_API size_t sdfio_reader_version_number_count(const sdfio_reader *reader);
 
 /**
  * Returns a version number that a file can start with, for example "bISO-2.0":
- * the letter b or a for the binary or the ASCII representation, and the
+ * the letter b or a for the binary or the ASCII format, and the
  * revision. The text has SDFIO_VERSION_NUMBER_SIZE characters and a terminator.
  * A program can compare the first bytes of a file with each version number to
  * find out whether the reader reads it.
@@ -1095,10 +1094,10 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
                                            sdfio_writer **writer);
 
 /**
- * Lists the binary representation among the formats that the writer writes. A
- * writer needs at least one format before a file is created, and the
- * representation of a file selects the format. A program that links the library
- * statically contains the code of the formats it lists and no other.
+ * Adds the binary format to the formats that the writer writes. A writer needs
+ * at least one format before a file is created, and the format of the header
+ * of a file selects the one that writes it. A program that links the library
+ * statically contains the code of the formats it adds and no other.
  *
  * Like the other options of a writer, a format is listed before the first
  * attempt to create a file.
@@ -1110,10 +1109,9 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
 SDFIO_API sdfio_status sdfio_writer_add_binary_format(sdfio_writer *writer);
 
 /**
- * Lists the ASCII representation among the formats that the writer writes. The
- * rules of sdfio_writer_add_binary_format() apply. The code to print numbers is
- * part of the format, so a program that does not list it does not contain that
- * code.
+ * Adds the ASCII format to the formats that the writer writes. The rules of
+ * sdfio_writer_add_binary_format() apply. The code to print numbers is part of
+ * the format, so a program that does not add it does not contain that code.
  *
  * @param writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
@@ -1137,7 +1135,7 @@ SDFIO_API sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer,
 /**
  * Sets the number of values that the writer converts at a time. The default is
  * 1024. The chunk occupies up to 8 bytes per value; a writer of the ASCII
- * representation occupies more.
+ * format occupies more.
  *
  * @param writer The writer.
  * @param count The number of values, not 0 and not so large that the chunk
@@ -1185,8 +1183,8 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * @retval SDFIO_ERR_RANGE The time zone of the writer cannot convert a
  * date. It is reported when the header is written, with the first rows.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
- * @retval SDFIO_ERR_UNSUPPORTED The writer format of the representation is not
- * listed.
+ * @retval SDFIO_ERR_UNSUPPORTED The format of the header has not been added to
+ * the writer.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* What is written is what is read: every revision, representation and data
+/* What is written is what is read: every revision, format and data
  * type, the order of the rows, the trailer and the dates. */
 
 #include "check.h"
@@ -49,11 +49,11 @@ static void make_heights(double *heights)
 }
 
 static void describe(sdfio_header *header, sdfio_revision revision,
-                     sdfio_representation representation, sdfio_data_type type)
+                     sdfio_format format, sdfio_data_type type)
 {
     CHECK_OK(sdfio_header_set_z_scale(header, SDFIO_AUTO_Z_SCALE));
     CHECK_OK(sdfio_header_set_revision(header, revision));
-    CHECK_OK(sdfio_header_set_representation(header, representation));
+    CHECK_OK(sdfio_header_set_format(header, format));
     CHECK_OK(sdfio_header_set_data_type(header, type));
     CHECK_OK(sdfio_header_set_columns(header, COLUMNS));
     CHECK_OK(sdfio_header_set_rows(header, ROWS));
@@ -66,12 +66,11 @@ static void describe(sdfio_header *header, sdfio_revision revision,
     CHECK_OK(sdfio_header_set_manufacturer_id(header, "ACME 7"));
 }
 
-static void check_roundtrip(sdfio_revision revision,
-                            sdfio_representation representation,
+static void check_roundtrip(sdfio_revision revision, sdfio_format format,
                             sdfio_data_type type)
 {
     sdfio_header *header = new_header();
-    describe(header, revision, representation, type);
+    describe(header, revision, format, type);
     double heights[ROWS * COLUMNS];
     make_heights(heights);
 
@@ -97,7 +96,7 @@ static void check_roundtrip(sdfio_revision revision,
         return;
     }
     CHECK(sdfio_header_revision(read) == revision);
-    CHECK(sdfio_header_representation(read) == representation);
+    CHECK(sdfio_header_format(read) == format);
     CHECK(sdfio_header_data_type(read) == type);
     CHECK(sdfio_header_columns(read) == COLUMNS
           && sdfio_header_rows(read) == ROWS);
@@ -167,11 +166,10 @@ static void check_roundtrip(sdfio_revision revision,
 static void check_all_types(void)
 {
     const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < sizeof revisions / sizeof revisions[0]; ++r)
     {
-        for (size_t s = 0;
-             s < sizeof representations / sizeof representations[0]; ++s)
+        for (size_t s = 0; s < sizeof formats / sizeof formats[0]; ++s)
         {
             for (int t = SDFIO_TYPE_FLOAT; t <= SDFIO_TYPE_DOUBLE; ++t)
             {
@@ -180,7 +178,7 @@ static void check_all_types(void)
                 {
                     continue;
                 }
-                check_roundtrip(revisions[r], representations[s], type);
+                check_roundtrip(revisions[r], formats[s], type);
             }
         }
     }
@@ -188,8 +186,7 @@ static void check_all_types(void)
 
 /* The values of the data area move through a buffer that has a gap between
  * the elements, and through one that holds the rows upside down. */
-static void check_strided_rows(sdfio_revision revision,
-                               sdfio_representation representation)
+static void check_strided_rows(sdfio_revision revision, sdfio_format format)
 {
     typedef struct point
     {
@@ -197,7 +194,7 @@ static void check_strided_rows(sdfio_revision revision,
         int16_t value;
     } point;
     sdfio_header *header = new_header();
-    describe(header, revision, representation, SDFIO_TYPE_INT16);
+    describe(header, revision, format, SDFIO_TYPE_INT16);
     CHECK_OK(sdfio_header_set_z_scale(header, 1e-9));
     point source[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
@@ -238,11 +235,10 @@ static void check_strided_rows(sdfio_revision revision,
 
 /* The rows API moves the stored values as they are, in the order of the
  * file. */
-static void check_rows(sdfio_revision revision,
-                       sdfio_representation representation)
+static void check_rows(sdfio_revision revision, sdfio_format format)
 {
     sdfio_header *header = new_header();
-    describe(header, revision, representation, SDFIO_TYPE_INT16);
+    describe(header, revision, format, SDFIO_TYPE_INT16);
     CHECK_OK(sdfio_header_set_z_scale(header, 1e-9));
     int16_t coded[ROWS * COLUMNS];
     for (size_t i = 0; i < ROWS * COLUMNS; ++i)
@@ -632,12 +628,11 @@ static void check_element_stride(void)
 /* An unknown z-resolution is -1, as the standard has it: whatever a program
  * gives that is not positive is written as -1, and whatever a file holds that
  * is not positive is read as -1. */
-static void write_with_resolution(membuf *file,
-                                  sdfio_representation representation,
+static void write_with_resolution(membuf *file, sdfio_format format,
                                   double resolution)
 {
     sdfio_header *header = new_header();
-    describe(header, SDFIO_ISO_2_0, representation, SDFIO_TYPE_DOUBLE);
+    describe(header, SDFIO_ISO_2_0, format, SDFIO_TYPE_DOUBLE);
     CHECK_OK(sdfio_header_set_z_resolution(header, resolution));
     double heights[ROWS * COLUMNS];
     make_heights(heights);
@@ -693,17 +688,17 @@ static void check_resolution(void)
     CHECK(sdfio_header_z_resolution(initial) == SDFIO_NO_RESOLUTION);
 
     const double given[] = {SDFIO_NO_RESOLUTION, 0.0, -5.0, 1e-9};
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
     {
         for (size_t g = 0; g < sizeof given / sizeof given[0]; ++g)
         {
             membuf file = {0};
-            write_with_resolution(&file, representations[s], given[g]);
+            write_with_resolution(&file, formats[s], given[g]);
             const double expected =
                 given[g] > 0.0 ? given[g] : SDFIO_NO_RESOLUTION;
             CHECK(resolution_read(&file) == expected);
-            if (representations[s] == SDFIO_BINARY)
+            if (formats[s] == SDFIO_BINARY)
             {
                 /* Four doubles and three bytes end the header. */
                 const double stored =
@@ -781,7 +776,7 @@ static void check_defaults(void)
 {
     sdfio_header *header = new_header();
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_2_0);
-    CHECK(sdfio_header_representation(header) == SDFIO_BINARY);
+    CHECK(sdfio_header_format(header) == SDFIO_BINARY);
     CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_FLOAT);
     CHECK(sdfio_header_z_scale(header) == SDFIO_AUTO_Z_SCALE);
     CHECK(sdfio_header_columns(header) == 0 && sdfio_header_rows(header) == 0);
@@ -817,7 +812,7 @@ static void check_defaults(void)
 static void check_integer_text(void)
 {
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
     CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT32));
     CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
     CHECK_OK(sdfio_header_set_columns(header, 9));
@@ -847,16 +842,14 @@ static void check_integer_text(void)
 }
 
 /* An identifier of the 10 characters that the field has comes back in both
- * representations. */
+ * formats. */
 static void check_long_identifier(void)
 {
-    static const sdfio_representation representations[] = {SDFIO_BINARY,
-                                                           SDFIO_ASCII};
-    for (size_t i = 0; i < sizeof representations / sizeof representations[0];
-         ++i)
+    static const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t i = 0; i < sizeof formats / sizeof formats[0]; ++i)
     {
         sdfio_header *header = new_header();
-        CHECK_OK(sdfio_header_set_representation(header, representations[i]));
+        CHECK_OK(sdfio_header_set_format(header, formats[i]));
         CHECK_OK(sdfio_header_set_columns(header, 1));
         CHECK_OK(sdfio_header_set_rows(header, 1));
         CHECK_OK(sdfio_header_set_manufacturer_id(header, "0123456789"));
@@ -914,14 +907,13 @@ static void check_trailer_line_ends(void)
         {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2"},
         {"A = 1", "A = 1\r\n", "A = 1"},
     };
-    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
     {
         for (size_t v = 0; v < sizeof variants / sizeof variants[0]; ++v)
         {
             sdfio_header *header = new_header();
-            describe(header, SDFIO_ISO_2_0, representations[s],
-                     SDFIO_TYPE_DOUBLE);
+            describe(header, SDFIO_ISO_2_0, formats[s], SDFIO_TYPE_DOUBLE);
             CHECK_OK(sdfio_header_set_columns(header, 1));
             CHECK_OK(sdfio_header_set_rows(header, 1));
             const double height = 1e-6;
@@ -937,7 +929,7 @@ static void check_trailer_line_ends(void)
             sdfio_writer_free(writer);
 
             const size_t data_at = ISO_2_0_BINARY_HEADER_SIZE + sizeof(double);
-            if (representations[s] == SDFIO_BINARY)
+            if (formats[s] == SDFIO_BINARY)
             {
                 CHECK(file.size == data_at + strlen(variants[v].in_file));
                 CHECK(memcmp(file.data + data_at, variants[v].in_file,

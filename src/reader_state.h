@@ -110,7 +110,7 @@ sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
 
 /**
  * Completes the data area. The function discards the values that were not
- * requested and consumes what terminates the data area in the representation
+ * requested and consumes what terminates the data area in the format
  * of the file.
  *
  * @param reader The reader.

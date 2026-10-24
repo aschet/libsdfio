@@ -188,7 +188,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                           "The data type is not valid for the SDF revision");
     }
     header->revision = revision;
-    header->representation = SDFIO_BINARY;
+    header->format = SDFIO_BINARY;
     header->data_type = type;
     header->z_resolution = resolution > 0.0 && isfinite(resolution)
                                ? resolution

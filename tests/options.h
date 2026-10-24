@@ -12,7 +12,7 @@
 
 #include <sdfio/sdfio.h>
 
-/* A representation that a handle lists, or none. */
+/* A format that a handle lists, or none. */
 typedef enum test_format
 {
     TEST_NO_FORMAT,
@@ -32,7 +32,7 @@ typedef struct test_options
     test_format writer_formats[2];
 } test_options;
 
-/* The formats of a handle that reads and writes both representations. */
+/* The formats of a handle that reads and writes both formats. */
 #define ALL_FORMATS                                                            \
     .reader_formats = {TEST_BINARY, TEST_ASCII},                               \
     .writer_formats = {TEST_BINARY, TEST_ASCII}

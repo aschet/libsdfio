@@ -44,7 +44,7 @@ static void check_defaults(void)
     sdfio_header *header = NULL;
     CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_2_0);
-    CHECK(sdfio_header_representation(header) == SDFIO_BINARY);
+    CHECK(sdfio_header_format(header) == SDFIO_BINARY);
     CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_FLOAT);
     CHECK(sdfio_header_columns(header) == 0 && sdfio_header_rows(header) == 0);
     CHECK(sdfio_header_x_scale(header) == 1.0);
@@ -75,7 +75,7 @@ static void check_setters(void)
 {
     sdfio_header *header = new_header();
     CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_1_0));
-    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
     CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
     CHECK_OK(sdfio_header_set_columns(header, UINT32_MAX));
     CHECK_OK(sdfio_header_set_rows(header, 7));
@@ -87,7 +87,7 @@ static void check_setters(void)
     CHECK_OK(sdfio_header_set_modification_date(header, SDFIO_NO_TIME));
     CHECK_OK(sdfio_header_set_manufacturer_id(header, "0123456789"));
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_1_0);
-    CHECK(sdfio_header_representation(header) == SDFIO_ASCII);
+    CHECK(sdfio_header_format(header) == SDFIO_ASCII);
     CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_INT16);
     CHECK(sdfio_header_columns(header) == UINT32_MAX);
     CHECK(sdfio_header_rows(header) == 7);
@@ -110,8 +110,8 @@ static void check_refusals(void)
     CHECK_OK(sdfio_header_set_manufacturer_id(header, "kept"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_revision(header, (sdfio_revision)99));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_representation(
-                                         header, (sdfio_representation)99));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_header_set_format(header, (sdfio_format)99));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_data_type(header, (sdfio_data_type)99));
     const double not_finite[] = {NAN, INFINITY, -INFINITY};

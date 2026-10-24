@@ -7,7 +7,7 @@
 
 /* The header of the excerpt: the header of the file with the size of the
  * window, double heights that every revision permits, the binary
- * representation and the time of the change. */
+ * format and the time of the change. */
 static sdfio_status describe_excerpt(sdfio_header *header,
                                      const sdfio_header *source,
                                      uint32_t columns, uint32_t rows)
@@ -31,7 +31,7 @@ static sdfio_status describe_excerpt(sdfio_header *header,
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_header_set_representation(header, SDFIO_BINARY);
+        status = sdfio_header_set_format(header, SDFIO_BINARY);
     }
     const time_t now = time(NULL);
     if (status == SDFIO_OK)

@@ -404,7 +404,7 @@ static void check_huge_matrix(void)
         return;
     }
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_representation(header, SDFIO_BINARY));
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_BINARY));
     CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_DOUBLE));
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));

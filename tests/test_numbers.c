@@ -188,7 +188,7 @@ static void check_locale(void)
 
     /* A file written and read in such a locale has the dots of the format. */
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
     CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_DOUBLE));
     CHECK_OK(sdfio_header_set_columns(header, 3));
     CHECK_OK(sdfio_header_set_rows(header, 1));

@@ -175,14 +175,14 @@ sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status)
     return status;
 }
 
-/* The listed writer format of a representation, or null. */
+/* The added writer format of a file format, or null. */
 static const sdfio_writer_format *
 writer_format_for(const sdfio_writer_format *const *formats,
-                  sdfio_representation representation)
+                  sdfio_format format)
 {
     for (size_t i = 0; i < SDFIO_FORMAT_MAX && formats[i] != NULL; ++i)
     {
-        if (formats[i]->writes == representation)
+        if (formats[i]->writes == format)
         {
             return formats[i];
         }
@@ -204,10 +204,10 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     {
         return status;
     }
-    if (writer_format_for(writer->formats, header->representation) == NULL)
+    if (writer_format_for(writer->formats, header->format) == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
-                          "The format of the representation is not listed for "
+                          "The format of the header has not been added to "
                           "the writer");
     }
     return SDFIO_OK;
@@ -224,7 +224,7 @@ static sdfio_status start_stream(sdfio_writer *writer,
         return status;
     }
     const sdfio_writer_format *format =
-        writer_format_for(writer->formats, header->representation);
+        writer_format_for(writer->formats, header->format);
     const size_t scratch = format->scratch_size(writer->chunk_values);
     if (writer->coded == NULL)
     {

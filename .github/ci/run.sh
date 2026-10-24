@@ -170,7 +170,7 @@ run_build() {
 
 # Builds the library as a static library and links the firmware image of the
 # allocators example, which writes a file to memory. The image must contain
-# neither code that reads files, nor code that handles the ASCII representation,
+# neither code that reads files, nor code that handles the ASCII format,
 # nor the heap and the clock of the C library. The job verifies this by
 # searching the symbols of the image.
 run_firmware() {

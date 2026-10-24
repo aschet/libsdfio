@@ -9,7 +9,7 @@ folder. The name of a file starts with the revision:
 | `iso25178-71-2026/` | ISO-1.0 | `iso1_` |
 | `iso25178-71-2026/` | ISO-2.0 | `iso2_` |
 
-Every file exists in the ASCII representation (`_ascii`) and in the binary one (`_binary`), as in
+Every file exists in the ASCII format (`_ascii`) and in the binary one (`_binary`), as in
 `iso2_surface_binary.sdf`. The surfaces have 48 columns and 32 rows with the sampling intervals
 2 µm along x and 3 µm along y, and the profiles have 128 points. The points that are not measured are the rows 10 to
 13 and the columns 20 to 29 of a surface, and the points 60 to 63 of a profile.

@@ -534,7 +534,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                           "out of range for the revision");
     }
     header->revision = revision;
-    header->representation = SDFIO_ASCII;
+    header->format = SDFIO_ASCII;
     header->data_type = type;
     header->columns = fields.columns;
     header->rows = fields.rows;

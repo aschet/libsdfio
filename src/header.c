@@ -38,7 +38,7 @@ sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
         return SDFIO_ERR_MEMORY;
     }
     *created = (sdfio_header){.revision = SDFIO_ISO_2_0,
-                              .representation = SDFIO_BINARY,
+                              .format = SDFIO_BINARY,
                               .data_type = SDFIO_TYPE_FLOAT,
                               .x_scale = 1.0,
                               .y_scale = 1.0,
@@ -79,9 +79,9 @@ sdfio_revision sdfio_header_revision(const sdfio_header *header)
     return header->revision;
 }
 
-sdfio_representation sdfio_header_representation(const sdfio_header *header)
+sdfio_format sdfio_header_format(const sdfio_header *header)
 {
-    return header->representation;
+    return header->format;
 }
 
 sdfio_data_type sdfio_header_data_type(const sdfio_header *header)
@@ -157,16 +157,13 @@ sdfio_status sdfio_header_set_revision(sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status
-sdfio_header_set_representation(sdfio_header *header,
-                                sdfio_representation representation)
+sdfio_status sdfio_header_set_format(sdfio_header *header, sdfio_format format)
 {
-    if (header == NULL
-        || (representation != SDFIO_BINARY && representation != SDFIO_ASCII))
+    if (header == NULL || (format != SDFIO_BINARY && format != SDFIO_ASCII))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->representation = representation;
+    header->format = format;
     return SDFIO_OK;
 }
 

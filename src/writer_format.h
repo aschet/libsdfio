@@ -26,16 +26,16 @@ enum
 typedef struct sdfio_writer_format sdfio_writer_format;
 
 /**
- * A writer format: the functions that write a representation of the files.
- * The writer knows nothing of the representations, as the reader does not.
+ * A writer format: the functions that write one format of the files.
+ * The writer knows nothing of the file formats, as the reader does not.
  */
 struct sdfio_writer_format
 {
     /** The size of what the format keeps for a file between its calls, which
      * the writer allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
-    /** The representation that the format writes. */
-    sdfio_representation writes;
+    /** The file format that the writer format writes. */
+    sdfio_format writes;
 
     /**
      * Returns the bytes that the writer has to provide for write_values().

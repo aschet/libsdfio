@@ -33,7 +33,7 @@ sdfio_status sdfio_select_reader_format(
 
 /**
  * Reads the header at the start of the source with the given format, and
- * verifies the properties that are independent of the representation.
+ * verifies the properties that are independent of the format.
  *
  * @param source The source.
  * @param format The format that sdfio_select_reader_format() found.

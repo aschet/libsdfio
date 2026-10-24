@@ -66,8 +66,7 @@ static void fill(float *heights)
 
 /* Writes and reads a file through the configuration. Returns the first status
  * that is not OK, SDFIO_OK if all went well. */
-static sdfio_status round_trip(const test_options *config,
-                               sdfio_representation representation,
+static sdfio_status round_trip(const test_options *config, sdfio_format format,
                                sdfio_data_type type, bool *equal)
 {
     static float written[ROWS * COLUMNS];
@@ -76,7 +75,7 @@ static sdfio_status round_trip(const test_options *config,
     *equal = false;
 
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_representation(header, representation));
+    CHECK_OK(sdfio_header_set_format(header, format));
     CHECK_OK(sdfio_header_set_data_type(header, type));
     CHECK_OK(sdfio_header_set_columns(header, COLUMNS));
     CHECK_OK(sdfio_header_set_rows(header, ROWS));
@@ -148,18 +147,15 @@ static sdfio_status round_trip(const test_options *config,
 
 static void check_counted(void)
 {
-    static const sdfio_representation representations[] = {SDFIO_BINARY,
-                                                           SDFIO_ASCII};
-    for (size_t i = 0; i < sizeof representations / sizeof representations[0];
-         ++i)
+    static const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t i = 0; i < sizeof formats / sizeof formats[0]; ++i)
     {
         counting state = {-1, 0, 0, 0};
         const sdfio_allocator allocator = {&state, counting_allocate,
                                            counting_release};
         const test_options config = {.allocator = &allocator, ALL_FORMATS};
         bool equal = false;
-        CHECK_OK(
-            round_trip(&config, representations[i], SDFIO_TYPE_INT16, &equal));
+        CHECK_OK(round_trip(&config, formats[i], SDFIO_TYPE_INT16, &equal));
         CHECK(equal);
         CHECK(state.calls > 0);
         CHECK(state.live == 0);
@@ -173,8 +169,8 @@ static void check_counted(void)
                 &failing, counting_allocate, counting_release};
             const test_options failing_config = {
                 .allocator = &failing_allocator, ALL_FORMATS};
-            const sdfio_status status = round_trip(
-                &failing_config, representations[i], SDFIO_TYPE_INT16, &equal);
+            const sdfio_status status = round_trip(&failing_config, formats[i],
+                                                   SDFIO_TYPE_INT16, &equal);
             CHECK_STATUS(SDFIO_ERR_MEMORY, status);
             CHECK(failing.live == 0);
         }
@@ -349,7 +345,7 @@ static void check_arguments(void)
     free(sink.data);
 
     /* Text is written with its format and refused without it. */
-    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));
     writer = new_writer(all_formats());
