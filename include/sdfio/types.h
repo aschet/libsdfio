@@ -67,7 +67,7 @@ typedef enum sdfio_status
 /**
  * Returns a constant description of a status. The result is never null.
  *
- * @param[in] status The status to describe.
+ * @param status The status to describe.
  */
 SDFIO_API const char *sdfio_status_string(sdfio_status status);
 
@@ -129,8 +129,8 @@ typedef enum sdfio_data_type
 /**
  * Returns true if a revision permits a data type.
  *
- * @param[in] revision The revision.
- * @param[in] type The data type.
+ * @param revision The revision.
+ * @param type The data type.
  */
 SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
                                      sdfio_data_type type);
@@ -155,6 +155,11 @@ enum
     /** The bad value of SDFIO_TYPE_INT32: the minimum of the type. */
     SDFIO_BAD_INT32 = INT32_MIN
 };
+
+/** The bad value of SDFIO_TYPE_FLOAT, a float: -FLT_MAX. */
+#define SDFIO_BAD_FLOAT (-FLT_MAX)
+/** The bad value of SDFIO_TYPE_DOUBLE, a double: -DBL_MAX. */
+#define SDFIO_BAD_DOUBLE (-DBL_MAX)
 
 /** Value of a date that is not recorded: a time_t of -1. */
 #define SDFIO_NO_TIME ((time_t)-1)
@@ -200,11 +205,6 @@ typedef struct sdfio_allocator
  * @return A pointer to a constant allocator, valid for the life of the program.
  */
 SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
-
-/** The bad value of SDFIO_TYPE_FLOAT, a float: -FLT_MAX. */
-#define SDFIO_BAD_FLOAT (-FLT_MAX)
-/** The bad value of SDFIO_TYPE_DOUBLE, a double: -DBL_MAX. */
-#define SDFIO_BAD_DOUBLE (-DBL_MAX)
 
 /** Return value of a read callback that failed: the largest size_t. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)
