@@ -77,3 +77,10 @@ add_executable(test_public test_public.c)
 target_link_libraries(test_public PRIVATE sdfio)
 target_compile_options(test_public PRIVATE ${SDFIO_WARNINGS})
 add_test(NAME test_public COMMAND test_public)
+
+# The fuzzers are built by tests/fuzz/build.sh with libFuzzer. Here they are only
+# compiled, with the warnings of the tests, so that a change of the interface
+# cannot break them unnoticed.
+add_library(fuzz_sources OBJECT fuzz/fuzz_reader.c fuzz/fuzz_writer.c)
+target_link_libraries(fuzz_sources PRIVATE sdfio)
+target_compile_options(fuzz_sources PRIVATE ${SDFIO_WARNINGS})

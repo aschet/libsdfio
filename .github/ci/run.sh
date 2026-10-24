@@ -246,6 +246,9 @@ run_licenses() {
 # fewer than 75 percent of the lines are executed, the threshold of related
 # projects.
 run_coverage() {
+  # The data of an earlier build, also for source files that do not exist any
+  # more, would be read as well.
+  rm -rf "$dir"
   cmake -S . -B "$dir" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_C_COMPILER=gcc "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic"
   cmake --build "$dir"
