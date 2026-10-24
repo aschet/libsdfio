@@ -8,9 +8,8 @@
  * @file
  * Reading and writing of ISO 25178-71 SDF surface data files.
  *
- * The main page introduces the library, and the guide pages describe the file
- * format, the concepts and the states of a reader and of a writer. This
- * description holds the rules of the header file itself.
+ * This description holds the rules of the interface: naming, headers, files,
+ * versioning and the standard.
  *
  * @par Naming
  * Every identifier that the library provides begins with `sdfio_` (functions
