@@ -217,9 +217,10 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  *
  * @param[in,out] writer The writer.
  * @param[in] name The field name: letters, digits and `_`.
- * @param[in] value The value: one line of 7-bit ASCII.
+ * @param[in] value The value: one line. The encoding is not checked; the
+ * standard asks for 7-bit ASCII.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, the field name is empty or
- * contains another character, or the value is not one line of 7-bit ASCII.
+ * contains another character, or the value contains a CR or an LF.
  * @retval SDFIO_ERR_STATE No file is created, rows are missing, the file is
  * ended, or an earlier error ended the writing.
  * @retval SDFIO_ERR_IO The stream failed.

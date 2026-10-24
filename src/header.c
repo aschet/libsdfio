@@ -276,12 +276,9 @@ sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    for (size_t i = 0; i < length; ++i)
+    if (strpbrk(manufacturer, "\r\n") != NULL)
     {
-        if (!sdfio_is_printable(manufacturer[i]))
-        {
-            return SDFIO_ERR_ARGUMENT;
-        }
+        return SDFIO_ERR_ARGUMENT;
     }
     memcpy(header->manufacturer_id, manufacturer, length + 1);
     return SDFIO_OK;

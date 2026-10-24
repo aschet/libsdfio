@@ -93,7 +93,8 @@ bool sdfio_tagged_name_equal(const char *a, size_t a_size, const char *b,
                              size_t b_size);
 
 /**
- * Tells whether a text is the value of a field: one line of 7-bit ASCII.
+ * Tells whether a text is the value of a field: one line. The encoding is not
+ * checked.
  *
  * @param value The value, 0-terminated.
  */

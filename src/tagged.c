@@ -171,7 +171,7 @@ bool sdfio_tagged_value_valid(const char *value)
     for (size_t i = 0; value[i] != '\0'; ++i)
     {
         const char c = value[i];
-        if (c == '\r' || c == '\n' || !sdfio_is_ascii(c))
+        if (c == '\r' || c == '\n')
         {
             return false;
         }

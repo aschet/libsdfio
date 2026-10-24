@@ -92,6 +92,21 @@ static void check_fields(void)
     }
 }
 
+/* The encoding of a value is not checked: its bytes go into a file of either
+ * format and come back as they are. */
+static void check_bytes_of_a_value(void)
+{
+    static const char value[] = "J\xC3\xB6rg \xE9\xFF";
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t i = 0; i < 2; ++i)
+    {
+        small_file small;
+        start_file(&small, formats[i]);
+        CHECK_OK(sdfio_write_trailer_field(small.writer, "Operator", value));
+        CHECK(read_trailer_of(&small, "Operator = J\xC3\xB6rg \xE9\xFF\n"));
+    }
+}
+
 static void check_what_a_line_may_be(void)
 {
     small_file small;
@@ -104,7 +119,7 @@ static void check_what_a_line_may_be(void)
             SDFIO_ERR_ARGUMENT,
             sdfio_write_trailer_field(small.writer, refused_names[i], "v"));
     }
-    const char *refused_values[] = {"two\nlines", "one\rtwo", "Caf\xC3\xA9"};
+    const char *refused_values[] = {"two\nlines", "one\rtwo"};
     for (size_t i = 0; i < sizeof refused_values / sizeof refused_values[0];
          ++i)
     {
@@ -714,6 +729,7 @@ int main(void)
 {
     check_fields();
     check_what_a_line_may_be();
+    check_bytes_of_a_value();
     check_the_order();
     check_the_text_is_written_as_given();
     check_parts();

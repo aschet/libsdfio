@@ -15,29 +15,6 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Tells whether a character belongs to 7-bit ASCII, whatever the signedness of
- * `char`.
- *
- * @param c The character.
- */
-static inline bool sdfio_is_ascii(char c)
-{
-    return (unsigned char)c < 0x80;
-}
-
-/**
- * Tells whether a character is a printable 7-bit ASCII character, from the
- * space to the tilde, whatever the signedness of `char` and the locale.
- *
- * @param c The character.
- */
-static inline bool sdfio_is_printable(char c)
-{
-    return (unsigned char)c >= (unsigned char)' '
-           && (unsigned char)c <= (unsigned char)'~';
-}
-
-/**
  * Tells whether a character is white space, whatever the locale: a space, a
  * tab, a line feed, and the carriage return of a CRLF.
  *

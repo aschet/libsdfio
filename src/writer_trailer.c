@@ -63,7 +63,7 @@ sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *name,
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "A field name consists of letters, digits and _, and "
-                          "a value is one line of 7-bit ASCII");
+                          "a value is one line");
     }
     status = open_trailer(writer);
     if (status != SDFIO_OK)

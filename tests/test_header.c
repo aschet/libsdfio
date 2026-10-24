@@ -136,16 +136,13 @@ static void check_refusals(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_manufacturer(header, "01234567890"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer(header, "caf\xC3\xA9"));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_manufacturer(header, NULL));
-    /* A character that ends a line or is not printable would corrupt a header
-     * of the ASCII format. */
-    const char *const unprintable[] = {"a\nb", "a\r\n*", "\t", "a\x7F", "\x1F"};
-    for (size_t i = 0; i < sizeof unprintable / sizeof unprintable[0]; ++i)
+    /* A line end would corrupt a header of the ASCII format. */
+    const char *const line_ends[] = {"a\nb", "a\r\n*", "a\r"};
+    for (size_t i = 0; i < sizeof line_ends / sizeof line_ends[0]; ++i)
     {
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_header_set_manufacturer(header, unprintable[i]));
+                     sdfio_header_set_manufacturer(header, line_ends[i]));
     }
     CHECK(strcmp(sdfio_header_manufacturer(header), "kept") == 0);
     if (sizeof(time_t) >= 8)
@@ -254,6 +251,45 @@ static void check_creation(void)
     CHECK(header == NULL);
 }
 
+/* The encoding of the identifier is not checked: the bytes of the program go
+ * into a file of either format and come back as they are. */
+static void check_bytes_of_the_identifier(void)
+{
+    const char *const identifiers[] = {"caf\xC3\xA9", "\x7F\t\x1F", "\xE9\xFF"};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t i = 0; i < sizeof identifiers / sizeof identifiers[0]; ++i)
+    {
+        for (size_t f = 0; f < 2; ++f)
+        {
+            sdfio_header *header = new_header();
+            CHECK_OK(sdfio_header_set_format(header, formats[f]));
+            CHECK_OK(sdfio_header_set_columns(header, 1));
+            CHECK_OK(sdfio_header_set_rows(header, 1));
+            CHECK_OK(sdfio_header_set_manufacturer(header, identifiers[i]));
+            CHECK(strcmp(sdfio_header_manufacturer(header), identifiers[i])
+                  == 0);
+            const float height = 1e-6F;
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = new_writer(all_formats());
+            CHECK_OK(sdfio_create_stream(writer, &stream, header));
+            CHECK_OK(sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, &height));
+            CHECK_OK(sdfio_end_file(writer));
+            sdfio_writer_free(writer);
+
+            sdfio_reader *reader = new_reader(all_formats());
+            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+            const sdfio_header *read = sdfio_reader_header(reader);
+            CHECK(read != NULL
+                  && strcmp(sdfio_header_manufacturer(read), identifiers[i])
+                         == 0);
+            sdfio_reader_free(reader);
+            free(file.data);
+        }
+    }
+}
+
 /* The header of a reader is copied to keep it after the reader is freed. */
 static void check_copy_of_a_read_header(void)
 {
@@ -294,5 +330,6 @@ int main(void)
     check_copy();
     check_creation();
     check_copy_of_a_read_header();
+    check_bytes_of_the_identifier();
     return finish_tests();
 }
