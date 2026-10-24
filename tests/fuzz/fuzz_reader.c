@@ -54,7 +54,7 @@ static size_t source_read(void *user, void *out, size_t size)
  * heights, and then the trailer. */
 static void read_everything(sdfio_reader *reader, bool as_heights)
 {
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     if (header == NULL)
     {
         return;

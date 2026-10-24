@@ -244,7 +244,7 @@ SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
  * A header is opaque. sdfio_header_create() makes one with defaults, the
  * setters fill it, sdfio_header_copy() copies it and sdfio_header_free()
  * releases it. A reader describes the file that it opened by a header that
- * sdfio_get_header() returns. A writer takes a header as the description of
+ * sdfio_reader_header() returns. A writer takes a header as the description of
  * the file to create and keeps a copy. The compression type and the checksum
  * type are not members: the standard allows neither.
  *
@@ -300,11 +300,11 @@ SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
  * of the range of the SDF files.
  * @retval SDFIO_ERR_UNSUPPORTED The clock is not available.
  */
-SDFIO_API sdfio_status sdfio_header_set_dates_now(sdfio_header *header);
+SDFIO_API sdfio_status sdfio_header_set_now(sdfio_header *header);
 
 /**
  * Releases a header that sdfio_header_create() made. A null pointer is
- * ignored. The header that sdfio_get_header() returns is not released.
+ * ignored. The header that sdfio_reader_header() returns is not released.
  *
  * @param[in] header The header.
  */
@@ -489,7 +489,7 @@ SDFIO_API sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
  *
  * @param[in] header The header.
  */
-SDFIO_API time_t sdfio_header_creation_date(const sdfio_header *header);
+SDFIO_API time_t sdfio_header_created(const sdfio_header *header);
 
 /**
  * Sets the original creation date and time. A file that is written requires
@@ -501,8 +501,8 @@ SDFIO_API time_t sdfio_header_creation_date(const sdfio_header *header);
  * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
  * of the SDF files.
  */
-SDFIO_API sdfio_status sdfio_header_set_creation_date(sdfio_header *header,
-                                                      time_t creation_date);
+SDFIO_API sdfio_status sdfio_header_set_created(sdfio_header *header,
+                                                time_t creation_date);
 
 /**
  * Returns the last modification date and time. The rules of the creation date
@@ -510,7 +510,7 @@ SDFIO_API sdfio_status sdfio_header_set_creation_date(sdfio_header *header,
  *
  * @param[in] header The header.
  */
-SDFIO_API time_t sdfio_header_modification_date(const sdfio_header *header);
+SDFIO_API time_t sdfio_header_modified(const sdfio_header *header);
 
 /**
  * Sets the last modification date and time. The rules of the creation date
@@ -521,8 +521,8 @@ SDFIO_API time_t sdfio_header_modification_date(const sdfio_header *header);
  * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
  * of the SDF files.
  */
-SDFIO_API sdfio_status sdfio_header_set_modification_date(
-    sdfio_header *header, time_t modification_date);
+SDFIO_API sdfio_status sdfio_header_set_modified(sdfio_header *header,
+                                                 time_t modification_date);
 
 /**
  * Returns the manufacturer's identifier: 7-bit ASCII, at most
@@ -531,7 +531,7 @@ SDFIO_API sdfio_status sdfio_header_set_modification_date(
  *
  * @param[in] header The header.
  */
-SDFIO_API const char *sdfio_header_manufacturer_id(const sdfio_header *header);
+SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
 
 /**
  * Sets the manufacturer's identifier.
@@ -541,7 +541,7 @@ SDFIO_API const char *sdfio_header_manufacturer_id(const sdfio_header *header);
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, the identifier is longer than
  * SDFIO_MANUFACTURER_ID_MAX characters, or it is not 7-bit ASCII.
  */
-SDFIO_API sdfio_status sdfio_header_set_manufacturer_id(
+SDFIO_API sdfio_status sdfio_header_set_manufacturer(
     sdfio_header *header, const char *manufacturer_id);
 
 /**
@@ -725,7 +725,7 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * Adds the binary format to the formats that the reader reads, the version
  * numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format before
  * a file is opened. The formats are tried in the order in which they are
- * listed, and sdfio_reader_version_number() lists their version numbers in that
+ * listed, and sdfio_reader_version() lists their version numbers in that
  * order. A program that links the library statically contains the code of the
  * formats it lists and no other.
  *
@@ -736,19 +736,19 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
-SDFIO_API sdfio_status sdfio_reader_add_binary_format(sdfio_reader *reader);
+SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
 
 /**
  * Adds the ASCII format to the formats that the reader reads, the version
  * numbers `aISO-1.0` and `aISO-2.0`. The rules of
- * sdfio_reader_add_binary_format() apply. The code to parse numbers is part of
+ * sdfio_reader_add_binary() apply. The code to parse numbers is part of
  * the format, so a program that does not add it does not contain that code.
  *
  * @param reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
-SDFIO_API sdfio_status sdfio_reader_add_ascii_format(sdfio_reader *reader);
+SDFIO_API sdfio_status sdfio_reader_add_ascii(sdfio_reader *reader);
 
 /**
  * Sets the size in bytes of the buffer between the reader and its stream. The
@@ -760,8 +760,8 @@ SDFIO_API sdfio_status sdfio_reader_add_ascii_format(sdfio_reader *reader);
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the size is 0.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
-SDFIO_API sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader,
-                                                    size_t size);
+SDFIO_API sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader,
+                                               size_t size);
 
 /**
  * Sets the number of values that the reader converts at a time. The default is
@@ -773,8 +773,8 @@ SDFIO_API sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader,
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the number is not valid.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
-SDFIO_API sdfio_status sdfio_reader_set_chunk_values(sdfio_reader *reader,
-                                                     size_t count);
+SDFIO_API sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader,
+                                              size_t count);
 
 /**
  * Sets the conversion of the dates of ISO-1.0 files. The structure is copied,
@@ -795,7 +795,7 @@ SDFIO_API sdfio_status sdfio_reader_set_time_zone(
  *
  * @param[in] reader The reader. May be null, which has no formats.
  */
-SDFIO_API size_t sdfio_reader_version_number_count(const sdfio_reader *reader);
+SDFIO_API size_t sdfio_reader_version_count(const sdfio_reader *reader);
 
 /**
  * Returns a version number that a file can start with, for example "bISO-2.0":
@@ -805,11 +805,11 @@ SDFIO_API size_t sdfio_reader_version_number_count(const sdfio_reader *reader);
  * find out whether the reader reads it.
  *
  * @param[in] reader The reader.
- * @param index A number below sdfio_reader_version_number_count().
+ * @param index A number below sdfio_reader_version_count().
  * @return The version number, or null if the index is not below the count.
  */
-SDFIO_API const char *sdfio_reader_version_number(const sdfio_reader *reader,
-                                                  size_t index);
+SDFIO_API const char *sdfio_reader_version(const sdfio_reader *reader,
+                                           size_t index);
 
 /**
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.
@@ -858,7 +858,7 @@ SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
  *
  * @param[in] reader The reader.
  */
-SDFIO_API const sdfio_header *sdfio_get_header(const sdfio_reader *reader);
+SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
 
 /**
  * Description of a buffer of the caller for heights or for the values of the
@@ -1106,18 +1106,18 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
  * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
-SDFIO_API sdfio_status sdfio_writer_add_binary_format(sdfio_writer *writer);
+SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
 
 /**
  * Adds the ASCII format to the formats that the writer writes. The rules of
- * sdfio_writer_add_binary_format() apply. The code to print numbers is part of
+ * sdfio_writer_add_binary() apply. The code to print numbers is part of
  * the format, so a program that does not add it does not contain that code.
  *
  * @param writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
-SDFIO_API sdfio_status sdfio_writer_add_ascii_format(sdfio_writer *writer);
+SDFIO_API sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer);
 
 /**
  * Sets the size in bytes of the buffer between the writer and its stream. The
@@ -1129,8 +1129,8 @@ SDFIO_API sdfio_status sdfio_writer_add_ascii_format(sdfio_writer *writer);
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the size is 0.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
-SDFIO_API sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer,
-                                                    size_t size);
+SDFIO_API sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer,
+                                               size_t size);
 
 /**
  * Sets the number of values that the writer converts at a time. The default is
@@ -1143,8 +1143,8 @@ SDFIO_API sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer,
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the number is not valid.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
-SDFIO_API sdfio_status sdfio_writer_set_chunk_values(sdfio_writer *writer,
-                                                     size_t count);
+SDFIO_API sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer,
+                                              size_t count);
 
 /**
  * Sets the conversion of the dates of ISO-1.0 files. The structure is copied,

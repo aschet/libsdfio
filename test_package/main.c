@@ -44,7 +44,7 @@ int main(void)
         sdfio_header_create(sdfio_default_allocator(), &header);
     if (described == SDFIO_OK)
     {
-        described = sdfio_header_set_dates_now(header);
+        described = sdfio_header_set_now(header);
     }
     if (described == SDFIO_OK)
     {
@@ -68,7 +68,7 @@ int main(void)
         sdfio_writer_create(sdfio_default_allocator(), &writer);
     if (made_writer == SDFIO_OK)
     {
-        made_writer = sdfio_writer_add_binary_format(writer);
+        made_writer = sdfio_writer_add_binary(writer);
     }
     failed |= check(made_writer, "writer");
     if (made_writer == SDFIO_OK && described == SDFIO_OK)
@@ -88,7 +88,7 @@ int main(void)
         sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (made_reader == SDFIO_OK)
     {
-        made_reader = sdfio_reader_add_binary_format(reader);
+        made_reader = sdfio_reader_add_binary(reader);
     }
     failed |= check(made_reader, "reader");
     if (made_reader == SDFIO_OK)

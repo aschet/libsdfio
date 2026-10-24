@@ -46,10 +46,8 @@ Reader create_reader()
     check(sdfio_reader_create(sdfio_default_allocator(), &reader),
           "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_binary_format(reader),
-          "Adding the binary format failed");
-    check(sdfio_reader_add_ascii_format(reader),
-          "Adding the ASCII format failed");
+    check(sdfio_reader_add_binary(reader), "Adding the binary format failed");
+    check(sdfio_reader_add_ascii(reader), "Adding the ASCII format failed");
     return owned;
 }
 
@@ -59,8 +57,7 @@ Writer create_writer()
     check(sdfio_writer_create(sdfio_default_allocator(), &writer),
           "Creating the writer failed");
     Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_binary_format(writer),
-          "Adding the binary format failed");
+    check(sdfio_writer_add_binary(writer), "Adding the binary format failed");
     return owned;
 }
 
@@ -86,7 +83,7 @@ sdfio_layout bottom_up(const cv::Mat &image)
 
 cv::Mat read_heights(sdfio_reader *reader)
 {
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     cv::Mat heights(static_cast<int>(sdfio_header_rows(header)),
                     static_cast<int>(sdfio_header_columns(header)), CV_32F);
     check(sdfio_read_heights(reader, bottom_up(heights),
@@ -123,7 +120,7 @@ void write_heights(const char *path, const sdfio_header *source,
 cv::Mat read_into_region(const char *path)
 {
     const Reader reader = open(path);
-    const sdfio_header *header = sdfio_get_header(reader.get());
+    const sdfio_header *header = sdfio_reader_header(reader.get());
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
     cv::Mat region =
         canvas(cv::Rect(100, 50, static_cast<int>(sdfio_header_columns(header)),
@@ -148,7 +145,8 @@ int main(int argc, char **argv)
     {
         const Reader reader = open(path);
         const cv::Mat smoothed = smooth(read_heights(reader.get()));
-        write_heights("smooth.sdf", sdfio_get_header(reader.get()), smoothed);
+        write_heights("smooth.sdf", sdfio_reader_header(reader.get()),
+                      smoothed);
         read_into_region(path);
     }
     catch (const std::exception &error)

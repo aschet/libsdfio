@@ -250,7 +250,7 @@ static const sdfio_reader_format binary_format = {
     .read_trailer = read_trailer,
 };
 
-sdfio_status sdfio_reader_add_binary_format(sdfio_reader *reader)
+sdfio_status sdfio_reader_add_binary(sdfio_reader *reader)
 {
     return sdfio_reader_install_format(reader, &binary_format);
 }

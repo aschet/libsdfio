@@ -165,7 +165,7 @@ static const sdfio_writer_format binary_format = {
     .end_trailer = end_trailer,
 };
 
-sdfio_status sdfio_writer_add_binary_format(sdfio_writer *writer)
+sdfio_status sdfio_writer_add_binary(sdfio_writer *writer)
 {
     return sdfio_writer_install_format(writer, &binary_format);
 }

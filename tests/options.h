@@ -44,9 +44,9 @@ static inline sdfio_status add_reader_format(sdfio_reader *reader,
     switch (format)
     {
     case TEST_BINARY:
-        return sdfio_reader_add_binary_format(reader);
+        return sdfio_reader_add_binary(reader);
     case TEST_ASCII:
-        return sdfio_reader_add_ascii_format(reader);
+        return sdfio_reader_add_ascii(reader);
     case TEST_NO_FORMAT:
         break;
     }
@@ -59,9 +59,9 @@ static inline sdfio_status add_writer_format(sdfio_writer *writer,
     switch (format)
     {
     case TEST_BINARY:
-        return sdfio_writer_add_binary_format(writer);
+        return sdfio_writer_add_binary(writer);
     case TEST_ASCII:
-        return sdfio_writer_add_ascii_format(writer);
+        return sdfio_writer_add_ascii(writer);
     case TEST_NO_FORMAT:
         break;
     }
@@ -82,11 +82,11 @@ static inline sdfio_status create_reader(const test_options *options,
     }
     if (status == SDFIO_OK && options->buffer_size != 0)
     {
-        status = sdfio_reader_set_buffer_size(*reader, options->buffer_size);
+        status = sdfio_reader_set_buffer(*reader, options->buffer_size);
     }
     if (status == SDFIO_OK && options->chunk_values != 0)
     {
-        status = sdfio_reader_set_chunk_values(*reader, options->chunk_values);
+        status = sdfio_reader_set_chunk(*reader, options->chunk_values);
     }
     if (status == SDFIO_OK && options->time_zone != NULL)
     {
@@ -114,11 +114,11 @@ static inline sdfio_status create_writer(const test_options *options,
     }
     if (status == SDFIO_OK && options->buffer_size != 0)
     {
-        status = sdfio_writer_set_buffer_size(*writer, options->buffer_size);
+        status = sdfio_writer_set_buffer(*writer, options->buffer_size);
     }
     if (status == SDFIO_OK && options->chunk_values != 0)
     {
-        status = sdfio_writer_set_chunk_values(*writer, options->chunk_values);
+        status = sdfio_writer_set_chunk(*writer, options->chunk_values);
     }
     if (status == SDFIO_OK && options->time_zone != NULL)
     {

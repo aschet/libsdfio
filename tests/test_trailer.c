@@ -445,7 +445,7 @@ static void check_copy_trailer(void)
             sdfio_reader *reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, source.data, source.size));
             sdfio_header *header = new_header();
-            CHECK_OK(sdfio_header_copy(header, sdfio_get_header(reader)));
+            CHECK_OK(sdfio_header_copy(header, sdfio_reader_header(reader)));
             CHECK_OK(sdfio_header_set_format(header, formats[to]));
 
             membuf file = {0};
@@ -466,7 +466,8 @@ static void check_copy_trailer(void)
 
             reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-            CHECK(sdfio_header_format(sdfio_get_header(reader)) == formats[to]);
+            CHECK(sdfio_header_format(sdfio_reader_header(reader))
+                  == formats[to]);
             const char *read = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &read, &size));

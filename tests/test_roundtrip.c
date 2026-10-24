@@ -60,10 +60,10 @@ static void describe(sdfio_header *header, sdfio_revision revision,
     CHECK_OK(sdfio_header_set_x_scale(header, 2e-6));
     CHECK_OK(sdfio_header_set_y_scale(header, 3e-6));
     CHECK_OK(sdfio_header_set_z_resolution(header, 1e-9));
-    CHECK_OK(sdfio_header_set_creation_date(
-        header, 1772600760)); /* 2026-03-04 05:06 UTC */
-    CHECK_OK(sdfio_header_set_modification_date(header, 1772604360));
-    CHECK_OK(sdfio_header_set_manufacturer_id(header, "ACME 7"));
+    CHECK_OK(sdfio_header_set_created(header,
+                                      1772600760)); /* 2026-03-04 05:06 UTC */
+    CHECK_OK(sdfio_header_set_modified(header, 1772604360));
+    CHECK_OK(sdfio_header_set_manufacturer(header, "ACME 7"));
 }
 
 static void check_roundtrip(sdfio_revision revision, sdfio_format format,
@@ -87,7 +87,7 @@ static void check_roundtrip(sdfio_revision revision, sdfio_format format,
 
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-    const sdfio_header *read = sdfio_get_header(reader);
+    const sdfio_header *read = sdfio_reader_header(reader);
     CHECK(read != NULL);
     if (read == NULL)
     {
@@ -103,12 +103,10 @@ static void check_roundtrip(sdfio_revision revision, sdfio_format format,
     CHECK(sdfio_header_x_scale(read) == sdfio_header_x_scale(header)
           && sdfio_header_y_scale(read) == sdfio_header_y_scale(header));
     CHECK(sdfio_header_z_resolution(read) == sdfio_header_z_resolution(header));
-    CHECK(sdfio_header_creation_date(read)
-          == sdfio_header_creation_date(header));
-    CHECK(sdfio_header_modification_date(read)
-          == sdfio_header_modification_date(header));
-    CHECK(strcmp(sdfio_header_manufacturer_id(read),
-                 sdfio_header_manufacturer_id(header))
+    CHECK(sdfio_header_created(read) == sdfio_header_created(header));
+    CHECK(sdfio_header_modified(read) == sdfio_header_modified(header));
+    CHECK(strcmp(sdfio_header_manufacturer(read),
+                 sdfio_header_manufacturer(header))
           == 0);
     CHECK(sdfio_header_z_scale(read) > 0.0);
 
@@ -363,7 +361,7 @@ static void check_profile_scale(void)
         sdfio_writer_free(writer);
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-        CHECK(sdfio_header_y_scale(sdfio_get_header(reader)) == scales[i]);
+        CHECK(sdfio_header_y_scale(sdfio_reader_header(reader)) == scales[i]);
         sdfio_reader_free(reader);
         free(file.data);
     }
@@ -650,9 +648,9 @@ static double resolution_read(const membuf *file)
     sdfio_reader *reader = new_reader(all_formats());
     double resolution = 0.0;
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
-    if (sdfio_get_header(reader) != NULL)
+    if (sdfio_reader_header(reader) != NULL)
     {
-        resolution = sdfio_header_z_resolution(sdfio_get_header(reader));
+        resolution = sdfio_header_z_resolution(sdfio_reader_header(reader));
     }
     sdfio_reader_free(reader);
     return resolution;
@@ -802,7 +800,7 @@ static void check_defaults(void)
     {
         CHECK(isnan(heights[i]) ? isnan(back[i]) : back[i] == heights[i]);
     }
-    CHECK(sdfio_header_z_scale(sdfio_get_header(reader)) == 1.0);
+    CHECK(sdfio_header_z_scale(sdfio_reader_header(reader)) == 1.0);
     sdfio_reader_free(reader);
     free(file.data);
 }
@@ -852,7 +850,7 @@ static void check_long_identifier(void)
         CHECK_OK(sdfio_header_set_format(header, formats[i]));
         CHECK_OK(sdfio_header_set_columns(header, 1));
         CHECK_OK(sdfio_header_set_rows(header, 1));
-        CHECK_OK(sdfio_header_set_manufacturer_id(header, "0123456789"));
+        CHECK_OK(sdfio_header_set_manufacturer(header, "0123456789"));
         const float height = 1e-6F;
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
@@ -864,9 +862,9 @@ static void check_long_identifier(void)
         sdfio_writer_free(writer);
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-        const sdfio_header *back = sdfio_get_header(reader);
+        const sdfio_header *back = sdfio_reader_header(reader);
         CHECK(back != NULL
-              && strcmp(sdfio_header_manufacturer_id(back), "0123456789") == 0);
+              && strcmp(sdfio_header_manufacturer(back), "0123456789") == 0);
         sdfio_reader_free(reader);
         free(file.data);
     }
@@ -1011,12 +1009,11 @@ static void check_read_line_ends(void)
             double read[ROWS * COLUMNS];
             reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, other.data, other.size));
-            const sdfio_header *got = sdfio_get_header(reader);
+            const sdfio_header *got = sdfio_reader_header(reader);
             CHECK(got != NULL && sdfio_header_columns(got) == COLUMNS
                   && sdfio_header_rows(got) == ROWS
                   && sdfio_header_x_scale(got) == sdfio_header_x_scale(header)
-                  && sdfio_header_creation_date(got)
-                         == sdfio_header_creation_date(header));
+                  && sdfio_header_created(got) == sdfio_header_created(header));
             CHECK_OK(sdfio_read_heights(
                 reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), read));
             for (size_t i = 0; i < ROWS * COLUMNS; ++i)

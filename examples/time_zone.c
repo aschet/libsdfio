@@ -35,11 +35,11 @@ static time_t read_creation_date(const sdfio_time_zone *time_zone,
     sdfio_reader *reader = NULL;
     time_t date = SDFIO_NO_TIME;
     if (sdfio_reader_create(sdfio_default_allocator(), &reader) == SDFIO_OK
-        && sdfio_reader_add_binary_format(reader) == SDFIO_OK
+        && sdfio_reader_add_binary(reader) == SDFIO_OK
         && sdfio_reader_set_time_zone(reader, time_zone) == SDFIO_OK
         && sdfio_open_file(reader, path) == SDFIO_OK)
     {
-        date = sdfio_header_creation_date(sdfio_get_header(reader));
+        date = sdfio_header_created(sdfio_reader_header(reader));
     }
     sdfio_reader_free(reader);
     return date;
@@ -79,11 +79,11 @@ int main(void)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_header_set_creation_date(header, written);
+        status = sdfio_header_set_created(header, written);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_header_set_modification_date(header, written);
+        status = sdfio_header_set_modified(header, written);
     }
     sdfio_writer *writer = NULL;
     if (status == SDFIO_OK)
@@ -92,7 +92,7 @@ int main(void)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_binary_format(writer);
+        status = sdfio_writer_add_binary(writer);
     }
     if (status == SDFIO_OK)
     {

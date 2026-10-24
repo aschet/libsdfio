@@ -32,7 +32,7 @@ static void generate_heights(void)
 
 static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
 {
-    sdfio_status status = sdfio_header_set_dates_now(header);
+    sdfio_status status = sdfio_header_set_now(header);
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_data_type(header, type);
@@ -72,7 +72,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_binary_format(writer);
+        status = sdfio_writer_add_binary(writer);
     }
     if (status == SDFIO_OK)
     {

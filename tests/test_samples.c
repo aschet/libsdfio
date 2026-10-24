@@ -151,7 +151,7 @@ static void check_against(const expectation *e)
     sdfio_reader *reader = new_reader(all_formats());
     CHECK(reader != NULL);
     CHECK_OK(sdfio_open_file(reader, path));
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     CHECK(header != NULL);
     if (header == NULL)
     {
@@ -170,13 +170,12 @@ static void check_against(const expectation *e)
     CHECK(sdfio_header_x_scale(header) == e->x_scale);
     CHECK(sdfio_header_y_scale(header) == e->y_scale);
     CHECK(sdfio_header_z_scale(header) == e->z_scale);
-    CHECK(strcmp(sdfio_header_manufacturer_id(header), e->manufacturer_id)
-          == 0);
+    CHECK(strcmp(sdfio_header_manufacturer(header), e->manufacturer_id) == 0);
     char date[SDFIO_DATETIME_SIZE + 1] = {0};
-    CHECK(sdfio_datetime_format(sdfio_header_creation_date(header),
+    CHECK(sdfio_datetime_format(sdfio_header_created(header),
                                 sdfio_header_revision(header), NULL, date));
     CHECK(strcmp(date, e->creation_date) == 0);
-    CHECK(sdfio_datetime_format(sdfio_header_modification_date(header),
+    CHECK(sdfio_datetime_format(sdfio_header_modified(header),
                                 sdfio_header_revision(header), NULL, date));
     CHECK(strcmp(date, e->modification_date) == 0);
 
@@ -284,11 +283,11 @@ static void check_unrecorded(const unsigned char *bytes, size_t size)
 {
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, bytes, size));
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     if (header != NULL)
     {
-        CHECK(sdfio_header_creation_date(header) == SDFIO_NO_TIME);
-        CHECK(sdfio_header_modification_date(header) == SDFIO_NO_TIME);
+        CHECK(sdfio_header_created(header) == SDFIO_NO_TIME);
+        CHECK(sdfio_header_modified(header) == SDFIO_NO_TIME);
         CHECK(sdfio_header_columns(header) == 30
               && sdfio_header_rows(header) == 20);
         static float heights[30 * 20];
@@ -389,7 +388,7 @@ static void check_byte_order_mark(void)
             if (i == 0)
             {
                 CHECK_OK(status);
-                const sdfio_header *header = sdfio_get_header(reader);
+                const sdfio_header *header = sdfio_reader_header(reader);
                 CHECK(header != NULL && sdfio_header_columns(header) == 48
                       && sdfio_header_rows(header) == 32);
             }

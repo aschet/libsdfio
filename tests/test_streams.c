@@ -81,7 +81,7 @@ static void check_pipe(const char *path, size_t piece)
 
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     CHECK(header != NULL);
     if (header != NULL)
     {
@@ -155,7 +155,7 @@ static void check_failing_stream(void)
         sdfio_status status = sdfio_open_stream(reader, &stream);
         if (status == SDFIO_OK)
         {
-            const sdfio_header *header = sdfio_get_header(reader);
+            const sdfio_header *header = sdfio_reader_header(reader);
             double *heights =
                 malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
                        * sizeof(double));
@@ -165,7 +165,7 @@ static void check_failing_stream(void)
         }
         CHECK(status == SDFIO_ERR_IO);
         /* After an error in the data the reader does not go on. */
-        if (status == SDFIO_ERR_IO && sdfio_get_header(reader) != NULL)
+        if (status == SDFIO_ERR_IO && sdfio_reader_header(reader) != NULL)
         {
             const char *trailer = NULL;
             size_t trailer_size = 0;
@@ -192,7 +192,7 @@ static void check_damage(const char *path)
         sdfio_reader *reader = new_reader(all_formats());
         if (sdfio_open_memory(reader, data, length) == SDFIO_OK)
         {
-            const sdfio_header *header = sdfio_get_header(reader);
+            const sdfio_header *header = sdfio_reader_header(reader);
             double *heights =
                 malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
                            * sizeof(double)
@@ -226,7 +226,7 @@ static void check_damage(const char *path)
         sdfio_reader *reader = new_reader(all_formats());
         if (sdfio_open_memory(reader, copy, size) == SDFIO_OK)
         {
-            const sdfio_header *header = sdfio_get_header(reader);
+            const sdfio_header *header = sdfio_reader_header(reader);
             const size_t count =
                 sdfio_header_rows(header) * sdfio_header_columns(header);
             /* A damaged count could ask for more than a test should allocate.
@@ -327,7 +327,7 @@ static void check_header_errors(void)
                  sdfio_open_file(reader, SDFIO_TEST_DATA_DIR "/missing.sdf"));
     CHECK(strstr(sdfio_reader_error_message(reader), "cannot be opened")
           != NULL);
-    CHECK(sdfio_get_header(reader) == NULL);
+    CHECK(sdfio_reader_header(reader) == NULL);
     CHECK_STATUS(SDFIO_ERR_STATE,
                  sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  NULL, 0));

@@ -71,10 +71,10 @@ static size_t store(void *user, const void *data, size_t size)
 static sdfio_status describe(sdfio_header *header)
 {
     const time_t scan_time = 1700000000;
-    sdfio_status status = sdfio_header_set_creation_date(header, scan_time);
+    sdfio_status status = sdfio_header_set_created(header, scan_time);
     if (status == SDFIO_OK)
     {
-        status = sdfio_header_set_modification_date(header, scan_time);
+        status = sdfio_header_set_modified(header, scan_time);
     }
     if (status == SDFIO_OK)
     {
@@ -110,15 +110,15 @@ static sdfio_status write_file(void)
     sdfio_status status = sdfio_writer_create(&allocator, &writer);
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_binary_format(writer);
+        status = sdfio_writer_add_binary(writer);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_set_buffer_size(writer, BUFFER_SIZE);
+        status = sdfio_writer_set_buffer(writer, BUFFER_SIZE);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_set_chunk_values(writer, CHUNK_VALUES);
+        status = sdfio_writer_set_chunk(writer, CHUNK_VALUES);
     }
     if (status == SDFIO_OK)
     {

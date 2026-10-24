@@ -33,7 +33,7 @@ static sdfio_status describe_coded_values(sdfio_header *header)
 {
     const double z_scale =
         sdfio_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
-    sdfio_status status = sdfio_header_set_dates_now(header);
+    sdfio_status status = sdfio_header_set_now(header);
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
@@ -82,7 +82,7 @@ static int write_coded_values(const char *path)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_binary_format(writer);
+        status = sdfio_writer_add_binary(writer);
     }
     if (status == SDFIO_OK)
     {
@@ -115,13 +115,13 @@ static int read_coded_values(const char *path)
         sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_binary_format(reader);
+        status = sdfio_reader_add_binary(reader);
     }
     if (status == SDFIO_OK)
     {
         status = sdfio_open_file(reader, path);
     }
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     if (status == SDFIO_OK
         && sdfio_header_data_type(header) != SDFIO_TYPE_INT16)
     {

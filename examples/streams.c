@@ -24,11 +24,11 @@ int main(void)
         sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_binary_format(reader);
+        status = sdfio_reader_add_binary(reader);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_ascii_format(reader);
+        status = sdfio_reader_add_ascii(reader);
     }
     if (status == SDFIO_OK)
     {
@@ -42,7 +42,7 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     size_t coded_size = 0;
     size_t heights_size = 0;
     status = sdfio_data_row_size(header, &coded_size);

@@ -119,17 +119,17 @@ double sdfio_header_z_resolution(const sdfio_header *header)
     return header->z_resolution;
 }
 
-time_t sdfio_header_creation_date(const sdfio_header *header)
+time_t sdfio_header_created(const sdfio_header *header)
 {
     return header->creation_date;
 }
 
-time_t sdfio_header_modification_date(const sdfio_header *header)
+time_t sdfio_header_modified(const sdfio_header *header)
 {
     return header->modification_date;
 }
 
-const char *sdfio_header_manufacturer_id(const sdfio_header *header)
+const char *sdfio_header_manufacturer(const sdfio_header *header)
 {
     return header->manufacturer_id;
 }
@@ -242,8 +242,8 @@ sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_header_set_creation_date(sdfio_header *header,
-                                            time_t creation_date)
+sdfio_status sdfio_header_set_created(sdfio_header *header,
+                                      time_t creation_date)
 {
     if (header == NULL || !date_valid(creation_date))
     {
@@ -253,8 +253,8 @@ sdfio_status sdfio_header_set_creation_date(sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_header_set_modification_date(sdfio_header *header,
-                                                time_t modification_date)
+sdfio_status sdfio_header_set_modified(sdfio_header *header,
+                                       time_t modification_date)
 {
     if (header == NULL || !date_valid(modification_date))
     {
@@ -264,8 +264,8 @@ sdfio_status sdfio_header_set_modification_date(sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_header_set_manufacturer_id(sdfio_header *header,
-                                              const char *manufacturer_id)
+sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
+                                           const char *manufacturer_id)
 {
     if (header == NULL || manufacturer_id == NULL)
     {

@@ -36,12 +36,11 @@ static sdfio_status describe_excerpt(sdfio_header *header,
     const time_t now = time(NULL);
     if (status == SDFIO_OK)
     {
-        status = sdfio_header_set_modification_date(header, now);
+        status = sdfio_header_set_modified(header, now);
     }
-    if (status == SDFIO_OK
-        && sdfio_header_creation_date(header) == SDFIO_NO_TIME)
+    if (status == SDFIO_OK && sdfio_header_created(header) == SDFIO_NO_TIME)
     {
-        status = sdfio_header_set_creation_date(header, now);
+        status = sdfio_header_set_created(header, now);
     }
     return status;
 }
@@ -53,7 +52,7 @@ static sdfio_status write_excerpt(sdfio_writer *writer, sdfio_reader *reader,
                                   const char *path, const double *heights,
                                   uint32_t columns, uint32_t rows)
 {
-    const sdfio_header *source = sdfio_get_header(reader);
+    const sdfio_header *source = sdfio_reader_header(reader);
     const size_t first_column = sdfio_header_columns(source) / 4;
     const size_t first_row = sdfio_header_rows(source) / 4;
     sdfio_header *header = NULL;
@@ -111,11 +110,11 @@ int main(int argc, char **argv)
         sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_binary_format(reader);
+        status = sdfio_reader_add_binary(reader);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_ascii_format(reader);
+        status = sdfio_reader_add_ascii(reader);
     }
     if (status == SDFIO_OK)
     {
@@ -127,14 +126,14 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_binary_format(writer);
+        status = sdfio_writer_add_binary(writer);
     }
     size_t size = 0;
     double *heights = NULL;
     if (status == SDFIO_OK)
     {
-        status = sdfio_heights_size(sdfio_get_header(reader), SDFIO_TYPE_DOUBLE,
-                                    &size);
+        status = sdfio_heights_size(sdfio_reader_header(reader),
+                                    SDFIO_TYPE_DOUBLE, &size);
     }
     if (status == SDFIO_OK)
     {
@@ -148,7 +147,7 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        const sdfio_header *header = sdfio_get_header(reader);
+        const sdfio_header *header = sdfio_reader_header(reader);
         status = write_excerpt(writer, reader, argv[2], heights,
                                sdfio_header_columns(header) / 2,
                                sdfio_header_rows(header) / 2);
@@ -163,9 +162,10 @@ int main(int argc, char **argv)
     else
     {
         printf("%s: %lu x %lu points\n", argv[2],
-               (unsigned long)sdfio_header_columns(sdfio_get_header(reader))
+               (unsigned long)sdfio_header_columns(sdfio_reader_header(reader))
                    / 2,
-               (unsigned long)sdfio_header_rows(sdfio_get_header(reader)) / 2);
+               (unsigned long)sdfio_header_rows(sdfio_reader_header(reader))
+                   / 2);
     }
     free(heights);
     sdfio_writer_free(writer);

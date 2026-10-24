@@ -45,10 +45,8 @@ Reader create_reader()
     check(sdfio_reader_create(sdfio_default_allocator(), &reader),
           "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_binary_format(reader),
-          "Adding the binary format failed");
-    check(sdfio_reader_add_ascii_format(reader),
-          "Adding the ASCII format failed");
+    check(sdfio_reader_add_binary(reader), "Adding the binary format failed");
+    check(sdfio_reader_add_ascii(reader), "Adding the ASCII format failed");
     return owned;
 }
 
@@ -58,8 +56,7 @@ Writer create_writer()
     check(sdfio_writer_create(sdfio_default_allocator(), &writer),
           "Creating the writer failed");
     Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_binary_format(writer),
-          "Adding the binary format failed");
+    check(sdfio_writer_add_binary(writer), "Adding the binary format failed");
     return owned;
 }
 
@@ -78,7 +75,7 @@ sdfio_layout layout_of(const Eigen::MatrixXd &matrix)
 
 Eigen::MatrixXd read_matrix(sdfio_reader *reader)
 {
-    const sdfio_header *header = sdfio_get_header(reader);
+    const sdfio_header *header = sdfio_reader_header(reader);
     Eigen::MatrixXd heights(
         static_cast<Eigen::Index>(sdfio_header_rows(header)),
         static_cast<Eigen::Index>(sdfio_header_columns(header)));
@@ -163,7 +160,8 @@ int main(int argc, char **argv)
               sdfio_reader_error_message(reader.get()));
         Eigen::MatrixXd heights = read_matrix(reader.get());
         remove_plane(heights, fit_plane(heights));
-        write_matrix("levelled.sdf", sdfio_get_header(reader.get()), heights);
+        write_matrix("levelled.sdf", sdfio_reader_header(reader.get()),
+                     heights);
     }
     catch (const std::exception &error)
     {

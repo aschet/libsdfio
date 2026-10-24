@@ -90,7 +90,7 @@ sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
                       "The list of formats is full");
 }
 
-sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer, size_t size)
+sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer, size_t size)
 {
     const sdfio_status status = require_new(writer);
     if (status != SDFIO_OK)
@@ -107,7 +107,7 @@ sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer, size_t size)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_writer_set_chunk_values(sdfio_writer *writer, size_t count)
+sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer, size_t count)
 {
     const sdfio_status status = require_new(writer);
     if (status != SDFIO_OK)

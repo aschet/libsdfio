@@ -214,7 +214,7 @@ static void check_locale(void)
           && near_relative(back[2], -3.5e-7, 1e-12));
     /* A variable has the precision of its type, a constant may have more. */
     const double x_scale = 1.5e-6;
-    CHECK(sdfio_header_x_scale(sdfio_get_header(reader)) == x_scale);
+    CHECK(sdfio_header_x_scale(sdfio_reader_header(reader)) == x_scale);
     sdfio_reader_free(reader);
     free(file.data);
     setlocale(LC_NUMERIC, "C");

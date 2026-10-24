@@ -98,7 +98,7 @@ int main(void)
 
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-    const sdfio_header *read = sdfio_get_header(reader);
+    const sdfio_header *read = sdfio_reader_header(reader);
     CHECK(read != NULL && sdfio_header_columns(read) == 3
           && sdfio_header_rows(read) == 2);
     if (read == NULL)
@@ -124,7 +124,7 @@ int main(void)
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
     }
     reader = membuf_reopen(reader, &file);
-    read = sdfio_get_header(reader);
+    read = sdfio_reader_header(reader);
     int16_t coded[6];
     CHECK_OK(sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_INT16),
                              coded, 2));

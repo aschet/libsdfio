@@ -355,13 +355,13 @@
  * free(); a program that never names it does not contain them. The program then sets the options of the
  * handle, and the options are fixed by the first attempt to open or create a
  * file:
- * - the formats that the handle uses, with sdfio_reader_add_binary_format(),
- *   sdfio_reader_add_ascii_format() and the two functions of the writer. The
+ * - the formats that the handle uses, with sdfio_reader_add_binary(),
+ *   sdfio_reader_add_ascii() and the two functions of the writer. The
  *   library lists none by itself. A program that links the library statically
  *   contains the code of the formats it names and no other;
  * - the size of the buffer between the handle and its stream, and the number of
  *   values that are converted at a time, with the functions
- *   `set_buffer_size` and `set_chunk_values`. A handle that does not set them
+ *   `set_buffer` and `set_chunk`. A handle that does not set them
  *   uses defaults;
  * - the time zone callbacks for the dates of ISO-1.0 files, with the functions
  *   `set_time_zone`.
@@ -371,7 +371,7 @@
  *
  * A header is a separate object. sdfio_header_create() creates one with
  * defaults and without dates, which a file needs: the setters or
- * sdfio_header_set_dates_now(), the one function that reads the clock, set
+ * sdfio_header_set_now(), the one function that reads the clock, set
  * them. The setters fill it, and sdfio_header_copy() copies one header
  * into another, for example the header of a file that was read into a header
  * for a file to write. sdfio_header_free() releases it. A handle allocates
@@ -428,7 +428,7 @@
  *   options. The first attempt to open a file fixes them, and the buffers are
  *   allocated then. A reader is opened once: opening it again is an error. If
  *   the open fails, sdfio_reader_error_message() says why.
- * - After the open, sdfio_get_header() returns the header, which stays valid
+ * - After the open, sdfio_reader_header() returns the header, which stays valid
  *   until the reader is freed.
  * - sdfio_read_data() reads rows in order, and sdfio_read_heights() reads the
  *   whole matrix. The latter works only before any row was read. A call that

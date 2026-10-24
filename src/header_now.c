@@ -14,7 +14,7 @@
 #include <sdfio/sdfio.h>
 #include <time.h>
 
-sdfio_status sdfio_header_set_dates_now(sdfio_header *header)
+sdfio_status sdfio_header_set_now(sdfio_header *header)
 {
     if (header == NULL)
     {
@@ -26,8 +26,7 @@ sdfio_status sdfio_header_set_dates_now(sdfio_header *header)
         return SDFIO_ERR_UNSUPPORTED;
     }
     const time_t minute = sdfio_datetime_round(now);
-    const sdfio_status status = sdfio_header_set_creation_date(header, minute);
-    return status != SDFIO_OK
-               ? status
-               : sdfio_header_set_modification_date(header, minute);
+    const sdfio_status status = sdfio_header_set_created(header, minute);
+    return status != SDFIO_OK ? status
+                              : sdfio_header_set_modified(header, minute);
 }

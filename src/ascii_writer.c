@@ -306,7 +306,7 @@ static const sdfio_writer_format ascii_format = {
     .end_trailer = write_terminator,
 };
 
-sdfio_status sdfio_writer_add_ascii_format(sdfio_writer *writer)
+sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer)
 {
     return sdfio_writer_install_format(writer, &ascii_format);
 }

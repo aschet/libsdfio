@@ -51,9 +51,9 @@ static void check_defaults(void)
     CHECK(sdfio_header_y_scale(header) == 1.0);
     CHECK(sdfio_header_z_scale(header) == SDFIO_AUTO_Z_SCALE);
     CHECK(sdfio_header_z_resolution(header) == SDFIO_NO_RESOLUTION);
-    CHECK(sdfio_header_creation_date(header) == SDFIO_NO_TIME);
-    CHECK(sdfio_header_modification_date(header) == SDFIO_NO_TIME);
-    CHECK(strcmp(sdfio_header_manufacturer_id(header), "libsdfio") == 0);
+    CHECK(sdfio_header_created(header) == SDFIO_NO_TIME);
+    CHECK(sdfio_header_modified(header) == SDFIO_NO_TIME);
+    CHECK(strcmp(sdfio_header_manufacturer(header), "libsdfio") == 0);
     sdfio_header_free(header);
 }
 
@@ -62,12 +62,12 @@ static void check_dates_now(void)
 {
     sdfio_header *header = NULL;
     CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
-    CHECK_OK(sdfio_header_set_dates_now(header));
-    const time_t created = sdfio_header_creation_date(header);
+    CHECK_OK(sdfio_header_set_now(header));
+    const time_t created = sdfio_header_created(header);
     CHECK(created != SDFIO_NO_TIME);
-    CHECK(created == sdfio_header_modification_date(header));
+    CHECK(created == sdfio_header_modified(header));
     CHECK(created % 60 == 0);
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_dates_now(NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_now(NULL));
     sdfio_header_free(header);
 }
 
@@ -83,9 +83,9 @@ static void check_setters(void)
     CHECK_OK(sdfio_header_set_y_scale(header, 3e-6));
     CHECK_OK(sdfio_header_set_z_scale(header, 1e-9));
     CHECK_OK(sdfio_header_set_z_resolution(header, -5.0));
-    CHECK_OK(sdfio_header_set_creation_date(header, 1772600760));
-    CHECK_OK(sdfio_header_set_modification_date(header, SDFIO_NO_TIME));
-    CHECK_OK(sdfio_header_set_manufacturer_id(header, "0123456789"));
+    CHECK_OK(sdfio_header_set_created(header, 1772600760));
+    CHECK_OK(sdfio_header_set_modified(header, SDFIO_NO_TIME));
+    CHECK_OK(sdfio_header_set_manufacturer(header, "0123456789"));
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_1_0);
     CHECK(sdfio_header_format(header) == SDFIO_ASCII);
     CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_INT16);
@@ -95,19 +95,19 @@ static void check_setters(void)
     CHECK(sdfio_header_y_scale(header) == (double)3e-6);
     CHECK(sdfio_header_z_scale(header) == (double)1e-9);
     CHECK(sdfio_header_z_resolution(header) == -5.0);
-    CHECK(sdfio_header_creation_date(header) == 1772600760);
-    CHECK(sdfio_header_modification_date(header) == SDFIO_NO_TIME);
-    CHECK(strcmp(sdfio_header_manufacturer_id(header), "0123456789") == 0);
+    CHECK(sdfio_header_created(header) == 1772600760);
+    CHECK(sdfio_header_modified(header) == SDFIO_NO_TIME);
+    CHECK(strcmp(sdfio_header_manufacturer(header), "0123456789") == 0);
     CHECK_OK(sdfio_header_set_z_scale(header, SDFIO_AUTO_Z_SCALE));
-    CHECK_OK(sdfio_header_set_manufacturer_id(header, ""));
-    CHECK(strcmp(sdfio_header_manufacturer_id(header), "") == 0);
+    CHECK_OK(sdfio_header_set_manufacturer(header, ""));
+    CHECK(strcmp(sdfio_header_manufacturer(header), "") == 0);
 }
 
 /* A setter refuses what is wrong in its field alone, and changes nothing. */
 static void check_refusals(void)
 {
     sdfio_header *header = new_header();
-    CHECK_OK(sdfio_header_set_manufacturer_id(header, "kept"));
+    CHECK_OK(sdfio_header_set_manufacturer(header, "kept"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_revision(header, (sdfio_revision)99));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -128,31 +128,30 @@ static void check_refusals(void)
     }
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_z_scale(header, -1.0));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer_id(header, "01234567890"));
+                 sdfio_header_set_manufacturer(header, "01234567890"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer_id(header, "caf\xC3\xA9"));
+                 sdfio_header_set_manufacturer(header, "caf\xC3\xA9"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer_id(header, NULL));
+                 sdfio_header_set_manufacturer(header, NULL));
     if (sizeof(time_t) >= 8)
     {
         const time_t far_away =
             (time_t)(sizeof(time_t) >= 8 ? INT64_C(1) << 60 : 0);
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_header_set_creation_date(header, far_away));
+                     sdfio_header_set_created(header, far_away));
         CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                     sdfio_header_set_modification_date(header, -far_away));
+                     sdfio_header_set_modified(header, -far_away));
     }
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_2_0);
     CHECK(sdfio_header_x_scale(header) == 1.0);
     CHECK(sdfio_header_z_scale(header) == SDFIO_AUTO_Z_SCALE);
-    CHECK(strcmp(sdfio_header_manufacturer_id(header), "kept") == 0);
+    CHECK(strcmp(sdfio_header_manufacturer(header), "kept") == 0);
 
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_revision(NULL, 0));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_columns(NULL, 1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_rows(NULL, 1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_x_scale(NULL, 1.0));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer_id(NULL, ""));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_manufacturer(NULL, ""));
 }
 
 /* The limits that depend on several fields are checked when a file is
@@ -173,7 +172,7 @@ static void check_cross_field_checks(void)
                  sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));
-    CHECK_OK(sdfio_header_set_creation_date(header, SDFIO_NO_TIME));
+    CHECK_OK(sdfio_header_set_created(header, SDFIO_NO_TIME));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_create_stream(writer, &stream, header));
     sdfio_writer_free(writer);
@@ -198,8 +197,8 @@ static void check_copy(void)
     CHECK_OK(sdfio_header_set_rows(source, 13));
     CHECK_OK(sdfio_header_set_x_scale(source, 4e-6));
     CHECK_OK(sdfio_header_set_z_scale(source, 2e-9));
-    CHECK_OK(sdfio_header_set_modification_date(source, 1772604360));
-    CHECK_OK(sdfio_header_set_manufacturer_id(source, "ACME 7"));
+    CHECK_OK(sdfio_header_set_modified(source, 1772604360));
+    CHECK_OK(sdfio_header_set_manufacturer(source, "ACME 7"));
     CHECK_OK(sdfio_header_copy(target, source));
     CHECK(sdfio_header_revision(target) == SDFIO_ISO_1_0);
     CHECK(sdfio_header_data_type(target) == SDFIO_TYPE_INT32);
@@ -207,10 +206,10 @@ static void check_copy(void)
           && sdfio_header_rows(target) == 13);
     CHECK(sdfio_header_x_scale(target) == (double)4e-6);
     CHECK(sdfio_header_z_scale(target) == (double)2e-9);
-    CHECK(sdfio_header_modification_date(target) == 1772604360);
-    CHECK(strcmp(sdfio_header_manufacturer_id(target), "ACME 7") == 0);
-    CHECK(sdfio_header_manufacturer_id(target)
-          != sdfio_header_manufacturer_id(source));
+    CHECK(sdfio_header_modified(target) == 1772604360);
+    CHECK(strcmp(sdfio_header_manufacturer(target), "ACME 7") == 0);
+    CHECK(sdfio_header_manufacturer(target)
+          != sdfio_header_manufacturer(source));
     CHECK_OK(sdfio_header_set_columns(source, 1));
     CHECK(sdfio_header_columns(target) == 11);
 
@@ -248,7 +247,7 @@ static void check_copy_of_a_read_header(void)
     CHECK_OK(sdfio_header_set_rows(header, 2));
     CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
     CHECK_OK(sdfio_header_set_z_scale(header, 1e-9));
-    CHECK_OK(sdfio_header_set_manufacturer_id(header, "ACME"));
+    CHECK_OK(sdfio_header_set_manufacturer(header, "ACME"));
     const int16_t coded[6] = {1, 2, 3, 4, 5, 6};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
@@ -262,11 +261,11 @@ static void check_copy_of_a_read_header(void)
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     sdfio_header *kept = new_header();
-    CHECK_OK(sdfio_header_copy(kept, sdfio_get_header(reader)));
+    CHECK_OK(sdfio_header_copy(kept, sdfio_reader_header(reader)));
     sdfio_reader_free(reader);
     CHECK(sdfio_header_columns(kept) == 3 && sdfio_header_rows(kept) == 2);
     CHECK(sdfio_header_z_scale(kept) == (double)1e-9);
-    CHECK(strcmp(sdfio_header_manufacturer_id(kept), "ACME") == 0);
+    CHECK(strcmp(sdfio_header_manufacturer(kept), "ACME") == 0);
     free(file.data);
 }
 

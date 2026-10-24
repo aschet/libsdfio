@@ -103,7 +103,7 @@ sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
                       "The list of formats is full");
 }
 
-sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader, size_t size)
+sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader, size_t size)
 {
     const sdfio_status status = require_new(reader);
     if (status != SDFIO_OK)
@@ -120,7 +120,7 @@ sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader, size_t size)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_reader_set_chunk_values(sdfio_reader *reader, size_t count)
+sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader, size_t count)
 {
     const sdfio_status status = require_new(reader);
     if (status != SDFIO_OK)
@@ -148,7 +148,7 @@ sdfio_status sdfio_reader_set_time_zone(sdfio_reader *reader,
     return SDFIO_OK;
 }
 
-size_t sdfio_reader_version_number_count(const sdfio_reader *reader)
+size_t sdfio_reader_version_count(const sdfio_reader *reader)
 {
     size_t count = 0;
     for (size_t i = 0;
@@ -160,8 +160,7 @@ size_t sdfio_reader_version_number_count(const sdfio_reader *reader)
     return count;
 }
 
-const char *sdfio_reader_version_number(const sdfio_reader *reader,
-                                        size_t index)
+const char *sdfio_reader_version(const sdfio_reader *reader, size_t index)
 {
     for (size_t i = 0;
          reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
@@ -215,7 +214,7 @@ const char *sdfio_reader_error_message(const sdfio_reader *reader)
                                                           : "";
 }
 
-const sdfio_header *sdfio_get_header(const sdfio_reader *reader)
+const sdfio_header *sdfio_reader_header(const sdfio_reader *reader)
 {
     return reader != NULL && reader->opened ? &reader->header : NULL;
 }
