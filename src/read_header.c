@@ -71,8 +71,8 @@ sdfio_status sdfio_select_reader_format(
     if (*format == NULL)
     {
         return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "The format of this SDF file is not listed for the "
-                          "reader");
+                          "The format of this SDF file has not been added to "
+                          "the reader");
     }
     return SDFIO_OK;
 }
@@ -85,13 +85,22 @@ sdfio_status sdfio_read_header(sdfio_source *source,
 {
     const sdfio_status status =
         format->read_header(source, header, state, zone, message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
     /* The z-scale is a non-zero positive number. */
-    if (status == SDFIO_OK
-        && !(header->z_scale > 0.0 && isfinite(header->z_scale)))
+    if (!(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "The z-scale of an SDF file has to be a positive "
                           "number");
     }
-    return status;
+    if (!isfinite(header->x_scale) || !isfinite(header->y_scale))
+    {
+        return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                          "The x-scale and the y-scale of an SDF file have to "
+                          "be finite numbers");
+    }
+    return SDFIO_OK;
 }

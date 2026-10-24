@@ -63,7 +63,7 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * @param reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
  * already.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
 
@@ -76,7 +76,7 @@ SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
  * @param reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
  * already.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_reader_add_ascii(sdfio_reader *reader);
 
@@ -88,7 +88,7 @@ SDFIO_API sdfio_status sdfio_reader_add_ascii(sdfio_reader *reader);
  * @param reader The reader.
  * @param size The size, not 0.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the size is 0.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader,
                                                size_t size);
@@ -101,7 +101,7 @@ SDFIO_API sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader,
  * @param count The number of values, not 0 and not so large that the chunk
  * cannot be counted in bytes.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the number is not valid.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader,
                                               size_t count);
@@ -114,7 +114,7 @@ SDFIO_API sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader,
  * @param reader The reader.
  * @param[in] time_zone The time zone, or null.
  * @retval SDFIO_ERR_ARGUMENT The reader is null.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_reader_set_time_zone(
     sdfio_reader *reader, const sdfio_time_zone *time_zone);
@@ -198,7 +198,7 @@ SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
  * `dst` receives `rows` times `header->columns` coded values of
  * `header->data_type` in the byte order of the machine, in the order of the
  * file. The bad value is not changed. ASCII values are parsed into the data
- * type of the file, so that an ASCII file of binary32 values is rounded to
+ * type of the file, so that an ASCII file of `float` values is rounded to
  * single precision. Use sdfio_decode_heights() to obtain heights in metres.
  *
  * The buffer lies in memory as the layout describes, whose type has to be the

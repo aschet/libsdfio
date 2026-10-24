@@ -45,12 +45,12 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     const sdfio_status status = writer->format->write_header(
         &writer->sink, header, writer->format_state, &writer->options.zone,
         &writer->message);
-    if (status == SDFIO_ERR_IO)
+    if (status != SDFIO_OK)
     {
         return sdfio_writer_fail(writer, status);
     }
     writer->header_written = true;
-    return status;
+    return SDFIO_OK;
 }
 
 /* Stored values of the machine into the file. */
@@ -120,8 +120,7 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
     status = sdfio_writer_start_data(writer);
     if (status != SDFIO_OK)
     {
-        return status == SDFIO_ERR_ARGUMENT ? status
-                                            : sdfio_writer_fail(writer, status);
+        return status;
     }
     const ptrdiff_t element = sdfio_element_stride(layout);
     const size_t size = sdfio_data_type_size(header->data_type);

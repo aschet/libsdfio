@@ -40,9 +40,9 @@ sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
     return SDFIO_OK;
 }
 
-/* Whether the buffers were made, which the first attempt to create a file
+/* Whether the buffers were created, which the first attempt to create a file
  * does: the options are fixed from then on. */
-static bool buffers_made(const sdfio_writer *writer)
+static bool buffers_created(const sdfio_writer *writer)
 {
     return writer->coded != NULL || writer->sink.buffer != NULL;
 }
@@ -55,7 +55,7 @@ static sdfio_status require_new(sdfio_writer *writer)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    if (buffers_made(writer))
+    if (buffers_created(writer))
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "Options can be set only before a file is created");

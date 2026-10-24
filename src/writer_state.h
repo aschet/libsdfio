@@ -64,8 +64,8 @@ struct sdfio_writer
     sdfio_options options;
     /** What a file adds to the writer. */
     sdfio_owner owner;
-    /** The room for a chunk of values in the data type of the file, made when
-     * the file is created. */
+    /** The room for a chunk of values in the data type of the file, created
+     * when the file is created. */
     unsigned char *coded;
     /** The room that the format asks for to write a chunk of values. */
     void *scratch;

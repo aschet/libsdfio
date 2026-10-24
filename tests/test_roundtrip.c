@@ -1033,8 +1033,152 @@ static void check_read_line_ends(void)
     }
 }
 
+/* An attempt to open a file in a reader that is open leaves the open file as it
+ * is, also when the file is larger than the buffer. */
+static void check_second_open(void)
+{
+    enum
+    {
+        VALUES = 4000
+    };
+    membuf files[2] = {{0}, {0}};
+    float values[VALUES];
+    for (size_t f = 0; f < 2; ++f)
+    {
+        for (size_t i = 0; i < VALUES; ++i)
+        {
+            values[i] = (float)i + (float)f * 100000.0F;
+        }
+        sdfio_header *header = new_header();
+        CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_FLOAT));
+        CHECK_OK(sdfio_header_set_columns(header, VALUES));
+        CHECK_OK(sdfio_header_set_rows(header, 1));
+        CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
+        const sdfio_stream stream = membuf_stream(&files[f]);
+        sdfio_writer *writer = new_writer(all_formats());
+        CHECK_OK(sdfio_create_stream(writer, &stream, header));
+        CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                  values, 1));
+        CHECK_OK(sdfio_end_file(writer));
+        sdfio_writer_free(writer);
+    }
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_OK(sdfio_reader_set_buffer(reader, 1));
+    CHECK_OK(sdfio_open_memory(reader, files[0].data, files[0].size));
+    CHECK_STATUS(SDFIO_ERR_STATE,
+                 sdfio_open_memory(reader, files[1].data, files[1].size));
+    CHECK_OK(sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                             values, 1));
+    size_t different = 0;
+    for (size_t i = 0; i < VALUES; ++i)
+    {
+        different += values[i] != (float)i ? 1 : 0;
+    }
+    CHECK(different == 0);
+    sdfio_reader_free(reader);
+    free(files[0].data);
+    free(files[1].data);
+}
+
+static time_t refuse_time(void *user, time_t time)
+{
+    (void)user;
+    (void)time;
+    return SDFIO_NO_TIME;
+}
+
+/* A header that cannot be written fails the writer, also if it is the end of
+ * the file that writes it, and the file is not ended by a second try. */
+static void check_failed_header(void)
+{
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_1_0));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
+    CHECK_OK(sdfio_header_set_columns(header, 3));
+    CHECK_OK(sdfio_header_set_rows(header, 0));
+    CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
+    const sdfio_time_zone zone = {NULL, NULL, refuse_time};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t f = 0; f < 2; ++f)
+    {
+        CHECK_OK(sdfio_header_set_format(header, formats[f]));
+        membuf file = {0};
+        const sdfio_stream stream = membuf_stream(&file);
+        sdfio_writer *writer = new_writer(all_formats());
+        CHECK_OK(sdfio_writer_set_time_zone(writer, &zone));
+        CHECK_OK(sdfio_create_stream(writer, &stream, header));
+        CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_end_file(writer));
+        CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_file(writer));
+        CHECK_STATUS(SDFIO_ERR_STATE,
+                     sdfio_write_trailer_field(writer, "Name", "value"));
+        CHECK(file.size == 0);
+        sdfio_writer_free(writer);
+        free(file.data);
+    }
+}
+
+/* The scales are finite numbers in a file, as they are in a header. */
+static void check_scales_of_files(void)
+{
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 2));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
+    const double not_finite[] = {NAN, INFINITY, -INFINITY};
+    for (size_t i = 0; i < sizeof not_finite / sizeof not_finite[0]; ++i)
+    {
+        for (size_t scale = 0; scale < 2; ++scale)
+        {
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = new_writer(all_formats());
+            const float values[2] = {1.0F, 2.0F};
+            CHECK_OK(sdfio_create_stream(writer, &stream, header));
+            CHECK_OK(sdfio_write_data(
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), values, 1));
+            CHECK_OK(sdfio_end_file(writer));
+            sdfio_writer_free(writer);
+            put_double_in_file(file.data + ISO_2_0_COLUMNS_AT + 2 * 4
+                                   + scale * sizeof(double),
+                               not_finite[i]);
+            sdfio_reader *reader = new_reader(all_formats());
+            CHECK_STATUS(SDFIO_ERR_FORMAT,
+                         sdfio_open_memory(reader, file.data, file.size));
+            sdfio_reader_free(reader);
+            free(file.data);
+        }
+    }
+
+    /* The text of a number that is too large for a double. */
+    CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = new_writer(all_formats());
+    const float values[2] = {1.0F, 2.0F};
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                              values, 1));
+    CHECK_OK(sdfio_end_file(writer));
+    sdfio_writer_free(writer);
+    char *at = strstr((char *)file.data, "Xscale = ");
+    CHECK(at != NULL);
+    if (at != NULL)
+    {
+        static const char huge[] = "9.99999999999999e+999";
+        memcpy(at + sizeof "Xscale = " - 1, huge, sizeof huge - 1);
+    }
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_STATUS(SDFIO_ERR_FORMAT,
+                 sdfio_open_memory(reader, file.data, file.size));
+    sdfio_reader_free(reader);
+    free(file.data);
+}
+
 int main(void)
 {
+    check_second_open();
+    check_failed_header();
+    check_scales_of_files();
     check_read_line_ends();
     check_trailer_line_ends();
     check_rows_without_columns();

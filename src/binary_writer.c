@@ -95,8 +95,6 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
     const char *version_number = version_numbers[header->revision];
     const size_t columns_rows_size =
         sdfio_revision_columns_rows_size(header->revision);
-    const double resolution =
-        header->z_resolution > 0.0 ? header->z_resolution : SDFIO_NO_RESOLUTION;
     const unsigned char codes[SDFIO_BINARY_CODE_FIELDS] = {
         [SDFIO_BINARY_CODE_COMPRESSION] = SDFIO_NONE,
         [SDFIO_BINARY_CODE_DATA_TYPE] = (unsigned char)header->data_type,
@@ -110,7 +108,8 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         && put_le(sink, columns_rows_size, header->rows)
         && put_double(sink, header->x_scale)
         && put_double(sink, header->y_scale)
-        && put_double(sink, header->z_scale) && put_double(sink, resolution)
+        && put_double(sink, header->z_scale)
+        && put_double(sink, header->z_resolution)
         && sdfio_sink_write(sink, codes, sizeof codes);
     return written ? SDFIO_OK : sdfio_sink_failure(message);
 }

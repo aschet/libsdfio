@@ -15,7 +15,7 @@
 #include "message.h"
 
 /**
- * What a file adds to a reader or a writer, made by sdfio_open_file() and
+ * What a file adds to a reader or a writer, created by sdfio_open_file() and
  * sdfio_create_file().
  */
 typedef struct sdfio_owner

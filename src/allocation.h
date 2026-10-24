@@ -26,7 +26,7 @@ void *sdfio_allocate(const sdfio_allocator *allocator, size_t size);
 /**
  * Releases memory from sdfio_allocate().
  *
- * @param allocator The allocator that made the memory.
+ * @param allocator The allocator that allocated the memory.
  * @param memory The memory. May be null.
  */
 void sdfio_release(const sdfio_allocator *allocator, void *memory);

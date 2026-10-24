@@ -54,9 +54,9 @@ sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
     return SDFIO_OK;
 }
 
-/* Whether the buffers were made, which the first attempt to open a file does:
- * the options are fixed from then on. */
-static bool buffers_made(const sdfio_reader *reader)
+/* Whether the buffers were created, which the first attempt to open a file
+ * does: the options are fixed from then on. */
+static bool buffers_created(const sdfio_reader *reader)
 {
     return reader->chunk != NULL || reader->source.buffer != NULL;
 }
@@ -68,7 +68,7 @@ static sdfio_status require_new(sdfio_reader *reader)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    if (buffers_made(reader))
+    if (buffers_created(reader))
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "Options can be set only before a file is opened");
@@ -205,20 +205,26 @@ sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status)
     return status;
 }
 
-/* Selects the format of the stream by its version number, and reads the
- * header. */
-static sdfio_status open_source(sdfio_reader *reader,
-                                const sdfio_stream *stream)
+/* The precondition of every opening: no file is open. */
+static sdfio_status require_closed(sdfio_reader *reader)
 {
     if (reader->opened)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "The reader is open already");
     }
+    return SDFIO_OK;
+}
+
+/* Selects the format of the stream by its version number, and reads the
+ * header. */
+static sdfio_status open_source(sdfio_reader *reader,
+                                const sdfio_stream *stream)
+{
     if (reader->formats[0] == NULL)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "List a format before a file is opened");
+                          "Add a format before a file is opened");
     }
     if (reader->chunk == NULL)
     {
@@ -283,7 +289,8 @@ sdfio_status sdfio_open_stream(sdfio_reader *reader, const sdfio_stream *stream)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    return open_source(reader, stream);
+    const sdfio_status ready = require_closed(reader);
+    return ready != SDFIO_OK ? ready : open_source(reader, stream);
 }
 
 sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
@@ -292,6 +299,11 @@ sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
     if (reader == NULL || (data == NULL && size > 0))
     {
         return SDFIO_ERR_ARGUMENT;
+    }
+    const sdfio_status ready = require_closed(reader);
+    if (ready != SDFIO_OK)
+    {
+        return ready;
     }
     reader->memory = (memory_stream){data, size, 0};
     const sdfio_stream stream = {&reader->memory, memory_read, NULL};

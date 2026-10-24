@@ -94,13 +94,19 @@ static void check_setters(void)
     CHECK(sdfio_header_x_scale(header) == (double)-2e-6);
     CHECK(sdfio_header_y_scale(header) == (double)3e-6);
     CHECK(sdfio_header_z_scale(header) == (double)1e-9);
-    CHECK(sdfio_header_z_resolution(header) == -5.0);
+    CHECK(sdfio_header_z_resolution(header) == SDFIO_NO_RESOLUTION);
+    CHECK_OK(sdfio_header_set_z_resolution(header, 1e-9));
+    CHECK(sdfio_header_z_resolution(header) == (double)1e-9);
+    CHECK_OK(sdfio_header_set_z_resolution(header, 0.0));
+    CHECK(sdfio_header_z_resolution(header) == SDFIO_NO_RESOLUTION);
     CHECK(sdfio_header_created(header) == 1772600760);
     CHECK(sdfio_header_modified(header) == SDFIO_NO_TIME);
     CHECK(strcmp(sdfio_header_manufacturer(header), "0123456789") == 0);
     CHECK_OK(sdfio_header_set_z_scale(header, SDFIO_AUTO_Z_SCALE));
     CHECK_OK(sdfio_header_set_manufacturer(header, ""));
     CHECK(strcmp(sdfio_header_manufacturer(header), "") == 0);
+    CHECK_OK(sdfio_header_set_manufacturer(header, " !~"));
+    CHECK(strcmp(sdfio_header_manufacturer(header), " !~") == 0);
 }
 
 /* A setter refuses what is wrong in its field alone, and changes nothing. */
@@ -133,6 +139,15 @@ static void check_refusals(void)
                  sdfio_header_set_manufacturer(header, "caf\xC3\xA9"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_manufacturer(header, NULL));
+    /* A character that ends a line or is not printable would corrupt a header
+     * of the ASCII format. */
+    const char *const unprintable[] = {"a\nb", "a\r\n*", "\t", "a\x7F", "\x1F"};
+    for (size_t i = 0; i < sizeof unprintable / sizeof unprintable[0]; ++i)
+    {
+        CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                     sdfio_header_set_manufacturer(header, unprintable[i]));
+    }
+    CHECK(strcmp(sdfio_header_manufacturer(header), "kept") == 0);
     if (sizeof(time_t) >= 8)
     {
         const time_t far_away =
@@ -216,7 +231,7 @@ static void check_copy(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_copy(NULL, source));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_copy(target, NULL));
 
-    /* Each header goes back to the allocator that made it. */
+    /* Each header goes back to the allocator that created it. */
     sdfio_header_free(source);
     sdfio_header_free(target);
     sdfio_header_free(NULL);

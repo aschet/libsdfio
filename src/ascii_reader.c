@@ -671,25 +671,14 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
         store_bad(header->data_type, dst, index);
         return SDFIO_OK;
     }
-    sdfio_status status = SDFIO_ERR_FORMAT;
-    if (word->lost)
-    {
-        /* The start of a word that is too long for a number is no number. */
-    }
-    else if (sdfio_is_floating(header->data_type))
-    {
-        status = store_real(header->data_type, decimal_point, token, size, dst,
-                            index)
-                     ? SDFIO_OK
-                     : SDFIO_ERR_FORMAT;
-    }
-    else
-    {
-        status = store_integer(header->data_type, token, size, dst, index)
-                     ? SDFIO_OK
-                     : SDFIO_ERR_FORMAT;
-    }
-    if (status != SDFIO_OK)
+    /* The start of a word that is too long for a number is no number. */
+    const bool stored =
+        !word->lost
+        && (sdfio_is_floating(header->data_type)
+                ? store_real(header->data_type, decimal_point, token, size, dst,
+                             index)
+                : store_integer(header->data_type, token, size, dst, index));
+    if (!stored)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "A data value is not a number of the data type");

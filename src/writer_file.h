@@ -38,7 +38,7 @@ sdfio_message *sdfio_writer_message(sdfio_writer *writer);
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_ARGUMENT The header cannot be written.
  * @retval SDFIO_ERR_UNSUPPORTED The format of the header has not been added to
- * listed.
+ * the writer.
  */
 sdfio_status sdfio_writer_check(sdfio_writer *writer,
                                 const sdfio_header *header);

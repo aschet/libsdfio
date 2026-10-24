@@ -95,7 +95,7 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
     if (rows > 1 && columns > 1 && row < row_extent && element < column_extent)
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The strides make elements overlap: the rows have to "
+                          "The strides let elements overlap: the rows have to "
                           "lie beside each other, or the columns do");
     }
     return SDFIO_OK;

@@ -282,40 +282,43 @@ static void check_arguments(void)
                  sdfio_writer_create(sdfio_default_allocator(), NULL));
 
     /* The options: a chunk that cannot be counted in bytes, a buffer without a
-     * size, a format that is listed twice, and more formats than there are. */
-    sdfio_reader *reader_made = NULL;
-    sdfio_writer *writer_made = NULL;
-    CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &reader_made));
-    CHECK_OK(sdfio_writer_create(sdfio_default_allocator(), &writer_made));
+     * size, a format that is added twice, and more formats than there are. */
+    sdfio_reader *reader_created = NULL;
+    sdfio_writer *writer_created = NULL;
+    CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &reader_created));
+    CHECK_OK(sdfio_writer_create(sdfio_default_allocator(), &writer_created));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_reader_set_chunk(reader_made, (size_t)-1));
+                 sdfio_reader_set_chunk(reader_created, (size_t)-1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_writer_set_chunk(writer_made, (size_t)-1));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_set_chunk(reader_made, 0));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_set_buffer(reader_made, 0));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_set_buffer(writer_made, 0));
-    CHECK_OK(sdfio_reader_add_binary(reader_made));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_add_binary(reader_made));
-    CHECK_OK(sdfio_reader_add_ascii(reader_made));
-    CHECK_OK(sdfio_writer_add_binary(writer_made));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_add_binary(writer_made));
+                 sdfio_writer_set_chunk(writer_created, (size_t)-1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_set_chunk(reader_created, 0));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_set_buffer(reader_created, 0));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_set_buffer(writer_created, 0));
+    CHECK_OK(sdfio_reader_add_binary(reader_created));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_add_binary(reader_created));
+    CHECK_OK(sdfio_reader_add_ascii(reader_created));
+    CHECK_OK(sdfio_writer_add_binary(writer_created));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_add_binary(writer_created));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_add_binary(NULL));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_add_ascii(NULL));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_set_time_zone(NULL, NULL));
-    CHECK_OK(sdfio_reader_set_time_zone(reader_made, NULL));
+    CHECK_OK(sdfio_reader_set_time_zone(reader_created, NULL));
 
     /* The options are set before the first attempt to open a file. */
     static const unsigned char junk[] =
         "not an sdf file at all, but long enough";
     CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_open_memory(reader_made, junk, sizeof junk));
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_set_buffer(reader_made, 4096));
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_set_chunk(reader_made, 16));
+                 sdfio_open_memory(reader_created, junk, sizeof junk));
     CHECK_STATUS(SDFIO_ERR_STATE,
-                 sdfio_reader_set_time_zone(reader_made, NULL));
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_add_ascii(reader_made));
-    sdfio_reader_free(reader_made);
-    sdfio_writer_free(writer_made);
+                 sdfio_reader_set_buffer(reader_created, 4096));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_set_chunk(reader_created, 16));
+    CHECK_STATUS(SDFIO_ERR_STATE,
+                 sdfio_reader_set_time_zone(reader_created, NULL));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_add_ascii(reader_created));
+    sdfio_reader_free(reader_created);
+    sdfio_writer_free(writer_created);
 
     /* A date that is not set cannot be written. */
     sdfio_header *header = new_header();
@@ -354,7 +357,7 @@ static void check_arguments(void)
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* A file is read only if its format is listed. */
+    /* A file is read only if its format is added. */
     static const char ascii_version_number[] = "aISO-2.0\r\n";
     sdfio_reader *reader = new_reader(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,

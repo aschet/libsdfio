@@ -125,7 +125,7 @@ typedef struct sdfio_layout
 } sdfio_layout;
 
 /**
- * Initializes a layout of a plain array of binary32 elements: the elements
+ * Initializes a layout of a plain array of `float` elements: the elements
  * follow each other, the rows follow each other, and NaN marks a point of
  * heights that is not measured. The caller sets the type and every other field
  * that differs.

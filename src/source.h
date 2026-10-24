@@ -44,7 +44,7 @@ typedef struct sdfio_source
 } sdfio_source;
 
 /**
- * Makes the buffer of a source, once, with the reader.
+ * Creates the buffer of a source, once, with the reader.
  *
  * @param[out] source The source.
  * @param capacity The size of the buffer.
@@ -70,7 +70,7 @@ void sdfio_source_destroy(sdfio_source *source);
 void sdfio_source_init(sdfio_source *source, const sdfio_stream *io);
 
 /**
- * Makes sure that `want` bytes are buffered, if the stream has them.
+ * Ensures that `want` bytes are buffered, if the stream has them.
  *
  * @param source The source.
  * @param want The number of bytes. A number above the size of the buffer is

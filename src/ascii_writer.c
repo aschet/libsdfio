@@ -167,8 +167,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
          && append_scale(sink, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
          && append_scale(sink, point, SDFIO_ASCII_Z_SCALE, header->z_scale)
          && append_scale(sink, point, SDFIO_ASCII_Z_RESOLUTION,
-                         header->z_resolution > 0.0 ? header->z_resolution
-                                                    : SDFIO_NO_RESOLUTION);
+                         header->z_resolution);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
     ok = ok && append_field(sink, SDFIO_ASCII_COMPRESSION, text);
     snprintf(text, sizeof text, "%d", (int)header->data_type);

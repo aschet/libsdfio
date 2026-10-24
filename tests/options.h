@@ -5,7 +5,7 @@
  */
 
 /* The options of a reader or a writer in one structure, so that a test lists
- * them where it makes the handle. The library sets them one by one. */
+ * them where it creates the handle. The library sets them one by one. */
 
 #ifndef SDFIO_TESTS_OPTIONS_H
 #define SDFIO_TESTS_OPTIONS_H
@@ -37,7 +37,7 @@ typedef struct test_options
     .reader_formats = {TEST_BINARY, TEST_ASCII},                               \
     .writer_formats = {TEST_BINARY, TEST_ASCII}
 
-/* Lists a format of a reader or a writer. */
+/* Adds a format to a reader or a writer. */
 static inline sdfio_status add_reader_format(sdfio_reader *reader,
                                              test_format format)
 {

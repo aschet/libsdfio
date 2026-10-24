@@ -18,7 +18,7 @@
 #include "options.h"
 #include <sdfio/sdfio.h>
 
-/* The options with them, made where they are used: a program that links the
+/* The options with them, created where they are used: a program that links the
  * DLL cannot take the address of its formats in a constant initializer. */
 #define all_formats() (&(const test_options){ALL_FORMATS})
 
@@ -136,18 +136,18 @@ static inline sdfio_writer *new_writer(const test_options *options)
 
 enum
 {
-    /* The room for the headers that a test makes. */
+    /* The room for the headers that a test creates. */
     HEADER_ROOM = 256
 };
 
-static sdfio_header *made_headers[HEADER_ROOM];
-static size_t made_header_count = 0;
+static sdfio_header *created_headers[HEADER_ROOM];
+static size_t created_header_count = 0;
 
-static void free_made_headers(void)
+static void free_created_headers(void)
 {
-    for (size_t i = 0; i < made_header_count; ++i)
+    for (size_t i = 0; i < created_header_count; ++i)
     {
-        sdfio_header_free(made_headers[i]);
+        sdfio_header_free(created_headers[i]);
     }
 }
 
@@ -160,13 +160,13 @@ static inline sdfio_header *new_header(void)
     CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
     CHECK_OK(sdfio_header_set_created(header, 1772600760));
     CHECK_OK(sdfio_header_set_modified(header, 1772604360));
-    if (made_header_count == 0)
+    if (created_header_count == 0)
     {
-        atexit(free_made_headers);
+        atexit(free_created_headers);
     }
-    if (made_header_count < HEADER_ROOM)
+    if (created_header_count < HEADER_ROOM)
     {
-        made_headers[made_header_count++] = header;
+        created_headers[created_header_count++] = header;
     }
     else
     {

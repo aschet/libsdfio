@@ -42,8 +42,8 @@ struct sdfio_header
     time_t modification_date;
     /** Manufacturer's identifier, terminated by a null character. */
     char manufacturer_id[SDFIO_MANUFACTURER_ID_MAX + 1];
-    /** The allocator that made the header; empty for a header inside a reader
-     * or a writer. */
+    /** The allocator that created the header; empty for a header inside a
+     * reader or a writer. */
     sdfio_allocator allocator;
 };
 

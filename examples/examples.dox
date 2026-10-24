@@ -12,7 +12,7 @@
 
 /**
  * @example writer.c
- * Writes a surface as binary32 values and as 16-bit integer values, each with
+ * Writes a surface as `float` values and as 16-bit integer values, each with
  * the data type of the header set explicitly. The trailer is written with
  * sdfio_write_trailer_field().
  */

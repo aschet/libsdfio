@@ -33,7 +33,7 @@ typedef struct sdfio_sink
 } sdfio_sink;
 
 /**
- * Makes the buffer of a sink, once, with the writer.
+ * Creates the buffer of a sink, once, with the writer.
  *
  * @param[out] sink The sink.
  * @param capacity The size of the buffer.

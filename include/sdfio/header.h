@@ -30,7 +30,7 @@ extern "C"
  * with the column, y with the row, and z points to the viewer who looks from
  * above. The row y = 0 is the first row of the file.
  *
- * A header is opaque. sdfio_header_create() makes one with defaults, the
+ * A header is opaque. sdfio_header_create() creates one with defaults, the
  * setters fill it, sdfio_header_copy() copies it and sdfio_header_free()
  * releases it. A reader describes the file that it opened by a header that
  * sdfio_reader_header() returns. A writer takes a header as the description of
@@ -48,12 +48,12 @@ typedef struct sdfio_header sdfio_header;
  * Creates a header with default values.
  *
  * The defaults are: revision ISO-2.0, binary format, data type
- * binary32, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE, z_resolution
- * SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer_id "libsdfio",
- * and zero columns and rows. The caller sets the number of columns and rows,
- * the dates, which a file that is written requires, and every other field that
- * differs. The function does not read the clock, so a program without one
- * needs none.
+ * SDFIO_TYPE_FLOAT, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE,
+ * z_resolution SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer_id
+ * "libsdfio", and zero columns and rows. The caller sets the number of columns
+ * and rows, the dates, which a file that is written requires, and every other
+ * field that differs. The function does not read the clock, so a program
+ * without one needs none.
  *
  * @param[in] allocator The allocator of the header, for example
  * sdfio_default_allocator(). The structure is copied, so it need not outlive
@@ -92,7 +92,7 @@ SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
 SDFIO_API sdfio_status sdfio_header_set_now(sdfio_header *header);
 
 /**
- * Releases a header that sdfio_header_create() made. A null pointer is
+ * Releases a header that sdfio_header_create() created. A null pointer is
  * ignored. The header that sdfio_reader_header() returns is not released.
  *
  * @param[in] header The header.
@@ -328,7 +328,8 @@ SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
  * @param[in,out] header The header.
  * @param[in] manufacturer_id The identifier, terminated by a null character.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, the identifier is longer than
- * SDFIO_MANUFACTURER_ID_MAX characters, or it is not 7-bit ASCII.
+ * SDFIO_MANUFACTURER_ID_MAX characters, or it has a character that is not a
+ * printable 7-bit ASCII character.
  */
 SDFIO_API sdfio_status sdfio_header_set_manufacturer(
     sdfio_header *header, const char *manufacturer_id);

@@ -238,7 +238,8 @@ sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->z_resolution = z_resolution;
+    header->z_resolution =
+        z_resolution > 0.0 ? z_resolution : SDFIO_NO_RESOLUTION;
     return SDFIO_OK;
 }
 
@@ -278,7 +279,7 @@ sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
     }
     for (size_t i = 0; i < length; ++i)
     {
-        if (!sdfio_is_ascii(manufacturer_id[i]))
+        if (!sdfio_is_printable(manufacturer_id[i]))
         {
             return SDFIO_ERR_ARGUMENT;
         }

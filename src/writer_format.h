@@ -101,14 +101,14 @@ struct sdfio_writer_format
 };
 
 /**
- * Lists a format of the writer. The public functions that name a format call
+ * Adds a format to the writer. The public functions that name a format call
  * it.
  *
  * @param writer The writer.
  * @param format The format.
  * @retval SDFIO_ERR_ARGUMENT The writer is null, or has added the format
  * already.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
                                          const sdfio_writer_format *format);

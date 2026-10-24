@@ -59,7 +59,7 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
  * @param writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
  * already.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
 
@@ -71,7 +71,7 @@ SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
  * @param writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
  * already.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer);
 
@@ -83,7 +83,7 @@ SDFIO_API sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer);
  * @param writer The writer.
  * @param size The size, not 0.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the size is 0.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer,
                                                size_t size);
@@ -97,7 +97,7 @@ SDFIO_API sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer,
  * @param count The number of values, not 0 and not so large that the chunk
  * cannot be counted in bytes.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the number is not valid.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer,
                                               size_t count);
@@ -110,7 +110,7 @@ SDFIO_API sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer,
  * @param writer The writer.
  * @param[in] time_zone The time zone, or null.
  * @retval SDFIO_ERR_ARGUMENT The writer is null.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
  */
 SDFIO_API sdfio_status sdfio_writer_set_time_zone(
     sdfio_writer *writer, const sdfio_time_zone *time_zone);
