@@ -8,7 +8,9 @@
  * this fails to link if something is not exported. */
 
 #include "check.h"
+#include <float.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -84,10 +86,27 @@ static void check_init(void)
     CHECK(zone.utc_to_local == NULL);
 }
 
+/* The constants have the values and the types that the documentation gives. */
+static void check_constants(void)
+{
+    CHECK(SDFIO_BAD_INT8 == INT8_MIN && SDFIO_BAD_INT16 == INT16_MIN
+          && SDFIO_BAD_INT32 == INT32_MIN);
+    CHECK(SDFIO_BAD_FLOAT == -FLT_MAX && SDFIO_BAD_DOUBLE == -DBL_MAX);
+    CHECK(sizeof SDFIO_BAD_FLOAT == sizeof(float));
+    CHECK(sizeof SDFIO_BAD_DOUBLE == sizeof(double));
+    CHECK(SDFIO_NO_TIME == (time_t)-1);
+    CHECK(sizeof SDFIO_NO_TIME == sizeof(time_t));
+    CHECK(SDFIO_STREAM_ERROR == SIZE_MAX);
+    CHECK(sizeof SDFIO_STREAM_ERROR == sizeof(size_t));
+    CHECK(SDFIO_AUTO_Z_SCALE == 0.0 && SDFIO_NO_RESOLUTION == -1.0);
+    CHECK(SDFIO_MAGIC_SIZE == 8 && SDFIO_MANUFACTURER_ID_MAX == 10);
+}
+
 int main(void)
 {
     check_memory();
     check_init();
+    check_constants();
     CHECK(strcmp(sdfio_version(), SDFIO_VERSION_STRING) == 0);
 
     sdfio_header *header = new_header();

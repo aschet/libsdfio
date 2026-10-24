@@ -141,10 +141,22 @@ enum
      * Maximum length of the manufacturer's identifier in characters: the size
      * of the field of the standard.
      */
-    SDFIO_MANUFACTURER_ID_MAX = 10
+    SDFIO_MANUFACTURER_ID_MAX = 10,
+    /** The size of the magic that starts every file, in bytes. */
+    SDFIO_MAGIC_SIZE = 8,
+    /**
+     * The bad value of SDFIO_TYPE_INT8, the number that labels a point that is
+     * not measured or spurious. It is the minimum of the type, which the
+     * standard excludes for a valid height.
+     */
+    SDFIO_BAD_INT8 = -128,
+    /** The bad value of SDFIO_TYPE_INT16: the minimum of the type. */
+    SDFIO_BAD_INT16 = -32768,
+    /** The bad value of SDFIO_TYPE_INT32: the minimum of the type. */
+    SDFIO_BAD_INT32 = (-2147483647 - 1)
 };
 
-/** Value of a date that is not recorded. */
+/** Value of a date that is not recorded: a time_t of -1. */
 #define SDFIO_NO_TIME ((time_t)-1)
 
 /**
@@ -189,29 +201,12 @@ typedef struct sdfio_allocator
  */
 SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
 
-/**
- * The bad value of each data type: the number that labels a point that is not
- * measured or spurious. It is the minimum of the type, which the standard
- * excludes for a valid height.
- *
- * @{
- */
-/** The bad value of SDFIO_TYPE_INT8. */
-#define SDFIO_BAD_INT8 INT8_MIN
-/** The bad value of SDFIO_TYPE_INT16. */
-#define SDFIO_BAD_INT16 INT16_MIN
-/** The bad value of SDFIO_TYPE_INT32. */
-#define SDFIO_BAD_INT32 INT32_MIN
-/** The bad value of SDFIO_TYPE_FLOAT. */
+/** The bad value of SDFIO_TYPE_FLOAT, a float: -FLT_MAX. */
 #define SDFIO_BAD_FLOAT (-FLT_MAX)
-/** The bad value of SDFIO_TYPE_DOUBLE. */
+/** The bad value of SDFIO_TYPE_DOUBLE, a double: -DBL_MAX. */
 #define SDFIO_BAD_DOUBLE (-DBL_MAX)
-/** @} */
 
-/** The size of the magic that starts every file, in bytes. */
-#define SDFIO_MAGIC_SIZE 8
-
-/** Return value of a read callback that failed. */
+/** Return value of a read callback that failed: the largest size_t. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)
 
 /**

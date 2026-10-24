@@ -26,7 +26,7 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-_Static_assert(SDFIO_MAGIC_SIZE <= SDFIO_DATETIME_SIZE
+_Static_assert((size_t)SDFIO_MAGIC_SIZE <= (size_t)SDFIO_DATETIME_SIZE
                    && (size_t)SDFIO_MANUFACTURER_ID_MAX
                           <= (size_t)SDFIO_DATETIME_SIZE,
                "a text field of the header fits the buffer of put_text");
