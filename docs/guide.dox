@@ -61,8 +61,8 @@
  *   area, the trailer and the two formats.
  * - @ref concepts describes the ideas of the library: coded values and heights,
  *   layouts, formats and configuration, streams, memory and errors.
- * - @ref states describes the life of a reader and of a writer: which call is
- *   valid when.
+ * - @ref states describes the states of a reader and of a writer: which call is
+ *   valid when, and which error ends the handle.
  * - @ref references lists the documents.
  * - The programs under Examples show typical uses. The interface is declared in
  *   `<sdfio/sdfio.h>`, which does not depend on the file functions of the C
@@ -391,102 +391,200 @@
  */
 
 /**
- * @page states Life of a Reader and of a Writer
+ * @page states States of a Reader and of a Writer
  *
- * A reader and a writer move through states, and a call is valid only in some
- * of them. A call in another state returns SDFIO_ERR_STATE.
+ * A reader and a writer are state machines. A call is valid in some states
+ * only. The state changes by the calls that the tables below name, and by an
+ * error that loses the position in the file. Two rules hold for both handles:
+ * - A call that is refused returns SDFIO_ERR_STATE if the state does not allow
+ *   it, and SDFIO_ERR_ARGUMENT if an argument is not valid. A refused call
+ *   changes neither the state nor the file, so the program can make the call
+ *   again when it is valid.
+ * - An error in the middle of the file loses the position in the stream. The
+ *   handle then moves to the state failed, and refuses every later call that
+ *   reads or writes with SDFIO_ERR_STATE.
  *
  * @section states_reader Reader
  * @code{.unparsed}
- * sdfio_reader_create()
- *         |
- *         v
- *     [ new ]     the formats and the options are set in this state
- *         |
- *         | sdfio_open_file(), sdfio_open_memory(), sdfio_open_stream()
- *         | (the header is read and checked, the buffers are allocated)
- *         v
- *     [ open ]
- *         |
- *         | sdfio_read_data(), sdfio_read_heights()
- *         v
- *     [ reading rows ]
- *         |
- *         | all rows read, or sdfio_read_trailer() first
- *         v
- *     [ trailer ]
- *         |
- *         | an error in the data area or the trailer, at any point
- *         v
- *     [ failed ]  (every later read fails, the header stays available)
+ *                      open fails
+ *                    +------------+
+ *                    |            |
+ *   sdfio_reader_create()         |
+ *           |                     |
+ *           v                     |
+ *       [ new ] ------------------+
+ *           |
+ *           | sdfio_open_file(), sdfio_open_memory(), sdfio_open_stream()
+ *           v
+ *       [ data ] ------------------+
+ *           |                      | sdfio_read_data(), sdfio_read_heights()
+ *           | <--------------------+
+ *           |
+ *           | sdfio_read_trailer()
+ *           v
+ *      [ trailer ] ----------------+
+ *           |                      | sdfio_read_trailer()
+ *           | <--------------------+
+ *           |
+ *   [ data ] or [ trailer ]: an error that loses the position
+ *           |
+ *           v
+ *      [ failed ]
  * @endcode
  *
- * - A new reader reads nothing. The program adds its formats and may set its
- *   options. The first attempt to open a file fixes them, and the buffers are
- *   allocated then. A reader is opened once: opening it again is an error. If
- *   the open fails, sdfio_reader_error_message() says why.
- * - After the open, sdfio_reader_header() returns the header, which stays valid
- *   until the reader is freed.
- * - sdfio_read_data() reads rows in order, and sdfio_read_heights() reads the
- *   whole matrix. The latter works only before any row was read. A call that
- *   asks for more rows than remain is an invalid argument.
- * - When the last row is read, the end of the data area is checked. In an ASCII
- *   file a missing or an extra value is an error.
- * - sdfio_read_trailer() can be called at any time after the open. Rows that
- *   were not read are passed over. It returns the text in parts, and a part of
- * 0 bytes is the end. After the trailer was asked for, reading rows fails with
- *   SDFIO_ERR_STATE.
- * - An error in the data area or in the trailer ends the reading, and every
- *   later read fails with SDFIO_ERR_STATE. The header stays available.
+ * <table class="doxtable">
+ * <tr><th>State</th><th>Meaning</th></tr>
+ * <tr><td>new</td><td>No file is open. The formats and the options can be
+ * set.</td></tr>
+ * <tr><td>data</td><td>A file is open and the header is available. The rows
+ * that were not read remain, or none.</td></tr>
+ * <tr><td>trailer</td><td>The reading of the trailer has begun. The rows that
+ * were not read are discarded.</td></tr>
+ * <tr><td>failed</td><td>An error ended the reading. The header stays
+ * available.</td></tr>
+ * </table>
+ *
+ * The result of a call in each state:
+ *
+ * <table class="doxtable">
+ * <tr><th>Call</th><th>new</th><th>data</th><th>trailer</th><th>failed</th></tr>
+ * <tr><td>sdfio_reader_add_binary(), sdfio_reader_add_ascii(),
+ * sdfio_reader_set_buffer(), sdfio_reader_set_chunk(),
+ * sdfio_reader_set_time_zone()</td><td>done</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_open_file(), sdfio_open_memory(), sdfio_open_stream()</td>
+ * <td>done, then data</td><td>SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_reader_header()</td><td>null</td><td>the header</td>
+ * <td>the header</td><td>the header</td></tr>
+ * <tr><td>sdfio_read_data()</td><td>SDFIO_ERR_STATE</td><td>done, or
+ * SDFIO_ERR_ARGUMENT for more rows than remain</td><td>done for 0 rows,
+ * otherwise SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_read_heights()</td><td>SDFIO_ERR_STATE</td><td>done if no row
+ * was read, otherwise SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_read_trailer()</td><td>SDFIO_ERR_STATE</td><td>done, then
+ * trailer</td><td>done</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_reader_free(), sdfio_reader_error_message(),
+ * sdfio_reader_magic_count(), sdfio_reader_magic()</td><td>done</td>
+ * <td>done</td><td>done</td><td>done</td></tr>
+ * </table>
+ *
+ * - The first attempt to open a file fixes the options. The buffers are
+ *   allocated before the header is read, so an attempt that fails afterwards
+ *   fixes them as well. An attempt that fails before, because an argument is
+ *   null or no format is added, does not. A reader whose open failed is still
+ *   new, and can open another file.
+ * - sdfio_read_data() reads rows in the order of the file. When it reads the
+ *   last row, it also checks the end of the data area. In an ASCII file a
+ *   missing or an extra value is an error of that call.
+ * - sdfio_read_trailer() returns the text in parts, and a part of 0 bytes is
+ *   the end of the trailer. Every later call returns 0 bytes again.
+ * - An error ends the reading if it is an error of the stream
+ *   (SDFIO_ERR_IO), of the file (SDFIO_ERR_FORMAT), or a height that does
+ *   not fit the type of the buffer (SDFIO_ERR_RANGE) in sdfio_read_data(),
+ *   sdfio_read_heights() or sdfio_read_trailer(). An invalid argument or a
+ *   call in the wrong state does not.
  *
  * @section states_writer Writer
  * @code{.unparsed}
- * sdfio_writer_create()
- *         |
- *         v
- *     [ new ]     the formats and the options are set in this state
- *         |
- *         | sdfio_create_file(), sdfio_create_stream()
- *         | (the header is checked and not written yet, the buffers are
- *         |  allocated)
- *         v
- *     [ created ]
- *         |
- *         | sdfio_write_data(), sdfio_write_heights()
- *         | (the header goes out with the first row)
- *         v
- *     [ writing rows ]
- *         |
- *         | all rows written
- *         v
- *     [ trailer ]  sdfio_write_trailer_field(), sdfio_write_trailer_text()
- *         |
- *         | sdfio_end_file()
- *         v
- *     [ ended ]
+ *                      create fails
+ *                    +--------------+
+ *                    |              |
+ *   sdfio_writer_create()           |
+ *           |                       |
+ *           v                       |
+ *       [ new ] --------------------+
+ *           |
+ *           | sdfio_create_file(), sdfio_create_stream()
+ *           v
+ *      [ created ] ----------------+
+ *           |                      | sdfio_write_data(), sdfio_write_heights()
+ *           | <--------------------+
+ *           |
+ *           | all rows written: sdfio_write_trailer_field(),
+ *           | sdfio_write_trailer_text(), sdfio_copy_trailer()
+ *           v
+ *      [ trailer ] ----------------+
+ *           |                      | the same calls
+ *           | <--------------------+
+ *           |
+ *           | sdfio_end_file(), also from [ created ] if all rows are written
+ *           v
+ *       [ ended ]
+ *
+ *   [ created ] or [ trailer ]: an error that loses the position
+ *           |
+ *           v
+ *      [ failed ]
  * @endcode
  *
- * - The program adds the formats of a new writer and may set its options. The
- *   first attempt to create a file fixes them, and the buffers are allocated
- *   then.
- * - The header is checked when the file is created. Nothing is written yet,
- *   because sdfio_write_heights() may still determine the z-scale from the
- *   heights. The header goes out with the first row, or with the end of the
- *   file if it has no row.
- * - sdfio_write_data() writes rows in order. sdfio_write_heights() writes the
- *   whole matrix, and works only before any row was written.
- * - The trailer can be written only when all rows are written, with
- *   sdfio_write_trailer_field() and sdfio_write_trailer_text(), in any order
- * and in as many calls as needed.
- * - sdfio_end_file() ends the file. It is required, also for a file without
- * a trailer, and nothing can be written after it. For a file created with
- *   sdfio_create_file() it flushes and closes the file.
- * - An error ends the writing, and every later write fails with
- *   SDFIO_ERR_STATE.
+ * <table class="doxtable">
+ * <tr><th>State</th><th>Meaning</th></tr>
+ * <tr><td>new</td><td>No file is created. The formats and the options can be
+ * set.</td></tr>
+ * <tr><td>created</td><td>A file is created. The rows are written in order,
+ * and the header goes out with the first of them.</td></tr>
+ * <tr><td>trailer</td><td>The writing of the trailer has begun. All rows are
+ * written.</td></tr>
+ * <tr><td>ended</td><td>sdfio_end_file() ended the file. Nothing can be
+ * written.</td></tr>
+ * <tr><td>failed</td><td>An error ended the writing.</td></tr>
+ * </table>
  *
- * Both handles are released with their free function in any state. A reader or
- * a writer for a file also closes the file then; a writer that was not ended
- * leaves an incomplete file.
+ * The result of a call in each state:
+ *
+ * <table class="doxtable">
+ * <tr><th>Call</th><th>new</th><th>created</th><th>trailer</th>
+ * <th>ended, failed</th></tr>
+ * <tr><td>sdfio_writer_add_binary(), sdfio_writer_add_ascii(),
+ * sdfio_writer_set_buffer(), sdfio_writer_set_chunk(),
+ * sdfio_writer_set_time_zone()</td><td>done</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_create_file(), sdfio_create_stream()</td><td>done, then
+ * created</td><td>SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_write_data()</td><td>SDFIO_ERR_STATE</td><td>done, or
+ * SDFIO_ERR_ARGUMENT for more rows than remain</td><td>done for 0 rows,
+ * otherwise SDFIO_ERR_ARGUMENT</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_write_heights()</td><td>SDFIO_ERR_STATE</td><td>done if no row
+ * was written, otherwise SDFIO_ERR_STATE</td><td>SDFIO_ERR_STATE</td>
+ * <td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_write_trailer_field(), sdfio_write_trailer_text(),
+ * sdfio_copy_trailer()</td><td>SDFIO_ERR_STATE</td><td>done, then trailer, if
+ * all rows are written, otherwise SDFIO_ERR_STATE</td><td>done</td>
+ * <td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_end_file()</td><td>SDFIO_ERR_STATE</td><td>done, then ended,
+ * if all rows are written, otherwise SDFIO_ERR_STATE</td><td>done, then
+ * ended</td><td>SDFIO_ERR_STATE</td></tr>
+ * <tr><td>sdfio_writer_free(), sdfio_writer_error_message()</td><td>done</td>
+ * <td>done</td><td>done</td><td>done</td></tr>
+ * </table>
+ *
+ * - The first attempt to create a file fixes the options, if the checks of
+ *   the header pass. An attempt that fails before, because an argument is
+ *   null, the header is refused or its format is not added, does not. A writer
+ *   whose create failed is still new, and can create the file again.
+ * - The header is checked when the file is created and copied into the
+ *   writer, so later changes of the header of the program have no effect.
+ *   Nothing is written yet, because sdfio_write_heights() may still determine
+ *   the z-scale from the heights. The header goes out with the first rows, or
+ *   with the first call of the trailer or with sdfio_end_file() if the file has
+ *   no rows. An error of writing it, for instance a time zone that cannot
+ *   convert a date, belongs to that call.
+ * - sdfio_end_file() is required, also for a file without a trailer. It
+ *   flushes the stream, and for a file of sdfio_create_file() it closes the
+ *   file.
+ * - An error ends the writing if it is an error of the stream
+ *   (SDFIO_ERR_IO), of writing the header, of closing the file, or a height
+ *   that does not fit the data type or equals its bad value in
+ *   sdfio_write_heights(). An invalid argument or a call in the wrong state
+ *   does not, nor does the missing z-scale of sdfio_write_data().
+ *
+ * Both handles are released with their free function in any state. The free
+ * function closes a file that sdfio_open_file() or sdfio_create_file() opened.
+ * A writer that was not ended leaves an incomplete file, because what the
+ * stream has not received yet is lost.
  */
 
 /**
