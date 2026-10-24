@@ -49,9 +49,10 @@ static bool read_trailer_of(small_file *small, const char *expected)
     const char *read = NULL;
     size_t size = 0;
     CHECK_OK(read_trailer_text(reader, 0, &read, &size));
-    const bool equal = expected == NULL
-                           ? read == NULL || size == 0
-                           : read != NULL && same(read, size, expected);
+    const bool equal =
+        expected == NULL
+            ? read == NULL || size == 0
+            : read != NULL && same(read, size, expected_read(expected));
     sdfio_reader_free(reader);
     free(small->file.data);
     return equal;
@@ -177,7 +178,7 @@ static void check_the_text_is_written_as_given(void)
             const char *read = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &read, &size));
-            CHECK(read != NULL && same(read, size, trailers[t]));
+            CHECK(read != NULL && same(read, size, expected_read(trailers[t])));
             sdfio_reader_free(reader);
             free(file.data);
         }
@@ -270,10 +271,10 @@ static void check_the_end(void)
         membuf file = file_with_text(formats[r], "abc");
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-        char buffer[3];
+        char buffer[4];
         size_t size = 0;
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
-        CHECK(size == 3 && memcmp(buffer, "abc", 3) == 0);
+        CHECK(size == 4 && memcmp(buffer, "abc\n", 4) == 0);
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
         CHECK(size == 0);
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
@@ -296,23 +297,23 @@ static void check_the_end(void)
     }
 }
 
-/* In an ASCII file the white space before the text is skipped, and the trailer
- * ends at the line that consists of a star. */
+/* In an ASCII file the text keeps its white space, and the trailer ends at the
+ * line that consists of a star. */
 static void check_the_ascii_record(void)
 {
     static const struct
     {
         const char *record;
         const char *text;
-    } cases[] = {
-        {"  \r\n\t\r\nA = 1\r\n*\r\n", "A = 1"},
-        {"A = 1\r\n  *  \r\nignored\r\n", "A = 1"},
-        {"A = 1\r\n*\r\n", "A = 1"},
-        {"A = 1\r\n*", "A = 1"},
-        {"A = 1\r\n*not a star\r\nB = 2\r\n*\r\n", "A = 1\n*not a star\nB = 2"},
-        {"A = 1\r\n\r\n\r\n*\r\n", "A = 1"},
-        {"*\r\n", ""},
-        {"", ""}};
+    } cases[] = {{"  \r\n\t\r\nA = 1\r\n*\r\n", "  \n\t\nA = 1\n"},
+                 {"A = 1\r\n  *  \r\nignored\r\n", "A = 1\n"},
+                 {"A = 1\r\n*\r\n", "A = 1\n"},
+                 {"A = 1\r\n*", "A = 1\n"},
+                 {"A = 1\r\n*not a star\r\nB = 2\r\n*\r\n",
+                  "A = 1\n*not a star\nB = 2\n"},
+                 {"A = 1\r\n\r\n\r\n*\r\n", "A = 1\n\n\n"},
+                 {"*\r\n", ""},
+                 {"", ""}};
     for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
     {
         small_file small;
@@ -351,7 +352,7 @@ static void check_rows_after_the_trailer(void)
         char buffer[8];
         size_t size = 0;
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
-        CHECK(size == 3);
+        CHECK(size == 4);
         CHECK_STATUS(SDFIO_ERR_STATE,
                      sdfio_read_data(reader,
                                      sdfio_layout_packed(SDFIO_TYPE_FLOAT), row,
@@ -435,7 +436,7 @@ static void check_copy_trailer(void)
 {
     static const char text[] = "Operator = Ada\nfree text\nsecond line";
     static const char copied[] =
-        "Operator = Ada\nfree text\nsecond line\nNote = cropped";
+        "Operator = Ada\nfree text\nsecond line\nNote = cropped\n";
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t from = 0; from < 2; ++from)
     {
@@ -472,6 +473,49 @@ static void check_copy_trailer(void)
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &read, &size));
             CHECK(same(read, size, copied));
+            sdfio_reader_free(reader);
+            free(file.data);
+        }
+    }
+}
+
+/* The copy keeps the white space of the text, also at its start and its end. */
+static void check_copy_keeps_white_space(void)
+{
+    static const char written[] = "\n  A = 1\n\n\tB = 2 \n\n";
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t from = 0; from < 2; ++from)
+    {
+        for (size_t to = 0; to < 2; ++to)
+        {
+            membuf source = file_with_text(formats[from], written);
+            sdfio_reader *reader = new_reader(all_formats());
+            CHECK_OK(sdfio_open_memory(reader, source.data, source.size));
+            sdfio_header *header = new_header();
+            CHECK_OK(sdfio_header_copy(header, sdfio_reader_header(reader)));
+            CHECK_OK(sdfio_header_set_format(header, formats[to]));
+
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = new_writer(all_formats());
+            CHECK_OK(sdfio_create_stream(writer, &stream, header));
+            float heights[4];
+            CHECK_OK(sdfio_read_heights(
+                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
+            CHECK_OK(sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
+            CHECK_OK(sdfio_copy_trailer(reader, writer));
+            CHECK_OK(sdfio_end_file(writer));
+            sdfio_writer_free(writer);
+            sdfio_reader_free(reader);
+            free(source.data);
+
+            reader = new_reader(all_formats());
+            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+            const char *read = NULL;
+            size_t size = 0;
+            CHECK_OK(read_trailer_text(reader, 0, &read, &size));
+            CHECK(read != NULL && same(read, size, written));
             sdfio_reader_free(reader);
             free(file.data);
         }
@@ -657,6 +701,7 @@ int main(void)
     check_text_in_parts();
     check_a_field_ends_an_open_line();
     check_copy_trailer();
+    check_copy_keeps_white_space();
     check_copy_trailer_failures();
     check_next_field();
     check_find_field();

@@ -112,8 +112,8 @@ int main(void)
     const char *trailer = NULL;
     size_t size = 0;
     CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
-    CHECK(size == strlen("Note = public\nAverages = 16")
-          && memcmp(trailer, "Note = public\nAverages = 16", size) == 0);
+    CHECK(size == strlen("Note = public\nAverages = 16\n")
+          && memcmp(trailer, "Note = public\nAverages = 16\n", size) == 0);
     /* A row stride of 0 means rows that follow each other. */
     reader = membuf_reopen(reader, &file);
     float packed[6];

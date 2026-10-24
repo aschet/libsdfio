@@ -191,16 +191,7 @@ static void check_against(const expectation *e)
     CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
     char escaped[LINE_CAPACITY];
     escape(trailer != NULL ? trailer : "", trailer_size, escaped);
-    /* The end of the last line is not part of the trailer in memory. */
-    char expected_trailer[LINE_CAPACITY];
-    snprintf(expected_trailer, sizeof expected_trailer, "%s", e->trailer);
-    const size_t expected_size = strlen(expected_trailer);
-    if (expected_size >= 2
-        && strcmp(expected_trailer + expected_size - 2, "\\n") == 0)
-    {
-        expected_trailer[expected_size - 2] = '\0';
-    }
-    CHECK(strcmp(escaped, expected_trailer) == 0);
+    CHECK(strcmp(escaped, e->trailer) == 0);
 
     size_t valid = 0;
     double sum = 0.0;

@@ -193,6 +193,29 @@ enum
     TRAILER_ROOM = 65536
 };
 
+/* The text that a reader returns for a text written to the trailer: CRLF reads
+ * as LF, and the line that is open at the end of the text is terminated, which
+ * sdfio_end_file() does. The text is in a buffer of the function and is valid
+ * until the next call. */
+static inline const char *expected_read(const char *written)
+{
+    static char text[4096];
+    size_t size = 0;
+    for (size_t i = 0; written[i] != '\0'; ++i)
+    {
+        if (written[i] != '\r' || written[i + 1] != '\n')
+        {
+            text[size++] = written[i];
+        }
+    }
+    if (size > 0 && text[size - 1] != '\n')
+    {
+        text[size++] = '\n';
+    }
+    text[size] = '\0';
+    return text;
+}
+
 /* The trailer of a reader, read in calls of `part` bytes at most, or with the
  * whole room for 0. The text is in a buffer of the function, ends with a 0
  * character, and is valid until the next call. */

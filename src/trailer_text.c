@@ -51,17 +51,6 @@ static bool at_star_line(sdfio_source *source)
     return buffered < STAR_WINDOW; /* the file ends after the star */
 }
 
-/* Takes the white space that precedes the text of the trailer. */
-static void skip_white_space(sdfio_source *source)
-{
-    int c = sdfio_source_peek(source);
-    while (c >= 0 && sdfio_is_space((char)c))
-    {
-        ++source->position;
-        c = sdfio_source_peek(source);
-    }
-}
-
 /* Takes a character of the source into the state. */
 static void take_character(sdfio_trailer_state *state, int c)
 {
@@ -96,6 +85,18 @@ static void take_character(sdfio_trailer_state *state, int c)
     }
 }
 
+/* Ends the text: a CR whose LF did not follow is a character of it. */
+static void end_text(sdfio_trailer_state *state)
+{
+    if (state->pending_cr)
+    {
+        state->pending_cr = false;
+        state->held[state->held_count] = '\r';
+        ++state->held_count;
+    }
+    state->done = true;
+}
+
 sdfio_status sdfio_trailer_read(sdfio_source *source,
                                 sdfio_trailer_state *state, bool record,
                                 char *buffer, size_t capacity, size_t *size,
@@ -104,7 +105,7 @@ sdfio_status sdfio_trailer_read(sdfio_source *source,
     *size = 0;
     while (*size < capacity)
     {
-        if (state->held_count > 0)
+        if (state->held_count > 0 || (state->done && state->line_ends > 0))
         {
             if (state->line_ends > 0)
             {
@@ -125,15 +126,10 @@ sdfio_status sdfio_trailer_read(sdfio_source *source,
         {
             break;
         }
-        if (record && !state->started)
-        {
-            skip_white_space(source);
-            state->started = true;
-        }
         if (record && !state->in_line && !state->pending_cr
             && at_star_line(source))
         {
-            state->done = true;
+            end_text(state);
             continue;
         }
         const int c = sdfio_source_getc(source);
@@ -144,7 +140,7 @@ sdfio_status sdfio_trailer_read(sdfio_source *source,
                 return sdfio_source_failure(source, message,
                                             "The trailer cannot be read");
             }
-            state->done = true;
+            end_text(state);
             continue;
         }
         take_character(state, c);

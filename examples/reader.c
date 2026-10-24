@@ -70,7 +70,7 @@ int main(int argc, char **argv)
                 ++measured;
             }
         }
-        printf("%s %lu x %lu, mean %g m\ntrailer:\n%.*s\n",
+        printf("%s %lu x %lu, mean %g m\ntrailer:\n%.*s",
                sdfio_header_revision(header) == SDFIO_ISO_1_0 ? "ISO-1.0"
                                                               : "ISO-2.0",
                (unsigned long)sdfio_header_columns(header),

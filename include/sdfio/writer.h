@@ -234,11 +234,12 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
  * The text is not interpreted, and a call can write any part of it: the line
  * that a call leaves open continues with the text of the next call, so the text
  * can be split anywhere. A field line or sdfio_end_file() terminates the
- * line that is open. Every line end of the text (LF or CRLF) is written as
- * CRLF, as the standard specifies, in ASCII and in binary files.
- * sdfio_read_trailer() returns the lines with LF. In an ASCII file a line that
- * consists only of `*` ends the record, so the text must not contain one; lines
- * of sdfio_write_trailer_field() never do.
+ * line that is open, so a text without a line end at its end gets one. Every
+ * line end of the text (LF or CRLF) is written as CRLF, as the standard
+ * specifies, in ASCII and in binary files. sdfio_read_trailer() returns the
+ * lines with LF. In an ASCII file a line that consists only of `*` ends the
+ * record, so the text must not contain one; lines of
+ * sdfio_write_trailer_field() never do.
  *
  * @param[in,out] writer The writer.
  * @param[in] text The text.
@@ -260,10 +261,9 @@ SDFIO_API sdfio_status sdfio_write_trailer_text(sdfio_writer *writer,
  *
  * The function does not end the trailer, so fields of
  * sdfio_write_trailer_field(), for instance a line that records the change,
- * can follow the copy. sdfio_end_file() ends the file. The copy has the line
- * ends and the leading white space that sdfio_read_trailer() returns, and the
- * line ends that sdfio_write_trailer_text() writes. A file without a trailer
- * copies nothing.
+ * can follow the copy. sdfio_end_file() ends the file. The copy has the text
+ * that sdfio_read_trailer() returns, with the line ends that
+ * sdfio_write_trailer_text() writes. A file without a trailer copies nothing.
  *
  * If a call fails, sdfio_writer_error_message() describes the failure, also
  * when the reader failed.

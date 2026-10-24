@@ -265,9 +265,9 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * discarded by the first call.
  *
  * Every line end of the text is LF, whether the file has CRLF or LF, in ASCII
- * and in binary files, and the line ends at the end of the text are not part of
- * it. In an ASCII file the white space before the text is skipped, and the
- * trailer ends at the line that consists of `*`.
+ * and in binary files. Nothing else of the text changes: the white space before
+ * it and the line ends at its end are part of it. In an ASCII file the trailer
+ * ends at the line that consists of `*`.
  *
  * @param[in,out] reader The reader.
  * @param[out] buffer Receives the text.

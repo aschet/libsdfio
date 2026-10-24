@@ -141,8 +141,8 @@ static void check_roundtrip(sdfio_revision revision, sdfio_format format,
     const char *trailer = NULL;
     size_t size = 0;
     CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
-    CHECK(trailer != NULL && size == strlen(tagged_trailer)
-          && memcmp(trailer, tagged_trailer, size) == 0);
+    CHECK(trailer != NULL && size == strlen(expected_read(tagged_trailer))
+          && memcmp(trailer, expected_read(tagged_trailer), size) == 0);
     const char *second = memchr(trailer, '\n', size);
     const char *name = NULL;
     const char *value = NULL;
@@ -763,7 +763,7 @@ static void check_rows_without_columns(void)
     const char *trailer = NULL;
     size_t trailer_size = 0;
     CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
-    CHECK(trailer_size == 5 && memcmp(trailer, "a = 1", 5) == 0);
+    CHECK(trailer_size == 6 && memcmp(trailer, "a = 1\n", 6) == 0);
     sdfio_reader_free(reader);
     free(file.data);
 }
@@ -897,13 +897,14 @@ static void check_trailer_line_ends(void)
         const char *read;
     };
     const struct variant variants[] = {
-        {"A = 1\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
-        {"A = 1\r\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
-        {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2"},
+        {"A = 1\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
+        {"A = 1\r\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
+        {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
         {"A = 1\r\nB = 2\nC = 3", "A = 1\r\nB = 2\r\nC = 3\r\n",
-         "A = 1\nB = 2\nC = 3"},
-        {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2"},
-        {"A = 1", "A = 1\r\n", "A = 1"},
+         "A = 1\nB = 2\nC = 3\n"},
+        {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2\n"},
+        {"A = 1", "A = 1\r\n", "A = 1\n"},
+        {"\n  A = 1\n\n", "\r\n  A = 1\r\n\r\n", "\n  A = 1\n\n"},
     };
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
@@ -1024,8 +1025,9 @@ static void check_read_line_ends(void)
             const char *trailer = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
-            CHECK(trailer != NULL && size == strlen(tagged_trailer)
-                  && memcmp(trailer, tagged_trailer, size) == 0);
+            CHECK(trailer != NULL
+                  && size == strlen(expected_read(tagged_trailer))
+                  && memcmp(trailer, expected_read(tagged_trailer), size) == 0);
             sdfio_reader_free(reader);
             free(other.data);
         }

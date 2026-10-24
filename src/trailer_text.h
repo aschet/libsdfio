@@ -33,8 +33,6 @@ typedef struct sdfio_trailer_state
     bool pending_cr;
     /** Whether a line has begun. */
     bool in_line;
-    /** Whether the white space before the text has been passed. */
-    bool started;
     /** Whether the end of the trailer was read. */
     bool done;
 } sdfio_trailer_state;
@@ -42,15 +40,15 @@ typedef struct sdfio_trailer_state
 /**
  * Reads the next part of the text of the trailer into a buffer.
  *
- * Every line end of the text is LF, whether the file has CRLF or LF. The line
- * ends at the end of the text are not part of it, and a line end is written
- * only when text follows it.
+ * Every line end of the text is LF, whether the file has CRLF or LF. Nothing
+ * else of the text changes: the white space before it and the line ends at its
+ * end are part of it.
  *
  * @param source The source, after the data area.
  * @param[in,out] state What is kept between the calls.
- * @param record Whether the trailer is a record of an ASCII file: the white
- * space before the text is skipped, and a line that consists of `*` ends the
- * trailer. Otherwise the trailer is the rest of the file.
+ * @param record Whether the trailer is a record of an ASCII file: a line that
+ * consists of `*` ends the trailer. Otherwise the trailer is the rest of the
+ * file.
  * @param[out] buffer Receives the text.
  * @param capacity The size of `buffer` in bytes.
  * @param[out] size Receives the number of bytes written, 0 at the end.

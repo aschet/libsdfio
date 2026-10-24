@@ -129,7 +129,7 @@ static sdfio_status round_trip(const test_options *config, sdfio_format format,
         }
         if (status == SDFIO_OK)
         {
-            *equal = trailer_size == 5 && memcmp(trailer, "a = 1", 5) == 0;
+            *equal = trailer_size == 6 && memcmp(trailer, "a = 1\n", 6) == 0;
             for (size_t i = 0; i < (size_t)COLUMNS * ROWS; ++i)
             {
                 if (isnan(written[i]) ? !isnan(read[i])
