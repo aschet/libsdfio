@@ -12,11 +12,11 @@ int main(int argc, char **argv)
     sdfio_status status = sdfio_reader_create(NULL, &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+        status = sdfio_reader_add_binary_format(reader);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_format(reader, &sdfio_ascii_reader_format);
+        status = sdfio_reader_add_ascii_format(reader);
     }
     if (status == SDFIO_OK)
     {
@@ -59,7 +59,9 @@ int main(int argc, char **argv)
     {
         double sum = 0.0;
         size_t measured = 0;
-        for (size_t i = 0; i < header->rows * header->columns; ++i)
+        const size_t count =
+            (size_t)sdfio_header_rows(header) * sdfio_header_columns(header);
+        for (size_t i = 0; i < count; ++i)
         {
             if (!isnan(heights[i]))
             {
@@ -67,9 +69,11 @@ int main(int argc, char **argv)
                 ++measured;
             }
         }
-        printf("%s %zu x %zu, mean %g m\ntrailer:\n%.*s\n",
-               header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
-               header->columns, header->rows,
+        printf("%s %lu x %lu, mean %g m\ntrailer:\n%.*s\n",
+               sdfio_header_revision(header) == SDFIO_ISO_1_0 ? "ISO-1.0"
+                                                              : "ISO-2.0",
+               (unsigned long)sdfio_header_columns(header),
+               (unsigned long)sdfio_header_rows(header),
                measured > 0 ? sum / (double)measured : 0.0, (int)trailer_size,
                trailer);
     }

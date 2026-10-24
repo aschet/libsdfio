@@ -30,14 +30,13 @@ int main(void)
     static const wchar_t missing[] = L"no_such_\u6e2c\u5b9a_folder\\out.sdf";
     _wremove(path);
 
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 2;
-    header.rows = 2;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 2));
+    CHECK_OK(sdfio_header_set_rows(header, 2));
     const double heights[4] = {1, 2, 3, 4};
 
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_file_w(writer, path, &header));
+    CHECK_OK(sdfio_create_file_w(writer, path, header));
     CHECK(file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  heights));
@@ -59,9 +58,8 @@ int main(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_open_file_w(reader, NULL));
     sdfio_reader_free(reader);
     writer = new_writer(all_formats());
-    CHECK_STATUS(SDFIO_ERR_IO, sdfio_create_file_w(writer, missing, &header));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_create_file_w(writer, NULL, &header));
+    CHECK_STATUS(SDFIO_ERR_IO, sdfio_create_file_w(writer, missing, header));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file_w(writer, NULL, header));
     sdfio_writer_free(writer);
 
     if (failures != 0)

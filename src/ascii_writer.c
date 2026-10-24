@@ -14,10 +14,12 @@
 #include "data_type.h"
 #include "datetime.h"
 #include "fields.h"
+#include "header.h"
 #include "message.h"
 #include "number_text.h"
 #include "sink.h"
 #include "writer_format.h"
+#include "writer_state.h"
 #include <sdfio/sdfio.h>
 #include <stdio.h>
 #include <string.h>
@@ -158,9 +160,9 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
               && append_field(sink, SDFIO_ASCII_MANUFACTURER_ID, identifier)
               && append_field(sink, SDFIO_ASCII_CREATE_DATE, created)
               && append_field(sink, SDFIO_ASCII_MODIFICATION_DATE, modified);
-    snprintf(text, sizeof text, "%zu", header->columns);
+    snprintf(text, sizeof text, "%lu", (unsigned long)header->columns);
     ok = ok && append_field(sink, SDFIO_ASCII_POINTS, text);
-    snprintf(text, sizeof text, "%zu", header->rows);
+    snprintf(text, sizeof text, "%lu", (unsigned long)header->rows);
     ok = ok && append_field(sink, SDFIO_ASCII_PROFILES, text);
     ok = ok && append_scale(sink, point, SDFIO_ASCII_X_SCALE, header->x_scale)
          && append_scale(sink, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
@@ -289,7 +291,7 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
     return SDFIO_OK;
 }
 
-const sdfio_writer_format sdfio_ascii_writer_format = {
+static const sdfio_writer_format ascii_format = {
     .state_size = sizeof(struct writing),
     .writes = SDFIO_ASCII,
     .scratch_size = scratch_size,
@@ -298,3 +300,8 @@ const sdfio_writer_format sdfio_ascii_writer_format = {
     .begin_trailer = write_terminator,
     .end_trailer = write_terminator,
 };
+
+sdfio_status sdfio_writer_add_ascii_format(sdfio_writer *writer)
+{
+    return sdfio_writer_install_format(writer, &ascii_format);
+}

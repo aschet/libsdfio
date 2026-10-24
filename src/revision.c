@@ -65,9 +65,8 @@ size_t sdfio_revision_columns_rows_size(sdfio_revision revision)
     return rules[revision].columns_rows_size;
 }
 
-size_t sdfio_max_columns_and_rows(sdfio_revision revision)
+uint32_t sdfio_max_columns_and_rows(sdfio_revision revision)
 {
-    const size_t size = rules[revision].columns_rows_size;
-    return size >= sizeof(size_t) ? SIZE_MAX
-                                  : ((size_t)1 << (CHAR_BIT * size)) - 1;
+    const size_t unused = sizeof(uint32_t) - rules[revision].columns_rows_size;
+    return UINT32_MAX >> (CHAR_BIT * unused);
 }

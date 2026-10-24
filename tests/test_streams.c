@@ -86,17 +86,20 @@ static void check_pipe(const char *path, size_t piece)
     if (header != NULL)
     {
         double *heights =
-            malloc(header->rows * header->columns * sizeof(double));
+            malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
+                   * sizeof(double));
         CHECK_OK(sdfio_read_heights(
             reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
         /* The same heights, in the same places, as from memory. */
         sdfio_reader *in_memory = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =
-            malloc(header->rows * header->columns * sizeof(double));
+            malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
+                   * sizeof(double));
         CHECK_OK(sdfio_read_heights(
             in_memory, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), expected));
-        for (size_t i = 0; i < header->rows * header->columns; ++i)
+        for (size_t i = 0;
+             i < sdfio_header_rows(header) * sdfio_header_columns(header); ++i)
         {
             CHECK(isnan(expected[i]) ? isnan(heights[i])
                                      : heights[i] == expected[i]);
@@ -154,7 +157,8 @@ static void check_failing_stream(void)
         {
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
-                malloc(header->rows * header->columns * sizeof(double));
+                malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
+                       * sizeof(double));
             status = sdfio_read_heights(
                 reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
             free(heights);
@@ -190,7 +194,9 @@ static void check_damage(const char *path)
         {
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
-                malloc(header->rows * header->columns * sizeof(double) + 1);
+                malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
+                           * sizeof(double)
+                       + 1);
             const sdfio_status status = sdfio_read_heights(
                 reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
             if (length < size / 2)
@@ -221,7 +227,8 @@ static void check_damage(const char *path)
         if (sdfio_open_memory(reader, copy, size) == SDFIO_OK)
         {
             const sdfio_header *header = sdfio_get_header(reader);
-            const size_t count = header->rows * header->columns;
+            const size_t count =
+                sdfio_header_rows(header) * sdfio_header_columns(header);
             /* A damaged count could ask for more than a test should allocate.
              */
             if (count < (size_t)1 << 20)
@@ -347,14 +354,13 @@ static void check_file(void)
 {
     const char *path = "test_streams_output.sdf";
     remove(path);
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 2;
-    header.rows = 2;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 2));
+    CHECK_OK(sdfio_header_set_rows(header, 2));
     const double heights[4] = {1, 2, 3, 4};
 
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_file(writer, path, &header));
+    CHECK_OK(sdfio_create_file(writer, path, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  heights));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -370,16 +376,20 @@ static void check_file(void)
     sdfio_reader_free(reader);
     remove(path);
 
-    header.z_scale = -1.0;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_z_scale(header, -1.0));
+
     writer = new_writer(all_formats());
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file(writer, path, &header));
+    CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_1_0));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT8));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file(writer, path, header));
     CHECK(!file_exists(path));
     sdfio_writer_free(writer);
 
-    header.z_scale = 1.0;
+    CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_2_0));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_FLOAT));
     writer = new_writer(all_formats());
     CHECK_STATUS(SDFIO_ERR_IO,
-                 sdfio_create_file(writer, "no_such_folder/out.sdf", &header));
+                 sdfio_create_file(writer, "no_such_folder/out.sdf", header));
     sdfio_writer_free(writer);
 }
 
@@ -393,18 +403,17 @@ static void check_huge_matrix(void)
          * refused. */
         return;
     }
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.representation = SDFIO_BINARY;
-    header.data_type = SDFIO_TYPE_DOUBLE;
-    header.columns = 1;
-    header.rows = 1;
-    header.z_scale = 1.0;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_representation(header, SDFIO_BINARY));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_DOUBLE));
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
     membuf file = {0};
     const sdfio_stream out = membuf_stream(&file);
     const double height = 0.0;
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &out, &header));
+    CHECK_OK(sdfio_create_stream(writer, &out, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  &height));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -533,13 +542,12 @@ static size_t refusing_write(void *user, const void *data, size_t size)
 
 static void check_failing_sink(void)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 4;
-    header.rows = 4;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 4));
+    CHECK_OK(sdfio_header_set_rows(header, 4));
     const sdfio_stream stream = {NULL, NULL, refusing_write};
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),

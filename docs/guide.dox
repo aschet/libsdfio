@@ -45,7 +45,7 @@
  * defines and tolerates the deviations of files in the field, which are listed
  * in the description of sdfio.h.
  *
- * @section standard Standard and heritage
+ * @section standard Standard and Heritage
  * The library implements ISO 25178-71:2026, "Geometrical product specifications
  * (GPS) -- Surface texture: Areal -- Part 71: Surface data file (SDF) file
  * format", in its versions ISO-1.0 and ISO-2.0.
@@ -70,62 +70,79 @@
  */
 
 /**
- * @page format The SDF format
+ * @page format The SDF Format
  *
  * A file consists of three records: the header (record 1), the data area
  * (record 2) and the trailer (record 3). The file name extension is `.sdf`. A
  * file has an ASCII or a binary representation. Both hold the same
  * information.
  *
- * @section format_versions Version numbers
+ * @section format_versions Version Numbers
  * The file starts with a version number of 8 characters. Its first character is
  * `a` for the ASCII and `b` for the binary representation, and the rest names
  * the version: `aISO-1.0`, `aISO-2.0`, `bISO-1.0` and `bISO-2.0`. The library
  * calls the version a revision, ISO-1.0 and ISO-2.0, because "version" names
  * the library.
  *
- * | Revision | Differences |
- * | --- | --- |
- * | ISO-1.0 | The data types int16, int32 and binary64. A binary file stores
- * the numbers of columns and rows in 2 bytes each. The dates have no time zone.
- * | | ISO-2.0 | Adds the data types int8 and binary32. A binary file stores the
- * numbers of columns and rows in 4 bytes each. The dates are UTC, and the
- * trailer has the form of the header. |
+ * <table class="doxtable">
+ * <tr><th>Revision</th><th>Differences</th></tr>
+ * <tr><td>ISO-1.0</td><td>The data types int16, int32 and binary64. A binary
+ *   file stores the numbers of columns and rows in 2 bytes each. The dates have
+ *   no time zone.</td></tr>
+ * <tr><td>ISO-2.0</td><td>Adds the data types int8 and binary32. A binary file
+ *   stores the numbers of columns and rows in 4 bytes each. The dates are UTC,
+ *   and the trailer has the form of the header.</td></tr>
+ * </table>
  *
  * Both revisions have a field for a compression and for a checksum of the
  * data. The standard defines only the value 0, for none, so a file has neither.
  *
- * @section format_header The header
- * | Field | ASCII name | Binary type | Meaning |
- * | --- | --- | --- | --- |
- * | Version number | none | 8 characters | See above. |
- * | Manufacturer's identifier | `ManufacID` | 10 characters | The source of the
- * data, and possibly hardware and software. | | Creation date | `CreateDate` |
- * 12 characters | When the data was generated. | | Modification date |
- * `ModDate` | 12 characters | When the file was last modified. | | Columns M |
- * `NumPoints` | 2 or 4 bytes | The points along x. | | Rows N | `NumProfiles` |
- * 2 or 4 bytes | The profiles along y. 1 for a profile. | | X-scale | `Xscale`
- * | binary64 | The sampling interval along x in metres. | | Y-scale | `Yscale`
- * | binary64 | The sampling interval along y in metres, meaningless for a
- * profile. | | Z-scale | `Zscale` | binary64 | The positive factor that turns a
- * coded value into metres. | | Z-resolution | `Zresolution` | binary64 | The
- * quantization step of the instrument in metres, or a negative number if it is
- * unknown. | | Compression | `Compression` | 1 byte | 0, no compression. | |
- * Data type | `DataType` | 1 byte | The code of the type of the values, below.
- * | | Checksum type | `CheckType` | 1 byte | 0, no checksum. |
+ * @section format_header The Header
+ * <table class="doxtable">
+ * <tr><th>Field</th><th>ASCII Name</th><th>Binary
+ *   Type</th><th>Meaning</th></tr>
+ * <tr><td>Version number</td><td>none</td><td>8 characters</td><td>See
+ *   above.</td></tr>
+ * <tr><td>Manufacturer's identifier</td><td><code>ManufacID</code></td><td>10
+ *   characters</td><td>The source of the data, and possibly hardware and
+ *   software.</td></tr>
+ * <tr><td>Creation date</td><td><code>CreateDate</code></td><td>12
+ *   characters</td><td>When the data was generated.</td></tr>
+ * <tr><td>Modification date</td><td><code>ModDate</code></td><td>12
+ *   characters</td><td>When the file was last modified.</td></tr>
+ * <tr><td>Columns M</td><td><code>NumPoints</code></td><td>2 or 4
+ *   bytes</td><td>The points along x.</td></tr>
+ * <tr><td>Rows N</td><td><code>NumProfiles</code></td><td>2 or 4
+ *   bytes</td><td>The profiles along y. 1 for a profile.</td></tr>
+ * <tr><td>X-scale</td><td><code>Xscale</code></td><td>binary64</td><td>The
+ *   sampling interval along x in metres.</td></tr>
+ * <tr><td>Y-scale</td><td><code>Yscale</code></td><td>binary64</td><td>The
+ *   sampling interval along y in metres, meaningless for a profile.</td></tr>
+ * <tr><td>Z-scale</td><td><code>Zscale</code></td><td>binary64</td><td>The
+ *   positive factor that turns a coded value into metres.</td></tr>
+ * <tr><td>Z-resolution</td><td><code>Zresolution</code></td><td>binary64</td><td>The
+ *   quantization step of the instrument in metres, or a negative number if it
+ *   is unknown.</td></tr>
+ * <tr><td>Compression</td><td><code>Compression</code></td><td>1
+ *   byte</td><td>0, no compression.</td></tr>
+ * <tr><td>Data type</td><td><code>DataType</code></td><td>1 byte</td><td>The
+ *   code of the type of the values, below.</td></tr>
+ * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>1
+ *   byte</td><td>0, no checksum.</td></tr>
+ * </table>
  *
  * The names `NumPoints` and `NumProfiles` come from the first versions of the
  * format, which were meant for tactile instruments that measure profiles. A
  * binary header has the fields in this order and has 81 bytes in ISO-1.0 and 85
  * bytes in ISO-2.0. In sdfio_header the identifier is a string, the dates are
- * a `time_t`, and the columns and rows are a `size_t`.
+ * a `time_t`, and the columns and rows are a `uint32_t`, the type of ISO-2.0.
  *
  * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
  * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
  * an ISO-1.0 file are the clock of the writer, whose time zone is not recorded,
  * and sdfio_time_zone converts them.
  *
- * @section format_data The data area
+ * @section format_data The Data Area
  * The data area holds the matrix W of the coded values with N rows and M
  * columns, row by row in the order of the position along y. The coded value
  * `w(i,j)` of the row i and the column j, counted from 1, belongs to the point
@@ -151,19 +168,27 @@
  *    z comes out of the page, to the viewer
  * @endcode
  *
- * | Data type | Code | Size | ISO-1.0 | ISO-2.0 | Enumerator | Value of a point
- * that is not measured | | --- | --- | --- | --- | --- | --- | --- | | binary32
- * | 3 | 4 bytes | no | yes | SDFIO_TYPE_FLOAT | -3.402823466e38 | | int8 | 4 |
- * 1 byte | no | yes | SDFIO_TYPE_INT8 | -128 | | int16 | 5 | 2 bytes | yes |
- * yes | SDFIO_TYPE_INT16 | -32768 | | int32 | 6 | 4 bytes | yes | yes |
- * SDFIO_TYPE_INT32 | -2147483648 | | binary64 | 7 | 8 bytes | yes | yes |
- * SDFIO_TYPE_DOUBLE | -1.797693134862316e308 |
+ * <table class="doxtable">
+ * <tr><th>Data
+ *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
+ *   of a Point That Is Not Measured</th></tr>
+ * <tr><td>binary32</td><td>3</td><td>4
+ *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>-3.402823466e38</td></tr>
+ * <tr><td>int8</td><td>4</td><td>1
+ *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>-128</td></tr>
+ * <tr><td>int16</td><td>5</td><td>2
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>-32768</td></tr>
+ * <tr><td>int32</td><td>6</td><td>4
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>-2147483648</td></tr>
+ * <tr><td>binary64</td><td>7</td><td>8
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>-1.797693134862316e308</td></tr>
+ * </table>
  *
  * A point that is not measured, or is spurious, has the lowest value of the
  * data type, the bad value. The lowest value is not permitted for a valid
  * point. An ASCII file writes the string `BAD` instead.
  *
- * @section format_trailer The trailer
+ * @section format_trailer The Trailer
  * The trailer holds historical information about the measurement, such as the
  * name of the operator, the measurement conditions or the processing that was
  * applied. It is optional, has a variable length, and extends to the end of the
@@ -171,14 +196,14 @@
  * define its content. An ISO-2.0 file uses the form of the header for it, a
  * line `Name = Value` for each field.
  *
- * @section format_binary The binary representation
+ * @section format_binary The Binary Representation
  * The header has fixed fields in the order above, and nothing separates the
  * records. The header says how long the data area is, and what follows it is
  * the trailer. All numbers are stored with the least significant byte first, on
  * whatever processor the file is written or read. A string that is shorter than
  * its field is filled with spaces.
  *
- * @section format_ascii The ASCII representation
+ * @section format_ascii The ASCII Representation
  * - The file consists of lines that end with a carriage return and a line feed.
  * - The first line is the version number. It is followed by a line `Name =
  *   value` for each field of the header, in any order, and the names do not
@@ -218,7 +243,7 @@
 /**
  * @page concepts Concepts
  *
- * @section concepts_values Coded values and heights
+ * @section concepts_values Coded Values and Heights
  * The data area stores coded values, one for each point, in the data type of
  * the file. A coded value is not a length. It becomes the height of the point
  * in metres when it is multiplied by the z-scale of the header.
@@ -235,15 +260,19 @@
  * The library offers both views. They are layers, and a program uses the
  * highest one that suffices:
  *
- * | Layer | Functions | Use |
- * | --- | --- | --- |
- * | Coded values | sdfio_read_data(), sdfio_write_data() | The values as the
- * file has them, row by row. For a program that processes the integers of an
- * instrument itself, or that transfers data without a conversion. | |
- * Conversion | sdfio_decode_heights(), sdfio_encode_heights() | Converts rows
- * between coded values and heights. Needs only a header, no handle. | |
- * Matrices | sdfio_read_heights(), sdfio_write_heights() | The whole matrix as
- * heights in metres, in one call. |
+ * <table class="doxtable">
+ * <tr><th>Layer</th><th>Functions</th><th>Use</th></tr>
+ * <tr><td>Coded values</td><td>sdfio_read_data(),
+ *   sdfio_write_data()</td><td>The values as the file has them, row by row. For
+ *   a program that processes the integers of an instrument itself, or that
+ *   transfers data without a conversion.</td></tr>
+ * <tr><td>Conversion</td><td>sdfio_decode_heights(),
+ *   sdfio_encode_heights()</td><td>Converts rows between coded values and
+ *   heights. Needs only a header, no handle.</td></tr>
+ * <tr><td>Matrices</td><td>sdfio_read_heights(),
+ *   sdfio_write_heights()</td><td>The whole matrix as heights in metres, in one
+ *   call.</td></tr>
+ * </table>
  *
  * A function that encodes heights rounds an integer to the nearest value. A
  * height that does not fit the data type with the z-scale is an error
@@ -252,7 +281,7 @@
  * measured. sdfio_write_heights() chooses the z-scale of an integer file if the
  * header has SDFIO_AUTO_Z_SCALE.
  *
- * @section concepts_coordinates Coordinate system
+ * @section concepts_coordinates Coordinate System
  * The points of a file lie in a right-handed coordinate system, as the standard
  * has it: x grows with the column, y with the row, and z, the height, points to
  * the viewer who looks from above. The point of the first row and the first
@@ -265,7 +294,7 @@
  * program that shows a surface unchanged shows it upside down. A negative row
  * stride in the layout (see below) turns the matrix without a copy.
  *
- * @section concepts_missing Points that are not measured
+ * @section concepts_missing Points That Are Not Measured
  * A point that is not measured has the bad value of the data type in the data
  * area. A height in metres has no such value, so the program picks its
  * representation: NaN, or a marker such as -9999 that
@@ -290,14 +319,14 @@
  * argument if it does not. Initialize a layout with sdfio_layout_init() or
  * sdfio_layout_packed() before assigning fields.
  *
- * @section concepts_handles Readers and writers
+ * @section concepts_handles Readers and Writers
  * A reader (sdfio_reader) reads one file, and a writer (sdfio_writer) writes
  * one. Both are opaque handles, created from a configuration, and freed with
  * their free function. A handle is not shared between threads, but different
  * handles can be used by different threads at the same time. The handles
  * hold no global state.
  *
- * @section concepts_sources Files, memory and streams
+ * @section concepts_sources Files, Memory, and Streams
  * A reader or a writer works on one of these:
  * - a file, with sdfio_open_file() and sdfio_create_file() of `<sdfio/file.h>`,
  *   which also has versions for wide-character paths on Windows;
@@ -307,16 +336,15 @@
  *   a file is read once and in order. Rows can therefore be read only in the
  *   order of the file.
  *
- * @section concepts_options Options, formats and memory
+ * @section concepts_options Options, Formats, and Memory
  * A handle is created with sdfio_reader_create() or sdfio_writer_create(),
  * which take only the allocator. The program then sets the options of the
  * handle, and the options are fixed by the first attempt to open or create a
  * file:
- * - the formats that the handle uses, with sdfio_reader_add_format() and
- *   sdfio_writer_add_format(): sdfio_binary_reader_format and
- *   sdfio_ascii_reader_format for a reader, and the writer formats for a
- *   writer. The library lists none by itself. A program that links the library
- *   statically contains the code of the formats it names and no other;
+ * - the formats that the handle uses, with sdfio_reader_add_binary_format(),
+ *   sdfio_reader_add_ascii_format() and the two functions of the writer. The
+ *   library lists none by itself. A program that links the library statically
+ *   contains the code of the formats it names and no other;
  * - the size of the buffer between the handle and its stream, and the number of
  *   values that are converted at a time, with the functions
  *   `set_buffer_size` and `set_chunk_values`. A handle that does not set them
@@ -324,11 +352,14 @@
  * - the time zone callbacks for the dates of ISO-1.0 files, with the functions
  *   `set_time_zone`.
  *
- * The options are functions, so that the library can gain options without a
- * change of its structures.
+ * The options are functions, and a sdfio_header is opaque, so that the library
+ * can gain options and header fields without a change of its structures.
  *
- * A handle allocates memory only when it is created, and when a file is opened
- * or created. The handle comes first, and the buffer, the conversion chunk and
+ * A header is a separate object. sdfio_header_create() makes one with
+ * defaults, the setters fill it, and sdfio_header_copy() copies one header
+ * into another, for example the header of a file that was read into a header
+ * for a file to write. sdfio_header_free() releases it. A handle allocates
+ * memory only when it is created, and when a file is opened or created. The handle comes first, and the buffer, the conversion chunk and
  * what the format needs come with the file. Reading and writing allocate
  * nothing, and the trailer is read into a buffer of the program.
  *
@@ -346,7 +377,7 @@
  */
 
 /**
- * @page states Life of a reader and of a writer
+ * @page states Life of a Reader and of a Writer
  *
  * A reader and a writer move through states, and a call is valid only in some
  * of them. A call in another state returns SDFIO_ERR_STATE.

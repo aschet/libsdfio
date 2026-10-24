@@ -158,26 +158,30 @@ static void check_against(const expectation *e)
         sdfio_reader_free(reader);
         return;
     }
-    CHECK(strcmp(revision_text(header->revision), e->revision) == 0);
-    CHECK(strcmp(header->representation == SDFIO_ASCII ? "ascii" : "binary",
+    CHECK(strcmp(revision_text(sdfio_header_revision(header)), e->revision)
+          == 0);
+    CHECK(strcmp(sdfio_header_representation(header) == SDFIO_ASCII ? "ascii"
+                                                                    : "binary",
                  e->representation)
           == 0);
-    CHECK(strcmp(type_text(header->data_type), e->type) == 0);
-    CHECK(header->rows == e->rows);
-    CHECK(header->columns == e->columns);
-    CHECK(header->x_scale == e->x_scale);
-    CHECK(header->y_scale == e->y_scale);
-    CHECK(header->z_scale == e->z_scale);
-    CHECK(strcmp(header->manufacturer_id, e->manufacturer_id) == 0);
+    CHECK(strcmp(type_text(sdfio_header_data_type(header)), e->type) == 0);
+    CHECK(sdfio_header_rows(header) == e->rows);
+    CHECK(sdfio_header_columns(header) == e->columns);
+    CHECK(sdfio_header_x_scale(header) == e->x_scale);
+    CHECK(sdfio_header_y_scale(header) == e->y_scale);
+    CHECK(sdfio_header_z_scale(header) == e->z_scale);
+    CHECK(strcmp(sdfio_header_manufacturer_id(header), e->manufacturer_id)
+          == 0);
     char date[SDFIO_DATETIME_SIZE + 1] = {0};
-    CHECK(sdfio_datetime_format(header->creation_date, header->revision, NULL,
-                                date));
+    CHECK(sdfio_datetime_format(sdfio_header_creation_date(header),
+                                sdfio_header_revision(header), NULL, date));
     CHECK(strcmp(date, e->creation_date) == 0);
-    CHECK(sdfio_datetime_format(header->modification_date, header->revision,
-                                NULL, date));
+    CHECK(sdfio_datetime_format(sdfio_header_modification_date(header),
+                                sdfio_header_revision(header), NULL, date));
     CHECK(strcmp(date, e->modification_date) == 0);
 
-    const size_t count = header->rows * header->columns;
+    const size_t count =
+        sdfio_header_rows(header) * sdfio_header_columns(header);
     double *heights = malloc(count * sizeof *heights);
     CHECK(heights != NULL);
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
@@ -219,7 +223,7 @@ static void check_against(const expectation *e)
     /* Text is parsed into the data type of the file: a binary32 file is
      * rounded to single precision, which the reference does not do. */
     const double precision =
-        header->data_type == SDFIO_TYPE_FLOAT ? 1e-6 : 1e-12;
+        sdfio_header_data_type(header) == SDFIO_TYPE_FLOAT ? 1e-6 : 1e-12;
     CHECK(valid == e->valid);
     CHECK(near_relative(sum, e->sum, 1e-9 + precision));
     CHECK(near_relative(first, e->z_first, precision));
@@ -283,9 +287,10 @@ static void check_unrecorded(const unsigned char *bytes, size_t size)
     const sdfio_header *header = sdfio_get_header(reader);
     if (header != NULL)
     {
-        CHECK(header->creation_date == SDFIO_NO_TIME);
-        CHECK(header->modification_date == SDFIO_NO_TIME);
-        CHECK(header->columns == 30 && header->rows == 20);
+        CHECK(sdfio_header_creation_date(header) == SDFIO_NO_TIME);
+        CHECK(sdfio_header_modification_date(header) == SDFIO_NO_TIME);
+        CHECK(sdfio_header_columns(header) == 30
+              && sdfio_header_rows(header) == 20);
         static float heights[30 * 20];
         CHECK_OK(sdfio_read_heights(
             reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
@@ -385,8 +390,8 @@ static void check_byte_order_mark(void)
             {
                 CHECK_OK(status);
                 const sdfio_header *header = sdfio_get_header(reader);
-                CHECK(header != NULL && header->columns == 48
-                      && header->rows == 32);
+                CHECK(header != NULL && sdfio_header_columns(header) == 48
+                      && sdfio_header_rows(header) == 32);
             }
             else
             {

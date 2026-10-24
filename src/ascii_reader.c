@@ -13,9 +13,11 @@
 #include "data_type.h"
 #include "datetime.h"
 #include "fields.h"
+#include "header.h"
 #include "message.h"
 #include "number_text.h"
 #include "reader_format.h"
+#include "reader_state.h"
 #include "revision.h"
 #include "source.h"
 #include "tagged.h"
@@ -228,9 +230,9 @@ typedef struct header_fields
     /* The last modification date and time. */
     char modified[SDFIO_DATETIME_SIZE];
     /* The number of columns in the data matrix. */
-    size_t columns;
+    uint32_t columns;
     /* The number of rows in the data matrix. */
-    size_t rows;
+    uint32_t rows;
     /* The X-scale factor. */
     double x_scale;
     /* The Y-scale factor. */
@@ -264,16 +266,16 @@ static bool same_name(const char *name, size_t size, const char *field_name)
     return true;
 }
 
-/* A number of columns or of rows: a non-negative integer that fits size_t. */
-static bool parse_extent(const char *value, size_t size, size_t *out)
+/* A number of columns or of rows: a non-negative integer of 32 bits. */
+static bool parse_extent(const char *value, size_t size, uint32_t *out)
 {
     long long number = 0;
     if (!sdfio_parse_integer(value, size, &number) || number < 0
-        || (unsigned long long)number > SIZE_MAX)
+        || (unsigned long long)number > UINT32_MAX)
     {
         return false;
     }
-    *out = (size_t)number;
+    *out = (uint32_t)number;
     return true;
 }
 
@@ -775,7 +777,7 @@ static sdfio_status read_trailer(sdfio_source *source, void *state,
                               size, message);
 }
 
-const sdfio_reader_format sdfio_ascii_reader_format = {
+static const sdfio_reader_format ascii_format = {
     .state_size = sizeof(struct reading),
     .prefix = 'a',
     .version_numbers = version_numbers,
@@ -785,3 +787,8 @@ const sdfio_reader_format sdfio_ascii_reader_format = {
     .end_data = end_data,
     .read_trailer = read_trailer,
 };
+
+sdfio_status sdfio_reader_add_ascii_format(sdfio_reader *reader)
+{
+    return sdfio_reader_install_format(reader, &ascii_format);
+}

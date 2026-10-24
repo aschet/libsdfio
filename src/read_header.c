@@ -11,6 +11,7 @@
 
 #include "read_header.h"
 #include "defaults.h"
+#include "header.h"
 #include "message.h"
 #include "source.h"
 #include <sdfio/sdfio.h>

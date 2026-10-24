@@ -43,6 +43,6 @@ size_t sdfio_revision_columns_rows_size(sdfio_revision revision);
  *
  * @param revision The revision.
  */
-size_t sdfio_max_columns_and_rows(sdfio_revision revision);
+uint32_t sdfio_max_columns_and_rows(sdfio_revision revision);
 
 #endif /* SDFIO_SRC_REVISION_H */

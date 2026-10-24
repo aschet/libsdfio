@@ -11,32 +11,31 @@
  */
 
 /**
- * @example writing.c
+ * @example writer.c
  * Writes a surface as binary32 values and as 16-bit integer values, each with
  * the data type of the header set explicitly. The trailer is written with
  * sdfio_write_trailer_field().
  */
 
 /**
- * @example reading.c
+ * @example reader.c
  * Reads a file as heights in metres of type float, prints the revision, the
  * size and the mean height, and prints the trailer.
  */
 
 /**
- * @example streaming.c
+ * @example streams.c
  * Reads a file from a stream, here standard input, one row at a time with
  * sdfio_read_data() and sdfio_decode_heights(), and prints the lowest and the
- * highest height. The program holds one row in memory, not the
- * matrix.
+ * highest height. The program holds one row in memory, not the matrix.
  */
 
 /**
  * @example coded_values.c
- * Writes and reads the coded height information of a scanner as 16-bit values, row by
- * row, with sdfio_write_data() and sdfio_read_data(). The points that are not
- * measured carry the bad value SDFIO_BAD_INT16, which is recognized when
- * reading.
+ * Writes and reads the coded height information of a scanner as 16-bit values,
+ * row by row, with sdfio_write_data() and sdfio_read_data(). The points that
+ * are not measured carry the bad value SDFIO_BAD_INT16, which is recognized
+ * when reading.
  */
 
 /**

@@ -16,6 +16,8 @@
 #include "revision.h"
 #include "source.h"
 
+typedef struct sdfio_reader_format sdfio_reader_format;
+
 /**
  * A reader format: the functions that read a representation of the files.
  *

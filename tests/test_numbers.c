@@ -187,19 +187,18 @@ static void check_locale(void)
     check_numbers(&decimal_point);
 
     /* A file written and read in such a locale has the dots of the format. */
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.representation = SDFIO_ASCII;
-    header.data_type = SDFIO_TYPE_DOUBLE;
-    header.columns = 3;
-    header.rows = 1;
-    header.x_scale = 1.5e-6;
-    header.y_scale = 1.5e-6;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_DOUBLE));
+    CHECK_OK(sdfio_header_set_columns(header, 3));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_x_scale(header, 1.5e-6));
+    CHECK_OK(sdfio_header_set_y_scale(header, 1.5e-6));
     const double heights[3] = {1.25e-6, NAN, -3.5e-7};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  heights));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -215,7 +214,7 @@ static void check_locale(void)
           && near_relative(back[2], -3.5e-7, 1e-12));
     /* A variable has the precision of its type, a constant may have more. */
     const double x_scale = 1.5e-6;
-    CHECK(sdfio_get_header(reader)->x_scale == x_scale);
+    CHECK(sdfio_header_x_scale(sdfio_get_header(reader)) == x_scale);
     sdfio_reader_free(reader);
     free(file.data);
     setlocale(LC_NUMERIC, "C");

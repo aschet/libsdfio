@@ -17,8 +17,10 @@
 #include "data_type.h"
 #include "datetime.h"
 #include "fields.h"
+#include "header.h"
 #include "message.h"
 #include "reader_format.h"
+#include "reader_state.h"
 #include "revision.h"
 #include "source.h"
 #include "tagged.h"
@@ -155,8 +157,8 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         (const char *)created_text, SDFIO_DATETIME_SIZE, revision, zone);
     const time_t modified = sdfio_datetime_parse(
         (const char *)modified_text, SDFIO_DATETIME_SIZE, revision, zone);
-    header->columns = (size_t)get_le(columns_field, columns_rows_size);
-    header->rows = (size_t)get_le(rows_field, columns_rows_size);
+    header->columns = (uint32_t)get_le(columns_field, columns_rows_size);
+    header->rows = (uint32_t)get_le(rows_field, columns_rows_size);
     header->x_scale = get_double(scales[0]);
     header->y_scale = get_double(scales[1]);
     header->z_scale = get_double(scales[2]);
@@ -236,7 +238,7 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-const sdfio_reader_format sdfio_binary_reader_format = {
+static const sdfio_reader_format binary_format = {
     .state_size = sizeof(sdfio_trailer_state),
     .prefix = 'b',
     .version_numbers = version_numbers,
@@ -246,3 +248,8 @@ const sdfio_reader_format sdfio_binary_reader_format = {
     .end_data = end_data,
     .read_trailer = read_trailer,
 };
+
+sdfio_status sdfio_reader_add_binary_format(sdfio_reader *reader)
+{
+    return sdfio_reader_install_format(reader, &binary_format);
+}

@@ -15,6 +15,7 @@
 
 #include "heights.h"
 #include "data_type.h"
+#include "header.h"
 #include "message.h"
 #include <float.h>
 #include <sdfio/sdfio.h>

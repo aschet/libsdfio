@@ -30,25 +30,48 @@ static void generate_heights(void)
     }
 }
 
-static int write_surface(const char *path, sdfio_data_type type)
+static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = type;
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 1e-6;
-    header.y_scale = 1e-6;
-
-    sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(NULL, &writer);
+    sdfio_status status = sdfio_header_set_data_type(header, type);
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+        status = sdfio_header_set_columns(header, COLUMNS);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_create_file(writer, path, &header);
+        status = sdfio_header_set_rows(header, ROWS);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_x_scale(header, 1e-6);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_y_scale(header, 1e-6);
+    }
+    return status;
+}
+
+static int write_surface(const char *path, sdfio_data_type type)
+{
+    sdfio_header *header = NULL;
+    sdfio_status status = sdfio_header_create(NULL, &header);
+    if (status == SDFIO_OK)
+    {
+        status = describe_surface(header, type);
+    }
+    sdfio_writer *writer = NULL;
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_create(NULL, &writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_binary_format(writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_file(writer, path, header);
     }
     if (status == SDFIO_OK)
     {
@@ -72,6 +95,7 @@ static int write_surface(const char *path, sdfio_data_type type)
         fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
     }
     sdfio_writer_free(writer);
+    sdfio_header_free(header);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 

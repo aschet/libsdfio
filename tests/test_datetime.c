@@ -232,20 +232,19 @@ static void check_file(void)
     const sdfio_time_zone zone = {NULL, central_europe_to_utc,
                                   central_europe_to_local};
     const test_options with_zone = {.time_zone = &zone, ALL_FORMATS};
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.revision = SDFIO_ISO_1_0;
-    header.data_type = SDFIO_TYPE_INT16;
-    header.columns = 1;
-    header.rows = 1;
-    header.creation_date = 1782900000;
-    header.modification_date = 1768474800;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_1_0));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_creation_date(header, 1782900000));
+    CHECK_OK(sdfio_header_set_modification_date(header, 1768474800));
 
     membuf sink = {0};
     const sdfio_stream stream = membuf_stream(&sink);
     const float height = 1.0F;
     sdfio_writer *writer = new_writer(&with_zone);
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  &height));
     CHECK_OK(sdfio_end_trailer(writer));
@@ -259,13 +258,14 @@ static void check_file(void)
 
     sdfio_reader *reader = new_reader(&with_zone);
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
-    CHECK(sdfio_get_header(reader)->creation_date == 1782900000);
-    CHECK(sdfio_get_header(reader)->modification_date == 1768474800);
+    CHECK(sdfio_header_creation_date(sdfio_get_header(reader)) == 1782900000);
+    CHECK(sdfio_header_modification_date(sdfio_get_header(reader))
+          == 1768474800);
     sdfio_reader_free(reader);
 
     reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
-    CHECK(sdfio_get_header(reader)->creation_date == 1782907200);
+    CHECK(sdfio_header_creation_date(sdfio_get_header(reader)) == 1782907200);
     sdfio_reader_free(reader);
 
     /* A writer whose time zone refuses the date creates no file. */
@@ -274,7 +274,7 @@ static void check_file(void)
     membuf refused = {0};
     const sdfio_stream refused_stream = membuf_stream(&refused);
     writer = new_writer(&refusing_config);
-    CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &refused_stream, header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_write_heights(
                      writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height));

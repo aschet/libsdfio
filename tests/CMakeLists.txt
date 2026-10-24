@@ -62,6 +62,7 @@ sdfio_add_test(test_heights_other SOURCE test_heights.c OBJECTS sdfio_objects_ot
 sdfio_add_test(test_datetime)
 sdfio_add_test(test_trailer)
 sdfio_add_test(test_allocator)
+sdfio_add_test(test_header)
 if(WIN32)
     sdfio_add_test(test_wide)
 endif()

@@ -59,26 +59,39 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     {
         return 0;
     }
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.revision = (sdfio_revision)(data[0] % REVISIONS);
-    header.representation = (data[1] & 1) != 0 ? SDFIO_ASCII : SDFIO_BINARY;
-    header.data_type = (sdfio_data_type)(data[2] % TYPES);
-    header.columns = 1 + (size_t)(data[3] % DIMENSION_LIMIT);
-    header.rows = 1 + (size_t)((data[3] / DIMENSION_LIMIT) % DIMENSION_LIMIT);
-    header.x_scale = double_from(data + 4);
-    header.y_scale = double_from(data + 4 + sizeof(double));
-    header.z_scale = double_from(data + 4 + 2 * sizeof(double));
-    header.z_resolution = double_from(data + 4 + 3 * sizeof(double));
-    if ((data[1] & 2) != 0)
+    sdfio_header *header = NULL;
+    if (sdfio_header_create(NULL, &header) != SDFIO_OK)
     {
-        header.z_scale = SDFIO_AUTO_Z_SCALE;
+        return 0;
     }
+    /* A setter refuses a value that is not valid, and the header keeps the
+     * default: the input makes valid and invalid values alike. */
+    const uint32_t columns = 1 + (uint32_t)(data[3] % DIMENSION_LIMIT);
+    const uint32_t rows =
+        1 + (uint32_t)((data[3] / DIMENSION_LIMIT) % DIMENSION_LIMIT);
+    (void)sdfio_header_set_revision(header,
+                                    (sdfio_revision)(data[0] % REVISIONS));
+    (void)sdfio_header_set_representation(
+        header, (data[1] & 1) != 0 ? SDFIO_ASCII : SDFIO_BINARY);
+    (void)sdfio_header_set_data_type(header,
+                                     (sdfio_data_type)(data[2] % TYPES));
+    (void)sdfio_header_set_columns(header, columns);
+    (void)sdfio_header_set_rows(header, rows);
+    (void)sdfio_header_set_x_scale(header, double_from(data + 4));
+    (void)sdfio_header_set_y_scale(header,
+                                   double_from(data + 4 + sizeof(double)));
+    (void)sdfio_header_set_z_scale(
+        header, (data[1] & 2) != 0
+                    ? SDFIO_AUTO_Z_SCALE
+                    : double_from(data + 4 + 2 * sizeof(double)));
+    (void)sdfio_header_set_z_resolution(
+        header, double_from(data + 4 + 3 * sizeof(double)));
 
-    const size_t count = header.columns * header.rows;
+    const size_t count = (size_t)columns * rows;
     float *heights = calloc(count, sizeof *heights);
     if (heights == NULL)
     {
+        sdfio_header_free(header);
         return 0;
     }
     const uint8_t *rest = data + DESCRIPTION_SIZE;
@@ -88,18 +101,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(&heights[i], rest + i * sizeof(float), sizeof(float));
     }
 
-    const test_options config = {
-        .reader_formats = {&sdfio_binary_reader_format,
-                           &sdfio_ascii_reader_format},
-        .writer_formats = {&sdfio_binary_writer_format,
-                           &sdfio_ascii_writer_format}};
+    const test_options config = {.reader_formats = {TEST_BINARY, TEST_ASCII},
+                                 .writer_formats = {TEST_BINARY, TEST_ASCII}};
     sink output = {NULL, 0};
     sdfio_writer *writer = NULL;
     sdfio_status status = create_writer(&config, &writer);
     if (status == SDFIO_OK)
     {
         const sdfio_stream stream = {&output, NULL, sink_write};
-        status = sdfio_create_stream(writer, &stream, &header);
+        status = sdfio_create_stream(writer, &stream, header);
         if (status == SDFIO_OK)
         {
             status = sdfio_write_heights(
@@ -128,8 +138,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             read_status = sdfio_open_memory(reader, output.data, output.size);
             const sdfio_header *read = sdfio_get_header(reader);
             if (read_status == SDFIO_OK
-                && (read->columns != header.columns
-                    || read->rows != header.rows))
+                && (sdfio_header_columns(read) != columns
+                    || sdfio_header_rows(read) != rows))
             {
                 abort();
             }
@@ -143,8 +153,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             if (coded != NULL)
             {
                 read_status = sdfio_read_data(
-                    reader, sdfio_layout_packed(read->data_type), coded,
-                    read->rows);
+                    reader, sdfio_layout_packed(sdfio_header_data_type(read)),
+                    coded, sdfio_header_rows(read));
             }
             char part[256];
             size_t got = 1;
@@ -160,15 +170,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         {
             fprintf(stderr,
                     "written file not read: %s (revision %d, %s, type %d, "
-                    "%zu x %zu, z_scale %g)\n",
-                    sdfio_status_string(read_status), (int)header.revision,
-                    header.representation == SDFIO_ASCII ? "text" : "binary",
-                    (int)header.data_type, header.columns, header.rows,
-                    header.z_scale);
+                    "%lu x %lu, z_scale %g)\n",
+                    sdfio_status_string(read_status),
+                    (int)sdfio_header_revision(header),
+                    sdfio_header_representation(header) == SDFIO_ASCII
+                        ? "text"
+                        : "binary",
+                    (int)sdfio_header_data_type(header), (unsigned long)columns,
+                    (unsigned long)rows, sdfio_header_z_scale(header));
             abort();
         }
     }
     free(output.data);
     free(heights);
+    sdfio_header_free(header);
     return 0;
 }

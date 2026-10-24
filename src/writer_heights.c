@@ -11,6 +11,7 @@
 
 #include "chunk.h"
 #include "data_type.h"
+#include "header.h"
 #include "heights.h"
 #include "writer_state.h"
 

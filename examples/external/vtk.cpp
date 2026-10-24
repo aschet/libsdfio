@@ -47,12 +47,12 @@ void check(sdfio_status status, const char *message)
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(nullptr, &reader), "The reader cannot be made");
+    check(sdfio_reader_create(nullptr, &reader), "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_format(reader, &sdfio_binary_reader_format),
-          "The binary format cannot be listed");
-    check(sdfio_reader_add_format(reader, &sdfio_ascii_reader_format),
-          "The ASCII format cannot be listed");
+    check(sdfio_reader_add_binary_format(reader),
+          "Adding the binary format failed");
+    check(sdfio_reader_add_ascii_format(reader),
+          "Adding the ASCII format failed");
     return owned;
 }
 
@@ -68,9 +68,10 @@ vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
 {
     const sdfio_header *header = sdfio_get_header(reader);
     auto image = vtkSmartPointer<vtkImageData>::New();
-    image->SetDimensions(static_cast<int>(header->columns),
-                         static_cast<int>(header->rows), 1);
-    image->SetSpacing(header->x_scale, header->y_scale, 1.0);
+    image->SetDimensions(static_cast<int>(sdfio_header_columns(header)),
+                         static_cast<int>(sdfio_header_rows(header)), 1);
+    image->SetSpacing(sdfio_header_x_scale(header),
+                      sdfio_header_y_scale(header), 1.0);
     image->SetOrigin(0.0, 0.0, 0.0);
     image->AllocateScalars(VTK_FLOAT, 1);
     check(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),

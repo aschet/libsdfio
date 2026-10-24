@@ -34,7 +34,7 @@ static unsigned char image[IMAGE_SIZE];
 static size_t image_used;
 static volatile size_t result;
 
-/* The clock of the scanner, which sdfio_header_init() reads for the dates. */
+/* The clock of the scanner, which sdfio_header_create() reads for the dates. */
 time_t time(time_t *timer)
 {
     static const time_t scan_time = 1700000000;
@@ -88,7 +88,7 @@ int main(void)
     sdfio_status status = sdfio_writer_create(&allocator, &writer);
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+        status = sdfio_writer_add_binary_format(writer);
     }
     if (status == SDFIO_OK)
     {
@@ -98,18 +98,39 @@ int main(void)
     {
         status = sdfio_writer_set_chunk_values(writer, 16);
     }
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = SDFIO_TYPE_INT16;
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 1.0e-6;
-    header.y_scale = 1.0e-6;
-    header.z_scale = 1.0e-9;
+    sdfio_header *header = NULL;
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_create(&allocator, &header);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_columns(header, COLUMNS);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_rows(header, ROWS);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_x_scale(header, 1.0e-6);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_y_scale(header, 1.0e-6);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_z_scale(header, 1.0e-9);
+    }
     const sdfio_stream stream = {NULL, NULL, store};
     if (status == SDFIO_OK)
     {
-        status = sdfio_create_stream(writer, &stream, &header);
+        status = sdfio_create_stream(writer, &stream, header);
     }
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
@@ -125,6 +146,7 @@ int main(void)
         status = sdfio_end_trailer(writer);
     }
     sdfio_writer_free(writer);
+    sdfio_header_free(header);
     result = status == SDFIO_OK ? image_used : 0;
     for (;;)
     {

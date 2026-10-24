@@ -15,40 +15,35 @@
 /* The size is that of the matrix, and one that cannot be counted is refused. */
 static void check_memory(void)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = SDFIO_TYPE_INT16;
-    header.columns = 5;
-    header.rows = 3;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
+    CHECK_OK(sdfio_header_set_columns(header, 5));
+    CHECK_OK(sdfio_header_set_rows(header, 3));
 
     size_t bytes = 0;
-    CHECK_OK(sdfio_heights_size(&header, SDFIO_TYPE_FLOAT, &bytes));
+    CHECK_OK(sdfio_heights_size(header, SDFIO_TYPE_FLOAT, &bytes));
     CHECK(bytes == 15 * sizeof(float));
-    CHECK_OK(sdfio_heights_row_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
+    CHECK_OK(sdfio_heights_row_size(header, SDFIO_TYPE_DOUBLE, &bytes));
     CHECK(bytes == 5 * sizeof(double));
-    CHECK_OK(sdfio_data_size(&header, &bytes));
+    CHECK_OK(sdfio_data_size(header, &bytes));
     CHECK(bytes == 15 * sizeof(int16_t));
-    CHECK_OK(sdfio_data_row_size(&header, &bytes));
+    CHECK_OK(sdfio_data_row_size(header, &bytes));
     CHECK(bytes == 5 * sizeof(int16_t));
 
-    header.columns = 0;
-    CHECK_OK(sdfio_data_size(&header, &bytes));
+    CHECK_OK(sdfio_header_set_columns(header, 0));
+    CHECK_OK(sdfio_data_size(header, &bytes));
     CHECK(bytes == 0);
 
-    header.columns = SIZE_MAX / 2;
-    header.rows = 3;
+    CHECK_OK(sdfio_header_set_columns(header, UINT32_MAX));
+    CHECK_OK(sdfio_header_set_rows(header, UINT32_MAX));
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
-    header.columns = SIZE_MAX / 4;
-    header.rows = 2;
-    CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_heights_size(&header, SDFIO_TYPE_DOUBLE, &bytes));
-    header.data_type = SDFIO_TYPE_INT32;
-    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_data_size(&header, &bytes));
+                 sdfio_heights_size(header, SDFIO_TYPE_DOUBLE, &bytes));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT32));
+    CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_data_size(header, &bytes));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_heights_size(&header, (sdfio_data_type)99, &bytes));
+                 sdfio_heights_size(header, (sdfio_data_type)99, &bytes));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_size(NULL, &bytes));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(&header, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(header, NULL));
 }
 
 /* The initializers set every field to zero, whatever the memory held before. */
@@ -83,17 +78,16 @@ int main(void)
     check_init();
     CHECK(strcmp(sdfio_version(), SDFIO_VERSION_STRING) == 0);
 
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 3;
-    header.rows = 2;
-    header.data_type = SDFIO_TYPE_INT16;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 3));
+    CHECK_OK(sdfio_header_set_rows(header, 2));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
     const float heights[6] = {1e-6f, 2e-6f, NAN, 4e-6f, 5e-6f, 6e-6f};
 
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  heights));
     CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
@@ -105,7 +99,8 @@ int main(void)
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     const sdfio_header *read = sdfio_get_header(reader);
-    CHECK(read != NULL && read->columns == 3 && read->rows == 2);
+    CHECK(read != NULL && sdfio_header_columns(read) == 3
+          && sdfio_header_rows(read) == 2);
     if (read == NULL)
     {
         return finish_tests();

@@ -6,7 +6,7 @@
 
 /**
  * @file header.h
- * @brief Operations on the header structure.
+ * @brief The header structure and its operations.
  */
 
 #ifndef SDFIO_SRC_HEADER_H
@@ -14,6 +14,38 @@
 
 #include "message.h"
 #include <sdfio/sdfio.h>
+
+/** The header of a file. */
+struct sdfio_header
+{
+    /** Revision of the format. */
+    sdfio_revision revision;
+    /** Representation of the file. */
+    sdfio_representation representation;
+    /** Data type of the coded values in the data area. */
+    sdfio_data_type data_type;
+    /** Number of columns M of the data matrix. */
+    uint32_t columns;
+    /** Number of rows N of the data matrix. */
+    uint32_t rows;
+    /** Sampling interval along x in metres. */
+    double x_scale;
+    /** Sampling interval along y in metres. */
+    double y_scale;
+    /** Height in metres that a coded value of 1 stands for. */
+    double z_scale;
+    /** Quantization step of the instrument in metres. */
+    double z_resolution;
+    /** Original creation date and time. */
+    time_t creation_date;
+    /** Last modification date and time. */
+    time_t modification_date;
+    /** Manufacturer's identifier, terminated by a null character. */
+    char manufacturer_id[SDFIO_MANUFACTURER_ID_MAX + 1];
+    /** The allocator that made the header; empty for a header inside a reader
+     * or a writer. */
+    sdfio_allocator allocator;
+};
 
 /**
  * Computes the total number of coded values of the data area: the number of
@@ -30,14 +62,10 @@ bool sdfio_coded_values(const sdfio_header *header, size_t *values);
 /**
  * Validates a header for the creation of a file.
  *
- * The function verifies that the fields of the header can be represented in a
- * file of its revision and representation. The revision, the representation and
- * the data type are enumerators, and the revision permits the data type. The
- * z-scale is positive or SDFIO_AUTO_Z_SCALE, and the x-scale, the y-scale and
- * the z-resolution are finite. The manufacturer identifier is a terminated
- * 7-bit ASCII string. Both datetimes are set and lie in the supported range of
- * years. The numbers of columns and rows do not exceed the limit of the
- * revision, and their product fits in size_t.
+ * The setters have checked every field alone. The function verifies what
+ * depends on several fields: the revision permits the data type, both
+ * datetimes are set, the numbers of columns and rows do not exceed the limit of
+ * the revision, and their product fits in size_t.
  *
  * @param header The header to validate.
  * @param[out] message Receives the reason of a failure. May be null.

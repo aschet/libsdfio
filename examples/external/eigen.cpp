@@ -17,6 +17,7 @@ namespace
 
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
+using Header = std::unique_ptr<sdfio_header, decltype(&sdfio_header_free)>;
 
 void check(sdfio_status status, const char *message)
 {
@@ -27,25 +28,35 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+// A header that the program can change: the copy of the header of a file.
+Header copy_header(const sdfio_header *source)
+{
+    sdfio_header *header = nullptr;
+    check(sdfio_header_create(nullptr, &header), "Creating the header failed");
+    Header owned(header, sdfio_header_free);
+    check(sdfio_header_copy(header, source), "Copying the header failed");
+    return owned;
+}
+
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(nullptr, &reader), "The reader cannot be made");
+    check(sdfio_reader_create(nullptr, &reader), "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_format(reader, &sdfio_binary_reader_format),
-          "The binary format cannot be listed");
-    check(sdfio_reader_add_format(reader, &sdfio_ascii_reader_format),
-          "The ASCII format cannot be listed");
+    check(sdfio_reader_add_binary_format(reader),
+          "Adding the binary format failed");
+    check(sdfio_reader_add_ascii_format(reader),
+          "Adding the ASCII format failed");
     return owned;
 }
 
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(nullptr, &writer), "The writer cannot be made");
+    check(sdfio_writer_create(nullptr, &writer), "Creating the writer failed");
     Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_format(writer, &sdfio_binary_writer_format),
-          "The binary format cannot be listed");
+    check(sdfio_writer_add_binary_format(writer),
+          "Adding the binary format failed");
     return owned;
 }
 
@@ -65,8 +76,9 @@ sdfio_layout layout_of(const Eigen::MatrixXd &matrix)
 Eigen::MatrixXd read_matrix(sdfio_reader *reader)
 {
     const sdfio_header *header = sdfio_get_header(reader);
-    Eigen::MatrixXd heights(static_cast<Eigen::Index>(header->rows),
-                            static_cast<Eigen::Index>(header->columns));
+    Eigen::MatrixXd heights(
+        static_cast<Eigen::Index>(sdfio_header_rows(header)),
+        static_cast<Eigen::Index>(sdfio_header_columns(header)));
     check(sdfio_read_heights(reader, layout_of(heights), heights.data()),
           sdfio_reader_error_message(reader));
     return heights;
@@ -116,12 +128,14 @@ void remove_plane(Eigen::MatrixXd &heights, const Plane &plane)
     }
 }
 
-void write_matrix(const char *path, sdfio_header header,
+void write_matrix(const char *path, const sdfio_header *source,
                   const Eigen::MatrixXd &heights)
 {
-    header.data_type = SDFIO_TYPE_FLOAT;
+    Header header = copy_header(source);
+    check(sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT),
+          "Setting the data type failed");
     Writer writer = create_writer();
-    check(sdfio_create_file(writer.get(), path, &header),
+    check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data()),
           sdfio_writer_error_message(writer.get()));
@@ -146,7 +160,7 @@ int main(int argc, char **argv)
               sdfio_reader_error_message(reader.get()));
         Eigen::MatrixXd heights = read_matrix(reader.get());
         remove_plane(heights, fit_plane(heights));
-        write_matrix("levelled.sdf", *sdfio_get_header(reader.get()), heights);
+        write_matrix("levelled.sdf", sdfio_get_header(reader.get()), heights);
     }
     catch (const std::exception &error)
     {

@@ -9,6 +9,10 @@
  * configuration works. This is what a program without a heap relies on. */
 
 #include "check.h"
+#include "reader_format.h"
+#include "reader_state.h"
+#include "writer_format.h"
+#include "writer_state.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -71,15 +75,14 @@ static sdfio_status round_trip(const test_options *config,
     fill(written);
     *equal = false;
 
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.representation = representation;
-    header.data_type = type;
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 1.0e-6;
-    header.y_scale = 1.0e-6;
-    header.z_scale = SDFIO_AUTO_Z_SCALE;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_representation(header, representation));
+    CHECK_OK(sdfio_header_set_data_type(header, type));
+    CHECK_OK(sdfio_header_set_columns(header, COLUMNS));
+    CHECK_OK(sdfio_header_set_rows(header, ROWS));
+    CHECK_OK(sdfio_header_set_x_scale(header, 1.0e-6));
+    CHECK_OK(sdfio_header_set_y_scale(header, 1.0e-6));
+    CHECK_OK(sdfio_header_set_z_scale(header, SDFIO_AUTO_Z_SCALE));
 
     membuf sink = {0};
     sdfio_writer *writer = NULL;
@@ -87,7 +90,7 @@ static sdfio_status round_trip(const test_options *config,
     if (status == SDFIO_OK)
     {
         const sdfio_stream stream = membuf_stream(&sink);
-        status = sdfio_create_stream(writer, &stream, &header);
+        status = sdfio_create_stream(writer, &stream, header);
         if (status == SDFIO_OK)
         {
             status = sdfio_write_heights(
@@ -283,18 +286,15 @@ static void check_arguments(void)
                  sdfio_reader_set_buffer_size(reader_made, 0));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_writer_set_buffer_size(writer_made, 0));
+    CHECK_OK(sdfio_reader_add_binary_format(reader_made));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_reader_add_format(reader_made, NULL));
-    CHECK_OK(sdfio_reader_add_format(reader_made, &sdfio_binary_reader_format));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_reader_add_format(reader_made, &sdfio_binary_reader_format));
-    CHECK_OK(sdfio_reader_add_format(reader_made, &sdfio_ascii_reader_format));
-    CHECK_OK(sdfio_writer_add_format(writer_made, &sdfio_binary_writer_format));
-    CHECK_STATUS(
-        SDFIO_ERR_ARGUMENT,
-        sdfio_writer_add_format(writer_made, &sdfio_binary_writer_format));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_add_format(NULL, NULL));
+                 sdfio_reader_add_binary_format(reader_made));
+    CHECK_OK(sdfio_reader_add_ascii_format(reader_made));
+    CHECK_OK(sdfio_writer_add_binary_format(writer_made));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_add_binary_format(writer_made));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_add_binary_format(NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_add_ascii_format(NULL));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_set_time_zone(NULL, NULL));
     CHECK_OK(sdfio_reader_set_time_zone(reader_made, NULL));
 
@@ -309,48 +309,44 @@ static void check_arguments(void)
                  sdfio_reader_set_chunk_values(reader_made, 16));
     CHECK_STATUS(SDFIO_ERR_STATE,
                  sdfio_reader_set_time_zone(reader_made, NULL));
-    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_add_format(
-                                      reader_made, &sdfio_ascii_reader_format));
+    CHECK_STATUS(SDFIO_ERR_STATE, sdfio_reader_add_ascii_format(reader_made));
     sdfio_reader_free(reader_made);
     sdfio_writer_free(writer_made);
 
     /* A date that is not set cannot be written. */
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 1;
-    header.rows = 1;
-    header.creation_date = SDFIO_NO_TIME;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_creation_date(header, SDFIO_NO_TIME));
     sdfio_writer *writer = new_writer(all_formats());
     membuf sink = {0};
     const sdfio_stream stream = membuf_stream(&sink);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_create_stream(writer, &stream, &header));
+                 sdfio_create_stream(writer, &stream, header));
     CHECK(strstr(sdfio_writer_error_message(writer), "SDFIO_NO_TIME") != NULL);
-    header.creation_date = 0;
-    header.modification_date = SDFIO_NO_TIME;
+    CHECK_OK(sdfio_header_set_creation_date(header, 0));
+    CHECK_OK(sdfio_header_set_modification_date(header, SDFIO_NO_TIME));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_create_stream(writer, &stream, &header));
-    header.modification_date = 0;
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+                 sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_header_set_modification_date(header, 0));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     sdfio_writer_free(writer);
     free(sink.data);
 
     /* Text is written with its format and refused without it. */
-    sdfio_header_init(&header);
-    header.representation = SDFIO_ASCII;
-    header.columns = 1;
-    header.rows = 1;
+    CHECK_OK(sdfio_header_set_representation(header, SDFIO_ASCII));
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
     writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     sdfio_writer_free(writer);
     free(sink.data);
     sink = (membuf){0};
-    const test_options binary_only = {
-        .reader_formats = {&sdfio_binary_reader_format},
-        .writer_formats = {&sdfio_binary_writer_format}};
+    const test_options binary_only = {.reader_formats = {TEST_BINARY},
+                                      .writer_formats = {TEST_BINARY}};
     writer = new_writer(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
-                 sdfio_create_stream(writer, &stream, &header));
+                 sdfio_create_stream(writer, &stream, header));
     sdfio_writer_free(writer);
     free(sink.data);
 
@@ -376,13 +372,12 @@ static void check_arguments(void)
     sdfio_reader_free(no_format_reader);
     sdfio_writer *no_format_writer = NULL;
     CHECK_OK(sdfio_writer_create(NULL, &no_format_writer));
-    sdfio_header no_format_header;
-    sdfio_header_init(&no_format_header);
+    sdfio_header *no_format_header = new_header();
     membuf no_format_sink = {0};
     const sdfio_stream no_format_stream = membuf_stream(&no_format_sink);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_create_stream(no_format_writer, &no_format_stream,
-                                     &no_format_header));
+                                     no_format_header));
     sdfio_writer_free(no_format_writer);
     free(no_format_sink.data);
 }
@@ -407,13 +402,11 @@ static void check_version_numbers(void)
     sdfio_reader_free(all);
 
     const test_options ascii_first = {
-        .reader_formats = {&sdfio_ascii_reader_format,
-                           &sdfio_binary_reader_format}};
+        .reader_formats = {TEST_ASCII, TEST_BINARY}};
     sdfio_reader *ascii = new_reader(&ascii_first);
     CHECK(strcmp(sdfio_reader_version_number(ascii, 0), "aISO-1.0") == 0);
     sdfio_reader_free(ascii);
-    const test_options binary_only = {
-        .reader_formats = {&sdfio_binary_reader_format}};
+    const test_options binary_only = {.reader_formats = {TEST_BINARY}};
     sdfio_reader *binary = new_reader(&binary_only);
     CHECK(sdfio_reader_version_number_count(binary) == 2U);
     CHECK(sdfio_reader_version_number(binary, 2) == NULL);
@@ -422,8 +415,39 @@ static void check_version_numbers(void)
     CHECK(sdfio_reader_version_number(NULL, 0) == NULL);
 }
 
+/* The list of formats has room for the formats of the library only. */
+static void check_format_list(void)
+{
+    sdfio_reader_format first_read = {.prefix = 'x'};
+    sdfio_reader_format second_read = {.prefix = 'y'};
+    sdfio_reader_format third_read = {.prefix = 'z'};
+    sdfio_reader *reader = NULL;
+    CHECK_OK(sdfio_reader_create(NULL, &reader));
+    CHECK_OK(sdfio_reader_install_format(reader, &first_read));
+    CHECK_OK(sdfio_reader_install_format(reader, &second_read));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_install_format(reader, &first_read));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_install_format(reader, &third_read));
+    sdfio_reader_free(reader);
+
+    sdfio_writer_format first_write = {.writes = SDFIO_BINARY};
+    sdfio_writer_format second_write = {.writes = SDFIO_ASCII};
+    sdfio_writer_format third_write = {.writes = SDFIO_BINARY};
+    sdfio_writer *writer = NULL;
+    CHECK_OK(sdfio_writer_create(NULL, &writer));
+    CHECK_OK(sdfio_writer_install_format(writer, &first_write));
+    CHECK_OK(sdfio_writer_install_format(writer, &second_write));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_install_format(writer, &first_write));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_install_format(writer, &third_write));
+    sdfio_writer_free(writer);
+}
+
 int main(void)
 {
+    check_format_list();
     check_version_numbers();
     check_counted();
     check_small();

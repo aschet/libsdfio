@@ -25,16 +25,15 @@ typedef struct small_file
 
 static void start_file(small_file *small, sdfio_representation representation)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.representation = representation;
-    header.columns = 2;
-    header.rows = 2;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_representation(header, representation));
+    CHECK_OK(sdfio_header_set_columns(header, 2));
+    CHECK_OK(sdfio_header_set_rows(header, 2));
     const float heights[4] = {1e-6F, 2e-6F, 3e-6F, 4e-6F};
     small->file = (membuf){0};
     const sdfio_stream stream = membuf_stream(&small->file);
     small->writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(small->writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(small->writer, &stream, header));
     CHECK_OK(sdfio_write_heights(
         small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
 }
@@ -122,16 +121,15 @@ static void check_what_a_line_may_be(void)
 /* A field belongs after the rows, and not after the end. */
 static void check_the_order(void)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 1;
-    header.rows = 2;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 2));
     const float height = 1e-6F;
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                               &height, 1));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
@@ -156,18 +154,17 @@ static void check_the_text_is_written_as_given(void)
     {
         for (size_t r = 0; r < 2; ++r)
         {
-            sdfio_header header;
-            sdfio_header_init(&header);
-            header.revision = revisions[r];
-            header.data_type = SDFIO_TYPE_INT16;
-            header.z_scale = 1e-9;
-            header.columns = 1;
-            header.rows = 1;
+            sdfio_header *header = new_header();
+            CHECK_OK(sdfio_header_set_revision(header, revisions[r]));
+            CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
+            CHECK_OK(sdfio_header_set_z_scale(header, 1e-9));
+            CHECK_OK(sdfio_header_set_columns(header, 1));
+            CHECK_OK(sdfio_header_set_rows(header, 1));
             const double height = 1e-6;
             membuf file = {0};
             const sdfio_stream stream = membuf_stream(&file);
             sdfio_writer *writer = new_writer(all_formats());
-            CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+            CHECK_OK(sdfio_create_stream(writer, &stream, header));
             CHECK_OK(sdfio_write_heights(
                 writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), &height));
             CHECK_OK(sdfio_write_trailer_text(writer, trailers[t],
@@ -186,15 +183,14 @@ static void check_the_text_is_written_as_given(void)
         }
     }
     /* Only a missing text is refused. */
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = 1;
-    header.rows = 1;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
     const float height = 1e-6F;
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_stream(writer, &stream, &header));
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  &height));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_text(writer, NULL, 5));

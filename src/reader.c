@@ -39,14 +39,10 @@ sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
         return SDFIO_ERR_ARGUMENT;
     }
     *reader = NULL;
-    sdfio_allocator used = {0};
-    if (allocator != NULL)
+    sdfio_allocator used;
+    if (!sdfio_allocator_resolve(allocator, &used))
     {
-        if (!sdfio_allocator_valid(allocator))
-        {
-            return SDFIO_ERR_ARGUMENT;
-        }
-        used = *allocator;
+        return SDFIO_ERR_ARGUMENT;
     }
     sdfio_reader *handle = sdfio_allocate(&used, sizeof *handle);
     if (handle == NULL)
@@ -77,30 +73,25 @@ static sdfio_status require_new(sdfio_reader *reader)
     if (buffers_made(reader))
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "The options are set before a file is opened");
+                          "Options can be set only before a file is opened");
     }
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_reader_add_format(sdfio_reader *reader,
-                                     const sdfio_reader_format *format)
+sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
+                                         const sdfio_reader_format *format)
 {
-    sdfio_status status = require_new(reader);
+    const sdfio_status status = require_new(reader);
     if (status != SDFIO_OK)
     {
         return status;
-    }
-    if (format == NULL)
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "A format is needed");
     }
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
         if (reader->formats[i] == format)
         {
             return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                              "The format is listed already");
+                              "The format has been added already");
         }
         if (reader->formats[i] == NULL)
         {
@@ -109,7 +100,7 @@ sdfio_status sdfio_reader_add_format(sdfio_reader *reader,
         }
     }
     return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                      "More formats are listed than the library has");
+                      "The list of formats is full");
 }
 
 sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader, size_t size)

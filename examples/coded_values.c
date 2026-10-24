@@ -29,32 +29,63 @@ static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
     }
 }
 
-static int write_coded_values(const char *path)
+static sdfio_status describe_coded_values(sdfio_header *header)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.data_type = SDFIO_TYPE_INT16;
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 2e-6;
-    header.y_scale = 2e-6;
-    header.z_scale = sdfio_z_scale_for_range(header.data_type, -80e-6, 80e-6);
-    header.z_resolution = header.z_scale;
-
-    const int16_t bad_value = SDFIO_BAD_INT16;
-    sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(NULL, &writer);
+    const double z_scale =
+        sdfio_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
+    sdfio_status status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+        status = sdfio_header_set_columns(header, COLUMNS);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_create_file(writer, path, &header);
+        status = sdfio_header_set_rows(header, ROWS);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_x_scale(header, 2e-6);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_y_scale(header, 2e-6);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_z_scale(header, z_scale);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_z_resolution(header, z_scale);
+    }
+    return status;
+}
+
+static int write_coded_values(const char *path)
+{
+    sdfio_header *header = NULL;
+    sdfio_status status = sdfio_header_create(NULL, &header);
+    if (status == SDFIO_OK)
+    {
+        status = describe_coded_values(header);
+    }
+    const int16_t bad_value = SDFIO_BAD_INT16;
+    sdfio_writer *writer = NULL;
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_create(NULL, &writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_binary_format(writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_file(writer, path, header);
     }
     int16_t row[COLUMNS];
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t y = 0; y < header.rows && status == SDFIO_OK; ++y)
+    for (size_t y = 0; y < ROWS && status == SDFIO_OK; ++y)
     {
         generate_coded_row(row, y, bad_value);
         status = sdfio_write_data(writer, layout, row, 1);
@@ -68,6 +99,7 @@ static int write_coded_values(const char *path)
         fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
     }
     sdfio_writer_free(writer);
+    sdfio_header_free(header);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
@@ -77,14 +109,15 @@ static int read_coded_values(const char *path)
     sdfio_status status = sdfio_reader_create(NULL, &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+        status = sdfio_reader_add_binary_format(reader);
     }
     if (status == SDFIO_OK)
     {
         status = sdfio_open_file(reader, path);
     }
     const sdfio_header *header = sdfio_get_header(reader);
-    if (status == SDFIO_OK && header->data_type != SDFIO_TYPE_INT16)
+    if (status == SDFIO_OK
+        && sdfio_header_data_type(header) != SDFIO_TYPE_INT16)
     {
         fprintf(stderr, "the file does not hold int16 coded values\n");
         sdfio_reader_free(reader);
@@ -105,13 +138,14 @@ static int read_coded_values(const char *path)
     size_t out_of_place = 0;
     double sum = 0.0;
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t y = 0; status == SDFIO_OK && y < header->rows; ++y)
+    const size_t columns = sdfio_header_columns(header);
+    for (size_t y = 0; status == SDFIO_OK && y < sdfio_header_rows(header); ++y)
     {
         status = sdfio_read_data(reader, layout, row, 1);
         generate_coded_row(expected, y, bad_value);
         out_of_place +=
-            memcmp(row, expected, header->columns * sizeof *row) != 0 ? 1 : 0;
-        for (size_t x = 0; status == SDFIO_OK && x < header->columns; ++x)
+            memcmp(row, expected, columns * sizeof *row) != 0 ? 1 : 0;
+        for (size_t x = 0; status == SDFIO_OK && x < columns; ++x)
         {
             if (row[x] == SDFIO_BAD_INT16)
             {
@@ -132,12 +166,14 @@ static int read_coded_values(const char *path)
     else
     {
         const double mean = sum / (double)measured;
-        printf("%s %zu x %zu, %zu points not measured, mean %g coded value = "
+        printf("%s %lu x %lu, %zu points not measured, mean %g coded value = "
                "%g m, "
                "%zu rows out of place\n",
-               header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
-               header->columns, header->rows, not_measured, mean,
-               mean * header->z_scale, out_of_place);
+               sdfio_header_revision(header) == SDFIO_ISO_1_0 ? "ISO-1.0"
+                                                              : "ISO-2.0",
+               (unsigned long)columns, (unsigned long)sdfio_header_rows(header),
+               not_measured, mean, mean * sdfio_header_z_scale(header),
+               out_of_place);
     }
     free(row);
     free(expected);

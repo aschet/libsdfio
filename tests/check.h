@@ -134,6 +134,45 @@ static inline sdfio_writer *new_writer(const test_options *options)
     return writer;
 }
 
+enum
+{
+    /* The room for the headers that a test makes. */
+    HEADER_ROOM = 256
+};
+
+static sdfio_header *made_headers[HEADER_ROOM];
+static size_t made_header_count = 0;
+
+static void free_made_headers(void)
+{
+    for (size_t i = 0; i < made_header_count; ++i)
+    {
+        sdfio_header_free(made_headers[i]);
+    }
+}
+
+/* A header with the defaults. The test ends by freeing it, so a test does not
+ * pair every header with a call. The function is not thread safe. */
+static inline sdfio_header *new_header(void)
+{
+    sdfio_header *header = NULL;
+    CHECK_OK(sdfio_header_create(NULL, &header));
+    if (made_header_count == 0)
+    {
+        atexit(free_made_headers);
+    }
+    if (made_header_count < HEADER_ROOM)
+    {
+        made_headers[made_header_count++] = header;
+    }
+    else
+    {
+        fprintf(stderr, "check.h: more than %d headers\n", HEADER_ROOM);
+        exit(EXIT_FAILURE);
+    }
+    return header;
+}
+
 /* Frees a reader and opens the file in memory again, to read it from the
  * start. */
 static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,

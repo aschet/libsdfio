@@ -22,9 +22,10 @@
  * This header does not include `<stdio.h>`.
  *
  * @par Versioning
- * Structures such as sdfio_header are plain structures that the caller
- * initializes. Changing one is an incompatible change and increments the major
- * version.
+ * The handles and sdfio_header are opaque, so a new option or a new field of
+ * the header becomes a new function. A structure that the caller fills, such as
+ * sdfio_layout, is a plain structure; changing one is an incompatible change
+ * and increments the major version.
  *
  * @par Standard
  * The library follows ISO 25178-71:2026, and a reader checks what the standard
@@ -180,28 +181,49 @@ SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
 enum
 {
     /**
-     * Capacity of sdfio_header::manufacturer_id in bytes: the 10 characters of
-     * the field of the standard and the terminating null character.
+     * Maximum length of the manufacturer's identifier in characters: the size
+     * of the field of the standard.
      */
-    SDFIO_MANUFACTURER_CAPACITY = 11
+    SDFIO_MANUFACTURER_ID_MAX = 10
 };
 
 /** Value of a date that is not recorded. */
 #define SDFIO_NO_TIME ((time_t)-1)
 
 /**
- * Value of sdfio_header::z_scale that requests the writer to select the
+ * Value of the z-scale of a header that requests the writer to select the
  * z-scale.
  */
 #define SDFIO_AUTO_Z_SCALE 0.0
 
 /**
- * Value of sdfio_header::z_resolution for an unknown resolution. The standard
+ * Value of the z-resolution of a header for an unknown resolution. The standard
  * represents it as a negative number, -1 by default. A reader reports it for
  * every resolution that is not positive. A writer treats every value that is
  * not positive as unknown and writes -1.
  */
 #define SDFIO_NO_RESOLUTION (-1.0)
+
+/**
+ * Memory management callbacks that replace malloc() and free(), for example
+ * with a pool or a bump allocator.
+ *
+ * A header calls them when it is created. A handle calls them for all of its
+ * memory, and only when it is created and when a file is created or opened.
+ * Reading and writing allocate nothing, so a pool can be sized in advance.
+ */
+typedef struct sdfio_allocator
+{
+    /** Opaque pointer passed as the first argument of both callbacks. */
+    void *user;
+    /**
+     * Returns a block of at least `size` bytes, aligned for any object type,
+     * or null on failure.
+     */
+    void *(*allocate)(void *user, size_t size);
+    /** Releases a block returned by `allocate`. Never called with null. */
+    void (*release)(void *user, void *memory);
+} sdfio_allocator;
 
 /**
  * Header of a file (record 1), with the field names of the standard.
@@ -210,68 +232,22 @@ enum
  * with the column, y with the row, and z points to the viewer who looks from
  * above. The row y = 0 is the first row of the file.
  *
- * A reader fills it in when it opens a file. A writer takes it as the
- * description of the file to create. The compression type and the checksum
+ * A header is opaque. sdfio_header_create() makes one with defaults, the
+ * setters fill it, sdfio_header_copy() copies it and sdfio_header_free()
+ * releases it. A reader describes the file that it opened by a header that
+ * sdfio_get_header() returns. A writer takes a header as the description of
+ * the file to create and keeps a copy. The compression type and the checksum
  * type are not members: the standard allows neither.
+ *
+ * Setters check what depends on their field alone. sdfio_create_file() and
+ * sdfio_create_stream() check the rest: the data type against the revision,
+ * the numbers of columns and rows against the limit of the revision, and the
+ * dates.
  */
-typedef struct sdfio_header
-{
-    /** Revision of the format. */
-    sdfio_revision revision;
-    /** Representation of the file. */
-    sdfio_representation representation;
-    /** Data type of the coded values in the data area. */
-    sdfio_data_type data_type;
-    /** Number of columns M of the data matrix: the points along x. */
-    size_t columns;
-    /** Number of rows N of the data matrix: 1 for a profile. */
-    size_t rows;
-    /** Sampling interval along x in metres (X-scale factor). */
-    double x_scale;
-    /**
-     * Sampling interval along y in metres (Y-scale factor). It is meaningless
-     * for a profile, and any finite value is written.
-     */
-    double y_scale;
-    /**
-     * Z-scale factor: the height in metres that a coded value of 1 in the data
-     * area stands for.
-     *
-     * A reader always sets it. A writer treats SDFIO_AUTO_Z_SCALE as 1 for the
-     * floating point data types. For the integer data types,
-     * sdfio_write_heights() selects the z-scale from the heights, whereas
-     * sdfio_write_data() requires it to be set.
-     */
-    double z_scale;
-    /**
-     * Z-resolution: the quantization step of the instrument in metres, or
-     * SDFIO_NO_RESOLUTION. It is independent of the z-scale, because data can
-     * be rescaled after the measurement.
-     */
-    double z_resolution;
-    /**
-     * Original creation date and time, with a resolution of one minute.
-     *
-     * A file that is read can have none (SDFIO_NO_TIME). A file that is written
-     * requires one; sdfio_header_init() sets the current time.
-     *
-     * ISO-2.0 files store UTC. ISO-1.0 files store the local clock
-     * of the writer, without a time zone. The library does not know the zone,
-     * so it keeps such a clock reading as it is, as if it were UTC, unless
-     * the program sets an sdfio_time_zone.
-     */
-    time_t creation_date;
-    /** Last modification date and time. The rules of creation_date apply. */
-    time_t modification_date;
-    /**
-     * Manufacturer's identifier, 7-bit ASCII, of at most 10 characters and
-     * terminated by a null character.
-     */
-    char manufacturer_id[SDFIO_MANUFACTURER_CAPACITY];
-} sdfio_header;
+typedef struct sdfio_header sdfio_header;
 
 /**
- * Initializes a header with default values.
+ * Creates a header with default values.
  *
  * The defaults are: revision ISO-2.0, binary representation, data type
  * binary32, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE, z_resolution
@@ -279,9 +255,271 @@ typedef struct sdfio_header
  * "libsdfio", and zero columns and rows. The caller sets the number of columns
  * and rows and every other field that differs.
  *
- * @param[out] header The header to initialize.
+ * @param[in] allocator The allocator of the header, or null for the standard
+ * allocator.
+ * @param[out] header Receives the header, or null if the call fails. The
+ * caller releases it with sdfio_header_free().
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the allocator lacks a
+ * function.
+ * @retval SDFIO_ERR_MEMORY The allocation failed.
  */
-SDFIO_API void sdfio_header_init(sdfio_header *header);
+SDFIO_API sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
+                                           sdfio_header **header);
+
+/**
+ * Copies every field of a header into another header, which keeps its
+ * allocator. A copy of the header of a reader is a header that the caller can
+ * change and keep after the reader is freed.
+ *
+ * @param[out] dst The header that receives the fields.
+ * @param[in] src The header to copy.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null.
+ */
+SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
+                                         const sdfio_header *src);
+
+/**
+ * Releases a header that sdfio_header_create() made. A null pointer is
+ * ignored. The header that sdfio_get_header() returns is not released.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API void sdfio_header_free(sdfio_header *header);
+
+/**
+ * Returns the revision of the format.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API sdfio_revision sdfio_header_revision(const sdfio_header *header);
+
+/**
+ * Sets the revision of the format.
+ *
+ * @param[in,out] header The header.
+ * @param revision The revision.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the value is not an
+ * enumerator.
+ */
+SDFIO_API sdfio_status sdfio_header_set_revision(sdfio_header *header,
+                                                 sdfio_revision revision);
+
+/**
+ * Returns the representation of the file.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API sdfio_representation
+sdfio_header_representation(const sdfio_header *header);
+
+/**
+ * Sets the representation of the file.
+ *
+ * @param[in,out] header The header.
+ * @param representation The representation.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the value is not an
+ * enumerator.
+ */
+SDFIO_API sdfio_status sdfio_header_set_representation(
+    sdfio_header *header, sdfio_representation representation);
+
+/**
+ * Returns the data type of the coded values in the data area.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API sdfio_data_type sdfio_header_data_type(const sdfio_header *header);
+
+/**
+ * Sets the data type of the coded values in the data area.
+ *
+ * @param[in,out] header The header.
+ * @param data_type The data type.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the value is not an
+ * enumerator.
+ */
+SDFIO_API sdfio_status sdfio_header_set_data_type(sdfio_header *header,
+                                                  sdfio_data_type data_type);
+
+/**
+ * Returns the number of columns M of the data matrix: the points along x.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API uint32_t sdfio_header_columns(const sdfio_header *header);
+
+/**
+ * Sets the number of columns M of the data matrix. ISO-1.0 stores 16 bits, so
+ * the limit of the revision is checked when the file is created.
+ *
+ * @param[in,out] header The header.
+ * @param columns The number of columns.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null.
+ */
+SDFIO_API sdfio_status sdfio_header_set_columns(sdfio_header *header,
+                                                uint32_t columns);
+
+/**
+ * Returns the number of rows N of the data matrix: 1 for a profile.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API uint32_t sdfio_header_rows(const sdfio_header *header);
+
+/**
+ * Sets the number of rows N of the data matrix. ISO-1.0 stores 16 bits, so the
+ * limit of the revision is checked when the file is created.
+ *
+ * @param[in,out] header The header.
+ * @param rows The number of rows.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null.
+ */
+SDFIO_API sdfio_status sdfio_header_set_rows(sdfio_header *header,
+                                             uint32_t rows);
+
+/**
+ * Returns the sampling interval along x in metres (X-scale factor).
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API double sdfio_header_x_scale(const sdfio_header *header);
+
+/**
+ * Sets the sampling interval along x in metres.
+ *
+ * @param[in,out] header The header.
+ * @param x_scale The interval, a finite number.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the value is not finite.
+ */
+SDFIO_API sdfio_status sdfio_header_set_x_scale(sdfio_header *header,
+                                                double x_scale);
+
+/**
+ * Returns the sampling interval along y in metres (Y-scale factor). It is
+ * meaningless for a profile.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API double sdfio_header_y_scale(const sdfio_header *header);
+
+/**
+ * Sets the sampling interval along y in metres. Any finite value is written
+ * for a profile.
+ *
+ * @param[in,out] header The header.
+ * @param y_scale The interval, a finite number.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the value is not finite.
+ */
+SDFIO_API sdfio_status sdfio_header_set_y_scale(sdfio_header *header,
+                                                double y_scale);
+
+/**
+ * Returns the z-scale factor: the height in metres that a coded value of 1 in
+ * the data area stands for. A reader always sets it.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API double sdfio_header_z_scale(const sdfio_header *header);
+
+/**
+ * Sets the z-scale factor.
+ *
+ * A writer treats SDFIO_AUTO_Z_SCALE as 1 for the floating point data types.
+ * For the integer data types, sdfio_write_heights() selects the z-scale from
+ * the heights, whereas sdfio_write_data() requires it to be set.
+ *
+ * @param[in,out] header The header.
+ * @param z_scale A positive finite number, or SDFIO_AUTO_Z_SCALE.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the value is neither.
+ */
+SDFIO_API sdfio_status sdfio_header_set_z_scale(sdfio_header *header,
+                                                double z_scale);
+
+/**
+ * Returns the z-resolution: the quantization step of the instrument in metres,
+ * or SDFIO_NO_RESOLUTION. It is independent of the z-scale, because data can
+ * be rescaled after the measurement.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API double sdfio_header_z_resolution(const sdfio_header *header);
+
+/**
+ * Sets the z-resolution.
+ *
+ * @param[in,out] header The header.
+ * @param z_resolution A finite number. A number that is not positive means
+ * SDFIO_NO_RESOLUTION.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the value is not finite.
+ */
+SDFIO_API sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
+                                                     double z_resolution);
+
+/**
+ * Returns the original creation date and time, with a resolution of one
+ * minute.
+ *
+ * A file that is read can have none (SDFIO_NO_TIME). ISO-2.0 files store UTC.
+ * ISO-1.0 files store the local clock of the writer, without a time zone. The
+ * library does not know the zone, so it keeps such a clock reading as it is,
+ * as if it were UTC, unless the program sets an sdfio_time_zone.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API time_t sdfio_header_creation_date(const sdfio_header *header);
+
+/**
+ * Sets the original creation date and time. A file that is written requires
+ * one, so sdfio_create_file() and sdfio_create_stream() reject
+ * SDFIO_NO_TIME.
+ *
+ * @param[in,out] header The header.
+ * @param creation_date The date, or SDFIO_NO_TIME.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
+ * of the SDF files.
+ */
+SDFIO_API sdfio_status sdfio_header_set_creation_date(sdfio_header *header,
+                                                      time_t creation_date);
+
+/**
+ * Returns the last modification date and time. The rules of the creation date
+ * apply.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API time_t sdfio_header_modification_date(const sdfio_header *header);
+
+/**
+ * Sets the last modification date and time. The rules of the creation date
+ * apply.
+ *
+ * @param[in,out] header The header.
+ * @param modification_date The date, or SDFIO_NO_TIME.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
+ * of the SDF files.
+ */
+SDFIO_API sdfio_status sdfio_header_set_modification_date(
+    sdfio_header *header, time_t modification_date);
+
+/**
+ * Returns the manufacturer's identifier: 7-bit ASCII, at most
+ * SDFIO_MANUFACTURER_ID_MAX characters, terminated by a null character. The
+ * pointer is valid as long as the header.
+ *
+ * @param[in] header The header.
+ */
+SDFIO_API const char *sdfio_header_manufacturer_id(const sdfio_header *header);
+
+/**
+ * Sets the manufacturer's identifier.
+ *
+ * @param[in,out] header The header.
+ * @param[in] manufacturer_id The identifier, terminated by a null character.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the identifier is longer than
+ * SDFIO_MANUFACTURER_ID_MAX characters, or it is not 7-bit ASCII.
+ */
+SDFIO_API sdfio_status sdfio_header_set_manufacturer_id(
+    sdfio_header *header, const char *manufacturer_id);
 
 /**
  * The bad value of each data type: the number that labels a point that is not
@@ -341,27 +579,6 @@ typedef struct sdfio_stream
 SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
 
 /**
- * Memory management callbacks that replace malloc() and free(), for example
- * with a pool or a bump allocator.
- *
- * A handle calls them for all of its memory, and only when it is created and
- * when a file is created or opened. Reading and writing allocate nothing, so a
- * pool can be sized in advance.
- */
-typedef struct sdfio_allocator
-{
-    /** Opaque pointer passed as the first argument of both callbacks. */
-    void *user;
-    /**
-     * Returns a block of at least `size` bytes, aligned for any object type,
-     * or null on failure.
-     */
-    void *(*allocate)(void *user, size_t size);
-    /** Releases a block returned by `allocate`. Never called with null. */
-    void (*release)(void *user, void *memory);
-} sdfio_allocator;
-
-/**
  * Conversion of the dates of ISO-1.0 files between the local clock of the
  * writer and UTC.
  *
@@ -400,38 +617,6 @@ typedef struct sdfio_time_zone
  * @param[out] time_zone The time zone to initialize.
  */
 SDFIO_API void sdfio_time_zone_init(sdfio_time_zone *time_zone);
-
-/**
- * The reading of a representation of the files: the header, the values of the
- * data area and the trailer. Opaque.
- */
-typedef struct sdfio_reader_format sdfio_reader_format;
-
-/**
- * The writing of a representation of the files: the header, the values of the
- * data area and the trailer. Opaque.
- */
-typedef struct sdfio_writer_format sdfio_writer_format;
-
-/** Reads the binary representation, the version numbers `bISO-1.0` and
- * `bISO-2.0`. */
-SDFIO_API extern const sdfio_reader_format sdfio_binary_reader_format;
-
-/** Writes the binary representation. */
-SDFIO_API extern const sdfio_writer_format sdfio_binary_writer_format;
-
-/**
- * Reads the ASCII representation, the version numbers `aISO-1.0` and
- * `aISO-2.0`. The code to parse numbers is part of it, so a program that does
- * not list it does not contain that code.
- */
-SDFIO_API extern const sdfio_reader_format sdfio_ascii_reader_format;
-
-/**
- * Writes the ASCII representation. The code to print numbers is part of it,
- * so a program that does not list it does not contain that code.
- */
-SDFIO_API extern const sdfio_writer_format sdfio_ascii_writer_format;
 
 /**
  * Returns the size in bytes of a buffer for the whole data area: `header->rows`
@@ -514,23 +699,33 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
                                            sdfio_reader **reader);
 
 /**
- * Lists a format that the reader reads. A reader needs at least one before a
- * file is opened. The formats are tried in the order in which they are listed,
- * and sdfio_reader_version_number() lists their version numbers in that order.
- * A program that links the library statically contains the code of the formats
- * it lists and no other.
+ * Lists the binary representation among the formats that the reader reads, the
+ * version numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format
+ * before a file is opened. The formats are tried in the order in which they are
+ * listed, and sdfio_reader_version_number() lists their version numbers in that
+ * order. A program that links the library statically contains the code of the
+ * formats it lists and no other.
  *
  * Like the other options of a reader, a format is listed before the first
  * attempt to open a file.
  *
  * @param reader The reader.
- * @param[in] format A reader format, for example sdfio_binary_reader_format.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null, the format is listed already,
- * or the reader lists the largest number of formats already.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
-SDFIO_API sdfio_status sdfio_reader_add_format(
-    sdfio_reader *reader, const sdfio_reader_format *format);
+SDFIO_API sdfio_status sdfio_reader_add_binary_format(sdfio_reader *reader);
+
+/**
+ * Lists the ASCII representation among the formats that the reader reads, the
+ * version numbers `aISO-1.0` and `aISO-2.0`. The rules of
+ * sdfio_reader_add_binary_format() apply. The code to parse numbers is part of
+ * the format, so a program that does not list it does not contain that code.
+ *
+ * @param reader The reader.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+SDFIO_API sdfio_status sdfio_reader_add_ascii_format(sdfio_reader *reader);
 
 /**
  * Sets the size in bytes of the buffer between the reader and its stream. The
@@ -830,22 +1025,31 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
                                            sdfio_writer **writer);
 
 /**
- * Lists a format that the writer writes. A writer needs at least one before a
- * file is created, and the representation of a file selects the format. A
- * program that links the library statically contains the code of the formats it
- * lists and no other.
+ * Lists the binary representation among the formats that the writer writes. A
+ * writer needs at least one format before a file is created, and the
+ * representation of a file selects the format. A program that links the library
+ * statically contains the code of the formats it lists and no other.
  *
  * Like the other options of a writer, a format is listed before the first
  * attempt to create a file.
  *
  * @param writer The writer.
- * @param[in] format A writer format, for example sdfio_binary_writer_format.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null, the format is listed already,
- * or the writer lists the largest number of formats already.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
-SDFIO_API sdfio_status sdfio_writer_add_format(
-    sdfio_writer *writer, const sdfio_writer_format *format);
+SDFIO_API sdfio_status sdfio_writer_add_binary_format(sdfio_writer *writer);
+
+/**
+ * Lists the ASCII representation among the formats that the writer writes. The
+ * rules of sdfio_writer_add_binary_format() apply. The code to print numbers is
+ * part of the format, so a program that does not list it does not contain that
+ * code.
+ *
+ * @param writer The writer.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+SDFIO_API sdfio_status sdfio_writer_add_ascii_format(sdfio_writer *writer);
 
 /**
  * Sets the size in bytes of the buffer between the writer and its stream. The

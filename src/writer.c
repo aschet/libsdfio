@@ -25,14 +25,10 @@ sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
         return SDFIO_ERR_ARGUMENT;
     }
     *writer = NULL;
-    sdfio_allocator used = {0};
-    if (allocator != NULL)
+    sdfio_allocator used;
+    if (!sdfio_allocator_resolve(allocator, &used))
     {
-        if (!sdfio_allocator_valid(allocator))
-        {
-            return SDFIO_ERR_ARGUMENT;
-        }
-        used = *allocator;
+        return SDFIO_ERR_ARGUMENT;
     }
     sdfio_writer *handle = sdfio_allocate(&used, sizeof *handle);
     if (handle == NULL)
@@ -64,30 +60,25 @@ static sdfio_status require_new(sdfio_writer *writer)
     if (buffers_made(writer))
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "The options are set before a file is created");
+                          "Options can be set only before a file is created");
     }
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_writer_add_format(sdfio_writer *writer,
-                                     const sdfio_writer_format *format)
+sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
+                                         const sdfio_writer_format *format)
 {
     const sdfio_status status = require_new(writer);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    if (format == NULL)
-    {
-        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "A format is needed");
-    }
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
         if (writer->formats[i] == format)
         {
             return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                              "The format is listed already");
+                              "The format has been added already");
         }
         if (writer->formats[i] == NULL)
         {
@@ -96,7 +87,7 @@ sdfio_status sdfio_writer_add_format(sdfio_writer *writer,
         }
     }
     return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                      "More formats are listed than the library has");
+                      "The list of formats is full");
 }
 
 sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer, size_t size)

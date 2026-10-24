@@ -15,25 +15,24 @@
 
 #include "heights.h"
 
-static sdfio_header description(sdfio_revision revision, sdfio_data_type type,
-                                double z_scale)
+static sdfio_header *description(sdfio_revision revision, sdfio_data_type type,
+                                 double z_scale)
 {
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.revision = revision;
-    header.data_type = type;
-    header.z_scale = z_scale;
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_revision(header, revision));
+    CHECK_OK(sdfio_header_set_data_type(header, type));
+    CHECK_OK(sdfio_header_set_z_scale(header, z_scale));
     return header;
 }
 
 static void check_decode(void)
 {
-    const sdfio_header header =
+    const sdfio_header *header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-9);
     const int16_t coded[] = {100, -200, INT16_MIN, 0};
     float heights[4];
-    CHECK_OK(sdfio_decode_heights(
-        &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), coded, 4, heights));
+    CHECK_OK(sdfio_decode_heights(header, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                  coded, 4, heights));
     CHECK(near_relative(heights[0], 1e-7f, 1e-6));
     CHECK(near_relative(heights[1], -2e-7f, 1e-6));
     CHECK(isnan(heights[2]));
@@ -43,26 +42,26 @@ static void check_decode(void)
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     layout.not_measured = -9999.0;
     double doubles[4];
-    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, doubles));
+    CHECK_OK(sdfio_decode_heights(header, layout, coded, 4, doubles));
     CHECK(doubles[2] == -9999.0);
 
     /* A height that does not fit a float. */
-    const sdfio_header scaled =
+    const sdfio_header *scaled =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT32, 1e300);
     const int32_t large[2] = {1, 2};
     float narrow[2];
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_decode_heights(&scaled,
+                 sdfio_decode_heights(scaled,
                                       sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                       large, 2, narrow));
 
     /* The minimum of a binary32 marks the point. */
-    const sdfio_header binary =
+    const sdfio_header *binary =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT, 1.0);
     const float floats[] = {1.5f, -FLT_MAX, FLT_MAX};
     double back[3];
     CHECK_OK(sdfio_decode_heights(
-        &binary, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), floats, 3, back));
+        binary, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), floats, 3, back));
     CHECK(back[0] == 1.5 && isnan(back[1]) && back[2] == (double)FLT_MAX);
 
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -70,58 +69,58 @@ static void check_decode(void)
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       coded, 4, doubles));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_decode_heights(&header,
+                 sdfio_decode_heights(header,
                                       sdfio_layout_packed((sdfio_data_type)99),
                                       coded, 4, doubles));
     CHECK_OK(sdfio_decode_heights(
-        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NULL, 0, NULL));
+        header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NULL, 0, NULL));
 }
 
 static void check_encode(void)
 {
-    const sdfio_header header =
+    const sdfio_header *header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-9);
     const double heights[] = {1.004e-7, -2e-7, NAN, INFINITY, -9999.0};
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     layout.not_measured = -9999.0;
     int16_t coded[5];
-    CHECK_OK(sdfio_encode_heights(&header, layout, heights, 5, coded));
+    CHECK_OK(sdfio_encode_heights(header, layout, heights, 5, coded));
     CHECK(coded[0] == 100 && coded[1] == -200);
     CHECK(coded[2] == INT16_MIN && coded[3] == INT16_MIN
           && coded[4] == INT16_MIN);
 
     const double too_high[] = {1.0};
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_encode_heights(&header,
+                 sdfio_encode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
     const double marker[] = {-32768e-9};
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
-                 sdfio_encode_heights(&header,
+                 sdfio_encode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       marker, 1, coded));
 
     /* The maximum is a height. */
     const double top[] = {32767e-9};
     CHECK_OK(sdfio_encode_heights(
-        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), top, 1, coded));
+        header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), top, 1, coded));
     CHECK(coded[0] == INT16_MAX);
 
     /* Without a z-scale there is no way to a count. */
-    const sdfio_header unscaled =
+    const sdfio_header *unscaled =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, SDFIO_AUTO_Z_SCALE);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_encode_heights(&unscaled,
+                 sdfio_encode_heights(unscaled,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
 
     /* A float element holds a float file, and is checked against its range. */
-    const sdfio_header single =
+    const sdfio_header *single =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT, 1.0);
     const double large[] = {1e300};
     float floats[1];
     CHECK_STATUS(SDFIO_ERR_RANGE,
-                 sdfio_encode_heights(&single,
+                 sdfio_encode_heights(single,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       large, 1, floats));
 }
@@ -129,7 +128,7 @@ static void check_encode(void)
 /* Values go through in chunks, so the sizes around one chunk are tried. */
 static void check_chunks(void)
 {
-    const sdfio_header header =
+    const sdfio_header *header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT32, 1e-6);
     const size_t sizes[] = {0, 1, 127, 128, 129, 389};
     for (size_t s = 0; s < sizeof sizes / sizeof sizes[0]; ++s)
@@ -142,10 +141,10 @@ static void check_chunks(void)
         {
             heights[i] = i % 17 == 0 ? NAN : (double)i * 1e-3 - 1.0;
         }
-        CHECK_OK(sdfio_encode_heights(&header,
+        CHECK_OK(sdfio_encode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       heights, count, coded));
-        CHECK_OK(sdfio_decode_heights(&header,
+        CHECK_OK(sdfio_decode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       coded, count, back));
         for (size_t i = 0; i < count; ++i)
@@ -191,17 +190,17 @@ static void check_range(void)
  * the precision of the buffer in both directions. */
 static void check_float_marker(void)
 {
-    const sdfio_header header =
+    const sdfio_header *header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-3);
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     layout.not_measured = -9999.1;
     const float heights[] = {1.0f, -9999.1f, NAN, 2.0f};
     int16_t coded[4];
-    CHECK_OK(sdfio_encode_heights(&header, layout, heights, 4, coded));
+    CHECK_OK(sdfio_encode_heights(header, layout, heights, 4, coded));
     CHECK(coded[0] == 1000 && coded[1] == INT16_MIN && coded[2] == INT16_MIN
           && coded[3] == 2000);
     float back[4];
-    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, back));
+    CHECK_OK(sdfio_decode_heights(header, layout, coded, 4, back));
     /* A variable has the precision of its type, a constant may have more. */
     const float marker = -9999.1f;
     CHECK(back[0] == 1.0f && back[1] == marker && back[2] == marker
@@ -242,7 +241,7 @@ typedef struct point
 
 static void check_element_stride(void)
 {
-    const sdfio_header header =
+    const sdfio_header *header =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1e-3);
     const int16_t coded[4] = {1000, INT16_MIN, -2000, 3000};
 
@@ -254,7 +253,7 @@ static void check_element_stride(void)
     }
     sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     layout.element_stride = sizeof(point);
-    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, &points[0].z));
+    CHECK_OK(sdfio_decode_heights(header, layout, coded, 4, &points[0].z));
     CHECK(points[0].z == 1.0F && isnan(points[1].z) && points[2].z == -2.0F
           && points[3].z == 3.0F);
     for (size_t i = 0; i < 4; ++i)
@@ -265,7 +264,7 @@ static void check_element_stride(void)
 
     /* Encoded from them. */
     int16_t back[4];
-    CHECK_OK(sdfio_encode_heights(&header, layout, &points[0].z, 4, back));
+    CHECK_OK(sdfio_encode_heights(header, layout, &points[0].z, 4, back));
     CHECK(back[0] == 1000 && back[1] == INT16_MIN && back[2] == -2000
           && back[3] == 3000);
 
@@ -281,7 +280,7 @@ static void check_element_stride(void)
     float mirrored[4] = {0};
     layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     layout.element_stride = -(ptrdiff_t)sizeof(float);
-    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 4, &mirrored[3]));
+    CHECK_OK(sdfio_decode_heights(header, layout, coded, 4, &mirrored[3]));
     CHECK(mirrored[3] == 1.0F && isnan(mirrored[2]) && mirrored[1] == -2.0F
           && mirrored[0] == 3.0F);
 
@@ -289,8 +288,8 @@ static void check_element_stride(void)
     layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     layout.element_stride = 2;
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_decode_heights(&header, layout, coded, 4, mirrored));
-    CHECK_OK(sdfio_decode_heights(&header, layout, coded, 1, mirrored));
+                 sdfio_decode_heights(header, layout, coded, 4, mirrored));
+    CHECK_OK(sdfio_decode_heights(header, layout, coded, 1, mirrored));
 }
 
 /* The check of a layout whose row stride is given separately. */
@@ -514,15 +513,15 @@ static void check_float_path(void)
                 {
                     continue;
                 }
-                const sdfio_header header =
+                const sdfio_header *header =
                     description(revisions[r], types[t], scales[s]);
                 const size_t count = stored_values(types[t], &state, bytes);
                 CHECK(count <= ALL_VALUES);
                 const sdfio_status decoded_single = sdfio_decode_heights(
-                    &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), bytes,
-                    count, singles);
+                    header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), bytes, count,
+                    singles);
                 const sdfio_status decoded_double = sdfio_decode_heights(
-                    &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), bytes,
+                    header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), bytes,
                     count, doubles);
                 CHECK(decoded_double == SDFIO_OK);
                 CHECK(decoded_single == SDFIO_OK);
@@ -550,10 +549,10 @@ static void check_float_path(void)
                         i % 101 == 0 ? INFINITY : (float)(fraction * top);
                     const double widened = height;
                     const sdfio_status single = sdfio_encode_heights(
-                        &header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height,
+                        header, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height,
                         1, coded_single);
                     const sdfio_status wide_status = sdfio_encode_heights(
-                        &header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                        header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                         &widened, 1, coded_double);
                     disagree +=
                         single != wide_status

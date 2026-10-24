@@ -23,11 +23,11 @@ int main(void)
     sdfio_status status = sdfio_reader_create(NULL, &reader);
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+        status = sdfio_reader_add_binary_format(reader);
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_reader_add_format(reader, &sdfio_ascii_reader_format);
+        status = sdfio_reader_add_ascii_format(reader);
     }
     if (status == SDFIO_OK)
     {
@@ -60,17 +60,20 @@ int main(void)
     }
     double lowest = INFINITY;
     double highest = -INFINITY;
-    const sdfio_layout coded_layout = sdfio_layout_packed(header->data_type);
+    const sdfio_layout coded_layout =
+        sdfio_layout_packed(sdfio_header_data_type(header));
     const sdfio_layout heights_layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
-    for (size_t row = 0; row < header->rows && status == SDFIO_OK; ++row)
+    const size_t columns = sdfio_header_columns(header);
+    for (size_t row = 0; row < sdfio_header_rows(header) && status == SDFIO_OK;
+         ++row)
     {
         status = sdfio_read_data(reader, coded_layout, coded, 1);
         if (status == SDFIO_OK)
         {
             status = sdfio_decode_heights(header, heights_layout, coded,
-                                          header->columns, heights);
+                                          columns, heights);
         }
-        for (size_t column = 0; column < header->columns && status == SDFIO_OK;
+        for (size_t column = 0; column < columns && status == SDFIO_OK;
              ++column)
         {
             if (!isnan(heights[column]))

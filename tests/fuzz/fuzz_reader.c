@@ -61,8 +61,10 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
     }
     if (as_heights)
     {
-        if (header->columns <= ROW_LIMIT && header->rows <= ROW_LIMIT
-            && header->columns * header->rows <= MATRIX_LIMIT)
+        if (sdfio_header_columns(header) <= ROW_LIMIT
+            && sdfio_header_rows(header) <= ROW_LIMIT
+            && (size_t)sdfio_header_columns(header) * sdfio_header_rows(header)
+                   <= MATRIX_LIMIT)
         {
             size_t bytes = 0;
             float *heights = NULL;
@@ -79,7 +81,7 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
             }
         }
     }
-    else if (header->columns <= ROW_LIMIT)
+    else if (sdfio_header_columns(header) <= ROW_LIMIT)
     {
         size_t bytes = 0;
         void *row = NULL;
@@ -89,8 +91,10 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
         }
         if (row != NULL)
         {
-            const sdfio_layout layout = sdfio_layout_packed(header->data_type);
-            for (size_t i = 0; i < header->rows && i < ROW_LIMIT; ++i)
+            const sdfio_layout layout =
+                sdfio_layout_packed(sdfio_header_data_type(header));
+            for (size_t i = 0; i < sdfio_header_rows(header) && i < ROW_LIMIT;
+                 ++i)
             {
                 if (sdfio_read_data(reader, layout, row, 1) != SDFIO_OK)
                 {
@@ -119,15 +123,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     const uint8_t control = data[0];
     const test_options tiny = {.buffer_size = 1,
                                .chunk_values = 1,
-                               .reader_formats = {&sdfio_binary_reader_format,
-                                                  &sdfio_ascii_reader_format}};
+                               .reader_formats = {TEST_BINARY, TEST_ASCII}};
     const test_options small = {.buffer_size = 100,
                                 .chunk_values = 7,
-                                .reader_formats = {&sdfio_binary_reader_format,
-                                                   &sdfio_ascii_reader_format}};
-    const test_options defaults = {
-        .reader_formats = {&sdfio_binary_reader_format,
-                           &sdfio_ascii_reader_format}};
+                                .reader_formats = {TEST_BINARY, TEST_ASCII}};
+    const test_options defaults = {.reader_formats = {TEST_BINARY, TEST_ASCII}};
     const test_options *config = (control & CONTROL_TINY)    ? &tiny
                                  : (control & CONTROL_SMALL) ? &small
                                                              : &defaults;

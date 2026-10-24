@@ -49,7 +49,8 @@ static double read_sum(const char *path, sdfio_reader *reader)
         return NAN;
     }
     const sdfio_header *header = sdfio_get_header(reader);
-    const size_t count = header->rows * header->columns;
+    const size_t count =
+        sdfio_header_rows(header) * sdfio_header_columns(header);
     double *heights = malloc(count * sizeof *heights);
     double sum = NAN;
     if (heights != NULL
@@ -108,14 +109,23 @@ static void *write_and_read(void *argument)
     const sdfio_revision revisions[] = {SDFIO_ISO_1_0, SDFIO_ISO_2_0};
     for (int round = 0; round < ROUNDS; ++round)
     {
-        sdfio_header header;
-        sdfio_header_init(&header);
-        header.revision = revisions[(self->id + (size_t)round) % 2];
-        header.representation =
-            (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY : SDFIO_ASCII;
-        header.data_type = SDFIO_TYPE_INT32;
-        header.columns = COLUMNS;
-        header.rows = ROWS;
+        sdfio_header *header = NULL;
+        if (sdfio_header_create(NULL, &header) != SDFIO_OK
+            || sdfio_header_set_revision(
+                   header, revisions[(self->id + (size_t)round) % 2])
+                   != SDFIO_OK
+            || sdfio_header_set_representation(
+                   header, (self->id + (size_t)round) % 2 == 0 ? SDFIO_BINARY
+                                                               : SDFIO_ASCII)
+                   != SDFIO_OK
+            || sdfio_header_set_data_type(header, SDFIO_TYPE_INT32) != SDFIO_OK
+            || sdfio_header_set_columns(header, COLUMNS) != SDFIO_OK
+            || sdfio_header_set_rows(header, ROWS) != SDFIO_OK)
+        {
+            ++self->errors;
+            sdfio_header_free(header);
+            return NULL;
+        }
         double heights[ROWS * COLUMNS];
         for (size_t i = 0; i < ROWS * COLUMNS; ++i)
         {
@@ -127,9 +137,10 @@ static void *write_and_read(void *argument)
         if (create_writer(all_formats(), &writer) != SDFIO_OK)
         {
             ++self->errors;
+            sdfio_header_free(header);
             return NULL;
         }
-        if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
+        if (sdfio_create_stream(writer, &stream, header) != SDFIO_OK
             || sdfio_write_heights(
                    writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights)
                    != SDFIO_OK
@@ -138,6 +149,7 @@ static void *write_and_read(void *argument)
             ++self->errors;
         }
         sdfio_writer_free(writer);
+        sdfio_header_free(header);
 
         double back[ROWS * COLUMNS];
         sdfio_reader *reader = NULL;
@@ -193,7 +205,8 @@ static void *read_shared(void *argument)
         {
             const sdfio_header *header = sdfio_get_header(reader);
             double *heights =
-                malloc(header->rows * header->columns * sizeof *heights);
+                malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
+                       * sizeof *heights);
             if (sdfio_read_heights(
                     reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights)
                 != SDFIO_OK)

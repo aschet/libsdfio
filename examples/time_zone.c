@@ -35,12 +35,11 @@ static time_t read_creation_date(const sdfio_time_zone *time_zone,
     sdfio_reader *reader = NULL;
     time_t date = SDFIO_NO_TIME;
     if (sdfio_reader_create(NULL, &reader) == SDFIO_OK
-        && sdfio_reader_add_format(reader, &sdfio_binary_reader_format)
-               == SDFIO_OK
+        && sdfio_reader_add_binary_format(reader) == SDFIO_OK
         && sdfio_reader_set_time_zone(reader, time_zone) == SDFIO_OK
         && sdfio_open_file(reader, path) == SDFIO_OK)
     {
-        date = sdfio_get_header(reader)->creation_date;
+        date = sdfio_header_creation_date(sdfio_get_header(reader));
     }
     sdfio_reader_free(reader);
     return date;
@@ -56,21 +55,43 @@ int main(void)
     const sdfio_time_zone time_zone = {&central_europe, local_to_utc,
                                        utc_to_local};
 
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.revision = SDFIO_ISO_1_0;
-    header.data_type = SDFIO_TYPE_INT16;
-    header.columns = 1;
-    header.rows = 1;
-    header.creation_date = 1782900000; /* 2026-07-01 10:00 UTC */
-    header.modification_date = header.creation_date;
+    const time_t written = 1782900000; /* 2026-07-01 10:00 UTC */
     const float height = 1e-6F;
 
-    sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(NULL, &writer);
+    sdfio_header *header = NULL;
+    sdfio_status status = sdfio_header_create(NULL, &header);
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+        status = sdfio_header_set_revision(header, SDFIO_ISO_1_0);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_columns(header, 1);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_rows(header, 1);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_creation_date(header, written);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_modification_date(header, written);
+    }
+    sdfio_writer *writer = NULL;
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_create(NULL, &writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_binary_format(writer);
     }
     if (status == SDFIO_OK)
     {
@@ -78,7 +99,7 @@ int main(void)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_create_file(writer, path, &header);
+        status = sdfio_create_file(writer, path, header);
     }
     if (status == SDFIO_OK)
     {
@@ -94,12 +115,13 @@ int main(void)
         fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
     }
     sdfio_writer_free(writer);
+    sdfio_header_free(header);
     if (status != SDFIO_OK)
     {
         return EXIT_FAILURE;
     }
 
-    print_date("written, UTC:", header.creation_date);
+    print_date("written, UTC:", written);
     print_date("read with the time zone, UTC:",
                read_creation_date(&time_zone, path));
     print_date("read without, the clock of the file:",

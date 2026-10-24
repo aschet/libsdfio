@@ -18,6 +18,7 @@ namespace
 
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
+using Header = std::unique_ptr<sdfio_header, decltype(&sdfio_header_free)>;
 
 void check(sdfio_status status, const char *message)
 {
@@ -28,25 +29,35 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+// A header that the program can change: the copy of the header of a file.
+Header copy_header(const sdfio_header *source)
+{
+    sdfio_header *header = nullptr;
+    check(sdfio_header_create(nullptr, &header), "Creating the header failed");
+    Header owned(header, sdfio_header_free);
+    check(sdfio_header_copy(header, source), "Copying the header failed");
+    return owned;
+}
+
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(nullptr, &reader), "The reader cannot be made");
+    check(sdfio_reader_create(nullptr, &reader), "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_format(reader, &sdfio_binary_reader_format),
-          "The binary format cannot be listed");
-    check(sdfio_reader_add_format(reader, &sdfio_ascii_reader_format),
-          "The ASCII format cannot be listed");
+    check(sdfio_reader_add_binary_format(reader),
+          "Adding the binary format failed");
+    check(sdfio_reader_add_ascii_format(reader),
+          "Adding the ASCII format failed");
     return owned;
 }
 
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(nullptr, &writer), "The writer cannot be made");
+    check(sdfio_writer_create(nullptr, &writer), "Creating the writer failed");
     Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_format(writer, &sdfio_binary_writer_format),
-          "The binary format cannot be listed");
+    check(sdfio_writer_add_binary_format(writer),
+          "Adding the binary format failed");
     return owned;
 }
 
@@ -73,8 +84,8 @@ sdfio_layout bottom_up(const cv::Mat &image)
 cv::Mat read_heights(sdfio_reader *reader)
 {
     const sdfio_header *header = sdfio_get_header(reader);
-    cv::Mat heights(static_cast<int>(header->rows),
-                    static_cast<int>(header->columns), CV_32F);
+    cv::Mat heights(static_cast<int>(sdfio_header_rows(header)),
+                    static_cast<int>(sdfio_header_columns(header)), CV_32F);
     check(sdfio_read_heights(reader, bottom_up(heights),
                              heights.ptr(heights.rows - 1)),
           sdfio_reader_error_message(reader));
@@ -90,12 +101,14 @@ cv::Mat smooth(const cv::Mat &heights)
     return filled;
 }
 
-void write_heights(const char *path, sdfio_header header,
+void write_heights(const char *path, const sdfio_header *source,
                    const cv::Mat &heights)
 {
-    header.data_type = SDFIO_TYPE_FLOAT;
+    Header header = copy_header(source);
+    check(sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT),
+          "Setting the data type failed");
     Writer writer = create_writer();
-    check(sdfio_create_file(writer.get(), path, &header),
+    check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), bottom_up(heights),
                               heights.ptr(heights.rows - 1)),
@@ -109,8 +122,9 @@ cv::Mat read_into_region(const char *path)
     const Reader reader = open(path);
     const sdfio_header *header = sdfio_get_header(reader.get());
     cv::Mat canvas = cv::Mat::zeros(200, 300, CV_32F);
-    cv::Mat region = canvas(cv::Rect(100, 50, static_cast<int>(header->columns),
-                                     static_cast<int>(header->rows)));
+    cv::Mat region =
+        canvas(cv::Rect(100, 50, static_cast<int>(sdfio_header_columns(header)),
+                        static_cast<int>(sdfio_header_rows(header))));
     check(sdfio_read_heights(reader.get(), bottom_up(region),
                              region.ptr(region.rows - 1)),
           sdfio_reader_error_message(reader.get()));
@@ -131,7 +145,7 @@ int main(int argc, char **argv)
     {
         const Reader reader = open(path);
         const cv::Mat smoothed = smooth(read_heights(reader.get()));
-        write_heights("smooth.sdf", *sdfio_get_header(reader.get()), smoothed);
+        write_heights("smooth.sdf", sdfio_get_header(reader.get()), smoothed);
         read_into_region(path);
     }
     catch (const std::exception &error)

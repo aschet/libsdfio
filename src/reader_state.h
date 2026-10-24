@@ -13,6 +13,7 @@
 #define SDFIO_SRC_READER_STATE_H
 
 #include "defaults.h"
+#include "header.h"
 #include "message.h"
 #include "owner.h"
 #include "reader_format.h"
@@ -115,5 +116,17 @@ sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
  * @param reader The reader.
  */
 sdfio_status sdfio_reader_finish_data(sdfio_reader *reader);
+
+/**
+ * Lists a format of the reader. The public functions that name a format call
+ * it.
+ *
+ * @param reader The reader.
+ * @param format The format.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null, or lists the format already.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
+                                         const sdfio_reader_format *format);
 
 #endif /* SDFIO_SRC_READER_STATE_H */

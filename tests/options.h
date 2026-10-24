@@ -12,6 +12,14 @@
 
 #include <sdfio/sdfio.h>
 
+/* A representation that a handle lists, or none. */
+typedef enum test_format
+{
+    TEST_NO_FORMAT,
+    TEST_BINARY,
+    TEST_ASCII
+} test_format;
+
 /* Zero selects the default of an option, and the formats are listed. */
 typedef struct test_options
 {
@@ -19,16 +27,45 @@ typedef struct test_options
     size_t buffer_size;
     size_t chunk_values;
     const sdfio_time_zone *time_zone;
-    const sdfio_reader_format *reader_formats[2];
-    const sdfio_writer_format *writer_formats[2];
+    test_format reader_formats[2];
+    test_format writer_formats[2];
 } test_options;
 
 /* The formats of a handle that reads and writes both representations. */
 #define ALL_FORMATS                                                            \
-    .reader_formats = {&sdfio_binary_reader_format,                            \
-                       &sdfio_ascii_reader_format},                            \
-    .writer_formats = {&sdfio_binary_writer_format,                            \
-                       &sdfio_ascii_writer_format}
+    .reader_formats = {TEST_BINARY, TEST_ASCII},                               \
+    .writer_formats = {TEST_BINARY, TEST_ASCII}
+
+/* Lists a format of a reader or a writer. */
+static inline sdfio_status add_reader_format(sdfio_reader *reader,
+                                             test_format format)
+{
+    switch (format)
+    {
+    case TEST_BINARY:
+        return sdfio_reader_add_binary_format(reader);
+    case TEST_ASCII:
+        return sdfio_reader_add_ascii_format(reader);
+    case TEST_NO_FORMAT:
+        break;
+    }
+    return SDFIO_OK;
+}
+
+static inline sdfio_status add_writer_format(sdfio_writer *writer,
+                                             test_format format)
+{
+    switch (format)
+    {
+    case TEST_BINARY:
+        return sdfio_writer_add_binary_format(writer);
+    case TEST_ASCII:
+        return sdfio_writer_add_ascii_format(writer);
+    case TEST_NO_FORMAT:
+        break;
+    }
+    return SDFIO_OK;
+}
 
 /* A reader with the options. The reader is freed if an option fails. */
 static inline sdfio_status create_reader(const test_options *options,
@@ -37,11 +74,7 @@ static inline sdfio_status create_reader(const test_options *options,
     sdfio_status status = sdfio_reader_create(options->allocator, reader);
     for (size_t i = 0; status == SDFIO_OK && i < 2; ++i)
     {
-        if (options->reader_formats[i] != NULL)
-        {
-            status =
-                sdfio_reader_add_format(*reader, options->reader_formats[i]);
-        }
+        status = add_reader_format(*reader, options->reader_formats[i]);
     }
     if (status == SDFIO_OK && options->buffer_size != 0)
     {
@@ -70,11 +103,7 @@ static inline sdfio_status create_writer(const test_options *options,
     sdfio_status status = sdfio_writer_create(options->allocator, writer);
     for (size_t i = 0; status == SDFIO_OK && i < 2; ++i)
     {
-        if (options->writer_formats[i] != NULL)
-        {
-            status =
-                sdfio_writer_add_format(*writer, options->writer_formats[i]);
-        }
+        status = add_writer_format(*writer, options->writer_formats[i]);
     }
     if (status == SDFIO_OK && options->buffer_size != 0)
     {

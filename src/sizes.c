@@ -10,6 +10,7 @@
  */
 
 #include "data_type.h"
+#include "header.h"
 
 /* The bytes of `rows` rows of `columns` elements, or false if the size does
  * not fit in size_t. */

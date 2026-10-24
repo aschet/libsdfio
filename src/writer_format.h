@@ -23,6 +23,8 @@ enum
     SDFIO_TEXT_PER_VALUE = 32
 };
 
+typedef struct sdfio_writer_format sdfio_writer_format;
+
 /**
  * A writer format: the functions that write a representation of the files.
  * The writer knows nothing of the representations, as the reader does not.

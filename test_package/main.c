@@ -38,25 +38,36 @@ int main(void)
         heights[i] = (float)i * 1.0e-6F;
     }
 
-    sdfio_header header;
-    sdfio_header_init(&header);
-    header.columns = COLUMNS;
-    header.rows = ROWS;
-    header.x_scale = 1.0e-6;
-    header.y_scale = 1.0e-6;
-
     int failed = 0;
+    sdfio_header *header = NULL;
+    sdfio_status described = sdfio_header_create(NULL, &header);
+    if (described == SDFIO_OK)
+    {
+        described = sdfio_header_set_columns(header, COLUMNS);
+    }
+    if (described == SDFIO_OK)
+    {
+        described = sdfio_header_set_rows(header, ROWS);
+    }
+    if (described == SDFIO_OK)
+    {
+        described = sdfio_header_set_x_scale(header, 1.0e-6);
+    }
+    if (described == SDFIO_OK)
+    {
+        described = sdfio_header_set_y_scale(header, 1.0e-6);
+    }
+    failed |= check(described, "header");
     sdfio_writer *writer = NULL;
     sdfio_status made_writer = sdfio_writer_create(NULL, &writer);
     if (made_writer == SDFIO_OK)
     {
-        made_writer =
-            sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+        made_writer = sdfio_writer_add_binary_format(writer);
     }
     failed |= check(made_writer, "writer");
-    if (made_writer == SDFIO_OK)
+    if (made_writer == SDFIO_OK && described == SDFIO_OK)
     {
-        failed |= check(sdfio_create_file(writer, path, &header), "create");
+        failed |= check(sdfio_create_file(writer, path, header), "create");
         failed |=
             check(sdfio_write_heights(
                       writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights),
@@ -64,13 +75,13 @@ int main(void)
         failed |= check(sdfio_end_trailer(writer), "trailer");
     }
     sdfio_writer_free(writer);
+    sdfio_header_free(header);
 
     sdfio_reader *reader = NULL;
     sdfio_status made_reader = sdfio_reader_create(NULL, &reader);
     if (made_reader == SDFIO_OK)
     {
-        made_reader =
-            sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+        made_reader = sdfio_reader_add_binary_format(reader);
     }
     failed |= check(made_reader, "reader");
     if (made_reader == SDFIO_OK)

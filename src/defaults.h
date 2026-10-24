@@ -54,4 +54,28 @@ static inline bool sdfio_allocator_valid(const sdfio_allocator *allocator)
     return allocator->allocate != NULL && allocator->release != NULL;
 }
 
+/**
+ * Resolves the allocator argument of a create function: null selects the
+ * standard allocator, which an allocator without callbacks stands for.
+ *
+ * @param given The argument. May be null.
+ * @param[out] used Receives the allocator to use.
+ * @return False if the argument lacks a callback.
+ */
+static inline bool sdfio_allocator_resolve(const sdfio_allocator *given,
+                                           sdfio_allocator *used)
+{
+    *used = (sdfio_allocator){0};
+    if (given == NULL)
+    {
+        return true;
+    }
+    if (!sdfio_allocator_valid(given))
+    {
+        return false;
+    }
+    *used = *given;
+    return true;
+}
+
 #endif /* SDFIO_SRC_DEFAULTS_H */

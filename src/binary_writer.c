@@ -18,9 +18,11 @@
 #include "data_type.h"
 #include "datetime.h"
 #include "fields.h"
+#include "header.h"
 #include "message.h"
 #include "sink.h"
 #include "writer_format.h"
+#include "writer_state.h"
 #include <limits.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
@@ -154,7 +156,7 @@ static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
     return SDFIO_OK;
 }
 
-const sdfio_writer_format sdfio_binary_writer_format = {
+static const sdfio_writer_format binary_format = {
     .writes = SDFIO_BINARY,
     .scratch_size = scratch_size,
     .write_header = write_header,
@@ -162,3 +164,8 @@ const sdfio_writer_format sdfio_binary_writer_format = {
     .begin_trailer = begin_trailer,
     .end_trailer = end_trailer,
 };
+
+sdfio_status sdfio_writer_add_binary_format(sdfio_writer *writer)
+{
+    return sdfio_writer_install_format(writer, &binary_format);
+}
