@@ -7,3 +7,5 @@ compile_commands.json
 *.sdftmp
 build-*/
 stage-*/
+*.ctu-info
+*.dump
