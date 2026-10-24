@@ -6,8 +6,8 @@
 
 /**
  * @file binary_writer.c
- * @brief Writing of the binary format: header fields, typed values, trailer at
- * the end of the file.
+ * @brief Writing of the binary format: header fields, values of the data type,
+ * trailer at the end of the file.
  *
  * The files store values in little-endian byte order, regardless of the byte
  * order of the host.

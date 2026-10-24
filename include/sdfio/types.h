@@ -6,8 +6,8 @@
 
 /**
  * @file
- * Status, revisions, formats and data types, the constants for absent data, and
- * the structures for memory, streams and time zones.
+ * Status, revisions, formats and data types, the bad values and the other
+ * constants, and the structures for memory, streams and time zones.
  */
 
 #ifndef SDFIO_TYPES_H
