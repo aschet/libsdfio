@@ -6,7 +6,7 @@
 
 /**
  * @file trailer_text.c
- * @brief Reading of the text of the trailer in parts.
+ * @brief Reading of the trailer text in parts, with LF line ends.
  */
 
 #include "trailer_text.h"

@@ -6,7 +6,7 @@
 
 /**
  * @file sink.h
- * @brief Buffered byte sink.
+ * @brief The buffer in front of the stream of a writer.
  */
 
 #ifndef SDFIO_SRC_SINK_H

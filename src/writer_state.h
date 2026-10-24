@@ -6,7 +6,7 @@
 
 /**
  * @file writer_state.h
- * @brief State of a writer and what its parts share.
+ * @brief The state of a writer, shared by its source files.
  */
 
 #ifndef SDFIO_SRC_WRITER_STATE_H

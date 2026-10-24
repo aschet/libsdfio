@@ -6,7 +6,7 @@
 
 /**
  * @file status.c
- * @brief Version and status text.
+ * @brief Version and status texts.
  */
 
 #include <sdfio/sdfio.h>

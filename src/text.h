@@ -6,7 +6,7 @@
 
 /**
  * @file text.h
- * @brief Locale-independent ASCII text helpers.
+ * @brief Locale-independent tests and conversions of ASCII characters.
  */
 
 #ifndef SDFIO_SRC_TEXT_H

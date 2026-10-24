@@ -6,7 +6,8 @@
 
 /**
  * @file ascii_reader.c
- * @brief Reading of the ASCII format.
+ * @brief Reading of the ASCII format: header lines, numbers in text, trailer up
+ * to the closing `*`.
  */
 
 #include "ascii.h"

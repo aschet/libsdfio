@@ -6,7 +6,7 @@
 
 /**
  * @file file.c
- * @brief File access through the C library.
+ * @brief Opening and creating of files, and the stream over a C file.
  */
 
 #include <sdfio/file.h>

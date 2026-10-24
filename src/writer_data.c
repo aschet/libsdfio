@@ -6,7 +6,7 @@
 
 /**
  * @file writer_data.c
- * @brief Writing of the data area as coded values.
+ * @brief Writing of rows as coded values.
  */
 
 #include "chunk.h"

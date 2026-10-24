@@ -6,7 +6,7 @@
 
 /**
  * @file
- * The version of the headers, from the version of the project in CMake.
+ * The version of the library as macros.
  */
 
 #ifndef SDFIO_VERSION_H

@@ -6,7 +6,7 @@
 
 /**
  * @file binary.h
- * @brief Layout of the header of the binary format.
+ * @brief Layout of the binary header.
  */
 
 #ifndef SDFIO_SRC_BINARY_H

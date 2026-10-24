@@ -6,7 +6,7 @@
 
 /**
  * @file trailer_text.h
- * @brief Reading of the text of the trailer in parts.
+ * @brief Reading of the trailer text in parts, with LF line ends.
  */
 
 #ifndef SDFIO_SRC_TRAILER_TEXT_H

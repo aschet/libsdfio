@@ -6,7 +6,7 @@
 
 /**
  * @file sink.c
- * @brief Buffered byte sink.
+ * @brief The buffer in front of the stream of a writer.
  */
 
 #include "sink.h"

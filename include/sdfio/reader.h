@@ -6,8 +6,9 @@
 
 /**
  * @file
- * The reader: opening a file or a stream, and reading the data area and the
- * trailer.
+ * The reader: opens a file, memory or a stream, and reads the data area, as
+ * rows or as heights, and the trailer. The guide page @ref states gives the
+ * order of the calls.
  */
 
 #ifndef SDFIO_READER_H

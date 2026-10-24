@@ -6,7 +6,7 @@
 
 /**
  * @file header_now.c
- * @brief The dates of a header from the clock.
+ * @brief Dates of a header from the clock; the only code that reads it.
  */
 
 #include "datetime.h"

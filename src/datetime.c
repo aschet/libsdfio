@@ -6,7 +6,7 @@
 
 /**
  * @file datetime.c
- * @brief Date field of the header, DDMMYYYYhhmm.
+ * @brief Conversion between the date field DDMMYYYYhhmm and time_t.
  *
  * ISO-2.0 holds UTC and the other revisions the local clock of the writer,
  * whose time zone is not known to the library: the time zone of the caller

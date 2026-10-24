@@ -6,7 +6,7 @@
 
 /**
  * @file reader_data.c
- * @brief Reading of the data area as coded values.
+ * @brief Reading of rows as coded values.
  */
 
 #include "chunk.h"

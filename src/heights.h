@@ -6,7 +6,7 @@
 
 /**
  * @file heights.h
- * @brief Memory layout of height matrices.
+ * @brief Checks of a buffer layout against the matrix of a file.
  */
 
 #ifndef SDFIO_SRC_HEIGHTS_H

@@ -6,7 +6,7 @@
 
 /**
  * @file sizes.c
- * @brief Computation of buffer sizes.
+ * @brief Buffer sizes for the data area and for heights.
  */
 
 #include "data_type.h"

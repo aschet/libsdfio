@@ -6,7 +6,7 @@
 
 /**
  * @file datetime.h
- * @brief Date handling for the header fields.
+ * @brief Conversion between the date field DDMMYYYYhhmm and time_t.
  */
 
 #ifndef SDFIO_SRC_DATETIME_H

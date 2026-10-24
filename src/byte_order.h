@@ -6,7 +6,8 @@
 
 /**
  * @file byte_order.h
- * @brief Byte order handling.
+ * @brief Conversion between the little-endian byte order of files and that of
+ * the host.
  */
 
 #ifndef SDFIO_SRC_BYTE_ORDER_H

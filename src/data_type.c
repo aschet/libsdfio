@@ -6,7 +6,7 @@
 
 /**
  * @file data_type.c
- * @brief Data types of the data area.
+ * @brief Data types of the data area: sizes, C types and the check of a code.
  */
 
 #include "data_type.h"

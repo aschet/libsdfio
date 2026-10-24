@@ -6,7 +6,7 @@
 
 /**
  * @file init.c
- * @brief Initializers of the structures that a program fills.
+ * @brief Initial values of the stream and the time zone.
  */
 
 #include <sdfio/sdfio.h>

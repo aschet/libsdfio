@@ -6,7 +6,8 @@
 
 /**
  * @file allocator.h
- * @brief The allocator of a handle.
+ * @brief The allocator of a handle, and the checks of an allocator that a
+ * program supplies.
  */
 
 #ifndef SDFIO_SRC_ALLOCATOR_H

@@ -6,7 +6,8 @@
 
 /**
  * @file options.c
- * @brief The options that a reader and a writer share.
+ * @brief The options that readers and writers share: allocator, time zone,
+ * buffer size and chunk size.
  */
 
 #include "options.h"

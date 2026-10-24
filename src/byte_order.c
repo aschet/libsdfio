@@ -6,7 +6,8 @@
 
 /**
  * @file byte_order.c
- * @brief Byte order handling.
+ * @brief Conversion between the little-endian byte order of files and that of
+ * the host.
  */
 
 #include "byte_order.h"

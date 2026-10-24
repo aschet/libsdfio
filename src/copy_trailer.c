@@ -6,7 +6,7 @@
 
 /**
  * @file copy_trailer.c
- * @brief Copying of the trailer from a reader to a writer.
+ * @brief Copy of the trailer from a reader to a writer, in parts.
  */
 
 #include "reader_state.h"

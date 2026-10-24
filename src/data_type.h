@@ -6,7 +6,7 @@
 
 /**
  * @file data_type.h
- * @brief Data types of the data area.
+ * @brief Data types of the data area: sizes, C types and the check of a code.
  */
 
 #ifndef SDFIO_SRC_DATA_TYPE_H

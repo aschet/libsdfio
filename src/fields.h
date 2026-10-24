@@ -6,7 +6,7 @@
 
 /**
  * @file fields.h
- * @brief Header fields and format limits.
+ * @brief Sizes and codes of the header fields.
  */
 
 #ifndef SDFIO_SRC_FIELDS_H

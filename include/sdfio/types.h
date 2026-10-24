@@ -6,8 +6,8 @@
 
 /**
  * @file
- * The status codes, the enumerations, the allocator, the stream and the time
- * zone.
+ * Status, revisions, formats and data types, the constants for absent data, and
+ * the structures for memory, streams and time zones.
  */
 
 #ifndef SDFIO_TYPES_H

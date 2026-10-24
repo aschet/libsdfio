@@ -6,7 +6,8 @@
 
 /**
  * @file tagged.c
- * @brief Handling of Name = Value fields.
+ * @brief Name = Value lines: splitting, checks, and writing with the line ends
+ * of the standard.
  */
 
 #include "tagged.h"

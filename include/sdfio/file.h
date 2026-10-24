@@ -6,10 +6,8 @@
 
 /**
  * @file
- * Files of the C library.
- *
- * The functions use `<stdio.h>`. `<sdfio/sdfio.h>` does not include this
- * header.
+ * Opening and creating files by path, and the stream over a C file. The
+ * functions use `<stdio.h>`. `<sdfio/sdfio.h>` does not include this header.
  */
 
 #ifndef SDFIO_FILE_H

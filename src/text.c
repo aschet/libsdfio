@@ -6,7 +6,7 @@
 
 /**
  * @file text.c
- * @brief Locale-independent ASCII text helpers.
+ * @brief Locale-independent tests and conversions of ASCII characters.
  */
 
 #include "text.h"

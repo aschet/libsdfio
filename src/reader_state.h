@@ -6,7 +6,7 @@
 
 /**
  * @file reader_state.h
- * @brief State of a reader and what its parts share.
+ * @brief The state of a reader, shared by its source files.
  */
 
 #ifndef SDFIO_SRC_READER_STATE_H

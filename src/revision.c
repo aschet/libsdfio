@@ -6,7 +6,8 @@
 
 /**
  * @file revision.c
- * @brief Revisions of the format and their rules.
+ * @brief The revisions and their differences: data types, field sizes of
+ * columns and rows, dates.
  */
 
 #include "revision.h"

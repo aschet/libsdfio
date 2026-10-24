@@ -6,7 +6,8 @@
 
 /**
  * @file read_header.h
- * @brief Selection of the format and reading of the header.
+ * @brief Choosing of the format from the first bytes, and reading of the
+ * header.
  */
 
 #ifndef SDFIO_SRC_READ_HEADER_H

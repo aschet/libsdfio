@@ -6,7 +6,8 @@
 
 /**
  * @file tagged.h
- * @brief Handling of Name = Value fields.
+ * @brief Name = Value lines: splitting, checks, and writing with the line ends
+ * of the standard.
  */
 
 #ifndef SDFIO_SRC_TAGGED_H

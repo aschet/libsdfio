@@ -6,7 +6,8 @@
 
 /**
  * @file ascii_writer.c
- * @brief Writing of the ASCII format.
+ * @brief Writing of the ASCII format: header lines, numbers in text, closing
+ * `*` lines.
  */
 
 #include "ascii.h"

@@ -6,7 +6,7 @@
 
 /**
  * @file reader.c
- * @brief Life of a reader: creation, opening and release.
+ * @brief The life of a reader: creation, options, opening, release.
  */
 
 #include "allocator.h"

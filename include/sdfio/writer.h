@@ -6,8 +6,9 @@
 
 /**
  * @file
- * The writer: creating a file or a stream, and writing the data area and the
- * trailer.
+ * The writer: creates a file or a stream from a header, writes the data area,
+ * as rows or as heights, and the trailer, and ends the file. The guide page
+ * @ref states gives the order of the calls.
  */
 
 #ifndef SDFIO_WRITER_H

@@ -6,7 +6,7 @@
 
 /**
  * @file ascii.h
- * @brief Spelling of the ASCII format.
+ * @brief Names and characters of the ASCII format.
  */
 
 #ifndef SDFIO_SRC_ASCII_H

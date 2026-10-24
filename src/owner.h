@@ -6,7 +6,7 @@
 
 /**
  * @file owner.h
- * @brief What a file adds to a reader or a writer.
+ * @brief What a file adds to a handle: finishing and closing.
  */
 
 #ifndef SDFIO_SRC_OWNER_H

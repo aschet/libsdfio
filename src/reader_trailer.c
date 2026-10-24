@@ -6,7 +6,7 @@
 
 /**
  * @file reader_trailer.c
- * @brief Reading of the trailer.
+ * @brief Reading of the trailer in parts.
  */
 
 #include "reader_state.h"

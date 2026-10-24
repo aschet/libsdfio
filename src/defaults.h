@@ -6,7 +6,7 @@
 
 /**
  * @file defaults.h
- * @brief Defaults and limits of the options of a reader and a writer.
+ * @brief Defaults and limits of the options.
  */
 
 #ifndef SDFIO_SRC_DEFAULTS_H
