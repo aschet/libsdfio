@@ -149,11 +149,11 @@ enum
      * not measured or spurious. It is the minimum of the type, which the
      * standard excludes for a valid height.
      */
-    SDFIO_BAD_INT8 = -128,
+    SDFIO_BAD_INT8 = INT8_MIN,
     /** The bad value of SDFIO_TYPE_INT16: the minimum of the type. */
-    SDFIO_BAD_INT16 = -32768,
+    SDFIO_BAD_INT16 = INT16_MIN,
     /** The bad value of SDFIO_TYPE_INT32: the minimum of the type. */
-    SDFIO_BAD_INT32 = (-2147483647 - 1)
+    SDFIO_BAD_INT32 = INT32_MIN
 };
 
 /** Value of a date that is not recorded: a time_t of -1. */
