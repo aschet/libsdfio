@@ -31,6 +31,15 @@
  */
 
 /**
+ * @example excerpt.c
+ * Saves the central part of a file as a new file. The header of the file is
+ * copied with sdfio_header_copy() and gets the size of the part, and the
+ * trailer is copied with sdfio_copy_trailer(), followed by a field of the
+ * program. A layout with the row stride of the whole matrix writes the part in
+ * place, without a copy of its heights.
+ */
+
+/**
  * @example coded_values.c
  * Writes and reads the coded height information of a scanner as 16-bit values,
  * row by row, with sdfio_write_data() and sdfio_read_data(). The points that

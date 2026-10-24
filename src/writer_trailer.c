@@ -71,7 +71,8 @@ sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
         return status;
     }
     sdfio_sink *sink = &writer->sink;
-    if (!sdfio_sink_write(sink, field, strlen(field))
+    if (!sdfio_crlf_end(sink, &writer->trailer_text)
+        || !sdfio_sink_write(sink, field, strlen(field))
         || !sdfio_sink_write(sink, separator, sizeof separator - 1)
         || !sdfio_sink_write(sink, value, strlen(value))
         || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
@@ -103,7 +104,7 @@ sdfio_status sdfio_write_trailer_text(sdfio_writer *writer, const char *text,
     {
         return status;
     }
-    if (size > 0 && !sdfio_write_crlf_lines(&writer->sink, text, size))
+    if (!sdfio_crlf_write(&writer->sink, &writer->trailer_text, text, size))
     {
         return sdfio_writer_sink_failed(writer);
     }
@@ -124,6 +125,10 @@ sdfio_status sdfio_end_trailer(sdfio_writer *writer)
     if (status != SDFIO_OK)
     {
         return status;
+    }
+    if (!sdfio_crlf_end(&writer->sink, &writer->trailer_text))
+    {
+        return sdfio_writer_sink_failed(writer);
     }
     status = writer->format->end_trailer(&writer->sink, &writer->message);
     if (status != SDFIO_OK)

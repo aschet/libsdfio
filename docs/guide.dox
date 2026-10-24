@@ -336,6 +336,17 @@
  *   a file is read once and in order. Rows can therefore be read only in the
  *   order of the file.
  *
+ * @section concepts_modify Saving a Changed File
+ * A program that opens a file, changes it and saves the result as a new file
+ * copies the header of the file with sdfio_header_copy() and sets what
+ * differs: the number of columns and rows of a part that it cuts out, the
+ * modification date, or the representation. The writer keeps its own copy of
+ * the header when the file is created. The rows go from the reader to the
+ * writer, and sdfio_copy_trailer() then copies the trailer, because the trailer
+ * follows the data area. Fields of sdfio_write_trailer_field() can follow the
+ * copy. A date that a reader reports as SDFIO_NO_TIME has to be set before the
+ * header can be written. The example @ref excerpt.c shows these steps.
+ *
  * @section concepts_options Options, Formats, and Memory
  * A handle is created with sdfio_reader_create() or sdfio_writer_create(),
  * which take only the allocator. The program then sets the options of the

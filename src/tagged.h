@@ -31,18 +31,38 @@ bool sdfio_tagged_split(const char *line, size_t size, const char **name,
                         size_t *name_size, const char **value,
                         size_t *value_size);
 
+/** What a text that is written in parts leaves open between two parts. */
+typedef struct sdfio_crlf_state
+{
+    /** Whether the last line has characters and no line end yet. */
+    bool open;
+    /** Whether the last part ended with a CR, which is held back until the
+     * next part shows whether an LF follows. */
+    bool pending_cr;
+} sdfio_crlf_state;
+
 /**
- * Writes a trailer into the file.
- *
- * Every line end of the text, LF, CR or CRLF, is written as CRLF as the
- * standard has it, and the last line is closed by one.
+ * Writes a part of a text, with CRLF as every line end. LF and CRLF in the
+ * text are line ends. The last line of the part stays open and continues with
+ * the next part, so a text that is split anywhere is written as the whole text.
  *
  * @param sink The sink.
- * @param text The trailer.
- * @param size The length of the trailer.
+ * @param[in,out] state What the parts before left open.
+ * @param text The part.
+ * @param size The length of the part.
  * @return False if the stream failed.
  */
-bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size);
+bool sdfio_crlf_write(sdfio_sink *sink, sdfio_crlf_state *state,
+                      const char *text, size_t size);
+
+/**
+ * Ends the line that the parts left open with a CRLF, if there is one.
+ *
+ * @param sink The sink.
+ * @param[in,out] state What the parts left open.
+ * @return False if the stream failed.
+ */
+bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state);
 
 /**
  * Tells whether a text is the name of a field: letters, digits and `_`.

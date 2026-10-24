@@ -55,6 +55,7 @@ set(SDFIO_SOURCES
     src/datetime.h
     src/number_text.c
     src/number_text.h
+    src/copy_trailer.c
     src/fields.h
     src/file.c
     src/header.c

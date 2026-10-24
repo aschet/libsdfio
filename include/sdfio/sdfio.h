@@ -1204,16 +1204,19 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
                                                  const char *value);
 
 /**
- * Writes lines of text to the trailer (record 3), for a trailer that does not
- * consist of fields. All rows of the data area must have been written. The
- * text and the fields of sdfio_write_trailer_field() can follow each other in
- * any order. sdfio_end_trailer() ends the trailer.
+ * Writes text to the trailer (record 3), for a trailer that does not consist of
+ * fields. All rows of the data area must have been written. The text and the
+ * fields of sdfio_write_trailer_field() can follow each other in any order.
+ * sdfio_end_trailer() ends the trailer.
  *
- * The text is not interpreted. Every line end of the text (LF or CRLF) is
- * written as CRLF, as the standard specifies, in ASCII and in binary files, and
- * the last line is terminated. sdfio_read_trailer() returns the lines with LF.
- * In an ASCII file a line that consists only of `*` ends the record, so the
- * text must not contain one; lines of sdfio_write_trailer_field() never do.
+ * The text is not interpreted, and a call can write any part of it: the line
+ * that a call leaves open continues with the text of the next call, so the text
+ * can be split anywhere. A field line or sdfio_end_trailer() terminates the
+ * line that is open. Every line end of the text (LF or CRLF) is written as
+ * CRLF, as the standard specifies, in ASCII and in binary files.
+ * sdfio_read_trailer() returns the lines with LF. In an ASCII file a line that
+ * consists only of `*` ends the record, so the text must not contain one; lines
+ * of sdfio_write_trailer_field() never do.
  *
  * @param writer The writer.
  * @param[in] text The text.
@@ -1225,6 +1228,34 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
  */
 SDFIO_API sdfio_status sdfio_write_trailer_text(sdfio_writer *writer,
                                                 const char *text, size_t size);
+
+/**
+ * Copies the trailer (record 3) of the file that a reader has opened to the
+ * file of a writer. The rows of the data area that the reader has not read are
+ * read and discarded, and the writer must have written all of its rows. A
+ * program that saves a changed file as a new one reads the rows, writes the
+ * changed rows and then copies the trailer.
+ *
+ * The function does not end the trailer, so fields of
+ * sdfio_write_trailer_field(), for instance a line that records the change,
+ * can follow the copy. sdfio_end_trailer() ends the file. The copy has the line
+ * ends and the leading white space that sdfio_read_trailer() returns, and the
+ * line ends that sdfio_write_trailer_text() writes. A file without a trailer
+ * copies nothing.
+ *
+ * If a call fails, sdfio_writer_error_message() describes the failure, also
+ * when the reader failed.
+ *
+ * @param reader The reader that has opened a file.
+ * @param writer The writer that has created a file.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null.
+ * @retval SDFIO_ERR_STATE The reader has no file or failed, or the writer has
+ * no file, has not written all rows, or ended the file.
+ * @retval SDFIO_ERR_IO A stream failed.
+ * @retval SDFIO_ERR_FORMAT The file of the reader is damaged or truncated.
+ */
+SDFIO_API sdfio_status sdfio_copy_trailer(sdfio_reader *reader,
+                                          sdfio_writer *writer);
 
 /**
  * Ends the trailer and so the data that the writer writes: closes the last

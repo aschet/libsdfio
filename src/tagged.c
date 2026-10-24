@@ -16,44 +16,76 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-/* The next line of a text without its end, LF or CRLF; false at the end. */
-static bool next_line(const char *text, size_t size, size_t *position,
-                      const char **line, size_t *line_size)
+static const char line_end[] = "\r\n";
+static const char carriage_return = '\r';
+
+static bool write_line_end(sdfio_sink *sink)
 {
-    if (*position >= size)
-    {
-        return false;
-    }
-    const size_t start = *position;
-    const char *newline = memchr(text + start, '\n', size - start);
-    const size_t end = newline != NULL ? (size_t)(newline - text) : size;
-    *line = text + start;
-    *line_size = end - start;
-    /* The CR of a CRLF is not part of the line. */
-    if (end < size && *line_size > 0 && text[end - 1] == '\r')
-    {
-        --*line_size;
-    }
-    *position = end < size ? end + 1 : end;
-    return true;
+    return sdfio_sink_write(sink, line_end, sizeof line_end - 1);
 }
 
-static const char line_end[] = "\r\n";
-
-bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size)
+bool sdfio_crlf_write(sdfio_sink *sink, sdfio_crlf_state *state,
+                      const char *text, size_t size)
 {
     size_t position = 0;
-    const char *line = NULL;
-    size_t line_size = 0;
-    while (next_line(text, size, &position, &line, &line_size))
+    if (size > 0 && state->pending_cr)
     {
-        if (!sdfio_sink_write(sink, line, line_size)
-            || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
+        /* The CR that ended the last part is the first half of a line end if
+         * an LF follows, and a character of the line otherwise. */
+        state->pending_cr = false;
+        if (text[0] == '\n')
+        {
+            state->open = false;
+            ++position;
+            if (!write_line_end(sink))
+            {
+                return false;
+            }
+        }
+        else if (!sdfio_sink_write(sink, &carriage_return, 1))
+        {
+            return false;
+        }
+    }
+    while (position < size)
+    {
+        const char *newline = memchr(text + position, '\n', size - position);
+        const size_t stop = newline != NULL ? (size_t)(newline - text) : size;
+        /* A CR before the LF belongs to the line end, and a CR at the end of
+         * the part is held back until the next part. */
+        const bool carriage = stop > position && text[stop - 1] == '\r';
+        const size_t content = carriage ? stop - 1 : stop;
+        if (content > position
+            && !sdfio_sink_write(sink, text + position, content - position))
+        {
+            return false;
+        }
+        if (newline == NULL)
+        {
+            state->open = true;
+            state->pending_cr = carriage;
+            return true;
+        }
+        state->open = false;
+        position = stop + 1;
+        if (!write_line_end(sink))
         {
             return false;
         }
     }
     return true;
+}
+
+bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state)
+{
+    if (!state->open)
+    {
+        return true;
+    }
+    const bool held = state->pending_cr;
+    *state = (sdfio_crlf_state){0};
+    return (!held || sdfio_sink_write(sink, &carriage_return, 1))
+           && write_line_end(sink);
 }
 
 static bool is_name_character(char c)

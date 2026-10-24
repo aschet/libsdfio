@@ -17,6 +17,7 @@
 #include "message.h"
 #include "owner.h"
 #include "sink.h"
+#include "tagged.h"
 #include "writer_format.h"
 #include <sdfio/sdfio.h>
 
@@ -54,6 +55,8 @@ struct sdfio_writer
     bool header_written;
     /** Whether the format opened the trailer record. */
     bool trailer_open;
+    /** The line that the last text of the trailer left open. */
+    sdfio_crlf_state trailer_text;
     /** The index of the next row to write. */
     size_t next_row;
     /** The allocator of the writer. */
