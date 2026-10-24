@@ -26,6 +26,14 @@
  */
 
 /**
+ * @example trailer.c
+ * Reads only the trailer of a file, without the data area, with
+ * sdfio_read_trailer(). It prints the fields one after the other with
+ * sdfio_trailer_next_field(), looks up one field by name with
+ * sdfio_trailer_find_field(), and converts its value to a number.
+ */
+
+/**
  * @example streams.c
  * Reads a file from a stream, here standard input, one row at a time with
  * sdfio_read_data() and sdfio_decode_heights(), and prints the lowest and the
