@@ -36,16 +36,16 @@ int main(void)
     const double heights[4] = {1, 2, 3, 4};
 
     sdfio_writer *writer = new_writer(all_formats());
-    CHECK_OK(sdfio_create_file_w(writer, path, header));
+    CHECK_OK(sdfio_create_wfile(writer, path, header));
     CHECK(file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  heights));
-    CHECK_OK(sdfio_end_trailer(writer));
+    CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
 
     sdfio_reader *reader = new_reader(all_formats());
-    CHECK_OK(sdfio_open_file_w(reader, path));
+    CHECK_OK(sdfio_open_wfile(reader, path));
     double back[4] = {0};
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                 back));
@@ -54,12 +54,12 @@ int main(void)
     _wremove(path);
 
     reader = new_reader(all_formats());
-    CHECK_STATUS(SDFIO_ERR_IO, sdfio_open_file_w(reader, missing));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_open_file_w(reader, NULL));
+    CHECK_STATUS(SDFIO_ERR_IO, sdfio_open_wfile(reader, missing));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_open_wfile(reader, NULL));
     sdfio_reader_free(reader);
     writer = new_writer(all_formats());
-    CHECK_STATUS(SDFIO_ERR_IO, sdfio_create_file_w(writer, missing, header));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_file_w(writer, NULL, header));
+    CHECK_STATUS(SDFIO_ERR_IO, sdfio_create_wfile(writer, missing, header));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_wfile(writer, NULL, header));
     sdfio_writer_free(writer);
 
     if (failures != 0)

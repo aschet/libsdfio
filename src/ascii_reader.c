@@ -17,7 +17,6 @@
 #include "message.h"
 #include "number_text.h"
 #include "reader_format.h"
-#include "reader_state.h"
 #include "revision.h"
 #include "source.h"
 #include "tagged.h"

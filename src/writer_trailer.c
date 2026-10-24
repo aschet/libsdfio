@@ -111,7 +111,7 @@ sdfio_status sdfio_write_trailer_text(sdfio_writer *writer, const char *text,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_end_trailer(sdfio_writer *writer)
+sdfio_status sdfio_end_file(sdfio_writer *writer)
 {
     sdfio_status status = sdfio_writer_require_writable(writer);
     if (status == SDFIO_OK)

@@ -25,19 +25,17 @@ sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
         return SDFIO_ERR_ARGUMENT;
     }
     *writer = NULL;
-    sdfio_allocator used;
-    if (!sdfio_allocator_take(allocator, &used))
+    sdfio_options options;
+    if (!sdfio_options_init(&options, allocator))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    sdfio_writer *handle = sdfio_allocate(&used, sizeof *handle);
+    sdfio_writer *handle = sdfio_allocate(&options.allocator, sizeof *handle);
     if (handle == NULL)
     {
         return SDFIO_ERR_MEMORY;
     }
-    *handle = (sdfio_writer){.allocator = used,
-                             .chunk_values = SDFIO_DEFAULT_CHUNK,
-                             .buffer_size = SDFIO_DEFAULT_BUFFER};
+    *handle = (sdfio_writer){.options = options};
     *writer = handle;
     return SDFIO_OK;
 }
@@ -93,46 +91,28 @@ sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
 sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer, size_t size)
 {
     const sdfio_status status = require_new(writer);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (size == 0)
-    {
-        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "The buffer needs a size");
-    }
-    writer->buffer_size =
-        size < SDFIO_MINIMUM_BUFFER ? SDFIO_MINIMUM_BUFFER : size;
-    return SDFIO_OK;
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_buffer(&writer->options, size,
+                                                         &writer->message);
 }
 
 sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer, size_t count)
 {
     const sdfio_status status = require_new(writer);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (!sdfio_chunk_valid(count))
-    {
-        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "The number of values of a chunk is 0 or too large");
-    }
-    writer->chunk_values = count;
-    return SDFIO_OK;
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_chunk(&writer->options, count,
+                                                        &writer->message);
 }
 
 sdfio_status sdfio_writer_set_time_zone(sdfio_writer *writer,
                                         const sdfio_time_zone *time_zone)
 {
     const sdfio_status status = require_new(writer);
-    if (status != SDFIO_OK)
+    if (status == SDFIO_OK)
     {
-        return status;
+        sdfio_options_set_zone(&writer->options, time_zone);
     }
-    writer->zone = time_zone != NULL ? *time_zone : (sdfio_time_zone){0};
-    return SDFIO_OK;
+    return status;
 }
 
 void sdfio_writer_free(sdfio_writer *writer)
@@ -146,7 +126,7 @@ void sdfio_writer_free(sdfio_writer *writer)
         writer->owner.close(writer->owner.user);
     }
     sdfio_sink_destroy(&writer->sink);
-    const sdfio_allocator allocator = writer->allocator;
+    const sdfio_allocator allocator = writer->options.allocator;
     sdfio_release(&allocator, writer->coded);
     sdfio_release(&allocator, writer->scratch);
     sdfio_release(&allocator, writer->format_state);
@@ -225,27 +205,27 @@ static sdfio_status start_stream(sdfio_writer *writer,
     }
     const sdfio_writer_format *format =
         writer_format_for(writer->formats, header->format);
-    const size_t scratch = format->scratch_size(writer->chunk_values);
+    const size_t scratch = format->scratch_size(writer->options.chunk_values);
     if (writer->coded == NULL)
     {
-        writer->coded =
-            sdfio_allocate(&writer->allocator,
-                           writer->chunk_values * SDFIO_LARGEST_CODED_VALUE);
+        writer->coded = sdfio_allocate(&writer->options.allocator,
+                                       writer->options.chunk_values
+                                           * SDFIO_LARGEST_CODED_VALUE);
     }
     if (writer->scratch == NULL && scratch > 0)
     {
-        writer->scratch = sdfio_allocate(&writer->allocator, scratch);
+        writer->scratch = sdfio_allocate(&writer->options.allocator, scratch);
     }
     if (writer->format_state == NULL && format->state_size > 0)
     {
         writer->format_state =
-            sdfio_allocate(&writer->allocator, format->state_size);
+            sdfio_allocate(&writer->options.allocator, format->state_size);
     }
     if (writer->coded == NULL || (writer->scratch == NULL && scratch > 0)
         || (writer->format_state == NULL && format->state_size > 0)
         || (writer->sink.buffer == NULL
-            && !sdfio_sink_create(&writer->sink, writer->buffer_size,
-                                  &writer->allocator)))
+            && !sdfio_sink_create(&writer->sink, writer->options.buffer_size,
+                                  &writer->options.allocator)))
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY, "Out of memory");
     }

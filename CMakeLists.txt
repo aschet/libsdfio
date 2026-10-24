@@ -54,6 +54,8 @@ set(SDFIO_SOURCES
     src/datetime.c
     src/datetime.h
     src/number_text.c
+    src/options.c
+    src/options.h
     src/number_text.h
     src/copy_trailer.c
     src/fields.h
@@ -157,7 +159,12 @@ target_sources(sdfio
                 "${SDFIO_GENERATED_INCLUDE_DIR}"
             FILES
                 include/sdfio/file.h
+                include/sdfio/header.h
+                include/sdfio/heights.h
+                include/sdfio/reader.h
                 include/sdfio/sdfio.h
+                include/sdfio/types.h
+                include/sdfio/writer.h
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h"
 )

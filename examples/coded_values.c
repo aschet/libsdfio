@@ -97,7 +97,7 @@ static int write_coded_values(const char *path)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_end_trailer(writer);
+        status = sdfio_end_file(writer);
     }
     if (status != SDFIO_OK)
     {

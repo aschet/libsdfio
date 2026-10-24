@@ -464,7 +464,7 @@
  *         v
  *     [ trailer ]  sdfio_write_trailer_field(), sdfio_write_trailer_text()
  *         |
- *         | sdfio_end_trailer()
+ *         | sdfio_end_file()
  *         v
  *     [ ended ]
  * @endcode
@@ -481,7 +481,7 @@
  * - The trailer can be written only when all rows are written, with
  *   sdfio_write_trailer_field() and sdfio_write_trailer_text(), in any order
  * and in as many calls as needed.
- * - sdfio_end_trailer() ends the file. It is required, also for a file without
+ * - sdfio_end_file() ends the file. It is required, also for a file without
  * a trailer, and nothing can be written after it. For a file created with
  *   sdfio_create_file() it flushes and closes the file.
  * - An error ends the writing, and every later write fails with

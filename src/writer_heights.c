@@ -62,10 +62,10 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_layout layout,
         const unsigned char *row = (const unsigned char *)src
                                    + (ptrdiff_t)file_row * layout.row_stride;
         for (size_t first = 0; first < header->columns;
-             first += writer->chunk_values)
+             first += writer->options.chunk_values)
         {
-            const size_t count =
-                sdfio_chunk_count(header->columns, first, writer->chunk_values);
+            const size_t count = sdfio_chunk_count(
+                header->columns, first, writer->options.chunk_values);
             status = sdfio_encode_heights(header, layout,
                                           row + (ptrdiff_t)first * element,
                                           count, writer->coded);

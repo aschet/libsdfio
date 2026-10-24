@@ -90,7 +90,7 @@ static sdfio_status write_excerpt(sdfio_writer *writer, sdfio_reader *reader,
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_end_trailer(writer);
+        status = sdfio_end_file(writer);
     }
     return status;
 }

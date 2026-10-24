@@ -19,7 +19,7 @@
 
 #include <wchar.h>
 
-sdfio_status sdfio_open_file_w(sdfio_reader *reader, const wchar_t *path)
+sdfio_status sdfio_open_wfile(sdfio_reader *reader, const wchar_t *path)
 {
     if (reader == NULL || path == NULL)
     {
@@ -33,8 +33,8 @@ sdfio_status sdfio_open_file_w(sdfio_reader *reader, const wchar_t *path)
     return sdfio_file_adopt_reader(reader, _wfopen(path, L"rb"));
 }
 
-sdfio_status sdfio_create_file_w(sdfio_writer *writer, const wchar_t *path,
-                                 const sdfio_header *header)
+sdfio_status sdfio_create_wfile(sdfio_writer *writer, const wchar_t *path,
+                                const sdfio_header *header)
 {
     if (writer == NULL || path == NULL || header == NULL)
     {

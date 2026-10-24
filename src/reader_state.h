@@ -15,6 +15,7 @@
 #include "defaults.h"
 #include "header.h"
 #include "message.h"
+#include "options.h"
 #include "owner.h"
 #include "reader_format.h"
 #include "source.h"
@@ -46,10 +47,8 @@ struct sdfio_reader
     const sdfio_reader_format *formats[SDFIO_FORMAT_MAX];
     /** The format of the open file. */
     const sdfio_reader_format *format;
-    /** The allocator of the reader. */
-    sdfio_allocator allocator;
-    /** The time zone of the reader. */
-    sdfio_time_zone zone;
+    /** The options of the reader. */
+    sdfio_options options;
     /** What a file adds to the reader. */
     sdfio_owner owner;
     /** The stream over memory, if the file is in memory. */
@@ -70,10 +69,6 @@ struct sdfio_reader
     bool trailer_begun;
     /** The room for a chunk of values. */
     unsigned char *chunk;
-    /** The number of values in a chunk. */
-    size_t chunk_values;
-    /** The size of the buffer of the source in bytes. */
-    size_t buffer_size;
 };
 
 /**
@@ -116,17 +111,5 @@ sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
  * @param reader The reader.
  */
 sdfio_status sdfio_reader_finish_data(sdfio_reader *reader);
-
-/**
- * Lists a format of the reader. The public functions that name a format call
- * it.
- *
- * @param reader The reader.
- * @param format The format.
- * @retval SDFIO_ERR_ARGUMENT The reader is null, or lists the format already.
- * @retval SDFIO_ERR_STATE An attempt to open a file was made.
- */
-sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
-                                         const sdfio_reader_format *format);
 
 #endif /* SDFIO_SRC_READER_STATE_H */

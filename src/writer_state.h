@@ -15,6 +15,7 @@
 #include "defaults.h"
 #include "header.h"
 #include "message.h"
+#include "options.h"
 #include "owner.h"
 #include "sink.h"
 #include "tagged.h"
@@ -59,16 +60,10 @@ struct sdfio_writer
     sdfio_crlf_state trailer_text;
     /** The index of the next row to write. */
     size_t next_row;
-    /** The allocator of the writer. */
-    sdfio_allocator allocator;
-    /** The time zone of the writer. */
-    sdfio_time_zone zone;
+    /** The options of the writer. */
+    sdfio_options options;
     /** What a file adds to the writer. */
     sdfio_owner owner;
-    /** The number of values converted at a time. */
-    size_t chunk_values;
-    /** The size of the buffer of the sink in bytes. */
-    size_t buffer_size;
     /** The room for a chunk of values in the data type of the file, made when
      * the file is created. */
     unsigned char *coded;
@@ -125,17 +120,5 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer);
  */
 sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
                                      size_t count);
-
-/**
- * Lists a format of the writer. The public functions that name a format call
- * it.
- *
- * @param writer The writer.
- * @param format The format.
- * @retval SDFIO_ERR_ARGUMENT The writer is null, or lists the format already.
- * @retval SDFIO_ERR_STATE An attempt to create a file was made.
- */
-sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
-                                         const sdfio_writer_format *format);
 
 #endif /* SDFIO_SRC_WRITER_STATE_H */

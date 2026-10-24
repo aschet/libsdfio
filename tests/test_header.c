@@ -255,7 +255,7 @@ static void check_copy_of_a_read_header(void)
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_INT16),
                               coded, 2));
-    CHECK_OK(sdfio_end_trailer(writer));
+    CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
 
     sdfio_reader *reader = new_reader(all_formats());

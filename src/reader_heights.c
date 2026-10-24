@@ -47,10 +47,10 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
         unsigned char *row =
             (unsigned char *)dst + (ptrdiff_t)file_row * layout.row_stride;
         for (size_t first = 0; first < header->columns;
-             first += reader->chunk_values)
+             first += reader->options.chunk_values)
         {
-            const size_t count =
-                sdfio_chunk_count(header->columns, first, reader->chunk_values);
+            const size_t count = sdfio_chunk_count(
+                header->columns, first, reader->options.chunk_values);
             status = sdfio_reader_take_values(reader, reader->chunk, count);
             if (status == SDFIO_OK)
             {

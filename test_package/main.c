@@ -78,7 +78,7 @@ int main(void)
             check(sdfio_write_heights(
                       writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights),
                   "write");
-        failed |= check(sdfio_end_trailer(writer), "trailer");
+        failed |= check(sdfio_end_file(writer), "trailer");
     }
     sdfio_writer_free(writer);
     sdfio_header_free(header);

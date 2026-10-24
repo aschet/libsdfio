@@ -41,7 +41,8 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
         &reader->source, &reader->header,
         reader->next_row == reader->header.rows,
         reader->value_count - reader->next_value, reader->chunk,
-        reader->chunk_values * SDFIO_LARGEST_CODED_VALUE, &reader->message);
+        reader->options.chunk_values * SDFIO_LARGEST_CODED_VALUE,
+        &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -61,10 +62,10 @@ static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
         return sdfio_reader_take_values(reader, row, header->columns);
     }
     for (size_t first = 0; first < header->columns;
-         first += reader->chunk_values)
+         first += reader->options.chunk_values)
     {
-        const size_t count =
-            sdfio_chunk_count(header->columns, first, reader->chunk_values);
+        const size_t count = sdfio_chunk_count(header->columns, first,
+                                               reader->options.chunk_values);
         const sdfio_status status =
             sdfio_reader_take_values(reader, reader->chunk, count);
         if (status != SDFIO_OK)

@@ -9,6 +9,11 @@ PROJECT_NUMBER         = @PROJECT_VERSION@
 PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
 INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/types.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/header.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/heights.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/reader.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/writer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
                          @PROJECT_SOURCE_DIR@/docs/guide.dox \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox

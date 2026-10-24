@@ -22,7 +22,6 @@
 #include "message.h"
 #include "sink.h"
 #include "writer_format.h"
-#include "writer_state.h"
 #include <limits.h>
 #include <sdfio/sdfio.h>
 #include <string.h>

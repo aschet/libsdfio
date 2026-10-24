@@ -100,4 +100,16 @@ struct sdfio_writer_format
     sdfio_status (*end_trailer)(sdfio_sink *sink, sdfio_message *message);
 };
 
+/**
+ * Lists a format of the writer. The public functions that name a format call
+ * it.
+ *
+ * @param writer The writer.
+ * @param format The format.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null, or lists the format already.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+sdfio_status sdfio_writer_install_format(sdfio_writer *writer,
+                                         const sdfio_writer_format *format);
+
 #endif /* SDFIO_SRC_WRITER_FORMAT_H */

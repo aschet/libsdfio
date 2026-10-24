@@ -57,7 +57,7 @@ SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
 /**
  * Creates the file at a path and starts it as sdfio_create_stream() does. An
  * existing file is truncated. The data is written in place, and
- * sdfio_end_trailer() closes the file. If the writing fails, the data written
+ * sdfio_end_file() closes the file. If the writing fails, the data written
  * so far remains. A header that cannot be written creates no file.
  *
  * @param writer The writer.
@@ -79,8 +79,8 @@ SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
  * @param reader The reader.
  * @param[in] path The path of the file.
  */
-SDFIO_API sdfio_status sdfio_open_file_w(sdfio_reader *reader,
-                                         const wchar_t *path);
+SDFIO_API sdfio_status sdfio_open_wfile(sdfio_reader *reader,
+                                        const wchar_t *path);
 
 /**
  * Variant of sdfio_create_file() with a path of wide characters.
@@ -89,9 +89,9 @@ SDFIO_API sdfio_status sdfio_open_file_w(sdfio_reader *reader,
  * @param[in] path The path of the file.
  * @param[in] header The description of the file.
  */
-SDFIO_API sdfio_status sdfio_create_file_w(sdfio_writer *writer,
-                                           const wchar_t *path,
-                                           const sdfio_header *header);
+SDFIO_API sdfio_status sdfio_create_wfile(sdfio_writer *writer,
+                                          const wchar_t *path,
+                                          const sdfio_header *header);
 #endif
 
 #ifdef __cplusplus

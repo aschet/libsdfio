@@ -139,7 +139,7 @@ void write_matrix(const char *path, const sdfio_header *source,
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data()),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_end_trailer(writer.get()),
+    check(sdfio_end_file(writer.get()),
           sdfio_writer_error_message(writer.get()));
 }
 

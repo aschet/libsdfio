@@ -39,19 +39,17 @@ sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
         return SDFIO_ERR_ARGUMENT;
     }
     *reader = NULL;
-    sdfio_allocator used;
-    if (!sdfio_allocator_take(allocator, &used))
+    sdfio_options options;
+    if (!sdfio_options_init(&options, allocator))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    sdfio_reader *handle = sdfio_allocate(&used, sizeof *handle);
+    sdfio_reader *handle = sdfio_allocate(&options.allocator, sizeof *handle);
     if (handle == NULL)
     {
         return SDFIO_ERR_MEMORY;
     }
-    *handle = (sdfio_reader){.allocator = used,
-                             .chunk_values = SDFIO_DEFAULT_CHUNK,
-                             .buffer_size = SDFIO_DEFAULT_BUFFER};
+    *handle = (sdfio_reader){.options = options};
     *reader = handle;
     return SDFIO_OK;
 }
@@ -106,46 +104,28 @@ sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
 sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader, size_t size)
 {
     const sdfio_status status = require_new(reader);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (size == 0)
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "The buffer needs a size");
-    }
-    reader->buffer_size =
-        size < SDFIO_MINIMUM_BUFFER ? SDFIO_MINIMUM_BUFFER : size;
-    return SDFIO_OK;
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_buffer(&reader->options, size,
+                                                         &reader->message);
 }
 
 sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader, size_t count)
 {
     const sdfio_status status = require_new(reader);
-    if (status != SDFIO_OK)
-    {
-        return status;
-    }
-    if (!sdfio_chunk_valid(count))
-    {
-        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "The number of values of a chunk is 0 or too large");
-    }
-    reader->chunk_values = count;
-    return SDFIO_OK;
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_chunk(&reader->options, count,
+                                                        &reader->message);
 }
 
 sdfio_status sdfio_reader_set_time_zone(sdfio_reader *reader,
                                         const sdfio_time_zone *time_zone)
 {
     const sdfio_status status = require_new(reader);
-    if (status != SDFIO_OK)
+    if (status == SDFIO_OK)
     {
-        return status;
+        sdfio_options_set_zone(&reader->options, time_zone);
     }
-    reader->zone = time_zone != NULL ? *time_zone : (sdfio_time_zone){0};
-    return SDFIO_OK;
+    return status;
 }
 
 size_t sdfio_reader_version_count(const sdfio_reader *reader)
@@ -187,7 +167,7 @@ void sdfio_reader_free(sdfio_reader *reader)
         reader->owner.close(reader->owner.user);
     }
     sdfio_source_destroy(&reader->source);
-    const sdfio_allocator allocator = reader->allocator;
+    const sdfio_allocator allocator = reader->options.allocator;
     sdfio_release(&allocator, reader->chunk);
     sdfio_release(&allocator, reader->format_state);
     sdfio_release(&allocator, reader);
@@ -242,14 +222,15 @@ static sdfio_status open_source(sdfio_reader *reader,
     }
     if (reader->chunk == NULL)
     {
-        reader->chunk =
-            sdfio_allocate(&reader->allocator,
-                           reader->chunk_values * SDFIO_LARGEST_CODED_VALUE);
+        reader->chunk = sdfio_allocate(&reader->options.allocator,
+                                       reader->options.chunk_values
+                                           * SDFIO_LARGEST_CODED_VALUE);
     }
     if (reader->chunk == NULL
         || (reader->source.buffer == NULL
-            && !sdfio_source_create(&reader->source, reader->buffer_size,
-                                    &reader->allocator)))
+            && !sdfio_source_create(&reader->source,
+                                    reader->options.buffer_size,
+                                    &reader->options.allocator)))
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY, "Out of memory");
     }
@@ -260,12 +241,12 @@ static sdfio_status open_source(sdfio_reader *reader,
     {
         return status;
     }
-    sdfio_release(&reader->allocator, reader->format_state);
+    sdfio_release(&reader->options.allocator, reader->format_state);
     reader->format_state = NULL;
     if (reader->format->state_size > 0)
     {
-        reader->format_state =
-            sdfio_allocate(&reader->allocator, reader->format->state_size);
+        reader->format_state = sdfio_allocate(&reader->options.allocator,
+                                              reader->format->state_size);
         if (reader->format_state == NULL)
         {
             return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
@@ -274,7 +255,7 @@ static sdfio_status open_source(sdfio_reader *reader,
         memset(reader->format_state, 0, reader->format->state_size);
     }
     status = sdfio_read_header(&reader->source, reader->format, &reader->header,
-                               reader->format_state, &reader->zone,
+                               reader->format_state, &reader->options.zone,
                                &reader->message);
     if (status != SDFIO_OK)
     {

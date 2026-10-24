@@ -43,7 +43,7 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
         }
     }
     const sdfio_status status = writer->format->write_header(
-        &writer->sink, header, writer->format_state, &writer->zone,
+        &writer->sink, header, writer->format_state, &writer->options.zone,
         &writer->message);
     if (status == SDFIO_ERR_IO)
     {
@@ -59,7 +59,7 @@ sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
 {
     const sdfio_status status = writer->format->write_values(
         &writer->sink, &writer->header, writer->format_state, values, count,
-        writer->scratch, writer->chunk_values, &writer->message);
+        writer->scratch, writer->options.chunk_values, &writer->message);
     return status == SDFIO_OK ? status : sdfio_writer_fail(writer, status);
 }
 
@@ -74,10 +74,10 @@ static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
         return sdfio_writer_put_values(writer, row, header->columns);
     }
     for (size_t first = 0; first < header->columns;
-         first += writer->chunk_values)
+         first += writer->options.chunk_values)
     {
-        const size_t count =
-            sdfio_chunk_count(header->columns, first, writer->chunk_values);
+        const size_t count = sdfio_chunk_count(header->columns, first,
+                                               writer->options.chunk_values);
         for (size_t i = 0; i < count; ++i)
         {
             memcpy(writer->coded + i * size,

@@ -19,7 +19,6 @@
 #include "number_text.h"
 #include "sink.h"
 #include "writer_format.h"
-#include "writer_state.h"
 #include <sdfio/sdfio.h>
 #include <stdio.h>
 #include <string.h>

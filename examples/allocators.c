@@ -145,7 +145,7 @@ static sdfio_status write_file(void)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_end_trailer(writer);
+        status = sdfio_end_file(writer);
     }
     sdfio_writer_free(writer);
     sdfio_header_free(header);

@@ -113,7 +113,7 @@ void write_heights(const char *path, const sdfio_header *source,
     check(sdfio_write_heights(writer.get(), bottom_up(heights),
                               heights.ptr(heights.rows - 1)),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_end_trailer(writer.get()),
+    check(sdfio_end_file(writer.get()),
           sdfio_writer_error_message(writer.get()));
 }
 
