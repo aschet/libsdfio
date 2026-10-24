@@ -38,6 +38,20 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+Reader create_reader()
+{
+    sdfio_reader *reader = nullptr;
+    check(sdfio_reader_create(&config, &reader), "The reader cannot be made");
+    return Reader(reader, sdfio_reader_free);
+}
+
+Writer create_writer()
+{
+    sdfio_writer *writer = nullptr;
+    check(sdfio_writer_create(&config, &writer), "The writer cannot be made");
+    return Writer(writer, sdfio_writer_free);
+}
+
 // Eigen stores a matrix column by column: the elements of a row are one column
 // apart, and the rows are one element apart. The matrix is double, whatever the
 // data type of the file, and the library converts the heights.
@@ -109,7 +123,7 @@ void write_matrix(const char *path, sdfio_header header,
                   const Eigen::MatrixXd &heights)
 {
     header.data_type = SDFIO_TYPE_FLOAT;
-    Writer writer(sdfio_writer_new(&config), sdfio_writer_free);
+    Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data()),
@@ -130,7 +144,7 @@ int main(int argc, char **argv)
     const char *path = argv[1];
     try
     {
-        Reader reader(sdfio_reader_new(&config), sdfio_reader_free);
+        Reader reader = create_reader();
         check(sdfio_open_file(reader.get(), path),
               sdfio_reader_error_message(reader.get()));
         Eigen::MatrixXd heights = read_matrix(reader.get());

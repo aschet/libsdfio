@@ -82,9 +82,9 @@ static sdfio_status round_trip(const sdfio_config *config,
     header.z_scale = SDFIO_AUTO_Z_SCALE;
 
     membuf sink = {0};
-    sdfio_status status = SDFIO_ERR_MEMORY;
-    sdfio_writer *writer = sdfio_writer_new(config);
-    if (writer != NULL)
+    sdfio_writer *writer = NULL;
+    sdfio_status status = sdfio_writer_create(config, &writer);
+    if (status == SDFIO_OK)
     {
         const sdfio_stream stream = membuf_stream(&sink);
         status = sdfio_create_stream(writer, &stream, &header);
@@ -109,9 +109,9 @@ static sdfio_status round_trip(const sdfio_config *config,
         return status;
     }
 
-    status = SDFIO_ERR_MEMORY;
-    sdfio_reader *reader = sdfio_reader_new(config);
-    if (reader != NULL)
+    sdfio_reader *reader = NULL;
+    status = sdfio_reader_create(config, &reader);
+    if (status == SDFIO_OK)
     {
         status = sdfio_open_memory(reader, sink.data, sink.size);
         if (status == SDFIO_OK)
@@ -256,13 +256,24 @@ static void check_arguments(void)
     /* An allocator needs both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
     sdfio_config config = {.allocator = &broken, ALL_FORMATS};
-    CHECK(sdfio_reader_new(&config) == NULL);
-    CHECK(sdfio_writer_new(&config) == NULL);
+    sdfio_reader *reader_none = NULL;
+    sdfio_writer *writer_none = NULL;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_create(&config, &reader_none));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_create(&config, &writer_none));
+    CHECK(reader_none == NULL && writer_none == NULL);
 
     /* A chunk that cannot be counted in bytes. */
     config = (sdfio_config){.chunk_values = (size_t)-1, ALL_FORMATS};
-    CHECK(sdfio_reader_new(&config) == NULL);
-    CHECK(sdfio_writer_new(&config) == NULL);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_create(&config, &reader_none));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_create(&config, &writer_none));
+
+    /* A place for the handle is needed. */
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_create(all_formats(), NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_create(all_formats(), NULL));
 
     /* A date that is not set cannot be written. */
     sdfio_header header;
@@ -270,7 +281,7 @@ static void check_arguments(void)
     header.columns = 1;
     header.rows = 1;
     header.creation_date = SDFIO_NO_TIME;
-    sdfio_writer *writer = sdfio_writer_new(all_formats());
+    sdfio_writer *writer = new_writer(all_formats());
     membuf sink = {0};
     const sdfio_stream stream = membuf_stream(&sink);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -290,7 +301,7 @@ static void check_arguments(void)
     header.representation = SDFIO_ASCII;
     header.columns = 1;
     header.rows = 1;
-    writer = sdfio_writer_new(all_formats());
+    writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
     free(sink.data);
@@ -298,7 +309,7 @@ static void check_arguments(void)
     const sdfio_config binary_only = {
         .reader_formats = {&sdfio_binary_reader_format},
         .writer_formats = {&sdfio_binary_writer_format}};
-    writer = sdfio_writer_new(&binary_only);
+    writer = new_writer(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_create_stream(writer, &stream, &header));
     sdfio_writer_free(writer);
@@ -306,31 +317,36 @@ static void check_arguments(void)
 
     /* A file is read only if its format is listed. */
     static const char ascii_version_number[] = "aISO-2.0\r\n";
-    sdfio_reader *reader = sdfio_reader_new(&binary_only);
+    sdfio_reader *reader = new_reader(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
                  sdfio_open_memory(reader, ascii_version_number,
                                    sizeof ascii_version_number));
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(all_formats());
+    reader = new_reader(all_formats());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
                  sdfio_open_memory(reader, ascii_version_number,
                                    sizeof ascii_version_number));
     sdfio_reader_free(reader);
 
     /* A handle needs a format of its direction. */
-    CHECK(sdfio_reader_new(NULL) == NULL);
-    CHECK(sdfio_writer_new(NULL) == NULL);
+    sdfio_reader *reader_made = NULL;
+    sdfio_writer *writer_made = NULL;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_create(NULL, &reader_made));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_create(NULL, &writer_made));
     const sdfio_config none = {0};
-    CHECK(sdfio_reader_new(&none) == NULL);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_create(&none, &reader_made));
     const sdfio_config readers_only = {
         .reader_formats = {&sdfio_binary_reader_format}};
-    sdfio_reader *only_reader = sdfio_reader_new(&readers_only);
-    CHECK(only_reader != NULL);
-    sdfio_reader_free(only_reader);
-    CHECK(sdfio_writer_new(&readers_only) == NULL);
+    CHECK_OK(sdfio_reader_create(&readers_only, &reader_made));
+    CHECK(reader_made != NULL);
+    sdfio_reader_free(reader_made);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_create(&readers_only, &writer_made));
     const sdfio_config writers_only = {
         .writer_formats = {&sdfio_binary_writer_format}};
-    CHECK(sdfio_reader_new(&writers_only) == NULL);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_create(&writers_only, &reader_made));
+    CHECK(reader_made == NULL && writer_made == NULL);
 }
 
 /* The version numbers of a configuration: those of its formats, in their order.

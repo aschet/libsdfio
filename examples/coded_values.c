@@ -44,8 +44,12 @@ static int write_coded_values(const char *path)
     const int16_t bad_value = SDFIO_BAD_INT16;
     const sdfio_config config = {
         .writer_formats = {&sdfio_binary_writer_format}};
-    sdfio_writer *writer = sdfio_writer_new(&config);
-    sdfio_status status = sdfio_create_file(writer, path, &header);
+    sdfio_writer *writer = NULL;
+    sdfio_status status = sdfio_writer_create(&config, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_file(writer, path, &header);
+    }
     int16_t row[COLUMNS];
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t y = 0; y < header.rows && status == SDFIO_OK; ++y)
@@ -69,8 +73,12 @@ static int read_coded_values(const char *path)
 {
     const sdfio_config config = {
         .reader_formats = {&sdfio_binary_reader_format}};
-    sdfio_reader *reader = sdfio_reader_new(&config);
-    sdfio_status status = sdfio_open_file(reader, path);
+    sdfio_reader *reader = NULL;
+    sdfio_status status = sdfio_reader_create(&config, &reader);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_open_file(reader, path);
+    }
     const sdfio_header *header = sdfio_get_header(reader);
     if (status == SDFIO_OK && header->data_type != SDFIO_TYPE_INT16)
     {

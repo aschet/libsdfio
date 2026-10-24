@@ -86,7 +86,12 @@ static void *read_files(void *argument)
     for (int round = 0; round < ROUNDS; ++round)
     {
         const size_t index = (self->id + (size_t)round) % FILE_COUNT;
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = NULL;
+        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        {
+            ++self->errors;
+            return NULL;
+        }
         const double sum = read_sum(files[index], reader);
         if (isnan(sum) || sum != expected_sums[index])
         {
@@ -118,7 +123,12 @@ static void *write_and_read(void *argument)
         }
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
-        sdfio_writer *writer = sdfio_writer_new(all_formats());
+        sdfio_writer *writer = NULL;
+        if (sdfio_writer_create(all_formats(), &writer) != SDFIO_OK)
+        {
+            ++self->errors;
+            return NULL;
+        }
         if (sdfio_create_stream(writer, &stream, &header) != SDFIO_OK
             || sdfio_write_heights(
                    writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights)
@@ -130,7 +140,12 @@ static void *write_and_read(void *argument)
         sdfio_writer_free(writer);
 
         double back[ROWS * COLUMNS];
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = NULL;
+        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        {
+            ++self->errors;
+            return NULL;
+        }
         if (sdfio_open_memory(reader, file.data, file.size) != SDFIO_OK
             || sdfio_read_heights(reader,
                                   sdfio_layout_packed(SDFIO_TYPE_DOUBLE), back)
@@ -164,7 +179,12 @@ static void *read_shared(void *argument)
     job *self = argument;
     for (int round = 0; round < ROUNDS; ++round)
     {
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = NULL;
+        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        {
+            ++self->errors;
+            return NULL;
+        }
         if (sdfio_open_memory(reader, shared_bytes, shared_size) != SDFIO_OK)
         {
             ++self->errors;
@@ -191,7 +211,7 @@ int main(void)
 {
     for (size_t i = 0; i < FILE_COUNT; ++i)
     {
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = new_reader(all_formats());
         expected_sums[i] = read_sum(files[i], reader);
         CHECK(!isnan(expected_sums[i]));
         sdfio_reader_free(reader);

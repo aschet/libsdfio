@@ -136,6 +136,20 @@
  *
  * in a right-handed coordinate system: x grows with the column, y with the row,
  * and z points to the viewer who looks from above. The first row has y = 0.
+ * Seen from above with x to the right, y grows upward, so the first row of the
+ * file is the bottom row of the picture.
+ *
+ * @code{.unparsed}
+ * seen from above:
+ *
+ *    y (along the rows)
+ *    ^
+ *    |
+ *    |
+ *    (o)------> x (along the columns)
+ *
+ *    z comes out of the page, to the viewer
+ * @endcode
  *
  * | Data type | Code | Size | ISO-1.0 | ISO-2.0 | Enumerator | Value of a point
  * that is not measured | | --- | --- | --- | --- | --- | --- | --- | | binary32
@@ -238,6 +252,19 @@
  * measured. sdfio_write_heights() chooses the z-scale of an integer file if the
  * header has SDFIO_AUTO_Z_SCALE.
  *
+ * @section concepts_coordinates Coordinate system
+ * The points of a file lie in a right-handed coordinate system, as the standard
+ * has it: x grows with the column, y with the row, and z, the height, points to
+ * the viewer who looks from above. The point of the first row and the first
+ * column is at x = 0 and y = 0, in metres. The row y = 0 comes first in the
+ * file, and sdfio_read_data() and sdfio_read_heights() deliver the rows in that
+ * order.
+ *
+ * The orientation matters when the matrix goes into a picture. Image libraries
+ * count rows from the top, and the surface from y = 0 at the bottom, so a
+ * program that shows a surface unchanged shows it upside down. A negative row
+ * stride in the layout (see below) turns the matrix without a copy.
+ *
  * @section concepts_missing Points that are not measured
  * A point that is not measured has the bad value of the data type in the data
  * area. A height in metres has no such value, so the program picks its
@@ -281,7 +308,7 @@
  *   order of the file.
  *
  * @section concepts_config Configuration, formats and memory
- * sdfio_config is the argument of sdfio_reader_new() and sdfio_writer_new(). It
+ * sdfio_config is the argument of sdfio_reader_create() and sdfio_writer_create(). It
  * holds
  * - the formats that the handle uses: sdfio_binary_reader_format and
  *   sdfio_ascii_reader_format for a reader, and the writer formats for a
@@ -319,7 +346,7 @@
  *
  * @section states_reader Reader
  * @code{.unparsed}
- * sdfio_reader_new()
+ * sdfio_reader_create()
  *       |
  *       v
  *    [ new ] -- sdfio_open_file / _memory / _stream --> [ open ]
@@ -355,7 +382,7 @@
  *
  * @section states_writer Writer
  * @code{.unparsed}
- * sdfio_writer_new()
+ * sdfio_writer_create()
  *       |
  *       v
  *    [ new ] -- sdfio_create_file / _stream --> [ created ]

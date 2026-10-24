@@ -39,9 +39,23 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+Reader create_reader()
+{
+    sdfio_reader *reader = nullptr;
+    check(sdfio_reader_create(&config, &reader), "The reader cannot be made");
+    return Reader(reader, sdfio_reader_free);
+}
+
+Writer create_writer()
+{
+    sdfio_writer *writer = nullptr;
+    check(sdfio_writer_create(&config, &writer), "The writer cannot be made");
+    return Writer(writer, sdfio_writer_free);
+}
+
 Reader open(const char *path)
 {
-    Reader reader(sdfio_reader_new(&config), sdfio_reader_free);
+    Reader reader = create_reader();
     check(sdfio_open_file(reader.get(), path),
           sdfio_reader_error_message(reader.get()));
     return reader;
@@ -83,7 +97,7 @@ void write_heights(const char *path, sdfio_header header,
                    const cv::Mat &heights)
 {
     header.data_type = SDFIO_TYPE_FLOAT;
-    Writer writer(sdfio_writer_new(&config), sdfio_writer_free);
+    Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, &header),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_write_heights(writer.get(), bottom_up(heights),

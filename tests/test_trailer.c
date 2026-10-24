@@ -33,7 +33,7 @@ static void start_file(small_file *small, sdfio_representation representation)
     const float heights[4] = {1e-6F, 2e-6F, 3e-6F, 4e-6F};
     small->file = (membuf){0};
     const sdfio_stream stream = membuf_stream(&small->file);
-    small->writer = sdfio_writer_new(all_formats());
+    small->writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(small->writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(
         small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
@@ -45,7 +45,7 @@ static bool read_trailer_of(small_file *small, const char *expected)
 {
     CHECK_OK(sdfio_end_trailer(small->writer));
     sdfio_writer_free(small->writer);
-    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, small->file.data, small->file.size));
     const char *read = NULL;
     size_t size = 0;
@@ -129,7 +129,7 @@ static void check_the_order(void)
     const float height = 1e-6F;
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(all_formats());
+    sdfio_writer *writer = new_writer(all_formats());
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_write_trailer_field(writer, "A", "b"));
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_data(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
@@ -166,7 +166,7 @@ static void check_the_text_is_written_as_given(void)
             const double height = 1e-6;
             membuf file = {0};
             const sdfio_stream stream = membuf_stream(&file);
-            sdfio_writer *writer = sdfio_writer_new(all_formats());
+            sdfio_writer *writer = new_writer(all_formats());
             CHECK_OK(sdfio_create_stream(writer, &stream, &header));
             CHECK_OK(sdfio_write_heights(
                 writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), &height));
@@ -175,7 +175,7 @@ static void check_the_text_is_written_as_given(void)
             CHECK_OK(sdfio_end_trailer(writer));
             sdfio_writer_free(writer);
 
-            sdfio_reader *reader = sdfio_reader_new(all_formats());
+            sdfio_reader *reader = new_reader(all_formats());
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
             const char *read = NULL;
             size_t size = 0;
@@ -193,7 +193,7 @@ static void check_the_text_is_written_as_given(void)
     const float height = 1e-6F;
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(all_formats());
+    sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  &height));
@@ -207,7 +207,7 @@ static void check_the_text_is_written_as_given(void)
 static size_t read_in_parts(const membuf *file, size_t part, char *out,
                             size_t out_size)
 {
-    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
     const char *text = NULL;
     size_t size = 0;
@@ -273,7 +273,7 @@ static void check_the_end(void)
     for (size_t r = 0; r < 2; ++r)
     {
         membuf file = file_with_text(representations[r], "abc");
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         char buffer[3];
         size_t size = 0;
@@ -292,7 +292,7 @@ static void check_the_end(void)
         start_file(&none, representations[r]);
         CHECK_OK(sdfio_end_trailer(none.writer));
         sdfio_writer_free(none.writer);
-        reader = sdfio_reader_new(all_formats());
+        reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, none.file.data, none.file.size));
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
         CHECK(size == 0);
@@ -348,7 +348,7 @@ static void check_rows_after_the_trailer(void)
     for (size_t r = 0; r < 2; ++r)
     {
         membuf file = file_with_text(representations[r], "abc");
-        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
         float row[2];
         CHECK_OK(sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),

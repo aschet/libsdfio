@@ -89,7 +89,8 @@ int main(void)
         .buffer_size = 128,
         .chunk_values = 16,
         .writer_formats = {&sdfio_binary_writer_format}};
-    sdfio_writer *writer = sdfio_writer_new(&config);
+    sdfio_writer *writer = NULL;
+    sdfio_status status = sdfio_writer_create(&config, &writer);
     sdfio_header header;
     sdfio_header_init(&header);
     header.data_type = SDFIO_TYPE_INT16;
@@ -99,7 +100,10 @@ int main(void)
     header.y_scale = 1.0e-6;
     header.z_scale = 1.0e-9;
     const sdfio_stream stream = {NULL, NULL, store};
-    sdfio_status status = sdfio_create_stream(writer, &stream, &header);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_stream(writer, &stream, &header);
+    }
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {

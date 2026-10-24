@@ -11,11 +11,16 @@ int main(int argc, char **argv)
     const sdfio_config config = {
         .reader_formats = {&sdfio_binary_reader_format,
                            &sdfio_ascii_reader_format}};
-    sdfio_reader *reader = sdfio_reader_new(&config);
-    sdfio_status status = sdfio_open_file(reader, path);
+    sdfio_reader *reader = NULL;
+    sdfio_status status = sdfio_reader_create(&config, &reader);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_open_file(reader, path);
+    }
     if (status != SDFIO_OK)
     {
-        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
+        fprintf(stderr, "%s: %s\n", sdfio_status_string(status),
+                sdfio_reader_error_message(reader));
         sdfio_reader_free(reader);
         return EXIT_FAILURE;
     }

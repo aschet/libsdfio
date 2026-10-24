@@ -31,36 +31,43 @@ static size_t memory_read(void *user, void *data, size_t size)
     return count;
 }
 
-sdfio_reader *sdfio_reader_new(const sdfio_config *config)
+sdfio_status sdfio_reader_create(const sdfio_config *config,
+                                 sdfio_reader **reader)
 {
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    *reader = NULL;
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings)
         || settings.reader_formats[0] == NULL)
     {
-        return NULL;
+        return SDFIO_ERR_ARGUMENT;
     }
-    sdfio_reader *reader = sdfio_allocate(&settings.allocator, sizeof *reader);
-    if (reader == NULL)
+    sdfio_reader *handle = sdfio_allocate(&settings.allocator, sizeof *handle);
+    if (handle == NULL)
     {
-        return NULL;
+        return SDFIO_ERR_MEMORY;
     }
-    *reader = (sdfio_reader){.allocator = settings.allocator,
+    *handle = (sdfio_reader){.allocator = settings.allocator,
                              .zone = settings.zone,
                              .chunk_values = settings.chunk};
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        reader->formats[i] = settings.reader_formats[i];
+        handle->formats[i] = settings.reader_formats[i];
     }
-    reader->chunk = sdfio_allocate(&reader->allocator,
+    handle->chunk = sdfio_allocate(&handle->allocator,
                                    settings.chunk * SDFIO_LARGEST_CODED_VALUE);
-    if (reader->chunk == NULL
-        || !sdfio_source_create(&reader->source, settings.buffer,
-                                &reader->allocator))
+    if (handle->chunk == NULL
+        || !sdfio_source_create(&handle->source, settings.buffer,
+                                &handle->allocator))
     {
-        sdfio_reader_free(reader);
-        return NULL;
+        sdfio_reader_free(handle);
+        return SDFIO_ERR_MEMORY;
     }
-    return reader;
+    *reader = handle;
+    return SDFIO_OK;
 }
 
 void sdfio_reader_free(sdfio_reader *reader)

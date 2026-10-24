@@ -181,10 +181,10 @@ SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
 enum
 {
     /**
-     * Capacity of sdfio_header::manufacturer_id in bytes, including the
-     * terminating null character.
+     * Capacity of sdfio_header::manufacturer_id in bytes: the 10 characters of
+     * the field of the standard and the terminating null character.
      */
-    SDFIO_MANUFACTURER_CAPACITY = 64
+    SDFIO_MANUFACTURER_CAPACITY = 11
 };
 
 /** Value of a date that is not recorded. */
@@ -206,6 +206,10 @@ enum
 
 /**
  * Header of a file (record 1), with the field names of the standard.
+ *
+ * The points of the matrix lie in a right-handed coordinate system: x grows
+ * with the column, y with the row, and z points to the viewer who looks from
+ * above. The row y = 0 is the first row of the file.
  *
  * A reader fills it in when it opens a file. A writer takes it as the
  * description of the file to create. The compression type and the checksum
@@ -261,8 +265,8 @@ typedef struct sdfio_header
     /** Last modification date and time. The rules of creation_date apply. */
     time_t modification_date;
     /**
-     * Manufacturer's identifier, 7-bit ASCII, terminated by a null character.
-     * A file stores the first 10 characters.
+     * Manufacturer's identifier, 7-bit ASCII, of at most 10 characters and
+     * terminated by a null character.
      */
     char manufacturer_id[SDFIO_MANUFACTURER_CAPACITY];
 } sdfio_header;
@@ -581,10 +585,14 @@ typedef struct sdfio_reader sdfio_reader;
  * function. Release the reader with sdfio_reader_free().
  *
  * @param[in] config The configuration, with at least one reader format.
- * @return The reader, or null if an allocation fails, the allocator of the
- * configuration lacks a callback, or no reader format is listed.
+ * @param[out] reader Receives the reader, or null if the call fails.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the allocator of the
+ * configuration lacks a callback, no reader format is listed, or the chunk is
+ * too large for its buffers.
+ * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
-SDFIO_API sdfio_reader *sdfio_reader_new(const sdfio_config *config);
+SDFIO_API sdfio_status sdfio_reader_create(const sdfio_config *config,
+                                           sdfio_reader **reader);
 
 /**
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.
@@ -810,10 +818,14 @@ typedef struct sdfio_writer sdfio_writer;
  * created. Release the writer with sdfio_writer_free().
  *
  * @param[in] config The configuration, with at least one writer format.
- * @return The writer, or null if an allocation fails, the allocator of the
- * configuration lacks a callback, or no writer format is listed.
+ * @param[out] writer Receives the writer, or null if the call fails.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the allocator of the
+ * configuration lacks a callback, no writer format is listed, or the chunk is
+ * too large for its buffers.
+ * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
-SDFIO_API sdfio_writer *sdfio_writer_new(const sdfio_config *config);
+SDFIO_API sdfio_status sdfio_writer_create(const sdfio_config *config,
+                                           sdfio_writer **writer);
 
 /**
  * Releases a writer. A file that sdfio_create_file() created and

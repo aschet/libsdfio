@@ -17,36 +17,43 @@
 #include "writer_state.h"
 #include <string.h>
 
-sdfio_writer *sdfio_writer_new(const sdfio_config *config)
+sdfio_status sdfio_writer_create(const sdfio_config *config,
+                                 sdfio_writer **writer)
 {
+    if (writer == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    *writer = NULL;
     sdfio_settings settings;
     if (!sdfio_config_resolve(config, &settings)
         || settings.writer_formats[0] == NULL)
     {
-        return NULL;
+        return SDFIO_ERR_ARGUMENT;
     }
-    sdfio_writer *writer = sdfio_allocate(&settings.allocator, sizeof *writer);
-    if (writer == NULL)
+    sdfio_writer *handle = sdfio_allocate(&settings.allocator, sizeof *handle);
+    if (handle == NULL)
     {
-        return NULL;
+        return SDFIO_ERR_MEMORY;
     }
-    *writer = (sdfio_writer){.allocator = settings.allocator,
+    *handle = (sdfio_writer){.allocator = settings.allocator,
                              .zone = settings.zone,
                              .chunk_values = settings.chunk};
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        writer->formats[i] = settings.writer_formats[i];
+        handle->formats[i] = settings.writer_formats[i];
     }
-    writer->coded = sdfio_allocate(&writer->allocator,
+    handle->coded = sdfio_allocate(&handle->allocator,
                                    settings.chunk * SDFIO_LARGEST_CODED_VALUE);
-    if (writer->coded == NULL
-        || !sdfio_sink_create(&writer->sink, settings.buffer,
-                              &writer->allocator))
+    if (handle->coded == NULL
+        || !sdfio_sink_create(&handle->sink, settings.buffer,
+                              &handle->allocator))
     {
-        sdfio_writer_free(writer);
-        return NULL;
+        sdfio_writer_free(handle);
+        return SDFIO_ERR_MEMORY;
     }
-    return writer;
+    *writer = handle;
+    return SDFIO_OK;
 }
 
 void sdfio_writer_free(sdfio_writer *writer)

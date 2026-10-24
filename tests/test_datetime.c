@@ -244,7 +244,7 @@ static void check_file(void)
     membuf sink = {0};
     const sdfio_stream stream = membuf_stream(&sink);
     const float height = 1.0F;
-    sdfio_writer *writer = sdfio_writer_new(&with_zone);
+    sdfio_writer *writer = new_writer(&with_zone);
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                  &height));
@@ -257,13 +257,13 @@ static void check_file(void)
                  SDFIO_DATETIME_SIZE)
           == 0);
 
-    sdfio_reader *reader = sdfio_reader_new(&with_zone);
+    sdfio_reader *reader = new_reader(&with_zone);
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
     CHECK(sdfio_get_header(reader)->creation_date == 1782900000);
     CHECK(sdfio_get_header(reader)->modification_date == 1768474800);
     sdfio_reader_free(reader);
 
-    reader = sdfio_reader_new(all_formats());
+    reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, sink.data, sink.size));
     CHECK(sdfio_get_header(reader)->creation_date == 1782907200);
     sdfio_reader_free(reader);
@@ -273,7 +273,7 @@ static void check_file(void)
     const sdfio_config refusing_config = {.time_zone = &refusing, ALL_FORMATS};
     membuf refused = {0};
     const sdfio_stream refused_stream = membuf_stream(&refused);
-    writer = sdfio_writer_new(&refusing_config);
+    writer = new_writer(&refusing_config);
     CHECK_OK(sdfio_create_stream(writer, &refused_stream, &header));
     CHECK_STATUS(SDFIO_ERR_RANGE,
                  sdfio_write_heights(

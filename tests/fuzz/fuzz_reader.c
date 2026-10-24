@@ -131,8 +131,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                                  : (control & CONTROL_SMALL) ? &small
                                                              : &defaults;
     source input = {data + CONTROL_SIZE, size - CONTROL_SIZE, 0};
-    sdfio_reader *reader = sdfio_reader_new(config);
-    if (reader == NULL)
+    sdfio_reader *reader = NULL;
+    if (sdfio_reader_create(config, &reader) != SDFIO_OK)
     {
         return 0;
     }

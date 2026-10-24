@@ -93,9 +93,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         .writer_formats = {&sdfio_binary_writer_format,
                            &sdfio_ascii_writer_format}};
     sink output = {NULL, 0};
-    sdfio_writer *writer = sdfio_writer_new(&config);
-    sdfio_status status = SDFIO_ERR_MEMORY;
-    if (writer != NULL)
+    sdfio_writer *writer = NULL;
+    sdfio_status status = sdfio_writer_create(&config, &writer);
+    if (status == SDFIO_OK)
     {
         const sdfio_stream stream = {&output, NULL, sink_write};
         status = sdfio_create_stream(writer, &stream, &header);
@@ -120,9 +120,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         /* A file that was written is a file that can be read: the rows as
          * they are coded, and the trailer. Heights in metres may overflow the
          * element type, which is not a fault of the file. */
-        sdfio_reader *reader = sdfio_reader_new(&config);
-        sdfio_status read_status = SDFIO_ERR_MEMORY;
-        if (reader != NULL)
+        sdfio_reader *reader = NULL;
+        sdfio_status read_status = sdfio_reader_create(&config, &reader);
+        if (read_status == SDFIO_OK)
         {
             read_status = sdfio_open_memory(reader, output.data, output.size);
             const sdfio_header *read = sdfio_get_header(reader);

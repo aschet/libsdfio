@@ -148,7 +148,7 @@ static void check_against(const expectation *e)
     snprintf(path, sizeof path, "%s/%s", SDFIO_TEST_DATA_DIR, e->path);
     printf("%s\n", e->path);
 
-    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    sdfio_reader *reader = new_reader(all_formats());
     CHECK(reader != NULL);
     CHECK_OK(sdfio_open_file(reader, path));
     const sdfio_header *header = sdfio_get_header(reader);
@@ -278,7 +278,7 @@ static void replace(char *at, size_t length, const char *text, size_t *size)
  * trailer read as usual. */
 static void check_unrecorded(const unsigned char *bytes, size_t size)
 {
-    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, bytes, size));
     const sdfio_header *header = sdfio_get_header(reader);
     if (header != NULL)
@@ -378,7 +378,7 @@ static void check_byte_order_mark(void)
         {
             memcpy(marked, mark, sizeof mark);
             memcpy(marked + sizeof mark, bytes, size);
-            sdfio_reader *reader = sdfio_reader_new(all_formats());
+            sdfio_reader *reader = new_reader(all_formats());
             const sdfio_status status =
                 sdfio_open_memory(reader, marked, size + sizeof mark);
             if (i == 0)

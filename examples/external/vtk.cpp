@@ -55,6 +55,13 @@ void check(sdfio_status status, const char *message)
     }
 }
 
+Reader create_reader()
+{
+    sdfio_reader *reader = nullptr;
+    check(sdfio_reader_create(&config, &reader), "The reader cannot be made");
+    return Reader(reader, sdfio_reader_free);
+}
+
 float *heights_of(vtkImageData *image)
 {
     return static_cast<float *>(image->GetScalarPointer());
@@ -173,7 +180,7 @@ int main(int argc, char **argv)
     const char *path = argv[1];
     try
     {
-        Reader reader(sdfio_reader_new(&config), sdfio_reader_free);
+        Reader reader = create_reader();
         check(sdfio_open_file(reader.get(), path),
               sdfio_reader_error_message(reader.get()));
         vtkSmartPointer<vtkImageData> image = read_image(reader.get());

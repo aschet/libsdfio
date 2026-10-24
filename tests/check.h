@@ -125,13 +125,28 @@ static inline sdfio_layout layout_with_rows(sdfio_data_type type,
     return layout;
 }
 
+/* A reader or a writer for a configuration that is valid. */
+static inline sdfio_reader *new_reader(const sdfio_config *config)
+{
+    sdfio_reader *reader = NULL;
+    CHECK_OK(sdfio_reader_create(config, &reader));
+    return reader;
+}
+
+static inline sdfio_writer *new_writer(const sdfio_config *config)
+{
+    sdfio_writer *writer = NULL;
+    CHECK_OK(sdfio_writer_create(config, &writer));
+    return writer;
+}
+
 /* Frees a reader and opens the file in memory again, to read it from the
  * start. */
 static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
                                           const membuf *file)
 {
     sdfio_reader_free(reader);
-    reader = sdfio_reader_new(all_formats());
+    reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
     return reader;
 }

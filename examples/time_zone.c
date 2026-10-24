@@ -31,9 +31,10 @@ static void print_date(const char *label, time_t date)
 
 static time_t read_creation_date(const sdfio_config *config, const char *path)
 {
-    sdfio_reader *reader = sdfio_reader_new(config);
+    sdfio_reader *reader = NULL;
     time_t date = SDFIO_NO_TIME;
-    if (sdfio_open_file(reader, path) == SDFIO_OK)
+    if (sdfio_reader_create(config, &reader) == SDFIO_OK
+        && sdfio_open_file(reader, path) == SDFIO_OK)
     {
         date = sdfio_get_header(reader)->creation_date;
     }
@@ -65,8 +66,12 @@ int main(void)
     header.modification_date = header.creation_date;
     const float height = 1e-6F;
 
-    sdfio_writer *writer = sdfio_writer_new(&with_zone);
-    sdfio_status status = sdfio_create_file(writer, path, &header);
+    sdfio_writer *writer = NULL;
+    sdfio_status status = sdfio_writer_create(&with_zone, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_create_file(writer, path, &header);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(

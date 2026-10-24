@@ -51,9 +51,10 @@ int main(void)
                            &sdfio_ascii_reader_format},
         .writer_formats = {&sdfio_binary_writer_format,
                            &sdfio_ascii_writer_format}};
-    sdfio_writer *writer = sdfio_writer_new(&config);
-    failed |= writer == NULL;
-    if (writer != NULL)
+    sdfio_writer *writer = NULL;
+    const sdfio_status made_writer = sdfio_writer_create(&config, &writer);
+    failed |= check(made_writer, "writer");
+    if (made_writer == SDFIO_OK)
     {
         failed |= check(sdfio_create_file(writer, path, &header), "create");
         failed |=
@@ -64,9 +65,10 @@ int main(void)
     }
     sdfio_writer_free(writer);
 
-    sdfio_reader *reader = sdfio_reader_new(&config);
-    failed |= reader == NULL;
-    if (reader != NULL)
+    sdfio_reader *reader = NULL;
+    const sdfio_status made_reader = sdfio_reader_create(&config, &reader);
+    failed |= check(made_reader, "reader");
+    if (made_reader == SDFIO_OK)
     {
         failed |= check(sdfio_open_file(reader, path), "open");
         failed |=

@@ -198,7 +198,7 @@ static void check_locale(void)
     const double heights[3] = {1.25e-6, NAN, -3.5e-7};
     membuf file = {0};
     const sdfio_stream stream = membuf_stream(&file);
-    sdfio_writer *writer = sdfio_writer_new(all_formats());
+    sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, &header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                  heights));
@@ -206,7 +206,7 @@ static void check_locale(void)
     sdfio_writer_free(writer);
     CHECK(memchr(file.data, ',', file.size) == NULL);
 
-    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
     double back[3];
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
