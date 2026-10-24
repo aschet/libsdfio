@@ -12,16 +12,7 @@
 #ifndef SDFIO_SRC_TAGGED_H
 #define SDFIO_SRC_TAGGED_H
 
-#include "dynstring.h"
 #include "sink.h"
-
-/**
- * Converts a trailer from the file: every line end becomes LF, and the end of
- * the last line is dropped.
- *
- * @param[in,out] text The trailer.
- */
-void sdfio_lines_to_lf(sdfio_string *text);
 
 /**
  * Splits a line of the form `Name = Value` into its name and its value. The

@@ -38,8 +38,6 @@ const char *sdfio_status_string(sdfio_status status)
         return "a height equals the marker of a point that is not measured";
     case SDFIO_ERR_MEMORY:
         return "out of memory";
-    case SDFIO_ERR_LIMIT:
-        return "a limit of the configuration is exceeded";
     }
     return "unknown status";
 }

@@ -224,7 +224,7 @@ static void check_tables(void)
     CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT16));
     CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT8));
     CHECK(strlen(sdfio_version()) > 0);
-    for (int i = SDFIO_OK; i <= SDFIO_ERR_LIMIT; ++i)
+    for (int i = SDFIO_OK; i <= SDFIO_ERR_MEMORY; ++i)
     {
         CHECK(strlen(sdfio_status_string((sdfio_status)i)) > 0);
     }

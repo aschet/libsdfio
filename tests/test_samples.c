@@ -185,7 +185,7 @@ static void check_against(const expectation *e)
 
     const char *trailer = NULL;
     size_t trailer_size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
     char escaped[LINE_CAPACITY];
     escape(trailer != NULL ? trailer : "", trailer_size, escaped);
     /* The end of the last line is not part of the trailer in memory. */

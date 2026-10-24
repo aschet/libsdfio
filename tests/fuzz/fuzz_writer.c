@@ -145,12 +145,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                     reader, sdfio_layout_packed(read->data_type), coded,
                     read->rows);
             }
-            const char *trailer = NULL;
-            size_t trailer_size = 0;
-            if (coded != NULL && read_status == SDFIO_OK)
+            char part[256];
+            size_t got = 1;
+            while (coded != NULL && read_status == SDFIO_OK && got > 0)
             {
                 read_status =
-                    sdfio_read_trailer(reader, &trailer, &trailer_size);
+                    sdfio_read_trailer(reader, part, sizeof part, &got);
             }
             free(coded);
         }

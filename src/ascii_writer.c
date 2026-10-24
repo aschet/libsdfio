@@ -13,7 +13,6 @@
 #include "chunk.h"
 #include "data_type.h"
 #include "datetime.h"
-#include "dynstring.h"
 #include "fields.h"
 #include "message.h"
 #include "number_text.h"
@@ -98,20 +97,20 @@ static double load_real(sdfio_data_type type, const void *src, size_t index)
 static const char *const version_numbers[] = {
     [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
 
-static bool append_text(sdfio_string *out, const char *text)
+static bool append_text(sdfio_sink *sink, const char *text)
 {
-    return sdfio_string_append(out, text, strlen(text));
+    return sdfio_sink_write(sink, text, strlen(text));
 }
 
 /* Appends the header line `name = value`. */
-static bool append_field(sdfio_string *out, const char *name, const char *value)
+static bool append_field(sdfio_sink *sink, const char *name, const char *value)
 {
-    return append_text(out, name) && append_text(out, " = ")
-           && append_text(out, value) && append_text(out, crlf);
+    return append_text(sink, name) && append_text(sink, " = ")
+           && append_text(sink, value) && append_text(sink, crlf);
 }
 
 /* Appends a header line whose value is a scale in the format of binary64. */
-static bool append_scale(sdfio_string *out,
+static bool append_scale(sdfio_sink *sink,
                          const sdfio_decimal_point *decimal_point,
                          const char *name, double value)
 {
@@ -120,67 +119,64 @@ static bool append_scale(sdfio_string *out,
         sdfio_format_scientific(decimal_point, text, sizeof text - 1, value,
                                 SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
     text[length < sizeof text - 1 ? length : sizeof text - 1] = '\0';
-    return append_field(out, name, text);
+    return append_field(sink, name, text);
 }
 
-/* Formats the header: the version number and a line for each field. */
-static sdfio_status format_header(const sdfio_header *header,
-                                  const sdfio_decimal_point *decimal_point,
-                                  const sdfio_time_zone *zone,
-                                  sdfio_string *out, sdfio_message *message)
+/* Writes the header: the version number and a line for each field. The dates
+ * are formatted first, so that nothing is written if one cannot be. */
+static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
+                                 void *state, const sdfio_time_zone *zone,
+                                 sdfio_message *message)
 {
-    const char *version_number = version_numbers[header->revision];
-    char text[SDFIO_NUMBER_CAPACITY];
-    char date[SDFIO_DATETIME_SIZE + 1] = {0};
+    struct writing *writing = state;
+    writing->decimal_point = sdfio_decimal_point_now();
+    writing->column = 0;
+    char created[SDFIO_DATETIME_SIZE + 1] = {0};
+    char modified[SDFIO_DATETIME_SIZE + 1] = {0};
+    if (!sdfio_datetime_format(header->creation_date, header->revision, zone,
+                               created))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the creation date");
+    }
+    if (!sdfio_datetime_format(header->modification_date, header->revision,
+                               zone, modified))
+    {
+        return sdfio_fail(message, SDFIO_ERR_RANGE,
+                          "The time zone cannot convert the modification date");
+    }
     /* The field has 10 characters, as in a binary file. */
     char identifier[SDFIO_ID_SIZE + 1] = {0};
     const char *end = memchr(header->manufacturer_id, '\0', SDFIO_ID_SIZE);
     memcpy(identifier, header->manufacturer_id,
            end != NULL ? (size_t)(end - header->manufacturer_id)
                        : (size_t)SDFIO_ID_SIZE);
-    bool ok = append_text(out, version_number) && append_text(out, crlf)
-              && append_field(out, SDFIO_ASCII_MANUFACTURER_ID, identifier);
-    if (!sdfio_datetime_format(header->creation_date, header->revision, zone,
-                               date))
-    {
-        return sdfio_fail(message, SDFIO_ERR_RANGE,
-                          "The time zone cannot convert the creation date");
-    }
-    ok = ok && append_field(out, SDFIO_ASCII_CREATE_DATE, date);
-    if (!sdfio_datetime_format(header->modification_date, header->revision,
-                               zone, date))
-    {
-        return sdfio_fail(message, SDFIO_ERR_RANGE,
-                          "The time zone cannot convert the modification date");
-    }
-    ok = ok && append_field(out, SDFIO_ASCII_MODIFICATION_DATE, date);
+    char text[SDFIO_NUMBER_CAPACITY];
+    const sdfio_decimal_point *point = &writing->decimal_point;
+    bool ok = append_text(sink, version_numbers[header->revision])
+              && append_text(sink, crlf)
+              && append_field(sink, SDFIO_ASCII_MANUFACTURER_ID, identifier)
+              && append_field(sink, SDFIO_ASCII_CREATE_DATE, created)
+              && append_field(sink, SDFIO_ASCII_MODIFICATION_DATE, modified);
     snprintf(text, sizeof text, "%zu", header->columns);
-    ok = ok && append_field(out, SDFIO_ASCII_POINTS, text);
+    ok = ok && append_field(sink, SDFIO_ASCII_POINTS, text);
     snprintf(text, sizeof text, "%zu", header->rows);
-    ok = ok && append_field(out, SDFIO_ASCII_PROFILES, text);
-    ok = ok
-         && append_scale(out, decimal_point, SDFIO_ASCII_X_SCALE,
-                         header->x_scale)
-         && append_scale(out, decimal_point, SDFIO_ASCII_Y_SCALE,
-                         header->y_scale)
-         && append_scale(out, decimal_point, SDFIO_ASCII_Z_SCALE,
-                         header->z_scale)
-         && append_scale(out, decimal_point, SDFIO_ASCII_Z_RESOLUTION,
+    ok = ok && append_field(sink, SDFIO_ASCII_PROFILES, text);
+    ok = ok && append_scale(sink, point, SDFIO_ASCII_X_SCALE, header->x_scale)
+         && append_scale(sink, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
+         && append_scale(sink, point, SDFIO_ASCII_Z_SCALE, header->z_scale)
+         && append_scale(sink, point, SDFIO_ASCII_Z_RESOLUTION,
                          header->z_resolution > 0.0 ? header->z_resolution
                                                     : SDFIO_NO_RESOLUTION);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
-    ok = ok && append_field(out, SDFIO_ASCII_COMPRESSION, text);
+    ok = ok && append_field(sink, SDFIO_ASCII_COMPRESSION, text);
     snprintf(text, sizeof text, "%d", (int)header->data_type);
-    ok = ok && append_field(out, SDFIO_ASCII_DATA_TYPE, text);
+    ok = ok && append_field(sink, SDFIO_ASCII_DATA_TYPE, text);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
-    ok = ok && append_field(out, SDFIO_ASCII_CHECK_TYPE, text);
-    ok = ok && sdfio_string_append(out, &terminator, 1)
-         && append_text(out, crlf);
-    if (!ok)
-    {
-        return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-    }
-    return SDFIO_OK;
+    ok = ok && append_field(sink, SDFIO_ASCII_CHECK_TYPE, text);
+    ok =
+        ok && sdfio_sink_write(sink, &terminator, 1) && append_text(sink, crlf);
+    return ok ? SDFIO_OK : sdfio_sink_failure(message);
 }
 
 enum
@@ -244,26 +240,6 @@ static size_t format_value(const sdfio_header *header,
 static size_t scratch_size(size_t chunk_values)
 {
     return chunk_values * SDFIO_TEXT_PER_VALUE;
-}
-
-static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
-                                 void *state, const sdfio_time_zone *zone,
-                                 const sdfio_allocator *allocator,
-                                 sdfio_message *message)
-{
-    struct writing *writing = state;
-    writing->decimal_point = sdfio_decimal_point_now();
-    writing->column = 0;
-    sdfio_string text = {.allocator = allocator};
-    sdfio_status status =
-        format_header(header, &writing->decimal_point, zone, &text, message);
-    if (status == SDFIO_OK
-        && !sdfio_sink_write(sink, sdfio_string_text(&text), text.size))
-    {
-        status = sdfio_sink_failure(message);
-    }
-    sdfio_string_free(&text);
-    return status;
 }
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,

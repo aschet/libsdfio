@@ -12,7 +12,6 @@
 #include "ascii.h"
 #include "data_type.h"
 #include "datetime.h"
-#include "dynstring.h"
 #include "fields.h"
 #include "message.h"
 #include "number_text.h"
@@ -21,6 +20,7 @@
 #include "source.h"
 #include "tagged.h"
 #include "text.h"
+#include "trailer_text.h"
 #include <sdfio/sdfio.h>
 #include <string.h>
 
@@ -31,20 +31,40 @@ enum
 {
     GOT_NONE = 0,
     GOT_ONE = 1,
-    GOT_ERROR = -1,
-    GOT_LIMIT = -2
+    GOT_ERROR = -1
 };
+
+enum
+{
+    /** The characters of a line of the header or of a word of the data area
+     * that are kept, with the terminator. The standard bounds the fields of
+     * the header, and the longest number has fewer characters. */
+    SDFIO_TEXT_CAPACITY = 128
+};
+
+/** A line or a word of the text, of which the first characters are kept. */
+typedef struct fixed_text
+{
+    /** The characters, 0-terminated. */
+    char text[SDFIO_TEXT_CAPACITY];
+    /** The number of characters. */
+    size_t size;
+    /** Whether characters other than white space were dropped, because the
+     * text was longer than the capacity. */
+    bool lost;
+} fixed_text;
 
 /* Tolerated deviation: a line can end with LF alone, where the standard has
  * CRLF.
  *
  * The next line of the source, without its end. The last line of a text that
- * does not end with a line end comes back once with `ended` false. A line that
- * would have more than `max_size` characters is GOT_LIMIT. */
-static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
-                     bool *done, size_t max_size)
+ * does not end with a line end comes back once with `ended` false. */
+static int next_line(sdfio_source *source, fixed_text *line, bool *ended,
+                     bool *done)
 {
-    sdfio_string_clear(line);
+    line->size = 0;
+    line->lost = false;
+    line->text[0] = '\0';
     *ended = false;
     if (*done)
     {
@@ -61,23 +81,22 @@ static int next_line(sdfio_source *source, sdfio_string *line, bool *ended,
         if (c == '\n')
         {
             /* The CR of a CRLF is not part of the line. */
-            if (line->size > 0 && line->data[line->size - 1] == '\r')
+            if (line->size > 0 && line->text[line->size - 1] == '\r')
             {
                 --line->size;
-                line->data[line->size] = '\0';
+                line->text[line->size] = '\0';
             }
             *ended = true;
             return GOT_ONE;
         }
-        if (line->size >= max_size)
+        if (line->size + 1 < sizeof line->text)
         {
-            return GOT_LIMIT;
+            line->text[line->size++] = (char)c;
+            line->text[line->size] = '\0';
         }
-        const char character = (char)c;
-        if (!sdfio_string_append(line, &character, 1))
+        else if (!sdfio_is_space((char)c))
         {
-            source->no_memory = true;
-            return GOT_ERROR;
+            line->lost = true;
         }
     }
 }
@@ -94,8 +113,8 @@ static void skip_line(sdfio_source *source)
     }
 }
 
-/* The next white-space separated word, in `token`. */
-static int next_token(sdfio_source *source, sdfio_string *token)
+/* The next white-space separated word, in `word`. */
+static int next_token(sdfio_source *source, fixed_text *word)
 {
     int c = 0;
     for (;;)
@@ -111,7 +130,8 @@ static int next_token(sdfio_source *source, sdfio_string *token)
         }
         ++source->position;
     }
-    sdfio_string_clear(token);
+    word->size = 0;
+    word->lost = false;
     while (source->position < source->end || sdfio_source_fill(source, 1) > 0)
     {
         const char *start = (const char *)source->buffer + source->position;
@@ -121,17 +141,18 @@ static int next_token(sdfio_source *source, sdfio_string *token)
         {
             ++length;
         }
-        if (!sdfio_string_append(token, start, length))
-        {
-            source->no_memory = true;
-            return GOT_ERROR;
-        }
+        const size_t room = sizeof word->text - 1 - word->size;
+        const size_t kept = length < room ? length : room;
+        memcpy(word->text + word->size, start, kept);
+        word->size += kept;
+        word->lost = word->lost || kept < length;
         source->position += length;
         if (length < available)
         {
             break;
         }
     }
+    word->text[word->size] = '\0';
     return source->failed ? GOT_ERROR : GOT_ONE;
 }
 
@@ -352,10 +373,12 @@ struct reading
 {
     /* The decimal point of the locale, measured when the file was opened. */
     sdfio_decimal_point decimal_point;
+    /* Where the reading of the trailer is. */
+    sdfio_trailer_state trailer;
 };
 
 /* Reads the lines of the header up to the line that terminates the record. */
-static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
+static sdfio_status read_fields(sdfio_source *source, fixed_text *line,
                                 const sdfio_decimal_point *decimal_point,
                                 header_fields *fields, sdfio_message *message)
 {
@@ -363,10 +386,10 @@ static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
     bool done = false;
     bool terminated = false;
     bool malformed = false;
-    while (next_line(source, line, &ended, &done, SIZE_MAX) == GOT_ONE)
+    while (next_line(source, line, &ended, &done) == GOT_ONE)
     {
-        const char *text = sdfio_string_text(line);
-        if (is_terminator(text, line->size))
+        const char *text = line->text;
+        if (!line->lost && is_terminator(text, line->size))
         {
             terminated = true;
             break;
@@ -392,6 +415,12 @@ static sdfio_status read_fields(sdfio_source *source, sdfio_string *line,
             if (!same_name(name, name_size, field_names[field]))
             {
                 continue;
+            }
+            if (line->lost)
+            {
+                return sdfio_fail(
+                    message, SDFIO_ERR_FORMAT,
+                    "A field of the SDF header has an invalid value");
             }
             const sdfio_status status = store_field(
                 fields, field, value, value_size, decimal_point, message);
@@ -431,11 +460,11 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
 {
     struct reading *reading = state;
     reading->decimal_point = sdfio_decimal_point_now();
-    sdfio_string line = {.allocator = source->allocator};
+    fixed_text line;
     sdfio_status status = SDFIO_OK;
     bool ended = false;
     bool done = false;
-    const int got = next_line(source, &line, &ended, &done, SIZE_MAX);
+    const int got = next_line(source, &line, &ended, &done);
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
@@ -450,7 +479,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     sdfio_revision revision = SDFIO_ISO_2_0;
     if (status == SDFIO_OK)
     {
-        const char *version_number = sdfio_string_text(&line);
+        const char *version_number = line.text;
         size_t version_number_size = line.size;
         sdfio_trim(&version_number, &version_number_size);
         if (!revision_of(version_number, version_number_size, &revision))
@@ -465,7 +494,6 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         status = read_fields(source, &line, &reading->decimal_point, &fields,
                              message);
     }
-    sdfio_string_free(&line);
     if (status != SDFIO_OK)
     {
         return status;
@@ -617,7 +645,7 @@ static bool store_real(sdfio_data_type type,
  * data type. */
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_decimal_point *decimal_point,
-                               void *dst, size_t index, sdfio_string *word,
+                               void *dst, size_t index, fixed_text *word,
                                sdfio_message *message)
 {
     const int got = next_token(source, word);
@@ -629,7 +657,7 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     {
         return sdfio_source_failure(source, message, "");
     }
-    const char *token = sdfio_string_text(word);
+    const char *token = word->text;
     const size_t size = word->size;
     if (size == 1 && token[0] == terminator)
     {
@@ -644,7 +672,11 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
         return SDFIO_OK;
     }
     sdfio_status status = SDFIO_ERR_FORMAT;
-    if (sdfio_is_floating(header->data_type))
+    if (word->lost)
+    {
+        /* The start of a word that is too long for a number is no number. */
+    }
+    else if (sdfio_is_floating(header->data_type))
     {
         status = store_real(header->data_type, decimal_point, token, size, dst,
                             index)
@@ -667,13 +699,13 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
 
 static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
 {
-    sdfio_string word = {.allocator = source->allocator};
+    fixed_text word;
     sdfio_status status = SDFIO_OK;
     if (next_token(source, &word) != GOT_ONE)
     {
         status = ended_early(source, message);
     }
-    else if (word.size != 1 || word.data[0] != terminator)
+    else if (word.size != 1 || word.text[0] != terminator)
     {
         status = sdfio_fail(message, SDFIO_ERR_FORMAT,
                             "The data area has more values than the header "
@@ -683,18 +715,17 @@ static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
     {
         skip_line(source);
     }
-    sdfio_string_free(&word);
     return status;
 }
 
 static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
 {
-    sdfio_string word = {.allocator = source->allocator};
+    fixed_text word;
     sdfio_status status = SDFIO_OK;
     bool found = false;
     while (!found && next_token(source, &word) == GOT_ONE)
     {
-        found = word.size == 1 && word.data[0] == terminator;
+        found = word.size == 1 && word.text[0] == terminator;
     }
     if (found)
     {
@@ -704,7 +735,6 @@ static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
     {
         status = ended_early(source, message);
     }
-    sdfio_string_free(&word);
     return status;
 }
 
@@ -713,14 +743,13 @@ static sdfio_status read_values(sdfio_source *source,
                                 void *dst, size_t count, sdfio_message *message)
 {
     const struct reading *reading = state;
-    sdfio_string word = {.allocator = source->allocator};
+    fixed_text word;
     sdfio_status status = SDFIO_OK;
     for (size_t i = 0; i < count && status == SDFIO_OK; ++i)
     {
         status = read_value(source, header, &reading->decimal_point, dst, i,
                             &word, message);
     }
-    sdfio_string_free(&word);
     return status;
 }
 
@@ -735,114 +764,15 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
     return complete ? finish_data(source, message) : skip_data(source, message);
 }
 
-static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, size_t limit,
+/* Tolerated deviation: the final line "*" can be missing, and the trailer
+ * ends with the file. */
+static sdfio_status read_trailer(sdfio_source *source, void *state,
+                                 char *buffer, size_t capacity, size_t *size,
                                  sdfio_message *message)
 {
-    sdfio_string line = {.allocator = source->allocator};
-    sdfio_string part = {.allocator = source->allocator};
-    sdfio_status status = SDFIO_OK;
-    bool ended = false;
-    bool done = false;
-    bool first = true;
-    bool part_started = false;
-    size_t parts = 0;
-    *present = true;
-    int got = GOT_ONE;
-    for (;;)
-    {
-        /* What the limit leaves for the next line. */
-        const size_t kept = out->size + part.size;
-        size_t room = SIZE_MAX;
-        if (limit != 0)
-        {
-            room = kept < limit ? limit - kept : 0;
-        }
-        got = next_line(source, &line, &ended, &done, room);
-        if (got != GOT_ONE)
-        {
-            break;
-        }
-        if (first && line.size == 0 && !ended)
-        {
-            *present = false; /* the text ends with the data */
-            goto done;
-        }
-        first = false;
-        const char *bare = sdfio_string_text(&line);
-        const size_t bare_size = line.size;
-        if (is_terminator(bare, bare_size))
-        {
-            /* The parts are joined with a "*". */
-            if ((parts > 0 && !sdfio_string_append(out, &terminator, 1))
-                || !sdfio_string_append(out, sdfio_string_text(&part),
-                                        part.size))
-            {
-                status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-                goto done;
-            }
-            ++parts;
-            sdfio_string_clear(&part);
-            part_started = false;
-        }
-        else
-        {
-            if ((part_started && !sdfio_string_append(&part, "\n", 1))
-                || !sdfio_string_append(&part, sdfio_string_text(&line),
-                                        line.size))
-            {
-                status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-                goto done;
-            }
-            part_started = true;
-        }
-        if (limit != 0 && out->size + part.size > limit)
-        {
-            got = GOT_LIMIT;
-            break;
-        }
-    }
-    if (got == GOT_LIMIT)
-    {
-        status = sdfio_fail(message, SDFIO_ERR_LIMIT,
-                            "The trailer is longer than the limit of the "
-                            "configuration");
-        goto done;
-    }
-    if (got == GOT_ERROR)
-    {
-        status = sdfio_source_failure(source, message,
-                                      "The SDF trailer cannot be read");
-        goto done;
-    }
-    /* Tolerated deviation: the final line "*" can be missing, and the trailer
-     * ends with the file.
-     *
-     * The trailer is itself ended by its own "*": the empty part that follows
-     * is not part of it. */
-    if (part.size > 0
-        && ((parts > 0 && !sdfio_string_append(out, &terminator, 1))
-            || !sdfio_string_append(out, sdfio_string_text(&part), part.size)))
-    {
-        status = sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-        goto done;
-    }
-    /* White space around the trailer is not part of it. */
-    {
-        const char *begin = sdfio_string_text(out);
-        size_t size = out->size;
-        sdfio_trim(&begin, &size);
-        if (out->data != NULL)
-        {
-            memmove(out->data, begin, size);
-            out->size = size;
-            out->data[size] = '\0';
-        }
-    }
-done:
-    sdfio_string_free(&line);
-    sdfio_string_free(&part);
-    return status;
+    struct reading *reading = state;
+    return sdfio_trailer_read(source, &reading->trailer, true, buffer, capacity,
+                              size, message);
 }
 
 const sdfio_reader_format sdfio_ascii_reader_format = {

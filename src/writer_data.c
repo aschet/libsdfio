@@ -44,7 +44,7 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     }
     const sdfio_status status = writer->format->write_header(
         &writer->sink, header, writer->format_state, &writer->zone,
-        &writer->allocator, &writer->message);
+        &writer->message);
     if (status == SDFIO_ERR_IO)
     {
         return sdfio_writer_fail(writer, status);

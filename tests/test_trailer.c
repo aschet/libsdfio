@@ -49,7 +49,7 @@ static bool read_trailer_of(small_file *small, const char *expected)
     CHECK_OK(sdfio_open_memory(reader, small->file.data, small->file.size));
     const char *read = NULL;
     size_t size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &read, &size));
+    CHECK_OK(read_trailer_text(reader, 0, &read, &size));
     const bool equal = expected == NULL
                            ? read == NULL || size == 0
                            : read != NULL && same(read, size, expected);
@@ -179,7 +179,7 @@ static void check_the_text_is_written_as_given(void)
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
             const char *read = NULL;
             size_t size = 0;
-            CHECK_OK(sdfio_read_trailer(reader, &read, &size));
+            CHECK_OK(read_trailer_text(reader, 0, &read, &size));
             CHECK(read != NULL && same(read, size, trailers[t]));
             sdfio_reader_free(reader);
             free(file.data);
@@ -203,84 +203,140 @@ static void check_the_text_is_written_as_given(void)
     free(file.data);
 }
 
-/* A file with a trailer of three fields, or without a trailer. */
-static membuf file_with_trailer(sdfio_representation representation,
-                                bool with_fields)
+/* The trailer of a file, in parts of at most `part` bytes. */
+static size_t read_in_parts(const membuf *file, size_t part, char *out,
+                            size_t out_size)
+{
+    sdfio_reader *reader = sdfio_reader_new(all_formats());
+    CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
+    const char *text = NULL;
+    size_t size = 0;
+    CHECK_OK(read_trailer_text(reader, part, &text, &size));
+    CHECK(size < out_size);
+    memcpy(out, text, size < out_size ? size : out_size - 1);
+    out[size < out_size ? size : out_size - 1] = '\0';
+    sdfio_reader_free(reader);
+    return size;
+}
+
+/* A file whose trailer is the text, written as given. */
+static membuf file_with_text(sdfio_representation representation,
+                             const char *text)
 {
     small_file small;
     start_file(&small, representation);
-    if (with_fields)
-    {
-        CHECK_OK(sdfio_write_trailer_field(small.writer, "OperatorName",
-                                           "Jane Doe"));
-        CHECK_OK(sdfio_write_trailer_field(small.writer, "PartName",
-                                           "Synthetic bumps"));
-        CHECK_OK(
-            sdfio_write_trailer_field(small.writer, "Magnification", "20.5"));
-    }
+    CHECK_OK(sdfio_write_trailer_text(small.writer, text, strlen(text)));
     CHECK_OK(sdfio_end_trailer(small.writer));
     sdfio_writer_free(small.writer);
     return small.file;
 }
 
-/* The status of reading the trailer of a file with a limit. */
-static sdfio_status read_with_limit(const membuf *file, size_t limit,
-                                    size_t *size)
+/* A trailer comes in parts of any size, and the parts give the text that a
+ * single call gives, also where a part ends between the CR and the LF of a
+ * line end. */
+static void check_parts(void)
 {
-    const sdfio_config config = {.max_trailer_size = limit, ALL_FORMATS};
-    sdfio_reader *reader = sdfio_reader_new(&config);
-    CHECK_OK(sdfio_open_memory(reader, file->data, file->size));
-    const char *text = NULL;
-    *size = 0;
-    const sdfio_status status = sdfio_read_trailer(reader, &text, size);
-    if (status != SDFIO_OK)
+    static const char long_line[] =
+        "a long line without a line end, so that every size of a part ends in "
+        "the middle of the line";
+    const char *const texts[] = {"A = 1\r\nB = 2\r\nC = 3",
+                                 "A = 1\n\n\nB = 2\n\n", "x", long_line,
+                                 "one\r\n\r\ntwo\r\n"};
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t r = 0; r < 2; ++r)
     {
-        /* After the failure the reader does not read on. */
-        CHECK(sdfio_read_trailer(reader, &text, size) != SDFIO_OK);
+        for (size_t t = 0; t < sizeof texts / sizeof texts[0]; ++t)
+        {
+            membuf file = file_with_text(representations[r], texts[t]);
+            char whole[512];
+            const size_t whole_size =
+                read_in_parts(&file, 0, whole, sizeof whole);
+            CHECK(whole_size > 0);
+            for (size_t part = 1; part <= 9; ++part)
+            {
+                char joined[512];
+                const size_t joined_size =
+                    read_in_parts(&file, part, joined, sizeof joined);
+                CHECK(joined_size == whole_size
+                      && memcmp(joined, whole, whole_size) == 0);
+            }
+            free(file.data);
+        }
     }
-    sdfio_reader_free(reader);
-    return status;
 }
 
-/* A trailer longer than the limit of the configuration is not read: the limit
- * counts the bytes of the file in a binary file, and the characters of the text
- * in an ASCII file. A limit of 0 is none. */
-static void check_the_limit(void)
+/* The end of the trailer: a buffer that the text fills exactly gets 0 bytes
+ * from the next call, and a file without a trailer gets 0 at once. */
+static void check_the_end(void)
 {
     const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t r = 0; r < 2; ++r)
     {
-        membuf file = file_with_trailer(representations[r], true);
-        membuf empty = file_with_trailer(representations[r], false);
-        size_t full = 0;
-        CHECK_OK(read_with_limit(&file, 0, &full));
-        /* An ASCII file has white space around the trailer, which the limit
-         * counts and the trailer then lacks. */
-        const size_t white_space = 8;
-        const size_t bytes =
-            r == 0 ? file.size - empty.size : full + white_space;
+        membuf file = file_with_text(representations[r], "abc");
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+        char buffer[3];
         size_t size = 0;
-        CHECK_OK(read_with_limit(&file, bytes, &size));
-        CHECK(size == full);
-        CHECK_STATUS(
-            SDFIO_ERR_LIMIT,
-            read_with_limit(&file, r == 0 ? bytes - 1 : full - 1, &size));
-        CHECK_STATUS(SDFIO_ERR_LIMIT, read_with_limit(&file, 1, &size));
+        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
+        CHECK(size == 3 && memcmp(buffer, "abc", 3) == 0);
+        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
+        CHECK(size == 0);
+        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
+        CHECK(size == 0);
+        CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                     sdfio_read_trailer(reader, buffer, 0, &size));
+        sdfio_reader_free(reader);
         free(file.data);
-        free(empty.data);
 
-        /* One line without an end is not collected beyond the limit. */
-        small_file big;
-        start_file(&big, representations[r]);
-        static char line[5000];
-        memset(line, 'x', sizeof line - 1);
-        CHECK_OK(sdfio_write_trailer_text(big.writer, line, sizeof line - 1));
-        CHECK_OK(sdfio_end_trailer(big.writer));
-        sdfio_writer_free(big.writer);
-        CHECK_STATUS(SDFIO_ERR_LIMIT, read_with_limit(&big.file, 100, &size));
-        CHECK_OK(read_with_limit(&big.file, 0, &size));
-        CHECK(size == sizeof line - 1);
-        free(big.file.data);
+        small_file none;
+        start_file(&none, representations[r]);
+        CHECK_OK(sdfio_end_trailer(none.writer));
+        sdfio_writer_free(none.writer);
+        reader = sdfio_reader_new(all_formats());
+        CHECK_OK(sdfio_open_memory(reader, none.file.data, none.file.size));
+        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
+        CHECK(size == 0);
+        sdfio_reader_free(reader);
+        free(none.file.data);
+    }
+}
+
+/* In an ASCII file the white space before the text is skipped, and the trailer
+ * ends at the line that consists of a star. */
+static void check_the_ascii_record(void)
+{
+    static const struct
+    {
+        const char *record;
+        const char *text;
+    } cases[] = {
+        {"  \r\n\t\r\nA = 1\r\n*\r\n", "A = 1"},
+        {"A = 1\r\n  *  \r\nignored\r\n", "A = 1"},
+        {"A = 1\r\n*\r\n", "A = 1"},
+        {"A = 1\r\n*", "A = 1"},
+        {"A = 1\r\n*not a star\r\nB = 2\r\n*\r\n", "A = 1\n*not a star\nB = 2"},
+        {"A = 1\r\n\r\n\r\n*\r\n", "A = 1"},
+        {"*\r\n", ""},
+        {"", ""}};
+    for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i)
+    {
+        small_file small;
+        start_file(&small, SDFIO_ASCII);
+        CHECK_OK(sdfio_end_trailer(small.writer));
+        sdfio_writer_free(small.writer);
+        /* The file ends with the star of the trailer: replace that line. */
+        membuf file = small.file;
+        CHECK(file.size >= 3);
+        file.size -= 3;
+        membuf_write(&file, cases[i].record, strlen(cases[i].record));
+        for (size_t part = 0; part <= 3; part += 3)
+        {
+            char text[128];
+            const size_t size = read_in_parts(&file, part, text, sizeof text);
+            CHECK(size == strlen(cases[i].text)
+                  && memcmp(text, cases[i].text, size) == 0);
+        }
+        free(file.data);
     }
 }
 
@@ -290,6 +346,8 @@ int main(void)
     check_what_a_line_may_be();
     check_the_order();
     check_the_text_is_written_as_given();
-    check_the_limit();
+    check_parts();
+    check_the_end();
+    check_the_ascii_record();
     return finish_tests();
 }

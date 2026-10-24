@@ -99,9 +99,12 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
             free(row);
         }
     }
-    const char *trailer = NULL;
-    size_t trailer_size = 0;
-    (void)sdfio_read_trailer(reader, &trailer, &trailer_size);
+    char part[256];
+    size_t got = 1;
+    while (got > 0
+           && sdfio_read_trailer(reader, part, sizeof part, &got) == SDFIO_OK)
+    {
+    }
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);

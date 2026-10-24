@@ -11,41 +11,31 @@
 
 #include "reader_state.h"
 
-sdfio_status sdfio_read_trailer(sdfio_reader *reader, const char **trailer,
-                                size_t *size)
+sdfio_status sdfio_read_trailer(sdfio_reader *reader, char *buffer,
+                                size_t capacity, size_t *size)
 {
-    if (reader == NULL || trailer == NULL || size == NULL)
+    if (reader == NULL || buffer == NULL || capacity == 0 || size == NULL)
     {
         return SDFIO_ERR_ARGUMENT;
-    }
-    if (reader->trailer_read && !reader->failed)
-    {
-        *trailer = reader->trailer_present ? sdfio_string_text(&reader->trailer)
-                                           : NULL;
-        *size = reader->trailer.size;
-        return SDFIO_OK;
     }
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
     {
         return status;
     }
-    status = sdfio_reader_finish_data(reader);
-    if (status == SDFIO_OK)
+    if (!reader->trailer_begun)
     {
-        /* Tolerated deviation: the text of a trailer is not checked for the
-         * tagged format that ISO-2.0 asks for. */
-        status = reader->format->read_trailer(
-            &reader->source, &reader->trailer, &reader->trailer_present,
-            reader->max_trailer, &reader->message);
+        status = sdfio_reader_finish_data(reader);
+        if (status != SDFIO_OK)
+        {
+            return sdfio_reader_fail(reader, status);
+        }
+        reader->trailer_begun = true;
     }
-    if (status != SDFIO_OK)
-    {
-        return sdfio_reader_fail(reader, status);
-    }
-    reader->trailer_read = true;
-    *trailer =
-        reader->trailer_present ? sdfio_string_text(&reader->trailer) : NULL;
-    *size = reader->trailer.size;
-    return SDFIO_OK;
+    /* Tolerated deviation: the text of a trailer is not checked for the tagged
+     * format that ISO-2.0 asks for. */
+    status =
+        reader->format->read_trailer(&reader->source, reader->format_state,
+                                     buffer, capacity, size, &reader->message);
+    return status == SDFIO_OK ? status : sdfio_reader_fail(reader, status);
 }

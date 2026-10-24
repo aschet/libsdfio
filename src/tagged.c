@@ -10,7 +10,6 @@
  */
 
 #include "tagged.h"
-#include "dynstring.h"
 #include "sink.h"
 #include "text.h"
 #include <ctype.h>
@@ -55,30 +54,6 @@ bool sdfio_write_crlf_lines(sdfio_sink *sink, const char *text, size_t size)
         }
     }
     return true;
-}
-
-void sdfio_lines_to_lf(sdfio_string *text)
-{
-    size_t used = 0;
-    for (size_t i = 0; i < text->size; ++i)
-    {
-        if (text->data[i] == '\r' && i + 1 < text->size
-            && text->data[i + 1] == '\n')
-        {
-            continue;
-        }
-        text->data[used++] = text->data[i];
-    }
-    /* The end of the last line is not part of the text. */
-    if (used > 0 && text->data[used - 1] == '\n')
-    {
-        --used;
-    }
-    text->size = used;
-    if (text->data != NULL)
-    {
-        text->data[used] = '\0';
-    }
 }
 
 static bool is_name_character(char c)

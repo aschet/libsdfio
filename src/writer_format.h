@@ -50,15 +50,12 @@ struct sdfio_writer_format
      * @param[out] state The room of `state_size` bytes, zeroed. The format
      * fills it.
      * @param zone The time zone of the caller. May be null.
-     * @param allocator The allocator of the handle.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_RANGE A date cannot be written.
-     * @retval SDFIO_ERR_MEMORY There is no memory.
      * @retval SDFIO_ERR_IO The stream failed.
      */
     sdfio_status (*write_header)(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
-                                 const sdfio_allocator *allocator,
                                  sdfio_message *message);
 
     /**

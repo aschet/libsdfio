@@ -51,11 +51,12 @@
  * sdfio_decode_heights() and sdfio_encode_heights() convert between the two.
  *
  * @par Memory
- * The library allocates no memory for the data or the heights. The caller
- * allocates the buffers and obtains their size from sdfio_data_size(),
+ * The library allocates no memory for the data, the heights or the trailer. The
+ * caller allocates the buffers and obtains their size from sdfio_data_size(),
  * sdfio_data_row_size(), sdfio_heights_size() and sdfio_heights_row_size(),
  * with a check for arithmetic overflow. A reader or a writer obtains its own
- * memory through the allocator of its sdfio_config.
+ * memory through the allocator of its sdfio_config, when it is created and when
+ * a file is created or opened, and at no other time.
  *
  * @par Formats
  * A reader reads the representations whose reader formats its configuration
@@ -186,9 +187,7 @@ typedef enum sdfio_status
      */
     SDFIO_ERR_BAD_VALUE,
     /** An allocation failed. */
-    SDFIO_ERR_MEMORY,
-    /** A limit of the configuration was exceeded. */
-    SDFIO_ERR_LIMIT
+    SDFIO_ERR_MEMORY
 } sdfio_status;
 
 /**
@@ -425,8 +424,9 @@ SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
  * Memory management callbacks that replace malloc() and free(), for example
  * with a pool or a bump allocator.
  *
- * A handle calls them for all of its memory: when it is created, when a file is
- * created or opened, and when a trailer is read.
+ * A handle calls them for all of its memory, and only when it is created and
+ * when a file is created or opened. Reading and writing allocate nothing, so a
+ * pool can be sized in advance.
  */
 typedef struct sdfio_allocator
 {
@@ -545,13 +545,6 @@ typedef struct sdfio_config
      */
     size_t chunk_values;
     /**
-     * Largest trailer in bytes that a reader keeps in memory. Zero means no
-     * limit. The size is that of the text before the white space around it is
-     * removed, and a binary file counts its CRLF line ends.
-     * sdfio_read_trailer() fails with SDFIO_ERR_LIMIT for a longer trailer.
-     */
-    size_t max_trailer_size;
-    /**
      * Conversion of the dates of ISO-1.0 files. The structure is
      * copied, so it need not outlive the call that receives it. Null selects no
      * conversion.
@@ -668,8 +661,7 @@ typedef struct sdfio_reader sdfio_reader;
  * reason.
  *
  * The handle, the buffer and the conversion chunk are allocated by this
- * function. Memory for a trailer is allocated when the trailer is read.
- * Release the reader with sdfio_reader_free().
+ * function. Release the reader with sdfio_reader_free().
  *
  * @param[in] config The configuration, with at least one reader format.
  * @return The reader, or null if an allocation fails, the allocator of the
@@ -856,32 +848,33 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
                                           sdfio_layout layout, void *dst);
 
 /**
- * Reads the trailer (record 3), the free text after the data area.
+ * Reads the next part of the trailer (record 3), the free text after the data
+ * area, into a buffer of the caller.
  *
- * Rows of the data area that have not been read are read and discarded.
- * `*trailer` receives a pointer to the text, or null if the file has no
- * trailer, and `*size` its length in bytes. The text is followed by a null
- * character, which the size does not count. It remains valid until the reader
- * is freed. A repeated call returns the same trailer.
+ * The call writes at most `capacity` bytes. A trailer that is longer than the
+ * buffer is read by calling the function again, and `*size` is 0 when the
+ * trailer is at its end, also for a file without one. The text is not
+ * terminated. Rows of the data area that have not been read are read and
+ * discarded by the first call.
  *
- * In memory every line end is LF, whether the file has CRLF or LF, in ASCII
- * and in binary files. The end of the last line is not part of the text. In an
- * ASCII file, white space around the trailer is removed.
+ * Every line end of the text is LF, whether the file has CRLF or LF, in ASCII
+ * and in binary files, and the line ends at the end of the text are not part of
+ * it. In an ASCII file the white space before the text is skipped, and the
+ * trailer ends at the line that consists of `*`.
  *
  * @param reader The reader.
- * @param[out] trailer The text of the trailer.
- * @param[out] size The length of the text in bytes.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null.
+ * @param[out] buffer Receives the text.
+ * @param capacity The size of `buffer` in bytes, at least 1.
+ * @param[out] size Receives the number of bytes written, 0 at the end of the
+ * trailer.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null or the capacity is 0.
  * @retval SDFIO_ERR_STATE No file is open, or an earlier error ended the
  * reading.
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The file is damaged or truncated.
- * @retval SDFIO_ERR_MEMORY An allocation failed.
- * @retval SDFIO_ERR_LIMIT The trailer is longer than
- * sdfio_config::max_trailer_size.
  */
-SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader,
-                                          const char **trailer, size_t *size);
+SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader, char *buffer,
+                                          size_t capacity, size_t *size);
 
 /**
  * Returns a description of the most recent failure of the reader, or an empty

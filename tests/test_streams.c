@@ -105,12 +105,12 @@ static void check_pipe(const char *path, size_t piece)
         sdfio_reader_free(in_memory);
         const char *trailer = NULL;
         size_t trailer_size = 0;
-        CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
-        /* The trailer stays, as the stream cannot be read again. */
+        CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
+        /* The trailer is at its end, and the stream cannot be read again. */
         const char *again = NULL;
         size_t again_size = 0;
-        CHECK_OK(sdfio_read_trailer(reader, &again, &again_size));
-        CHECK(again == trailer && again_size == trailer_size);
+        CHECK_OK(read_trailer_text(reader, 0, &again, &again_size));
+        CHECK(again_size == 0);
         CHECK_STATUS(SDFIO_ERR_STATE,
                      sdfio_read_heights(reader,
                                         sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
@@ -126,7 +126,7 @@ static void check_pipe(const char *path, size_t piece)
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
     size_t trailer_size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
     CHECK(trailer != NULL && trailer_size > 0);
     sdfio_reader_free(reader);
     free(data);
@@ -166,7 +166,7 @@ static void check_failing_stream(void)
             const char *trailer = NULL;
             size_t trailer_size = 0;
             CHECK_STATUS(SDFIO_ERR_STATE,
-                         sdfio_read_trailer(reader, &trailer, &trailer_size));
+                         read_trailer_text(reader, 0, &trailer, &trailer_size));
         }
         sdfio_reader_free(reader);
     }
@@ -199,7 +199,7 @@ static void check_damage(const char *path)
             }
             const char *trailer = NULL;
             size_t trailer_size = 0;
-            (void)sdfio_read_trailer(reader, &trailer, &trailer_size);
+            (void)read_trailer_text(reader, 0, &trailer, &trailer_size);
             free(heights);
         }
         sdfio_reader_free(reader);
@@ -233,7 +233,7 @@ static void check_damage(const char *path)
             }
             const char *trailer = NULL;
             size_t trailer_size = 0;
-            (void)sdfio_read_trailer(reader, &trailer, &trailer_size);
+            (void)read_trailer_text(reader, 0, &trailer, &trailer_size);
         }
         sdfio_reader_free(reader);
     }
@@ -425,7 +425,7 @@ static void check_huge_matrix(void)
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
     size_t trailer_size = 0;
-    CHECK(sdfio_read_trailer(reader, &trailer, &trailer_size) != SDFIO_OK);
+    CHECK(read_trailer_text(reader, 0, &trailer, &trailer_size) != SDFIO_OK);
     sdfio_reader_free(reader);
     free(file.data);
 }

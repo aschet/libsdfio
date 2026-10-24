@@ -62,11 +62,16 @@ static double read_sum(const char *path, sdfio_reader *reader)
         {
             sum += isfinite(heights[i]) ? heights[i] : 0.0;
         }
-        const char *trailer = NULL;
-        size_t size = 0;
-        if (sdfio_read_trailer(reader, &trailer, &size) != SDFIO_OK)
+        char part[64];
+        size_t size = 1;
+        while (size > 0)
         {
-            sum = NAN;
+            if (sdfio_read_trailer(reader, part, sizeof part, &size)
+                != SDFIO_OK)
+            {
+                sum = NAN;
+                break;
+            }
         }
     }
     free(heights);

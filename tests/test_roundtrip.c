@@ -135,7 +135,7 @@ static void check_roundtrip(sdfio_revision revision,
 
     const char *trailer = NULL;
     size_t size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
     CHECK(trailer != NULL && size == strlen(tagged_trailer)
           && memcmp(trailer, tagged_trailer, size) == 0);
     const char *second = memchr(trailer, '\n', size);
@@ -265,10 +265,8 @@ static void check_rows(sdfio_revision revision,
     CHECK(memcmp(coded, back, sizeof coded) == 0);
     const char *trailer = (const char *)1;
     size_t size = 1;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
-    /* A text file closes the trailer record, so it has an empty one. */
-    CHECK(representation == SDFIO_ASCII ? (trailer != NULL && size == 0)
-                                        : (trailer == NULL && size == 0));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
+    CHECK(trailer != NULL && size == 0);
 
     /* The heights are in the order of the file, which is the order of y. */
     reader = membuf_reopen(reader, &file);
@@ -765,7 +763,7 @@ static void check_rows_without_columns(void)
                              NULL, header.rows));
     const char *trailer = NULL;
     size_t trailer_size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &trailer_size));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &trailer_size));
     CHECK(trailer_size == 5 && memcmp(trailer, "a = 1", 5) == 0);
     sdfio_reader_free(reader);
     free(file.data);
@@ -953,7 +951,7 @@ static void check_trailer_line_ends(void)
             CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
             const char *trailer = NULL;
             size_t size = 0;
-            CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+            CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
             CHECK(trailer != NULL && size == strlen(variants[v].read)
                   && memcmp(trailer, variants[v].read, size) == 0);
             sdfio_reader_free(reader);
@@ -1031,7 +1029,7 @@ static void check_read_line_ends(void)
             }
             const char *trailer = NULL;
             size_t size = 0;
-            CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+            CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
             CHECK(trailer != NULL && size == strlen(tagged_trailer)
                   && memcmp(trailer, tagged_trailer, size) == 0);
             sdfio_reader_free(reader);

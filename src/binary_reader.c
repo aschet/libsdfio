@@ -16,7 +16,6 @@
 #include "byte_order.h"
 #include "data_type.h"
 #include "datetime.h"
-#include "dynstring.h"
 #include "fields.h"
 #include "message.h"
 #include "reader_format.h"
@@ -24,15 +23,10 @@
 #include "source.h"
 #include "tagged.h"
 #include "text.h"
+#include "trailer_text.h"
 #include <limits.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
-
-enum
-{
-    /* The number of bytes of a trailer that are read at a time. */
-    SDFIO_TRAILER_PIECE = 256
-};
 
 /* The unsigned integer of `size` bytes in little-endian order. */
 static uint64_t get_le(const unsigned char *bytes, size_t size)
@@ -94,32 +88,12 @@ static void copy_identifier(sdfio_header *header, const unsigned char *field)
     header->manufacturer_id[size] = '\0';
 }
 
-static sdfio_status read_trailer(sdfio_source *source, sdfio_string *out,
-                                 bool *present, size_t limit,
+static sdfio_status read_trailer(sdfio_source *source, void *state,
+                                 char *buffer, size_t capacity, size_t *size,
                                  sdfio_message *message)
 {
-    char piece[SDFIO_TRAILER_PIECE];
-    size_t count = 0;
-    while ((count = sdfio_source_read(source, piece, sizeof piece)) > 0)
-    {
-        if (limit != 0 && count > limit - out->size)
-        {
-            return sdfio_fail(message, SDFIO_ERR_LIMIT,
-                              "The trailer is longer than the limit of the "
-                              "configuration");
-        }
-        if (!sdfio_string_append(out, piece, count))
-        {
-            return sdfio_fail(message, SDFIO_ERR_MEMORY, "Out of memory");
-        }
-    }
-    if (source->failed)
-    {
-        return sdfio_source_failure(source, message, "");
-    }
-    *present = out->size > 0; /* the file ends with the data */
-    sdfio_lines_to_lf(out);
-    return SDFIO_OK;
+    return sdfio_trailer_read(source, state, false, buffer, capacity, size,
+                              message);
 }
 
 /* Takes bytes of the header from the source. */
@@ -263,6 +237,7 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
 }
 
 const sdfio_reader_format sdfio_binary_reader_format = {
+    .state_size = sizeof(sdfio_trailer_state),
     .prefix = 'b',
     .version_numbers = version_numbers,
     .version_number_count = sizeof version_numbers / sizeof version_numbers[0],

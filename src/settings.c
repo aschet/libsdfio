@@ -55,7 +55,6 @@ bool sdfio_config_resolve(const sdfio_config *config, sdfio_settings *settings)
                                ? SDFIO_MINIMUM_BUFFER
                                : config->buffer_size;
     }
-    settings->max_trailer = config->max_trailer_size;
     if (config->chunk_values != 0)
     {
         settings->chunk = config->chunk_values;

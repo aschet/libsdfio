@@ -46,13 +46,11 @@ sdfio_reader *sdfio_reader_new(const sdfio_config *config)
     }
     *reader = (sdfio_reader){.allocator = settings.allocator,
                              .zone = settings.zone,
-                             .chunk_values = settings.chunk,
-                             .max_trailer = settings.max_trailer};
+                             .chunk_values = settings.chunk};
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
         reader->formats[i] = settings.reader_formats[i];
     }
-    reader->trailer.allocator = &reader->allocator;
     reader->chunk = sdfio_allocate(&reader->allocator,
                                    settings.chunk * SDFIO_LARGEST_CODED_VALUE);
     if (reader->chunk == NULL
@@ -75,7 +73,6 @@ void sdfio_reader_free(sdfio_reader *reader)
     {
         reader->owner.close(reader->owner.user);
     }
-    sdfio_string_free(&reader->trailer);
     sdfio_source_destroy(&reader->source);
     const sdfio_allocator allocator = reader->allocator;
     sdfio_release(&allocator, reader->chunk);

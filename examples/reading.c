@@ -33,11 +33,12 @@ int main(int argc, char **argv)
         status = sdfio_read_heights(
             reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
     }
-    const char *trailer = NULL;
+    char trailer[1024];
     size_t trailer_size = 0;
     if (status == SDFIO_OK)
     {
-        status = sdfio_read_trailer(reader, &trailer, &trailer_size);
+        status = sdfio_read_trailer(reader, trailer, sizeof trailer - 1,
+                                    &trailer_size);
     }
     if (status != SDFIO_OK)
     {
@@ -60,7 +61,7 @@ int main(int argc, char **argv)
                header->revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0",
                header->columns, header->rows,
                measured > 0 ? sum / (double)measured : 0.0, (int)trailer_size,
-               trailer != NULL ? trailer : "");
+               trailer);
     }
     free(heights);
     sdfio_reader_free(reader);

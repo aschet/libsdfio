@@ -74,11 +74,9 @@ static bool put_double(sdfio_sink *sink, double value)
 
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
-                                 const sdfio_allocator *allocator,
                                  sdfio_message *message)
 {
     (void)state;
-    (void)allocator;
     char created[SDFIO_DATETIME_SIZE + 1] = {0};
     char modified[SDFIO_DATETIME_SIZE + 1] = {0};
     if (!sdfio_datetime_format(header->creation_date, header->revision, zone,

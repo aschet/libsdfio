@@ -82,7 +82,6 @@ static void check_init(void)
     CHECK(config.allocator == NULL);
     CHECK(config.buffer_size == 0);
     CHECK(config.chunk_values == 0);
-    CHECK(config.max_trailer_size == 0);
     CHECK(config.time_zone == NULL);
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
@@ -130,7 +129,7 @@ int main(void)
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
-    CHECK_OK(sdfio_read_trailer(reader, &trailer, &size));
+    CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
     CHECK(size == strlen("Note = public\nAverages = 16")
           && memcmp(trailer, "Note = public\nAverages = 16", size) == 0);
     /* A row stride of 0 means rows that follow each other. */

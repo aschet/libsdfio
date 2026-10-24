@@ -47,14 +47,13 @@ set(SDFIO_SOURCES
     src/binary_writer.c
     src/byte_order.c
     src/byte_order.h
+    src/chunk.h
     src/data_type.c
     src/data_type.h
     src/datetime.c
     src/datetime.h
     src/number_text.c
     src/number_text.h
-    src/dynstring.c
-    src/dynstring.h
     src/fields.h
     src/file.c
     src/header.c
@@ -88,6 +87,8 @@ set(SDFIO_SOURCES
     src/status.c
     src/tagged.c
     src/tagged.h
+    src/trailer_text.c
+    src/trailer_text.h
     src/text.c
     src/text.h
     src/writer.c

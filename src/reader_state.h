@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_READER_STATE_H
 #define SDFIO_SRC_READER_STATE_H
 
-#include "dynstring.h"
 #include "message.h"
 #include "owner.h"
 #include "reader_format.h"
@@ -65,18 +64,12 @@ struct sdfio_reader
     bool data_done;
     /** Whether an error in the middle of the data lost the position. */
     bool failed;
-    /** Whether the trailer was read. */
-    bool trailer_read;
-    /** Whether the file has a trailer. */
-    bool trailer_present;
-    /** The trailer. */
-    sdfio_string trailer;
+    /** Whether the reading of the trailer has begun. */
+    bool trailer_begun;
     /** The room for a chunk of values. */
     unsigned char *chunk;
     /** The number of values in a chunk. */
     size_t chunk_values;
-    /** The largest trailer in bytes, 0 for no limit. */
-    size_t max_trailer;
 };
 
 /**

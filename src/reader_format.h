@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_READER_FORMAT_H
 #define SDFIO_SRC_READER_FORMAT_H
 
-#include "dynstring.h"
 #include "message.h"
 #include "revision.h"
 #include "source.h"
@@ -92,20 +91,21 @@ struct sdfio_reader_format
                              size_t scratch_size, sdfio_message *message);
 
     /**
-     * Reads the trailer.
+     * Reads the next part of the trailer into a buffer, with LF as line ends.
+     * The first call comes after the data area.
      *
-     * @param source The source, after the data area.
-     * @param[in,out] out Receives the trailer.
-     * @param[out] present False if the file ends with the data.
-     * @param limit The largest trailer in bytes, 0 for no limit.
+     * @param source The source.
+     * @param[in,out] state What the format keeps for the file, `state_size`
+     * bytes.
+     * @param[out] buffer Receives the text.
+     * @param capacity The size of `buffer`.
+     * @param[out] size Receives the number of bytes written, 0 at the end of
+     * the trailer.
      * @param[out] message Receives the reason of a failure.
-     * @retval SDFIO_ERR_FORMAT The trailer is damaged.
-     * @retval SDFIO_ERR_MEMORY There is no memory.
-     * @retval SDFIO_ERR_LIMIT The trailer is longer than the limit.
      * @retval SDFIO_ERR_IO The stream failed.
      */
-    sdfio_status (*read_trailer)(sdfio_source *source, sdfio_string *out,
-                                 bool *present, size_t limit,
+    sdfio_status (*read_trailer)(sdfio_source *source, void *state,
+                                 char *buffer, size_t capacity, size_t *size,
                                  sdfio_message *message);
 };
 

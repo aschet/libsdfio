@@ -136,6 +136,46 @@ static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
     return reader;
 }
 
+enum
+{
+    /* The room for the trailers of the tests. */
+    TRAILER_ROOM = 65536
+};
+
+/* The trailer of a reader, read in calls of `part` bytes at most, or with the
+ * whole room for 0. The text is in a buffer of the function, ends with a 0
+ * character, and is valid until the next call. */
+static inline sdfio_status read_trailer_text(sdfio_reader *reader, size_t part,
+                                             const char **text, size_t *size)
+{
+    static char room[TRAILER_ROOM];
+    size_t used = 0;
+    for (;;)
+    {
+        size_t capacity = sizeof room - 1 - used;
+        if (part != 0 && part < capacity)
+        {
+            capacity = part;
+        }
+        size_t got = 0;
+        const sdfio_status status =
+            sdfio_read_trailer(reader, room + used, capacity, &got);
+        if (status != SDFIO_OK)
+        {
+            return status;
+        }
+        if (got == 0)
+        {
+            break;
+        }
+        used += got;
+    }
+    room[used] = '\0';
+    *text = room;
+    *size = used;
+    return SDFIO_OK;
+}
+
 static inline int finish_tests(void)
 {
     if (failures != 0)

@@ -123,7 +123,7 @@ static sdfio_status round_trip(const sdfio_config *config,
         size_t trailer_size = 0;
         if (status == SDFIO_OK)
         {
-            status = sdfio_read_trailer(reader, &trailer, &trailer_size);
+            status = read_trailer_text(reader, 0, &trailer, &trailer_size);
         }
         if (status == SDFIO_OK)
         {
