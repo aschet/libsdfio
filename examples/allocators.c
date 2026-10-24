@@ -25,6 +25,8 @@ typedef union pool_cell
 
 static pool_cell pool[POOL_SIZE / sizeof(pool_cell)];
 static size_t pool_used;
+static size_t written_pool;
+static size_t different_values;
 
 static void *take(void *user, size_t size)
 {
@@ -135,10 +137,6 @@ static sdfio_status write_file(void)
     {
         status = sdfio_end_trailer(writer);
     }
-    if (status != SDFIO_OK && writer != NULL)
-    {
-        fprintf(stderr, "%s\n", sdfio_writer_error_message(writer));
-    }
     sdfio_writer_free(writer);
     sdfio_header_free(header);
     return status;
@@ -146,7 +144,7 @@ static sdfio_status write_file(void)
 
 /* The reader takes its memory from the same pool, which is empty again because
  * the writer is gone. The program counts the values that differ. */
-static sdfio_status read_file(size_t *different)
+static sdfio_status read_file(void)
 {
     const sdfio_allocator allocator = {NULL, take, give};
     sdfio_reader *reader = NULL;
@@ -169,37 +167,42 @@ static sdfio_status read_file(size_t *different)
     }
     int16_t coded[COLUMNS];
     const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    *different = 0;
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {
         status = sdfio_read_data(reader, layout, coded, 1);
         for (size_t column = 0; column < COLUMNS && status == SDFIO_OK;
              ++column)
         {
-            *different += coded[column] != value_at(row, column) ? 1U : 0U;
+            different_values +=
+                coded[column] != value_at(row, column) ? 1U : 0U;
         }
-    }
-    if (status != SDFIO_OK && reader != NULL)
-    {
-        fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
     }
     sdfio_reader_free(reader);
     return status;
 }
 
 /* Writes a file into RAM and reads it back, with every byte of library memory
- * from a pool of the program. The same scenario is linked as firmware in
- * tests/embedded/main.c, without the heap. */
-int main(void)
+ * from a pool of the program. The function prints nothing and is not static:
+ * the firmware job of the continuous integration links this file with it as the
+ * entry point, so that the image holds neither the output functions of the C
+ * library nor its heap. */
+sdfio_status allocators(void);
+
+sdfio_status allocators(void)
 {
     sdfio_status status = write_file();
-    const size_t written_pool = pool_used;
-    size_t different = 0;
+    written_pool = pool_used;
     if (status == SDFIO_OK)
     {
         pool_used = 0;
-        status = read_file(&different);
+        status = read_file();
     }
+    return status;
+}
+
+int main(void)
+{
+    const sdfio_status status = allocators();
     if (status != SDFIO_OK)
     {
         fprintf(stderr, "%s\n", sdfio_status_string(status));
@@ -207,6 +210,6 @@ int main(void)
     }
     printf("%zu bytes of file; pool of %d bytes: %zu used by the writer, %zu "
            "by the reader; %zu values differ\n",
-           file_size, POOL_SIZE, written_pool, pool_used, different);
-    return different == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+           file_size, POOL_SIZE, written_pool, pool_used, different_values);
+    return different_values == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
