@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_HEADER_H
 #define SDFIO_SRC_HEADER_H
 
+#include "fields.h"
 #include "message.h"
 #include <sdfio/sdfio.h>
 
@@ -41,7 +42,7 @@ struct sdfio_header
     /** Last modification date and time. */
     time_t modification_date;
     /** Manufacturer's identifier, terminated by a null character. */
-    char manufacturer_id[SDFIO_MANUFACTURER_ID_MAX + 1];
+    char manufacturer_id[SDFIO_ID_SIZE + 1];
     /** The allocator that created the header; empty for a header inside a
      * reader or a writer. */
     sdfio_allocator allocator;

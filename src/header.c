@@ -272,7 +272,7 @@ sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     const size_t length = strlen(manufacturer);
-    if (length > SDFIO_MANUFACTURER_ID_MAX)
+    if (length > SDFIO_ID_SIZE)
     {
         return SDFIO_ERR_ARGUMENT;
     }

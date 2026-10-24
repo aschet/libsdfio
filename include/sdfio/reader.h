@@ -128,7 +128,7 @@ SDFIO_API size_t sdfio_reader_magic_count(const sdfio_reader *reader);
 /**
  * Returns a magic that a file can start with, for example "bISO-2.0":
  * the letter b or a for the binary or the ASCII format, and the
- * revision. The text has SDFIO_MAGIC_SIZE characters and a terminator.
+ * revision. The text is terminated by a null character.
  * A program can compare the first bytes of a file with each magic to
  * find out whether the reader reads it.
  *

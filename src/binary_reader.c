@@ -53,14 +53,25 @@ static double get_double(const unsigned char *bytes)
 static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
 
-/* The revision whose magic the bytes are, according to the magics
- * that the format lists. */
-static bool revision_of(const unsigned char *magic, sdfio_revision *revision)
+/* Takes the magic at the start of the source, which names a revision according
+ * to the magics that the format lists. The magics may differ in length. */
+static bool take_revision(sdfio_source *source, sdfio_revision *revision)
 {
+    size_t longest = 0;
     for (size_t i = 0; i < sizeof magics / sizeof magics[0]; ++i)
     {
-        if (strncmp((const char *)magic, magics[i], SDFIO_MAGIC_SIZE) == 0)
+        const size_t length = strlen(magics[i]);
+        longest = length > longest ? length : longest;
+    }
+    const size_t available = sdfio_source_fill(source, longest);
+    for (size_t i = 0; i < sizeof magics / sizeof magics[0]; ++i)
+    {
+        const size_t length = strlen(magics[i]);
+        if (length <= available
+            && memcmp(source->buffer + source->position, magics[i], length)
+                   == 0)
         {
+            source->position += length;
             *revision = (sdfio_revision)i;
             return true;
         }
@@ -76,9 +87,8 @@ static bool revision_of(const unsigned char *magic, sdfio_revision *revision)
  * whatever was in memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
-    const unsigned char *end = memchr(field, '\0', SDFIO_MANUFACTURER_ID_MAX);
-    size_t size =
-        end != NULL ? (size_t)(end - field) : SDFIO_MANUFACTURER_ID_MAX;
+    const unsigned char *end = memchr(field, '\0', SDFIO_ID_SIZE);
+    size_t size = end != NULL ? (size_t)(end - field) : SDFIO_ID_SIZE;
     while (size > 0 && sdfio_is_space((char)field[size - 1]))
     {
         --size;
@@ -106,21 +116,14 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 sdfio_message *message)
 {
     (void)state;
-    unsigned char magic[SDFIO_MAGIC_SIZE];
-    if (!take(source, magic, sizeof magic))
-    {
-        return sdfio_source_failure(
-            source, message,
-            "The file does not start with a magic of an SDF file");
-    }
     sdfio_revision revision = SDFIO_ISO_2_0;
-    if (!revision_of(magic, &revision))
+    if (!take_revision(source, &revision))
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The magic of the file is not supported");
+        return sdfio_source_failure(source, message,
+                                    "The magic of the file is not supported");
     }
     const size_t columns_rows_size = sdfio_revision_columns_rows_size(revision);
-    unsigned char identifier[SDFIO_MANUFACTURER_ID_MAX];
+    unsigned char identifier[SDFIO_ID_SIZE];
     unsigned char created_text[SDFIO_DATETIME_SIZE];
     unsigned char modified_text[SDFIO_DATETIME_SIZE];
     unsigned char columns_field[sizeof(uint32_t)];

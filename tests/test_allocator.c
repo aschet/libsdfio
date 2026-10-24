@@ -398,7 +398,7 @@ static void check_magics(void)
     CHECK(strcmp(sdfio_reader_magic(all, 3), "aISO-2.0") == 0);
     for (size_t i = 0; i < sdfio_reader_magic_count(all); ++i)
     {
-        CHECK(strlen(sdfio_reader_magic(all, i)) == SDFIO_MAGIC_SIZE);
+        CHECK(strlen(sdfio_reader_magic(all, i)) > 0);
     }
     CHECK(sdfio_reader_magic(all, sdfio_reader_magic_count(all)) == NULL);
     sdfio_reader_free(all);

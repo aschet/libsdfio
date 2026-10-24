@@ -150,12 +150,11 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                           "The time zone cannot convert the modification date");
     }
     /* The field has 10 characters, as in a binary file. */
-    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1] = {0};
-    const char *end =
-        memchr(header->manufacturer_id, '\0', SDFIO_MANUFACTURER_ID_MAX);
+    char identifier[SDFIO_ID_SIZE + 1] = {0};
+    const char *end = memchr(header->manufacturer_id, '\0', SDFIO_ID_SIZE);
     memcpy(identifier, header->manufacturer_id,
            end != NULL ? (size_t)(end - header->manufacturer_id)
-                       : (size_t)SDFIO_MANUFACTURER_ID_MAX);
+                       : (size_t)SDFIO_ID_SIZE);
     char text[SDFIO_NUMBER_CAPACITY];
     const sdfio_decimal_point *point = &writing->decimal_point;
     bool ok = put_text(sink, magics[header->revision]) && put_text(sink, crlf)

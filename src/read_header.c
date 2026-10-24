@@ -55,8 +55,7 @@ sdfio_status sdfio_select_reader_format(
     const sdfio_reader_format **format, sdfio_message *message)
 {
     skip_byte_order_mark(source);
-    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
-    if (available < SDFIO_MAGIC_SIZE)
+    if (sdfio_source_fill(source, 1) < 1)
     {
         return sdfio_source_failure(
             source, message,

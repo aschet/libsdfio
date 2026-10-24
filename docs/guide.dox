@@ -385,31 +385,26 @@
  * trailer is read into a buffer of the program.
  *
  * @section concepts_constants Constants
- * The enumerators of the header are visible to the generators of bindings. The
- * other constants are macros, and these are their types and values:
+ * The constants of the interface are macros, and these are their types and
+ * values:
  *
  * <table class="doxtable">
  * <tr><th>Constant</th><th>Type</th><th>Value</th><th>Meaning</th></tr>
+ * <tr><td>SDFIO_BAD_INT8, SDFIO_BAD_INT16, SDFIO_BAD_INT32</td><td>int</td>
+ * <td>-128, -32768, -2147483648</td>
+ * <td>The bad values of the integer data types: the minimum of each.</td></tr>
+ * <tr><td>SDFIO_BAD_FLOAT</td><td>float</td><td>-FLT_MAX</td>
+ * <td>The bad value of SDFIO_TYPE_FLOAT: the lowest finite value.</td></tr>
+ * <tr><td>SDFIO_BAD_DOUBLE</td><td>double</td><td>-DBL_MAX</td>
+ * <td>The bad value of SDFIO_TYPE_DOUBLE: the lowest finite value.</td></tr>
  * <tr><td>SDFIO_NO_TIME</td><td>time_t</td><td>-1</td>
  * <td>A date that is not recorded.</td></tr>
  * <tr><td>SDFIO_AUTO_Z_SCALE</td><td>double</td><td>0.0</td>
  * <td>The writer selects the z-scale.</td></tr>
  * <tr><td>SDFIO_NO_RESOLUTION</td><td>double</td><td>-1.0</td>
  * <td>The z-resolution is not known.</td></tr>
- * <tr><td>SDFIO_BAD_FLOAT</td><td>float</td><td>-3.40282347e+38</td>
- * <td>The bad value of SDFIO_TYPE_FLOAT: the lowest finite value.</td></tr>
- * <tr><td>SDFIO_BAD_DOUBLE</td><td>double</td>
- * <td>-1.7976931348623157e+308</td>
- * <td>The bad value of SDFIO_TYPE_DOUBLE: the lowest finite value.</td></tr>
  * <tr><td>SDFIO_STREAM_ERROR</td><td>size_t</td><td>the largest size_t</td>
  * <td>The result of a read callback that failed.</td></tr>
- * <tr><td>SDFIO_BAD_INT8, SDFIO_BAD_INT16, SDFIO_BAD_INT32</td>
- * <td>enumerators</td><td>-128, -32768, -2147483648</td>
- * <td>The bad values of the integer data types: the minimum of each.</td></tr>
- * <tr><td>SDFIO_MAGIC_SIZE</td><td>enumerator</td><td>8</td>
- * <td>The size of the magic in bytes.</td></tr>
- * <tr><td>SDFIO_MANUFACTURER_ID_MAX</td><td>enumerator</td><td>10</td>
- * <td>The length of the manufacturer's ID in characters.</td></tr>
  * </table>
  *
  * @section concepts_errors Errors

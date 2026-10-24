@@ -221,7 +221,7 @@ typedef struct header_fields
     /* Whether the file has the field. */
     bool found[FIELD_COUNT];
     /* The manufacturer's ID, terminated. */
-    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1];
+    char identifier[SDFIO_ID_SIZE + 1];
     /* The creation date and time. */
     char created[SDFIO_DATETIME_SIZE];
     /* The last modification date and time. */
@@ -296,7 +296,7 @@ static sdfio_status store_field(header_fields *fields, enum field field,
     switch (field)
     {
     case MANUFACTURER_ID:
-        if (size > SDFIO_MANUFACTURER_ID_MAX)
+        if (size > SDFIO_ID_SIZE)
         {
             return sdfio_fail(message, SDFIO_ERR_FORMAT,
                               "The manufacturer's ID of the header has more "

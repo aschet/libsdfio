@@ -135,31 +135,25 @@ typedef enum sdfio_data_type
 SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
                                      sdfio_data_type type);
 
-enum
-{
-    /**
-     * Maximum length of the manufacturer's identifier in characters: the size
-     * of the field of the standard.
-     */
-    SDFIO_MANUFACTURER_ID_MAX = 10,
-    /** The size of the magic that starts every file, in bytes. */
-    SDFIO_MAGIC_SIZE = 8,
-    /**
-     * The bad value of SDFIO_TYPE_INT8, the number that labels a point that is
-     * not measured or spurious. It is the minimum of the type, which the
-     * standard excludes for a valid height.
-     */
-    SDFIO_BAD_INT8 = INT8_MIN,
-    /** The bad value of SDFIO_TYPE_INT16: the minimum of the type. */
-    SDFIO_BAD_INT16 = INT16_MIN,
-    /** The bad value of SDFIO_TYPE_INT32: the minimum of the type. */
-    SDFIO_BAD_INT32 = INT32_MIN
-};
-
+/**
+ * The bad value of each data type, the number that labels a point that is not
+ * measured or spurious: the minimum of an integer type, which the standard
+ * excludes for a valid height, and the lowest finite value of a floating-point
+ * type.
+ *
+ * @{
+ */
+/** The bad value of SDFIO_TYPE_INT8. */
+#define SDFIO_BAD_INT8 INT8_MIN
+/** The bad value of SDFIO_TYPE_INT16. */
+#define SDFIO_BAD_INT16 INT16_MIN
+/** The bad value of SDFIO_TYPE_INT32. */
+#define SDFIO_BAD_INT32 INT32_MIN
 /** The bad value of SDFIO_TYPE_FLOAT, a float: -FLT_MAX. */
 #define SDFIO_BAD_FLOAT (-FLT_MAX)
 /** The bad value of SDFIO_TYPE_DOUBLE, a double: -DBL_MAX. */
 #define SDFIO_BAD_DOUBLE (-DBL_MAX)
+/** @} */
 
 /** Value of a date that is not recorded: a time_t of -1. */
 #define SDFIO_NO_TIME ((time_t)-1)
