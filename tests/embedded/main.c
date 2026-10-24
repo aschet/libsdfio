@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* A scanner that writes a binary file into RAM from a pool of its own, as
- * firmware: no file system, no heap. It is linked without a start
- * file to see what the library asks of the C library, and never run. */
+/* The scenario of examples/allocators.c as firmware: a scanner that writes a
+ * binary file into RAM from a pool of its own, with no file system and no heap.
+ * The program is linked without a start file to see what the library asks of
+ * the C library, and never run. It checks the size of the image and that no
+ * code of a format or of the heap is linked that the program does not name. */
 
 #include <sdfio/sdfio.h>
 

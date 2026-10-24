@@ -33,6 +33,17 @@
  */
 
 /**
+ * @example allocators.c
+ * Writes a file into RAM and reads it back, with all memory of the library from
+ * a static pool of the program through an sdfio_allocator, as a scanner without
+ * a heap needs it. The program sets a small buffer and a small chunk with
+ * sdfio_writer_set_buffer_size() and sdfio_writer_set_chunk_values(), and the
+ * file goes to a stream that writes into an array. The pool is empty for the
+ * reader, because the library allocates only when a handle is created and a
+ * file is opened or created.
+ */
+
+/**
  * @example excerpt.c
  * Saves the central part of a file as a new file. The header of the file is
  * copied with sdfio_header_copy() and gets the size of the part, and the
