@@ -34,12 +34,10 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
         }
         else
         {
-            return sdfio_fail(
-                &writer->message, SDFIO_ERR_ARGUMENT,
-                "Stored integer values need a z-scale, the "
-                "height in metres that a coded value of 1 stands for: use "
-                "sdfio_write_heights() "
-                "to have one chosen");
+            return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                              "Coded integer values need a z-scale, the height "
+                              "in metres that a coded value of 1 stands for: "
+                              "sdfio_write_heights() chooses one");
         }
     }
     const sdfio_status status = writer->format->write_header(
@@ -53,7 +51,7 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-/* Stored values of the machine into the file. */
+/* Writes coded values through the format of the file. */
 sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
                                      size_t count)
 {
@@ -105,14 +103,14 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
     if (rows > header->rows - writer->next_row)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "More rows were given than are left to write");
+                          "More rows are given than the file has left");
     }
     if (rows > 0 && header->columns > 0 && src == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "Give the rows to write");
+                          "The rows to write are null");
     }
-    status = sdfio_check_data_layout(&layout, header, rows, &writer->message);
+    status = sdfio_layout_check_data(&layout, header, rows, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;

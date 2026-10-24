@@ -60,12 +60,12 @@ static sdfio_status stdio_finish(void *user, sdfio_message *message)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_file_check_reader(sdfio_reader *reader)
+sdfio_status sdfio_reader_check(sdfio_reader *reader)
 {
     if (sdfio_reader_is_open(reader))
     {
         return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_STATE,
-                          "The reader is open already");
+                          "The reader has opened a file already");
     }
     return SDFIO_OK;
 }
@@ -94,7 +94,7 @@ sdfio_status sdfio_file_adopt_writer(sdfio_writer *writer, FILE *file,
     if (file == NULL)
     {
         return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_IO,
-                          "The file cannot be written");
+                          "The file cannot be created");
     }
     const sdfio_stream stream = sdfio_stdio_stream(file);
     const sdfio_status status = sdfio_create_stream(writer, &stream, header);
@@ -113,7 +113,7 @@ sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const sdfio_status ready = sdfio_file_check_reader(reader);
+    const sdfio_status ready = sdfio_reader_check(reader);
     if (ready != SDFIO_OK)
     {
         return ready;

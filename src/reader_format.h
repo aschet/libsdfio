@@ -22,7 +22,8 @@ typedef struct sdfio_reader_format sdfio_reader_format;
  * A reader format: the functions that read one format of the files.
  *
  * The reader knows nothing of the file formats. It calls the formats that
- * the program adds.
+ * the program adds. The source file of a format names its functions after the
+ * members of this structure, without a prefix.
  */
 struct sdfio_reader_format
 {

@@ -6,7 +6,7 @@
 
 /**
  * @file heights.c
- * @brief Conversion between stored values and heights.
+ * @brief Conversion between coded values and heights.
  *
  * These functions need no handle: they take the description of a file and
  * memory. Heights of a type are calculated in that type: the conversion is
@@ -54,10 +54,10 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
     return (count - 1) * stride + size;
 }
 
-sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
+sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message)
 {
-    if (!sdfio_valid_data_type(layout->type))
+    if (!sdfio_data_type_valid(layout->type))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The type of the layout is not a data type");
@@ -70,7 +70,7 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
         if (columns != 0 && element > (size_t)PTRDIFF_MAX / columns)
         {
             return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                              "The matrix is larger than memory");
+                              "The matrix exceeds the address space");
         }
         layout->row_stride = (ptrdiff_t)(columns * element);
     }
@@ -90,31 +90,31 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
     if ((columns > 1 && row_extent == 0) || (rows > 1 && column_extent == 0))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The matrix is larger than memory");
+                          "The matrix exceeds the address space");
     }
     if (rows > 1 && columns > 1 && row < row_extent && element < column_extent)
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The strides let elements overlap: the rows have to "
-                          "lie beside each other, or the columns do");
+                          "The strides let elements overlap: either the rows "
+                          "or the columns have to lie side by side");
     }
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_check_heights_layout(sdfio_layout *layout,
+sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
                                         const sdfio_header *header,
                                         sdfio_message *message)
 {
-    if (!sdfio_valid_heights_type(layout->type))
+    if (!sdfio_heights_type_valid(layout->type))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
                           "The type of the heights is not SDFIO_TYPE_FLOAT or "
                           "SDFIO_TYPE_DOUBLE");
     }
-    return sdfio_check_layout(layout, header->rows, header->columns, message);
+    return sdfio_layout_check(layout, header->rows, header->columns, message);
 }
 
-sdfio_status sdfio_check_data_layout(sdfio_layout *layout,
+sdfio_status sdfio_layout_check_data(sdfio_layout *layout,
                                      const sdfio_header *header, size_t rows,
                                      sdfio_message *message)
 {
@@ -125,15 +125,15 @@ sdfio_status sdfio_check_data_layout(sdfio_layout *layout,
                           "file");
     }
     return header->columns > 0
-               ? sdfio_check_layout(layout, rows, header->columns, message)
+               ? sdfio_layout_check(layout, rows, header->columns, message)
                : SDFIO_OK;
 }
 
 /* Whether the header and the layout describe types that heights can use. */
 static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 {
-    return header != NULL && sdfio_valid_data_type(header->data_type)
-           && sdfio_valid_heights_type(layout.type);
+    return header != NULL && sdfio_data_type_valid(header->data_type)
+           && sdfio_heights_type_valid(layout.type);
 }
 
 /*
@@ -163,7 +163,7 @@ static bool usable_description(const sdfio_header *header, sdfio_layout layout)
 #define SDFIO_FLOAT_HEIGHTS_IN_DOUBLE SDFIO_FLOAT_HEIGHTS_CHOSEN
 #endif
 
-/* The height of a stored number calculated in double, or false if it does not
+/* The height of a coded value calculated in double, or false if it does not
  * fit a float. */
 static bool multiply_in_double(double exact, float number, float *height)
 {
@@ -201,12 +201,12 @@ typedef struct scale_float
     double exact;
 } scale_float;
 
-static void make_scale_float(double scale, scale_float *out)
+static void scale_init_float(double scale, scale_float *out)
 {
     out->exact = scale;
 }
 
-/* The height of a stored number, or false if it does not fit a float. */
+/* The height of a coded value, or false if it does not fit a float. */
 static bool scale_multiply_float(const scale_float *scale, float number,
                                  float *height)
 {
@@ -242,7 +242,7 @@ typedef struct scale_float
     bool far;
 } scale_float;
 
-static void make_scale_float(double scale, scale_float *out)
+static void scale_init_float(double scale, scale_float *out)
 {
     out->exact = scale;
     out->far = !(scale >= 1e-30 && scale <= 1e30);
@@ -251,7 +251,7 @@ static void make_scale_float(double scale, scale_float *out)
     out->inverse = out->far ? 0.0F : 1.0F / out->head;
 }
 
-/* The height of a stored number, or false if it does not fit a float. */
+/* The height of a coded value, or false if it does not fit a float. */
 static bool scale_multiply_float(const scale_float *scale, float number,
                                  float *height)
 {
@@ -333,9 +333,8 @@ static double nearby_double(double x)
 #define REAL_MAX FLT_MAX
 #define REAL_ABS fabsf
 #define REAL_NEARBY nearby_float
-#define scale_type_float scale_float
+typedef scale_float scale_type_float;
 #include "heights_real.h"
-#undef scale_type_float
 #undef REAL_NEARBY
 #undef REAL_ABS
 #undef REAL_MAX
@@ -349,7 +348,7 @@ typedef struct scale_double
     double value;
 } scale_double;
 
-static void make_scale_double(double scale, scale_double *out)
+static void scale_init_double(double scale, scale_double *out)
 {
     out->value = scale;
 }
@@ -374,9 +373,8 @@ static bool scale_divide_double(const scale_double *scale, double height,
 #define REAL_MAX DBL_MAX
 #define REAL_ABS fabs
 #define REAL_NEARBY nearby_double
-#define scale_type_double scale_double
+typedef scale_double scale_type_double;
 #include "heights_real.h"
-#undef scale_type_double
 #undef REAL_NEARBY
 #undef REAL_ABS
 #undef REAL_MAX
@@ -389,7 +387,7 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
 {
     if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
-        || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK)
+        || sdfio_layout_check(&layout, 1, count, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -407,7 +405,7 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
 {
     if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
-        || sdfio_check_layout(&layout, 1, count, NULL) != SDFIO_OK
+        || sdfio_layout_check(&layout, 1, count, NULL) != SDFIO_OK
         || !(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
         return SDFIO_ERR_ARGUMENT;
@@ -420,8 +418,8 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
                                layout.not_measured);
 }
 
-double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
-                               double highest)
+double sdfio_suggest_z_scale_for_range(sdfio_data_type type, double lowest,
+                                       double highest)
 {
     /* The bad value is the lowest number of the type, so the lowest height is
      * one count above it. */
@@ -465,9 +463,9 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
                                size_t rows, size_t columns, double *lowest,
                                double *highest)
 {
-    if (!sdfio_valid_heights_type(layout.type) || lowest == NULL
+    if (!sdfio_heights_type_valid(layout.type) || lowest == NULL
         || highest == NULL || (rows > 0 && columns > 0 && heights == NULL)
-        || sdfio_check_layout(&layout, rows, columns, NULL) != SDFIO_OK)
+        || sdfio_layout_check(&layout, rows, columns, NULL) != SDFIO_OK)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -500,7 +498,7 @@ sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_layout layout,
                                    const void *heights, size_t rows,
                                    size_t columns, double *z_scale)
 {
-    if (!sdfio_valid_data_type(type) || z_scale == NULL)
+    if (!sdfio_data_type_valid(type) || z_scale == NULL)
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -510,7 +508,7 @@ sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_layout layout,
         find_range(layout, heights, rows, columns, &lowest, &highest);
     if (status == SDFIO_OK)
     {
-        *z_scale = sdfio_z_scale_for_range(type, lowest, highest);
+        *z_scale = sdfio_suggest_z_scale_for_range(type, lowest, highest);
     }
     return status;
 }

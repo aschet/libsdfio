@@ -440,10 +440,10 @@ static void check_errors(void)
 static void check_z_scale(void)
 {
     const double scale =
-        sdfio_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
+        sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
     CHECK(near_relative(scale, 80e-6 / 32767.0, 1e-12));
-    CHECK(sdfio_z_scale_for_range(SDFIO_TYPE_DOUBLE, -1, 1) == 1.0);
-    CHECK(sdfio_z_scale_for_range(SDFIO_TYPE_INT16, NAN, NAN) == 1.0);
+    CHECK(sdfio_suggest_z_scale_for_range(SDFIO_TYPE_DOUBLE, -1, 1) == 1.0);
+    CHECK(sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, NAN, NAN) == 1.0);
 }
 
 /* A negative row stride, with the pointer at the last row, turns the matrix

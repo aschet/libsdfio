@@ -39,18 +39,6 @@ bool sdfio_trailer_next_field(const char *text, size_t size, size_t *position,
     return false;
 }
 
-static bool same_name(const char *a, const char *b, size_t size)
-{
-    for (size_t i = 0; i < size; ++i)
-    {
-        if (sdfio_lower(a[i]) != sdfio_lower(b[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool sdfio_trailer_find_field(const char *text, size_t size, const char *name,
                               const char **value, size_t *value_size)
 {
@@ -65,7 +53,7 @@ bool sdfio_trailer_find_field(const char *text, size_t size, const char *name,
     while (sdfio_trailer_next_field(text, size, &position, &field, &field_size,
                                     value, value_size))
     {
-        if (field_size == name_length && same_name(field, name, name_length))
+        if (sdfio_tagged_name_equal(field, field_size, name, name_length))
         {
             return true;
         }

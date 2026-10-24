@@ -27,9 +27,9 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_layout layout,
     if (writer->next_row != 0 || writer->header_written)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "Rows were written already");
+                          "The rows have been written already");
     }
-    status = sdfio_check_heights_layout(&layout, header, &writer->message);
+    status = sdfio_layout_check_heights(&layout, header, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -38,7 +38,7 @@ sdfio_status sdfio_write_heights(sdfio_writer *writer, sdfio_layout layout,
     if (header->rows > 0 && header->columns > 0 && src == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "Give the heights to write");
+                          "The heights to write are null");
     }
     if (header->z_scale == SDFIO_AUTO_Z_SCALE
         && !sdfio_is_floating(header->data_type))

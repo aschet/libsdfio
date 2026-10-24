@@ -37,20 +37,20 @@ enum
 
 enum
 {
-    /** The characters of a line of the header or of a word of the data area
+    /* The characters of a line of the header or of a word of the data area
      * that are kept, with the terminator. The standard bounds the fields of
      * the header, and the longest number has fewer characters. */
-    SDFIO_TEXT_CAPACITY = 128
+    TEXT_CAPACITY = 128
 };
 
-/** A line or a word of the text, of which the first characters are kept. */
+/* A line or a word of the text, of which the first characters are kept. */
 typedef struct fixed_text
 {
-    /** The characters, 0-terminated. */
-    char text[SDFIO_TEXT_CAPACITY];
-    /** The number of characters. */
+    /* The characters, 0-terminated. */
+    char text[TEXT_CAPACITY];
+    /* The number of characters. */
     size_t size;
-    /** Whether characters other than white space were dropped, because the
+    /* Whether characters other than white space were dropped, because the
      * text was longer than the capacity. */
     bool lost;
 } fixed_text;
@@ -220,7 +220,7 @@ typedef struct header_fields
     /* Whether the file has the field. */
     bool found[FIELD_COUNT];
     /* The manufacturer's ID, terminated. */
-    char identifier[SDFIO_ID_SIZE + 1];
+    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1];
     /* The creation date and time. */
     char created[SDFIO_DATETIME_SIZE];
     /* The last modification date and time. */
@@ -244,23 +244,6 @@ typedef struct header_fields
     /* The checksum type. */
     long long check_type;
 } header_fields;
-
-/* Whether a name in the file is the name of a field, whatever the case. */
-static bool same_name(const char *name, size_t size, const char *field_name)
-{
-    if (strlen(field_name) != size)
-    {
-        return false;
-    }
-    for (size_t i = 0; i < size; ++i)
-    {
-        if (sdfio_lower(name[i]) != sdfio_lower(field_name[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
 
 /* A number of columns or of rows: a non-negative integer of 32 bits. */
 static bool parse_extent(const char *value, size_t size, uint32_t *out)
@@ -312,11 +295,11 @@ static sdfio_status store_field(header_fields *fields, enum field field,
     switch (field)
     {
     case MANUFACTURER_ID:
-        if (size > SDFIO_ID_SIZE)
+        if (size > SDFIO_MANUFACTURER_ID_MAX)
         {
             return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "The manufacturer's ID of the SDF header has "
-                              "more than 10 characters");
+                              "The manufacturer's ID of the header has more "
+                              "than 10 characters");
         }
         memcpy(fields->identifier, value, size);
         fields->identifier[size] = '\0';
@@ -363,7 +346,7 @@ static sdfio_status store_field(header_fields *fields, enum field field,
     }
     return valid ? SDFIO_OK
                  : sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "A field of the SDF header has an invalid value");
+                              "A field of the header has an invalid value");
 }
 
 /* What the reader of this format keeps for a file. */
@@ -410,15 +393,15 @@ static sdfio_status read_fields(sdfio_source *source, fixed_text *line,
          * last value. */
         for (enum field field = 0; field < FIELD_COUNT; ++field)
         {
-            if (!same_name(name, name_size, field_names[field]))
+            if (!sdfio_tagged_name_equal(name, name_size, field_names[field],
+                                         strlen(field_names[field])))
             {
                 continue;
             }
             if (line->lost)
             {
-                return sdfio_fail(
-                    message, SDFIO_ERR_FORMAT,
-                    "A field of the SDF header has an invalid value");
+                return sdfio_fail(message, SDFIO_ERR_FORMAT,
+                                  "A field of the header has an invalid value");
             }
             const sdfio_status status = store_field(
                 fields, field, value, value_size, decimal_point, message);
@@ -432,21 +415,21 @@ static sdfio_status read_fields(sdfio_source *source, fixed_text *line,
     }
     if (!terminated)
     {
-        return sdfio_source_failure(source, message,
-                                    "SDF file must contain the header, the "
-                                    "data area and the trailer");
+        return sdfio_source_failure(
+            source, message,
+            "The file ends before the three records are complete");
     }
     if (malformed)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Malformed SDF tagged field line in the header");
+                          "A line of the header is not a field");
     }
     for (enum field field = 0; field < FIELD_COUNT; ++field)
     {
         if (!fields->found[field])
         {
             return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "A required field of the SDF header is missing");
+                              "A required field of the header is missing");
         }
     }
     return SDFIO_OK;
@@ -466,12 +449,14 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
-            source, message, "The first line of the file is not a magic");
+            source, message,
+            "The file does not start with a magic of an SDF file");
     }
     else if (got != GOT_ONE || !ended)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "SDF file is missing the header and the data area");
+        status =
+            sdfio_fail(message, SDFIO_ERR_FORMAT,
+                       "The file does not start with a magic of an SDF file");
     }
     sdfio_revision revision = SDFIO_ISO_2_0;
     if (status == SDFIO_OK)
@@ -482,7 +467,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         if (!revision_of(magic, magic_size, &revision))
         {
             status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                "Unknown or unsupported SDF magic");
+                                "The magic of the file is not supported");
         }
     }
     header_fields fields = {0};
@@ -499,35 +484,36 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     if (!sdfio_data_type_from_code(fields.data_type, &type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown SDF data type code");
+                          "The data type code of the header is unknown");
     }
     if (!sdfio_revision_allows(revision, type))
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The data type is not valid for the SDF revision");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The data type is not valid for the revision of the file");
     }
     if (fields.compression != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The compression type of an SDF file has to be 0");
+                          "The compression type of the file has to be 0");
     }
     if (fields.check_type != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The checksum type of an SDF file has to be 0");
+                          "The checksum type of the file has to be 0");
     }
-    if (!sdfio_datetime_is_valid(fields.created, SDFIO_DATETIME_SIZE)
-        || !sdfio_datetime_is_valid(fields.modified, SDFIO_DATETIME_SIZE))
+    if (!sdfio_datetime_valid(fields.created, SDFIO_DATETIME_SIZE)
+        || !sdfio_datetime_valid(fields.modified, SDFIO_DATETIME_SIZE))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "A date of the SDF header is not valid");
+                          "A date of the header is not valid");
     }
     if (fields.columns > sdfio_max_columns_and_rows(revision)
         || fields.rows > sdfio_max_columns_and_rows(revision))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The number of columns or rows in the SDF header is "
-                          "out of range for the revision");
+                          "The number of columns or rows of the header is out "
+                          "of range for the revision");
     }
     header->revision = revision;
     header->format = SDFIO_ASCII;
@@ -553,13 +539,12 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
 /* The failure of a text that ends before the three records are complete. */
 static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
 {
-    return sdfio_source_failure(source, message,
-                                "SDF file must contain the header, the data "
-                                "area and the trailer");
+    return sdfio_source_failure(
+        source, message, "The file ends before the three records are complete");
 }
 
-/* The values of the data area are stored in the type of the data type; the
- * functions below convert the text of the file to it. */
+/* The values of the data area are coded in the data type of the file; the
+ * functions below convert the text of the file to them. */
 
 /* A case of the storing of the bad value, for SDFIO_SCALARS(). */
 #define STORE_BAD_CASE(data, type, low, high, floating)                        \
@@ -593,9 +578,9 @@ static void store_bad(sdfio_data_type type, void *dst, size_t index)
         {                                                                      \
             return false;                                                      \
         }                                                                      \
-        const type stored = (type)parsed;                                      \
-        memcpy((unsigned char *)dst + index * sizeof stored, &stored,          \
-               sizeof stored);                                                 \
+        const type coded_value = (type)parsed;                                 \
+        memcpy((unsigned char *)dst + index * sizeof coded_value,              \
+               &coded_value, sizeof coded_value);                              \
         return true;                                                           \
     }
 
@@ -658,9 +643,9 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     const size_t size = word->size;
     if (size == 1 && token[0] == terminator)
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The data area has fewer values than the header "
-                          "says");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The data area has fewer values than the header declares");
     }
     if (size == sizeof SDFIO_ASCII_BAD - 1
         && strncmp(token, SDFIO_ASCII_BAD, size) == 0)
@@ -669,16 +654,17 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
         return SDFIO_OK;
     }
     /* The start of a word that is too long for a number is no number. */
-    const bool stored =
+    const bool coded_value =
         !word->lost
         && (sdfio_is_floating(header->data_type)
                 ? store_real(header->data_type, decimal_point, token, size, dst,
                              index)
                 : store_integer(header->data_type, token, size, dst, index));
-    if (!stored)
+    if (!coded_value)
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "A data value is not a number of the data type");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "A value of the data area is not a number of the data type");
     }
     return SDFIO_OK;
 }
@@ -693,9 +679,9 @@ static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
     }
     else if (word.size != 1 || word.text[0] != terminator)
     {
-        status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                            "The data area has more values than the header "
-                            "says");
+        status = sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The data area has more values than the header declares");
     }
     else
     {

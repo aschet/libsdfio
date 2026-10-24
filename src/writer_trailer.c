@@ -19,7 +19,7 @@ static sdfio_status require_complete(sdfio_writer *writer)
     if (writer->next_row != writer->header.rows)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "Not all rows of the data area were written");
+                          "Not all rows of the data area have been written");
     }
     return SDFIO_OK;
 }
@@ -44,7 +44,7 @@ static sdfio_status open_trailer(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
+sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *name,
                                        const char *value)
 {
     static const char separator[] = " = ";
@@ -58,12 +58,12 @@ sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
     {
         return status;
     }
-    if (field == NULL || value == NULL || !sdfio_tagged_name_valid(field)
+    if (name == NULL || value == NULL || !sdfio_tagged_name_valid(name)
         || !sdfio_tagged_value_valid(value))
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "A field name has letters, digits and _ and a value "
-                          "is one line of 7-bit ASCII");
+                          "A field name consists of letters, digits and _, and "
+                          "a value is one line of 7-bit ASCII");
     }
     status = open_trailer(writer);
     if (status != SDFIO_OK)
@@ -72,12 +72,12 @@ sdfio_status sdfio_write_trailer_field(sdfio_writer *writer, const char *field,
     }
     sdfio_sink *sink = &writer->sink;
     if (!sdfio_crlf_end(sink, &writer->trailer_text)
-        || !sdfio_sink_write(sink, field, strlen(field))
+        || !sdfio_sink_write(sink, name, strlen(name))
         || !sdfio_sink_write(sink, separator, sizeof separator - 1)
         || !sdfio_sink_write(sink, value, strlen(value))
         || !sdfio_sink_write(sink, line_end, sizeof line_end - 1))
     {
-        return sdfio_writer_sink_failed(writer);
+        return sdfio_writer_sink_failure(writer);
     }
     return SDFIO_OK;
 }
@@ -97,7 +97,8 @@ sdfio_status sdfio_write_trailer_text(sdfio_writer *writer, const char *text,
     if (text == NULL && size > 0)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
-                          "A trailer with a size needs its text");
+                          "The text of the trailer is null although its size "
+                          "is greater than 0");
     }
     status = open_trailer(writer);
     if (status != SDFIO_OK)
@@ -106,7 +107,7 @@ sdfio_status sdfio_write_trailer_text(sdfio_writer *writer, const char *text,
     }
     if (!sdfio_crlf_write(&writer->sink, &writer->trailer_text, text, size))
     {
-        return sdfio_writer_sink_failed(writer);
+        return sdfio_writer_sink_failure(writer);
     }
     return SDFIO_OK;
 }
@@ -128,7 +129,7 @@ sdfio_status sdfio_end_file(sdfio_writer *writer)
     }
     if (!sdfio_crlf_end(&writer->sink, &writer->trailer_text))
     {
-        return sdfio_writer_sink_failed(writer);
+        return sdfio_writer_sink_failure(writer);
     }
     status = writer->format->end_trailer(&writer->sink, &writer->message);
     if (status != SDFIO_OK)
@@ -137,7 +138,7 @@ sdfio_status sdfio_end_file(sdfio_writer *writer)
     }
     if (!sdfio_sink_flush(&writer->sink))
     {
-        return sdfio_writer_sink_failed(writer);
+        return sdfio_writer_sink_failure(writer);
     }
     status = SDFIO_OK;
     if (writer->owner.finish != NULL)

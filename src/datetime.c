@@ -25,9 +25,9 @@
 enum
 {
     /* The first year that a date field can hold. */
-    SDFIO_FIRST_YEAR = 1,
+    FIRST_YEAR = 1,
     /* The last year that a date field can hold. */
-    SDFIO_LAST_YEAR = 9999
+    LAST_YEAR = 9999
 };
 
 enum
@@ -194,7 +194,7 @@ bool sdfio_datetime_representable(time_t time)
     unsigned day = 0;
     civil_from_days(floor_div(minutes_of(time), MINUTES_PER_DAY), &year, &month,
                     &day);
-    return year >= SDFIO_FIRST_YEAR && year <= SDFIO_LAST_YEAR;
+    return year >= FIRST_YEAR && year <= LAST_YEAR;
 }
 
 bool sdfio_datetime_format(time_t time, sdfio_revision revision,
@@ -268,7 +268,7 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
     fields->year = get_digits(text + YEAR_AT, YEAR_WIDTH);
     fields->hour = get_digits(text + HOUR_AT, HOUR_WIDTH);
     fields->minute = get_digits(text + MINUTE_AT, MINUTE_WIDTH);
-    return fields->year >= SDFIO_FIRST_YEAR && fields->month >= 1
+    return fields->year >= FIRST_YEAR && fields->month >= 1
            && fields->month <= MONTHS_PER_YEAR && fields->day >= 1
            && (unsigned)fields->day
                   <= days_in_month(fields->year, (unsigned)fields->month)
@@ -295,7 +295,7 @@ static bool is_not_recorded(const char *text, size_t size)
     return text[0] == '0' || text[0] == '\0';
 }
 
-bool sdfio_datetime_is_valid(const char *text, size_t size)
+bool sdfio_datetime_valid(const char *text, size_t size)
 {
     date_fields fields;
     return is_not_recorded(text, size) || read_date(text, size, &fields);

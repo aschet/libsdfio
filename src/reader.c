@@ -20,7 +20,7 @@
 
 static size_t memory_read(void *user, void *data, size_t size)
 {
-    memory_stream *memory = user;
+    sdfio_memory_stream *memory = user;
     const size_t left = memory->size - memory->position;
     const size_t count = size < left ? size : left;
     if (count > 0)
@@ -211,7 +211,7 @@ static sdfio_status require_closed(sdfio_reader *reader)
     if (reader->opened)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "The reader is open already");
+                          "The reader has opened a file already");
     }
     return SDFIO_OK;
 }
@@ -224,7 +224,7 @@ static sdfio_status open_source(sdfio_reader *reader,
     if (reader->formats[0] == NULL)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "Add a format before a file is opened");
+                          "No format has been added to the reader");
     }
     if (reader->chunk == NULL)
     {
@@ -273,7 +273,7 @@ static sdfio_status open_source(sdfio_reader *reader,
         || reader->value_count > SIZE_MAX / type_size)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
-                          "The SDF file has more points than can be counted");
+                          "The file has more points than can be counted");
     }
     reader->next_row = 0;
     reader->next_value = 0;
@@ -305,7 +305,7 @@ sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
     {
         return ready;
     }
-    reader->memory = (memory_stream){data, size, 0};
+    reader->memory = (sdfio_memory_stream){data, size, 0};
     const sdfio_stream stream = {&reader->memory, memory_read, NULL};
     return open_source(reader, &stream);
 }
@@ -318,8 +318,7 @@ sdfio_status sdfio_reader_require_readable(sdfio_reader *reader)
     }
     if (!reader->opened)
     {
-        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "Open a file first");
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE, "No file is open");
     }
     if (reader->failed)
     {

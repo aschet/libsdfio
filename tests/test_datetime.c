@@ -91,13 +91,13 @@ static void check_utc(void)
     {
         const size_t size =
             i == 3 ? (size_t)SDFIO_DATETIME_SIZE : strlen(unrecorded[i]);
-        CHECK(sdfio_datetime_is_valid(unrecorded[i], size));
+        CHECK(sdfio_datetime_valid(unrecorded[i], size));
         CHECK(sdfio_datetime_parse(unrecorded[i], size, SDFIO_ISO_2_0, NULL)
               == SDFIO_NO_TIME);
     }
-    CHECK(!sdfio_datetime_is_valid("00000000000", 0));
-    CHECK(!sdfio_datetime_is_valid("0000000000000", 13));
-    CHECK(!sdfio_datetime_is_valid("0000000000x0", SDFIO_DATETIME_SIZE));
+    CHECK(!sdfio_datetime_valid("00000000000", 0));
+    CHECK(!sdfio_datetime_valid("0000000000000", 13));
+    CHECK(!sdfio_datetime_valid("0000000000x0", SDFIO_DATETIME_SIZE));
 
     /* A field that is no date reads as no date. */
     const char *bad[] = {"310220260000",  "320120260000", "011320260000",

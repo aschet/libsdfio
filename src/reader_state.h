@@ -22,7 +22,7 @@
 #include <sdfio/sdfio.h>
 
 /** A stream over memory of the caller, for sdfio_open_memory(). */
-typedef struct memory_stream
+typedef struct sdfio_memory_stream
 {
     /** The bytes. */
     const unsigned char *data;
@@ -30,7 +30,7 @@ typedef struct memory_stream
     size_t size;
     /** The index of the next byte. */
     size_t position;
-} memory_stream;
+} sdfio_memory_stream;
 
 /** The state of a reader. */
 struct sdfio_reader
@@ -52,7 +52,7 @@ struct sdfio_reader
     /** What a file adds to the reader. */
     sdfio_owner owner;
     /** The stream over memory, if the file is in memory. */
-    memory_stream memory;
+    sdfio_memory_stream memory;
     /** Whether a file is open. */
     bool opened;
     /** The number of values of the data area. */

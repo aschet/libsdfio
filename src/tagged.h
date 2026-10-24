@@ -72,6 +72,17 @@ bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state);
 bool sdfio_tagged_name_valid(const char *name);
 
 /**
+ * Tells whether two names of fields are the same, whatever the case.
+ *
+ * @param a The first name.
+ * @param a_size The number of characters of `a`.
+ * @param b The second name.
+ * @param b_size The number of characters of `b`.
+ */
+bool sdfio_tagged_name_equal(const char *a, size_t a_size, const char *b,
+                             size_t b_size);
+
+/**
  * Tells whether a text is the value of a field: one line of 7-bit ASCII.
  *
  * @param value The value, 0-terminated.

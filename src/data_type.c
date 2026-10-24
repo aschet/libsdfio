@@ -25,7 +25,7 @@ _Static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53,
 _Static_assert(SDFIO_LARGEST_CODED_VALUE == sizeof(double),
                "the largest coded value has to be a binary64");
 
-bool sdfio_valid_heights_type(sdfio_data_type type)
+bool sdfio_heights_type_valid(sdfio_data_type type)
 {
     return type == SDFIO_TYPE_FLOAT || type == SDFIO_TYPE_DOUBLE;
 }
@@ -46,7 +46,7 @@ bool sdfio_data_type_from_code(long long code, sdfio_data_type *type)
 
 #undef CODE_CASE
 
-bool sdfio_valid_data_type(sdfio_data_type type)
+bool sdfio_data_type_valid(sdfio_data_type type)
 {
     switch (type)
     {

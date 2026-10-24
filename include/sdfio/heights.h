@@ -201,15 +201,15 @@ SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
  * @param lowest The lowest height in metres.
  * @param highest The highest height in metres.
  */
-SDFIO_API double sdfio_z_scale_for_range(sdfio_data_type type, double lowest,
-                                         double highest);
+SDFIO_API double sdfio_suggest_z_scale_for_range(sdfio_data_type type,
+                                                 double lowest, double highest);
 
 /**
  * Determines the z-scale for a matrix of heights in metres, as
  * sdfio_write_heights() does: the range of the finite heights, excluding the
  * points that `layout.not_measured` marks, is determined and passed to
- * sdfio_z_scale_for_range(). It is intended for sdfio_write_data() with an
- * integer data type.
+ * sdfio_suggest_z_scale_for_range(). It is intended for sdfio_write_data() with
+ * an integer data type.
  *
  * @param type The data type.
  * @param layout The layout of the buffer.

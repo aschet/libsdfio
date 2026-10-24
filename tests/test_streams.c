@@ -287,7 +287,7 @@ static void check_header_errors(void)
          */
         enum
         {
-            DATES_AT = SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE,
+            DATES_AT = SDFIO_MAGIC_SIZE + SDFIO_MANUFACTURER_ID_MAX,
             Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATETIME_SIZE
                          + 2 * sizeof(uint32_t) + 2 * sizeof(double)
         };

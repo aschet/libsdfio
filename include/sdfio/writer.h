@@ -55,7 +55,7 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
  * Like the other options of a writer, a format is added before the first
  * attempt to create a file.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
  * already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
@@ -66,7 +66,7 @@ SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
  * Adds the ASCII format to the formats that the writer writes. The rules of
  * sdfio_writer_add_binary() apply.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
  * already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
@@ -78,7 +78,7 @@ SDFIO_API sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer);
  * default is 16384. A value below 64 is raised to 64. A smaller buffer causes
  * more calls of the stream callbacks.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param size The size, not 0.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the size is 0.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
@@ -91,7 +91,7 @@ SDFIO_API sdfio_status sdfio_writer_set_buffer(sdfio_writer *writer,
  * 1024. The chunk occupies up to 8 bytes per value; a writer of the ASCII
  * format occupies more.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param count The number of values, not 0 and not so large that the chunk
  * cannot be counted in bytes.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or the number is not valid.
@@ -105,7 +105,7 @@ SDFIO_API sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer,
  * so it need not outlive the call. Null selects no conversion, which is the
  * default.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param[in] time_zone The time zone, or null.
  * @retval SDFIO_ERR_ARGUMENT The writer is null.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made earlier.
@@ -118,7 +118,7 @@ SDFIO_API sdfio_status sdfio_writer_set_time_zone(
  * sdfio_end_file() did not end is closed in its incomplete state. A null
  * pointer is ignored.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  */
 SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
 
@@ -127,7 +127,7 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * and rows. The header is written together with the first rows of the data
  * area. Both dates must be set; SDFIO_NO_TIME cannot be written.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param[in] stream The stream; `write` is required. The structure is copied.
  * @param[in] header The description of the file.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the header cannot be
@@ -159,7 +159,7 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * The first row written is the first row stored in the file, the row with
  * y = 0.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param layout The layout of the buffer.
  * @param[in] src The coded values to write.
  * @param rows The number of rows to write.
@@ -186,7 +186,7 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
  * z-scale is selected from the heights. NaN, infinity and `layout.not_measured`
  * label points that are not measured. Call sdfio_end_file() afterwards.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param layout The layout of the buffer.
  * @param[in] src The heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
@@ -212,8 +212,8 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * in the C locale, because a locale with a decimal comma would produce `20,5`.
  * White space around a value is lost when the line is read.
  *
- * @param writer The writer.
- * @param[in] field The field name: letters, digits and `_`.
+ * @param[in,out] writer The writer.
+ * @param[in] name The field name: letters, digits and `_`.
  * @param[in] value The value: one line of 7-bit ASCII.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, the field name is empty or
  * contains another character, or the value is not one line of 7-bit ASCII.
@@ -222,7 +222,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  * @retval SDFIO_ERR_IO The stream failed.
  */
 SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
-                                                 const char *field,
+                                                 const char *name,
                                                  const char *value);
 
 /**
@@ -240,7 +240,7 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
  * consists only of `*` ends the record, so the text must not contain one; lines
  * of sdfio_write_trailer_field() never do.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param[in] text The text.
  * @param size The length of the text in bytes.
  * @retval SDFIO_ERR_ARGUMENT `text` is null and `size` is not 0.
@@ -268,8 +268,8 @@ SDFIO_API sdfio_status sdfio_write_trailer_text(sdfio_writer *writer,
  * If a call fails, sdfio_writer_error_message() describes the failure, also
  * when the reader failed.
  *
- * @param reader The reader that has opened a file.
- * @param writer The writer that has created a file.
+ * @param[in,out] reader The reader that has opened a file.
+ * @param[in,out] writer The writer that has created a file.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
  * @retval SDFIO_ERR_STATE The reader has no file or failed, or the writer has
  * no file, has not written all rows, or ended the file.
@@ -285,7 +285,7 @@ SDFIO_API sdfio_status sdfio_copy_trailer(sdfio_reader *reader,
  * data area must have been written. Without trailer lines there is no trailer.
  * Nothing can be written after it.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @retval SDFIO_ERR_STATE No file is created, rows are missing, the file is
  * ended already, or an earlier error ended the writing.
  * @retval SDFIO_ERR_IO The stream failed.

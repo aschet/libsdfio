@@ -56,7 +56,7 @@ bool sdfio_datetime_representable(time_t time);
  * @param text The field.
  * @param size The length of the field.
  */
-bool sdfio_datetime_is_valid(const char *text, size_t size);
+bool sdfio_datetime_valid(const char *text, size_t size);
 
 /**
  * Parses the field of a date.
@@ -66,7 +66,7 @@ bool sdfio_datetime_is_valid(const char *text, size_t size);
  * @param revision The revision of the file.
  * @param zone The time zone of the caller. May be null.
  * @return The time in UTC, or SDFIO_NO_TIME if the field is not a valid date
- * (see sdfio_datetime_is_valid()) or the time zone cannot convert it.
+ * (see sdfio_datetime_valid()) or the time zone cannot convert it.
  */
 time_t sdfio_datetime_parse(const char *text, size_t size,
                             sdfio_revision revision,

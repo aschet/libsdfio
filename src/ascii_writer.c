@@ -39,10 +39,11 @@ struct writing
 #define IS_BAD_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
     {                                                                          \
-        type stored;                                                           \
-        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
-               sizeof stored);                                                 \
-        return stored == (type)(low);                                          \
+        type coded_value;                                                      \
+        memcpy(&coded_value,                                                   \
+               (const unsigned char *)src + index * sizeof coded_value,        \
+               sizeof coded_value);                                            \
+        return coded_value == (type)(low);                                     \
     }
 
 static bool is_bad(sdfio_data_type type, const void *src, size_t index)
@@ -58,10 +59,11 @@ static bool is_bad(sdfio_data_type type, const void *src, size_t index)
 #define LOAD_INTEGER_CASE(data, type, low, high, floating)                     \
     case data:                                                                 \
     {                                                                          \
-        type stored;                                                           \
-        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
-               sizeof stored);                                                 \
-        return (floating) ? 0 : (int32_t)stored;                               \
+        type coded_value;                                                      \
+        memcpy(&coded_value,                                                   \
+               (const unsigned char *)src + index * sizeof coded_value,        \
+               sizeof coded_value);                                            \
+        return (floating) ? 0 : (int32_t)coded_value;                          \
     }
 
 /* The integer at an index, for a data type that is an integer type. */
@@ -78,10 +80,11 @@ static int32_t load_integer(sdfio_data_type type, const void *src, size_t index)
 #define LOAD_REAL_CASE(data, type, low, high, floating)                        \
     case data:                                                                 \
     {                                                                          \
-        type stored;                                                           \
-        memcpy(&stored, (const unsigned char *)src + index * sizeof stored,    \
-               sizeof stored);                                                 \
-        return (floating) ? (double)stored : 0.0;                              \
+        type coded_value;                                                      \
+        memcpy(&coded_value,                                                   \
+               (const unsigned char *)src + index * sizeof coded_value,        \
+               sizeof coded_value);                                            \
+        return (floating) ? (double)coded_value : 0.0;                         \
     }
 
 /* The number at an index as a double, which holds a float exactly, for a data
@@ -98,29 +101,29 @@ static double load_real(sdfio_data_type type, const void *src, size_t index)
 static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
 
-static bool append_text(sdfio_sink *sink, const char *text)
+static bool put_text(sdfio_sink *sink, const char *text)
 {
     return sdfio_sink_write(sink, text, strlen(text));
 }
 
 /* Appends the header line `name = value`. */
-static bool append_field(sdfio_sink *sink, const char *name, const char *value)
+static bool put_field(sdfio_sink *sink, const char *name, const char *value)
 {
-    return append_text(sink, name) && append_text(sink, " = ")
-           && append_text(sink, value) && append_text(sink, crlf);
+    return put_text(sink, name) && put_text(sink, " = ")
+           && put_text(sink, value) && put_text(sink, crlf);
 }
 
 /* Appends a header line whose value is a scale in the format of binary64. */
-static bool append_scale(sdfio_sink *sink,
-                         const sdfio_decimal_point *decimal_point,
-                         const char *name, double value)
+static bool put_scale(sdfio_sink *sink,
+                      const sdfio_decimal_point *decimal_point,
+                      const char *name, double value)
 {
     char text[SDFIO_NUMBER_CAPACITY];
     const size_t length =
         sdfio_format_scientific(decimal_point, text, sizeof text - 1, value,
                                 SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
     text[length < sizeof text - 1 ? length : sizeof text - 1] = '\0';
-    return append_field(sink, name, text);
+    return put_field(sink, name, text);
 }
 
 /* Writes the header: the magic and a line for each field. The dates
@@ -147,48 +150,47 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                           "The time zone cannot convert the modification date");
     }
     /* The field has 10 characters, as in a binary file. */
-    char identifier[SDFIO_ID_SIZE + 1] = {0};
-    const char *end = memchr(header->manufacturer_id, '\0', SDFIO_ID_SIZE);
+    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1] = {0};
+    const char *end =
+        memchr(header->manufacturer_id, '\0', SDFIO_MANUFACTURER_ID_MAX);
     memcpy(identifier, header->manufacturer_id,
            end != NULL ? (size_t)(end - header->manufacturer_id)
-                       : (size_t)SDFIO_ID_SIZE);
+                       : (size_t)SDFIO_MANUFACTURER_ID_MAX);
     char text[SDFIO_NUMBER_CAPACITY];
     const sdfio_decimal_point *point = &writing->decimal_point;
-    bool ok = append_text(sink, magics[header->revision])
-              && append_text(sink, crlf)
-              && append_field(sink, SDFIO_ASCII_MANUFACTURER_ID, identifier)
-              && append_field(sink, SDFIO_ASCII_CREATE_DATE, created)
-              && append_field(sink, SDFIO_ASCII_MODIFICATION_DATE, modified);
+    bool ok = put_text(sink, magics[header->revision]) && put_text(sink, crlf)
+              && put_field(sink, SDFIO_ASCII_MANUFACTURER_ID, identifier)
+              && put_field(sink, SDFIO_ASCII_CREATE_DATE, created)
+              && put_field(sink, SDFIO_ASCII_MODIFICATION_DATE, modified);
     snprintf(text, sizeof text, "%lu", (unsigned long)header->columns);
-    ok = ok && append_field(sink, SDFIO_ASCII_POINTS, text);
+    ok = ok && put_field(sink, SDFIO_ASCII_POINTS, text);
     snprintf(text, sizeof text, "%lu", (unsigned long)header->rows);
-    ok = ok && append_field(sink, SDFIO_ASCII_PROFILES, text);
-    ok = ok && append_scale(sink, point, SDFIO_ASCII_X_SCALE, header->x_scale)
-         && append_scale(sink, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
-         && append_scale(sink, point, SDFIO_ASCII_Z_SCALE, header->z_scale)
-         && append_scale(sink, point, SDFIO_ASCII_Z_RESOLUTION,
-                         header->z_resolution);
+    ok = ok && put_field(sink, SDFIO_ASCII_PROFILES, text);
+    ok = ok && put_scale(sink, point, SDFIO_ASCII_X_SCALE, header->x_scale)
+         && put_scale(sink, point, SDFIO_ASCII_Y_SCALE, header->y_scale)
+         && put_scale(sink, point, SDFIO_ASCII_Z_SCALE, header->z_scale)
+         && put_scale(sink, point, SDFIO_ASCII_Z_RESOLUTION,
+                      header->z_resolution);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
-    ok = ok && append_field(sink, SDFIO_ASCII_COMPRESSION, text);
+    ok = ok && put_field(sink, SDFIO_ASCII_COMPRESSION, text);
     snprintf(text, sizeof text, "%d", (int)header->data_type);
-    ok = ok && append_field(sink, SDFIO_ASCII_DATA_TYPE, text);
+    ok = ok && put_field(sink, SDFIO_ASCII_DATA_TYPE, text);
     snprintf(text, sizeof text, "%d", SDFIO_NONE);
-    ok = ok && append_field(sink, SDFIO_ASCII_CHECK_TYPE, text);
-    ok =
-        ok && sdfio_sink_write(sink, &terminator, 1) && append_text(sink, crlf);
+    ok = ok && put_field(sink, SDFIO_ASCII_CHECK_TYPE, text);
+    ok = ok && sdfio_sink_write(sink, &terminator, 1) && put_text(sink, crlf);
     return ok ? SDFIO_OK : sdfio_sink_failure(message);
 }
 
 enum
 {
     /* The digits of the largest integer of a data type, int32. */
-    SDFIO_INTEGER_DIGITS = 10
+    INTEGER_DIGITS = 10
 };
 
 /* Writes an integer in decimal digits, without a terminator. */
 static size_t put_integer(char *out, int32_t value)
 {
-    char digits[SDFIO_INTEGER_DIGITS];
+    char digits[INTEGER_DIGITS];
     size_t count = 0;
     uint32_t magnitude =
         value < 0 ? UINT32_C(0) - (uint32_t)value : (uint32_t)value;

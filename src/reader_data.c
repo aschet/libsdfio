@@ -92,20 +92,21 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
     const sdfio_header *header = &reader->header;
     if (reader->trailer_begun && rows > 0)
     {
-        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "The trailer was asked for, so no row can be read");
+        return sdfio_fail(
+            &reader->message, SDFIO_ERR_STATE,
+            "No row can be read after the reading of the trailer has begun");
     }
     if (rows > header->rows - reader->next_row)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "More rows were asked for than are left");
+                          "More rows are requested than the file has left");
     }
     if (rows > 0 && header->columns > 0 && dst == NULL)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "Give the memory to read the rows into");
+                          "The memory to read the rows into is null");
     }
-    status = sdfio_check_data_layout(&layout, header, rows, &reader->message);
+    status = sdfio_layout_check_data(&layout, header, rows, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;

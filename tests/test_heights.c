@@ -214,7 +214,7 @@ static void check_tables(void)
     CHECK(SDFIO_BAD_FLOAT == -FLT_MAX && SDFIO_BAD_DOUBLE == -DBL_MAX);
     CHECK(sdfio_data_type_size(SDFIO_TYPE_INT8) == 1);
     CHECK(sdfio_data_type_size((sdfio_data_type)0) == 0);
-    CHECK(!sdfio_valid_data_type((sdfio_data_type)2));
+    CHECK(!sdfio_data_type_valid((sdfio_data_type)2));
     CHECK(sdfio_data_type_size(SDFIO_TYPE_FLOAT) == 4);
     CHECK(sdfio_data_type_size(SDFIO_TYPE_DOUBLE) == 8);
     CHECK(sdfio_data_type_size(SDFIO_TYPE_FLOAT) == 4);
@@ -297,7 +297,7 @@ static sdfio_status layout_with(sdfio_layout layout, size_t rows,
                                 size_t columns, ptrdiff_t row_stride)
 {
     layout.row_stride = row_stride;
-    return sdfio_check_layout(&layout, rows, columns, NULL);
+    return sdfio_layout_check(&layout, rows, columns, NULL);
 }
 
 static void check_layout(void)

@@ -45,7 +45,7 @@ SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
  * sdfio_open_stream() does for a stream. The reader closes the file when it is
  * freed or when the open fails.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[in] path The path of the file.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
  * @retval SDFIO_ERR_IO The file cannot be opened.
@@ -59,7 +59,7 @@ SDFIO_API sdfio_status sdfio_open_file(sdfio_reader *reader, const char *path);
  * sdfio_end_file() closes the file. If the writing fails, the data written
  * so far remains. A header that cannot be written creates no file.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param[in] path The path of the file.
  * @param[in] header The description of the file.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the header cannot be
@@ -75,7 +75,7 @@ SDFIO_API sdfio_status sdfio_create_file(sdfio_writer *writer, const char *path,
 /**
  * Variant of sdfio_open_file() with a path of wide characters.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[in] path The path of the file.
  */
 SDFIO_API sdfio_status sdfio_open_wfile(sdfio_reader *reader,
@@ -84,7 +84,7 @@ SDFIO_API sdfio_status sdfio_open_wfile(sdfio_reader *reader,
 /**
  * Variant of sdfio_create_file() with a path of wide characters.
  *
- * @param writer The writer.
+ * @param[in,out] writer The writer.
  * @param[in] path The path of the file.
  * @param[in] header The description of the file.
  */

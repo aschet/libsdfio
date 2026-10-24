@@ -26,7 +26,7 @@ sdfio_status sdfio_options_set_buffer(sdfio_options *options, size_t size,
     if (size == 0)
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The buffer needs a size");
+                          "The size of the buffer is 0");
     }
     options->buffer_size =
         size < SDFIO_MINIMUM_BUFFER ? SDFIO_MINIMUM_BUFFER : size;

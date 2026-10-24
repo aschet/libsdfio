@@ -178,8 +178,7 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
                           "The writer has created a file already");
     }
-    const sdfio_status status =
-        sdfio_header_validate_for_writing(header, &writer->message);
+    const sdfio_status status = sdfio_header_check(header, &writer->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -261,7 +260,7 @@ sdfio_status sdfio_writer_require_writable(sdfio_writer *writer)
     if (writer->state == SDFIO_WRITER_NEW)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
-                          "Create a file first");
+                          "No file is created");
     }
     if (writer->state != SDFIO_WRITER_CREATED)
     {
@@ -271,7 +270,7 @@ sdfio_status sdfio_writer_require_writable(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_writer_sink_failed(sdfio_writer *writer)
+sdfio_status sdfio_writer_sink_failure(sdfio_writer *writer)
 {
     return sdfio_writer_fail(writer, sdfio_sink_failure(&writer->message));
 }

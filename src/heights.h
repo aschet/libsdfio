@@ -41,12 +41,12 @@ ptrdiff_t sdfio_element_stride(sdfio_layout layout);
  * @retval SDFIO_ERR_ARGUMENT The strides do not keep the elements apart, or
  * the matrix is larger than memory.
  */
-sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
+sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
                                 size_t columns, sdfio_message *message);
 
 /**
  * Checks the layout of a buffer of heights for the matrix of a header: the
- * type of the heights, and the strides (see sdfio_check_layout()).
+ * type of the heights, and the strides (see sdfio_layout_check()).
  *
  * @param[in,out] layout The layout of the buffer, whose row stride is
  * resolved.
@@ -55,7 +55,7 @@ sdfio_status sdfio_check_layout(sdfio_layout *layout, size_t rows,
  * @retval SDFIO_ERR_ARGUMENT The type is not SDFIO_TYPE_FLOAT or
  * SDFIO_TYPE_DOUBLE, or the strides are invalid.
  */
-sdfio_status sdfio_check_heights_layout(sdfio_layout *layout,
+sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
                                         const sdfio_header *header,
                                         sdfio_message *message);
 
@@ -72,7 +72,7 @@ sdfio_status sdfio_check_heights_layout(sdfio_layout *layout,
  * @retval SDFIO_ERR_ARGUMENT The type is not the data type of the file, or the
  * strides are invalid.
  */
-sdfio_status sdfio_check_data_layout(sdfio_layout *layout,
+sdfio_status sdfio_layout_check_data(sdfio_layout *layout,
                                      const sdfio_header *header, size_t rows,
                                      sdfio_message *message);
 

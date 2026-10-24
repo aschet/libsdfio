@@ -254,7 +254,7 @@
  *   the measurement. The z-scale decides what one step of the integer is worth,
  *   so it trades the range against the resolution. The z-scale of a file that
  *   holds heights between -80 and +80 micrometres in int16 values is about
- *   2.4e-9 metres. sdfio_z_scale_for_range() and sdfio_suggest_z_scale() find
+ *   2.4e-9 metres. sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() find
  *   the smallest z-scale that fits the heights.
  * - A file of a floating-point type usually holds metres directly, with the
  *   z-scale 1, but any z-scale is valid.

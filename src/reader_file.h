@@ -43,7 +43,7 @@ bool sdfio_reader_is_open(const sdfio_reader *reader);
  * @param reader The reader.
  * @retval SDFIO_ERR_STATE The reader is open already.
  */
-sdfio_status sdfio_file_check_reader(sdfio_reader *reader);
+sdfio_status sdfio_reader_check(sdfio_reader *reader);
 
 /**
  * Opens a file that is open already as the source of a reader. The reader

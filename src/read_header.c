@@ -57,21 +57,23 @@ sdfio_status sdfio_select_reader_format(
     const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
     if (available < SDFIO_MAGIC_SIZE)
     {
-        return sdfio_source_failure(source, message,
-                                    "Not an SDF file, unexpected magic");
+        return sdfio_source_failure(
+            source, message,
+            "The file does not start with a magic of an SDF file");
     }
     const char prefix = (char)source->buffer[source->position];
     if (prefix != 'a' && prefix != 'b')
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Not an SDF file, unexpected magic");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The file does not start with a magic of an SDF file");
     }
     *format = find_format(formats, prefix);
     if (*format == NULL)
     {
-        return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "The format of this SDF file has not been added to "
-                          "the reader");
+        return sdfio_fail(
+            message, SDFIO_ERR_UNSUPPORTED,
+            "The format of the file has not been added to the reader");
     }
     return SDFIO_OK;
 }
@@ -91,15 +93,15 @@ sdfio_status sdfio_read_header(sdfio_source *source,
     /* The z-scale is a non-zero positive number. */
     if (!(header->z_scale > 0.0 && isfinite(header->z_scale)))
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The z-scale of an SDF file has to be a positive "
-                          "number");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The z-scale of the file has to be a positive number");
     }
     if (!isfinite(header->x_scale) || !isfinite(header->y_scale))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The x-scale and the y-scale of an SDF file have to "
-                          "be finite numbers");
+                          "The x-scale and the y-scale of the file have to be "
+                          "finite numbers");
     }
     return SDFIO_OK;
 }

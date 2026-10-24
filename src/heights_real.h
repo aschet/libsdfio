@@ -12,7 +12,7 @@
  * `double`, so that heights of a type are calculated in that type and a program
  * that uses one of them has no code of the other in its path. The including
  * file defines REAL, REAL_SUFFIX, REAL_MAX, REAL_ABS and REAL_NEARBY, and the
- * functions make_scale, scale_multiply and scale_divide of the type.
+ * functions scale_init, scale_multiply and scale_divide of the type.
  */
 
 #ifndef REAL
@@ -49,30 +49,31 @@ static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
 }
 
 /**
- * A case of the decoding, for SDFIO_SCALARS(): a stored value is converted to
- * the type of the heights and multiplied by the scale. The lowest value of the
- * type is the bad value.
+ * A case of the decoding, for SDFIO_SCALARS(): a coded value is converted
+ * to the type of the heights and multiplied by the scale. The lowest value of
+ * the type is the bad value.
  */
 #define DECODE_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
         for (size_t i = 0; i < count; ++i)                                     \
         {                                                                      \
-            type stored;                                                       \
-            memcpy(&stored, (const unsigned char *)coded + i * sizeof stored,  \
-                   sizeof stored);                                             \
+            type coded_value;                                                  \
+            memcpy(&coded_value,                                               \
+                   (const unsigned char *)coded + i * sizeof coded_value,      \
+                   sizeof coded_value);                                        \
             REAL height = marker;                                              \
-            if (stored != (type)(low))                                         \
+            if (coded_value != (type)(low))                                    \
             {                                                                  \
                 if ((floating) && sizeof(type) > sizeof(REAL))                 \
                 {                                                              \
-                    const double wide = (double)stored;                        \
+                    const double wide = (double)coded_value;                   \
                     if (fabs(wide) <= DBL_MAX                                  \
                         && fabs(wide) > (double)REAL_MAX)                      \
                     {                                                          \
                         return SDFIO_ERR_RANGE;                                \
                     }                                                          \
                 }                                                              \
-                const REAL number = (REAL)stored;                              \
+                const REAL number = (REAL)coded_value;                         \
                 if (!REAL_NAME(is_finite)(number))                             \
                 {                                                              \
                     height = number;                                           \
@@ -99,7 +100,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     REAL_NAME(scale_type) scale;
-    REAL_NAME(make_scale)(header->z_scale, &scale);
+    REAL_NAME(scale_init)(header->z_scale, &scale);
     switch (header->data_type)
     {
         SDFIO_SCALARS(DECODE_CASE)
@@ -124,7 +125,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
             memcpy(&height,                                                    \
                    (const unsigned char *)heights + (ptrdiff_t)i * element,    \
                    sizeof height);                                             \
-            type stored = (type)(low);                                         \
+            type coded_value = (type)(low);                                    \
             if (REAL_NAME(is_finite)(height)                                   \
                 && !(has_marker && height == marker))                          \
             {                                                                  \
@@ -144,7 +145,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                     {                                                          \
                         return SDFIO_ERR_RANGE;                                \
                     }                                                          \
-                    stored = (type)number;                                     \
+                    coded_value = (type)number;                                \
                 }                                                              \
                 else                                                           \
                 {                                                              \
@@ -158,15 +159,15 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                     {                                                          \
                         return SDFIO_ERR_RANGE;                                \
                     }                                                          \
-                    stored = (type)number;                                     \
+                    coded_value = (type)number;                                \
                 }                                                              \
-                if (stored == (type)(low))                                     \
+                if (coded_value == (type)(low))                                \
                 {                                                              \
                     return SDFIO_ERR_BAD_VALUE;                                \
                 }                                                              \
             }                                                                  \
-            memcpy((unsigned char *)coded + i * sizeof stored, &stored,        \
-                   sizeof stored);                                             \
+            memcpy((unsigned char *)coded + i * sizeof coded_value,            \
+                   &coded_value, sizeof coded_value);                          \
         }                                                                      \
         return SDFIO_OK;
 
@@ -182,7 +183,7 @@ static sdfio_status REAL_NAME(encode)(const sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     REAL_NAME(scale_type) scale;
-    REAL_NAME(make_scale)(header->z_scale, &scale);
+    REAL_NAME(scale_init)(header->z_scale, &scale);
     switch (header->data_type)
     {
         SDFIO_SCALARS(ENCODE_CASE)

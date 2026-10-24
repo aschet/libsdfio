@@ -27,7 +27,9 @@ typedef struct sdfio_writer_format sdfio_writer_format;
 
 /**
  * A writer format: the functions that write one format of the files.
- * The writer knows nothing of the file formats, as the reader does not.
+ * The writer knows nothing of the file formats, as the reader does not. The
+ * source file of a format names its functions after the members of this
+ * structure, without a prefix.
  */
 struct sdfio_writer_format
 {

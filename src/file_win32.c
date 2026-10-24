@@ -25,7 +25,7 @@ sdfio_status sdfio_open_wfile(sdfio_reader *reader, const wchar_t *path)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const sdfio_status ready = sdfio_file_check_reader(reader);
+    const sdfio_status ready = sdfio_reader_check(reader);
     if (ready != SDFIO_OK)
     {
         return ready;

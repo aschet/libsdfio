@@ -32,7 +32,7 @@ static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
 static sdfio_status describe_coded_values(sdfio_header *header)
 {
     const double z_scale =
-        sdfio_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
+        sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
     sdfio_status status = sdfio_header_set_now(header);
     if (status == SDFIO_OK)
     {

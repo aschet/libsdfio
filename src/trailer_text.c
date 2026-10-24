@@ -14,9 +14,9 @@
 
 enum
 {
-    /** The bytes of the source that are looked at to find a line that consists
+    /* The bytes of the source that are looked at to find a line that consists
      * of `*`, so that the white space around the star is at most 30 bytes. */
-    SDFIO_STAR_WINDOW = 32
+    STAR_WINDOW = 32
 };
 
 static bool is_blank(int c)
@@ -28,7 +28,7 @@ static bool is_blank(int c)
  * taken. A line with more white space than the window holds is no such line. */
 static bool at_star_line(sdfio_source *source)
 {
-    const size_t buffered = sdfio_source_fill(source, SDFIO_STAR_WINDOW);
+    const size_t buffered = sdfio_source_fill(source, STAR_WINDOW);
     const unsigned char *at = source->buffer + source->position;
     size_t i = 0;
     while (i < buffered && is_blank(at[i]))
@@ -48,7 +48,7 @@ static bool at_star_line(sdfio_source *source)
     {
         return at[i] == '\r' || at[i] == '\n';
     }
-    return buffered < SDFIO_STAR_WINDOW; /* the file ends after the star */
+    return buffered < STAR_WINDOW; /* the file ends after the star */
 }
 
 /* Takes the white space that precedes the text of the trailer. */
@@ -142,7 +142,7 @@ sdfio_status sdfio_trailer_read(sdfio_source *source,
             if (source->failed)
             {
                 return sdfio_source_failure(source, message,
-                                            "The SDF trailer cannot be read");
+                                            "The trailer cannot be read");
             }
             state->done = true;
             continue;

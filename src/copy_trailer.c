@@ -15,7 +15,7 @@
 enum
 {
     /* The size of the parts in which the trailer is copied. */
-    SDFIO_COPY_PART = 256
+    COPY_PART = 256
 };
 
 sdfio_status sdfio_copy_trailer(sdfio_reader *reader, sdfio_writer *writer)
@@ -31,7 +31,7 @@ sdfio_status sdfio_copy_trailer(sdfio_reader *reader, sdfio_writer *writer)
     {
         return status;
     }
-    char part[SDFIO_COPY_PART];
+    char part[COPY_PART];
     size_t size = 0;
     for (;;)
     {

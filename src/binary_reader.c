@@ -75,8 +75,9 @@ static bool revision_of(const unsigned char *magic, sdfio_revision *revision)
  * whatever was in memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
-    const unsigned char *end = memchr(field, '\0', SDFIO_ID_SIZE);
-    size_t size = end != NULL ? (size_t)(end - field) : SDFIO_ID_SIZE;
+    const unsigned char *end = memchr(field, '\0', SDFIO_MANUFACTURER_ID_MAX);
+    size_t size =
+        end != NULL ? (size_t)(end - field) : SDFIO_MANUFACTURER_ID_MAX;
     while (size > 0 && sdfio_is_space((char)field[size - 1]))
     {
         --size;
@@ -107,17 +108,18 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     unsigned char magic[SDFIO_MAGIC_SIZE];
     if (!take(source, magic, sizeof magic))
     {
-        return sdfio_source_failure(source, message,
-                                    "Not an SDF file, unexpected magic");
+        return sdfio_source_failure(
+            source, message,
+            "The file does not start with a magic of an SDF file");
     }
     sdfio_revision revision = SDFIO_ISO_2_0;
     if (!revision_of(magic, &revision))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown or unsupported SDF magic");
+                          "The magic of the file is not supported");
     }
     const size_t columns_rows_size = sdfio_revision_columns_rows_size(revision);
-    unsigned char identifier[SDFIO_ID_SIZE];
+    unsigned char identifier[SDFIO_MANUFACTURER_ID_MAX];
     unsigned char created_text[SDFIO_DATETIME_SIZE];
     unsigned char modified_text[SDFIO_DATETIME_SIZE];
     unsigned char columns_field[sizeof(uint32_t)];
@@ -135,18 +137,16 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     }
     if (!complete || !take(source, codes, sizeof codes))
     {
-        return sdfio_source_failure(source, message,
-                                    "File is too short to contain an SDF "
-                                    "header");
+        return sdfio_source_failure(
+            source, message, "The file ends before the header is complete");
     }
     copy_identifier(header, identifier);
-    if (!sdfio_datetime_is_valid((const char *)created_text,
-                                 SDFIO_DATETIME_SIZE)
-        || !sdfio_datetime_is_valid((const char *)modified_text,
-                                    SDFIO_DATETIME_SIZE))
+    if (!sdfio_datetime_valid((const char *)created_text, SDFIO_DATETIME_SIZE)
+        || !sdfio_datetime_valid((const char *)modified_text,
+                                 SDFIO_DATETIME_SIZE))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "A date of the SDF header is not valid");
+                          "A date of the header is not valid");
     }
     const time_t created = sdfio_datetime_parse(
         (const char *)created_text, SDFIO_DATETIME_SIZE, revision, zone);
@@ -164,23 +164,24 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     if (compression != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The compression type of an SDF file has to be 0");
+                          "The compression type of the file has to be 0");
     }
     if (check_type != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The checksum type of an SDF file has to be 0");
+                          "The checksum type of the file has to be 0");
     }
     sdfio_data_type type = SDFIO_TYPE_FLOAT;
     if (!sdfio_data_type_from_code(code, &type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown SDF data type code");
+                          "The data type code of the header is unknown");
     }
     if (!sdfio_revision_allows(revision, type))
     {
-        return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "The data type is not valid for the SDF revision");
+        return sdfio_fail(
+            message, SDFIO_ERR_FORMAT,
+            "The data type is not valid for the revision of the file");
     }
     header->revision = revision;
     header->format = SDFIO_BINARY;
@@ -201,9 +202,8 @@ static sdfio_status read_values(sdfio_source *source,
     const size_t size = sdfio_data_type_size(header->data_type);
     if (sdfio_source_read(source, dst, count * size) != count * size)
     {
-        return sdfio_source_failure(source, message,
-                                    "Unexpected end of file while reading the "
-                                    "SDF data area");
+        return sdfio_source_failure(
+            source, message, "The file ends before the data area is complete");
     }
     sdfio_fix_endianness(dst, count, size);
     return SDFIO_OK;
@@ -225,9 +225,9 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
             left - done < scratch_size ? left - done : scratch_size;
         if (sdfio_source_read(source, scratch, step) != step)
         {
-            return sdfio_source_failure(source, message,
-                                        "Unexpected end of file while reading "
-                                        "the SDF data area");
+            return sdfio_source_failure(
+                source, message,
+                "The file ends before the data area is complete");
         }
         done += step;
     }

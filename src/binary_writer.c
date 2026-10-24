@@ -27,7 +27,8 @@
 #include <string.h>
 
 _Static_assert(SDFIO_MAGIC_SIZE <= SDFIO_DATETIME_SIZE
-                   && SDFIO_ID_SIZE <= SDFIO_DATETIME_SIZE,
+                   && (size_t)SDFIO_MANUFACTURER_ID_MAX
+                          <= (size_t)SDFIO_DATETIME_SIZE,
                "a text field of the header fits the buffer of put_text");
 
 static size_t scratch_size(size_t chunk_values)
@@ -101,7 +102,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         [SDFIO_BINARY_CODE_CHECKSUM] = SDFIO_NONE};
     const bool written =
         put_text(sink, magic, SDFIO_MAGIC_SIZE)
-        && put_text(sink, header->manufacturer_id, SDFIO_ID_SIZE)
+        && put_text(sink, header->manufacturer_id, SDFIO_MANUFACTURER_ID_MAX)
         && put_text(sink, created, SDFIO_DATETIME_SIZE)
         && put_text(sink, modified, SDFIO_DATETIME_SIZE)
         && put_le(sink, columns_rows_size, header->columns)

@@ -60,7 +60,7 @@ enum
  *
  * @param type The value to test.
  */
-bool sdfio_valid_heights_type(sdfio_data_type type);
+bool sdfio_heights_type_valid(sdfio_data_type type);
 
 /**
  * Returns the size in bytes of one coded value of a data type, or 0 if the
@@ -75,7 +75,7 @@ size_t sdfio_data_type_size(sdfio_data_type type);
  *
  * @param type The value to test.
  */
-bool sdfio_valid_data_type(sdfio_data_type type);
+bool sdfio_data_type_valid(sdfio_data_type type);
 
 /**
  * Finds the data type that a code of a file stands for.

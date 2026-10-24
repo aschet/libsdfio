@@ -170,7 +170,7 @@ sdfio_status sdfio_header_set_format(sdfio_header *header, sdfio_format format)
 sdfio_status sdfio_header_set_data_type(sdfio_header *header,
                                         sdfio_data_type data_type)
 {
-    if (header == NULL || !sdfio_valid_data_type(data_type))
+    if (header == NULL || !sdfio_data_type_valid(data_type))
     {
         return SDFIO_ERR_ARGUMENT;
     }
@@ -243,48 +243,46 @@ sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_header_set_created(sdfio_header *header,
-                                      time_t creation_date)
+sdfio_status sdfio_header_set_created(sdfio_header *header, time_t created)
 {
-    if (header == NULL || !date_valid(creation_date))
+    if (header == NULL || !date_valid(created))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->creation_date = creation_date;
+    header->creation_date = created;
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_header_set_modified(sdfio_header *header,
-                                       time_t modification_date)
+sdfio_status sdfio_header_set_modified(sdfio_header *header, time_t modified)
 {
-    if (header == NULL || !date_valid(modification_date))
+    if (header == NULL || !date_valid(modified))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->modification_date = modification_date;
+    header->modification_date = modified;
     return SDFIO_OK;
 }
 
 sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
-                                           const char *manufacturer_id)
+                                           const char *manufacturer)
 {
-    if (header == NULL || manufacturer_id == NULL)
+    if (header == NULL || manufacturer == NULL)
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const size_t length = strlen(manufacturer_id);
+    const size_t length = strlen(manufacturer);
     if (length > SDFIO_MANUFACTURER_ID_MAX)
     {
         return SDFIO_ERR_ARGUMENT;
     }
     for (size_t i = 0; i < length; ++i)
     {
-        if (!sdfio_is_printable(manufacturer_id[i]))
+        if (!sdfio_is_printable(manufacturer[i]))
         {
             return SDFIO_ERR_ARGUMENT;
         }
     }
-    memcpy(header->manufacturer_id, manufacturer_id, length + 1);
+    memcpy(header->manufacturer_id, manufacturer, length + 1);
     return SDFIO_OK;
 }
 
@@ -298,33 +296,36 @@ bool sdfio_coded_values(const sdfio_header *header, size_t *values)
     return true;
 }
 
-sdfio_status sdfio_header_validate_for_writing(const sdfio_header *header,
-                                               sdfio_message *message)
+sdfio_status sdfio_header_check(const sdfio_header *header,
+                                sdfio_message *message)
 {
     if (!sdfio_revision_allows(header->revision, header->data_type))
     {
-        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The data type is not valid for the SDF revision");
+        return sdfio_fail(
+            message, SDFIO_ERR_ARGUMENT,
+            "The data type is not valid for the revision of the header");
     }
     if (header->creation_date == SDFIO_NO_TIME
         || header->modification_date == SDFIO_NO_TIME)
     {
-        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "A file needs a creation date and a modification "
-                          "date: SDFIO_NO_TIME cannot be written");
+        return sdfio_fail(
+            message, SDFIO_ERR_ARGUMENT,
+            "The creation date and the modification date of the header have to "
+            "be set: SDFIO_NO_TIME cannot be written");
     }
     size_t values = 0;
     if (!sdfio_coded_values(header, &values))
     {
-        return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "columns times rows does not fit in size_t");
+        return sdfio_fail(
+            message, SDFIO_ERR_ARGUMENT,
+            "The product of the columns and the rows does not fit in size_t");
     }
     if (header->columns > sdfio_max_columns_and_rows(header->revision)
         || header->rows > sdfio_max_columns_and_rows(header->revision))
     {
         return sdfio_fail(message, SDFIO_ERR_ARGUMENT,
-                          "The columns or the rows do not fit the header of "
-                          "the SDF revision");
+                          "The number of columns or rows of the header is out "
+                          "of range for the revision");
     }
     return SDFIO_OK;
 }

@@ -49,7 +49,7 @@ typedef struct sdfio_header sdfio_header;
  *
  * The defaults are: revision ISO-2.0, binary format, data type
  * SDFIO_TYPE_FLOAT, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE,
- * z_resolution SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer_id
+ * z_resolution SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer
  * "libsdfio", and zero columns and rows. The caller sets the number of columns
  * and rows, the dates, which a file that is written requires, and every other
  * field that differs. The function does not read the clock, so a program
@@ -286,12 +286,12 @@ SDFIO_API time_t sdfio_header_created(const sdfio_header *header);
  * SDFIO_NO_TIME.
  *
  * @param[in,out] header The header.
- * @param creation_date The date, or SDFIO_NO_TIME.
+ * @param created The date, or SDFIO_NO_TIME.
  * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
  * of the SDF files.
  */
 SDFIO_API sdfio_status sdfio_header_set_created(sdfio_header *header,
-                                                time_t creation_date);
+                                                time_t created);
 
 /**
  * Returns the last modification date and time. The rules of the creation date
@@ -306,12 +306,12 @@ SDFIO_API time_t sdfio_header_modified(const sdfio_header *header);
  * apply.
  *
  * @param[in,out] header The header.
- * @param modification_date The date, or SDFIO_NO_TIME.
+ * @param modified The date, or SDFIO_NO_TIME.
  * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
  * of the SDF files.
  */
 SDFIO_API sdfio_status sdfio_header_set_modified(sdfio_header *header,
-                                                 time_t modification_date);
+                                                 time_t modified);
 
 /**
  * Returns the manufacturer's identifier: 7-bit ASCII, at most
@@ -326,13 +326,13 @@ SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
  * Sets the manufacturer's identifier.
  *
  * @param[in,out] header The header.
- * @param[in] manufacturer_id The identifier, terminated by a null character.
+ * @param[in] manufacturer The identifier, terminated by a null character.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, the identifier is longer than
  * SDFIO_MANUFACTURER_ID_MAX characters, or it has a character that is not a
  * printable 7-bit ASCII character.
  */
-SDFIO_API sdfio_status sdfio_header_set_manufacturer(
-    sdfio_header *header, const char *manufacturer_id);
+SDFIO_API sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
+                                                     const char *manufacturer);
 
 #ifdef __cplusplus
 }

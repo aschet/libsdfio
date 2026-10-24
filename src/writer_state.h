@@ -88,7 +88,7 @@ sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status);
  * @param writer The writer.
  * @return SDFIO_ERR_IO.
  */
-sdfio_status sdfio_writer_sink_failed(sdfio_writer *writer);
+sdfio_status sdfio_writer_sink_failure(sdfio_writer *writer);
 
 /**
  * Verifies the precondition of every write operation: a file is created and

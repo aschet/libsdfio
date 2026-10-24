@@ -51,7 +51,7 @@ bool sdfio_revision_valid(sdfio_revision revision)
 
 bool sdfio_revision_allows(sdfio_revision revision, sdfio_data_type type)
 {
-    return sdfio_revision_valid(revision) && sdfio_valid_data_type(type)
+    return sdfio_revision_valid(revision) && sdfio_data_type_valid(type)
            && (rules[revision].data_types & TYPE_BIT(type)) != 0;
 }
 

@@ -59,7 +59,7 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * Like the other options of a reader, a format is added before the first
  * attempt to open a file.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
  * already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
@@ -71,7 +71,7 @@ SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
  * numbers `aISO-1.0` and `aISO-2.0`. The rules of
  * sdfio_reader_add_binary() apply.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
  * already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
@@ -83,7 +83,7 @@ SDFIO_API sdfio_status sdfio_reader_add_ascii(sdfio_reader *reader);
  * default is 16384. A value below 64 is raised to 64. A smaller buffer causes
  * more calls of the stream callbacks.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param size The size, not 0.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the size is 0.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
@@ -95,7 +95,7 @@ SDFIO_API sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader,
  * Sets the number of values that the reader converts at a time. The default is
  * 1024. The chunk occupies up to 8 bytes per value.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param count The number of values, not 0 and not so large that the chunk
  * cannot be counted in bytes.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or the number is not valid.
@@ -109,7 +109,7 @@ SDFIO_API sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader,
  * so it need not outlive the call. Null selects no conversion, which is the
  * default.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[in] time_zone The time zone, or null.
  * @retval SDFIO_ERR_ARGUMENT The reader is null.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made earlier.
@@ -143,7 +143,7 @@ SDFIO_API const char *sdfio_reader_magic(const sdfio_reader *reader,
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.
  * A null pointer is ignored.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  */
 SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
 
@@ -151,7 +151,7 @@ SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
  * Opens a block of memory as the source and reads the header. The memory is not
  * copied: it must remain valid and unchanged while the reader is in use.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[in] data The first byte of the file.
  * @param size The size of the file in bytes.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
@@ -169,7 +169,7 @@ SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
  * and the callbacks and the object that `user` refers to must remain valid
  * while the reader is in use. The stream is read once, from the start.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[in] stream The stream; `read` is required.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or `read` is not set.
  * @retval SDFIO_ERR_STATE The reader is open already.
@@ -211,7 +211,7 @@ SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
  *
  * After an error the reader rejects further reads.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param layout The layout of the buffer.
  * @param[out] dst The buffer for the coded values.
  * @param rows The number of rows to read.
@@ -241,7 +241,7 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  * The function reads from the first row of the data area, so no rows may have
  * been read before.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param layout The layout of the buffer.
  * @param[out] dst The buffer for the heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
@@ -269,7 +269,7 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  * it. In an ASCII file the white space before the text is skipped, and the
  * trailer ends at the line that consists of `*`.
  *
- * @param reader The reader.
+ * @param[in,out] reader The reader.
  * @param[out] buffer Receives the text.
  * @param capacity The size of `buffer` in bytes, at least 1.
  * @param[out] size Receives the number of bytes written, 0 at the end of the

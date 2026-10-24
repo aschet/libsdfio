@@ -142,6 +142,23 @@ bool sdfio_tagged_name_valid(const char *name)
     return true;
 }
 
+bool sdfio_tagged_name_equal(const char *a, size_t a_size, const char *b,
+                             size_t b_size)
+{
+    if (a_size != b_size)
+    {
+        return false;
+    }
+    for (size_t i = 0; i < a_size; ++i)
+    {
+        if (sdfio_lower(a[i]) != sdfio_lower(b[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool sdfio_tagged_value_valid(const char *value)
 {
     for (size_t i = 0; value[i] != '\0'; ++i)

@@ -27,10 +27,10 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
     if (reader->next_row != 0 || reader->trailer_begun)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "Rows were read already, or the trailer was asked "
-                          "for");
+                          "Rows have been read already, or the reading of the "
+                          "trailer has begun");
     }
-    status = sdfio_check_heights_layout(&layout, header, &reader->message);
+    status = sdfio_layout_check_heights(&layout, header, &reader->message);
     if (status != SDFIO_OK)
     {
         return status;
@@ -39,7 +39,7 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
     if (reader->value_count > 0 && dst == NULL)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
-                          "Give the memory to read the heights into");
+                          "The memory to read the heights into is null");
     }
     const size_t valued_rows = header->columns > 0 ? header->rows : 0;
     for (size_t file_row = 0; file_row < valued_rows; ++file_row)
