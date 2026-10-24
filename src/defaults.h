@@ -44,32 +44,4 @@ static inline bool sdfio_chunk_valid(size_t chunk)
            && chunk <= SIZE_MAX / SDFIO_TEXT_PER_VALUE;
 }
 
-/**
- * Tells whether an allocator can be used: both callbacks are set.
- *
- * @param allocator The allocator.
- */
-static inline bool sdfio_allocator_valid(const sdfio_allocator *allocator)
-{
-    return allocator->allocate != NULL && allocator->release != NULL;
-}
-
-/**
- * Takes the allocator argument of a create function.
- *
- * @param given The argument.
- * @param[out] used Receives a copy of the allocator.
- * @return False if the argument is null or lacks a callback.
- */
-static inline bool sdfio_allocator_take(const sdfio_allocator *given,
-                                        sdfio_allocator *used)
-{
-    if (given == NULL || !sdfio_allocator_valid(given))
-    {
-        return false;
-    }
-    *used = *given;
-    return true;
-}
-
 #endif /* SDFIO_SRC_DEFAULTS_H */

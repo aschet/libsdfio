@@ -9,7 +9,7 @@
  * @brief Life of a writer: creation, file start and release.
  */
 
-#include "allocation.h"
+#include "allocator.h"
 #include "data_type.h"
 #include "defaults.h"
 #include "header.h"

@@ -10,7 +10,7 @@
  */
 
 #include "sink.h"
-#include "allocation.h"
+#include "allocator.h"
 #include "message.h"
 #include <sdfio/sdfio.h>
 #include <string.h>

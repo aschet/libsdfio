@@ -9,7 +9,7 @@
  * @brief Life of a reader: creation, opening and release.
  */
 
-#include "allocation.h"
+#include "allocator.h"
 #include "data_type.h"
 #include "defaults.h"
 #include "header.h"

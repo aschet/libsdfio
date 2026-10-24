@@ -5,11 +5,11 @@
  */
 
 /**
- * @file allocation.c
- * @brief Memory through the allocator of a handle.
+ * @file allocator.c
+ * @brief Allocation through the allocator of a handle.
  */
 
-#include "allocation.h"
+#include "allocator.h"
 
 void *sdfio_allocate(const sdfio_allocator *allocator, size_t size)
 {
