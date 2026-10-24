@@ -32,7 +32,8 @@ void check(sdfio_status status, const char *message)
 Header copy_header(const sdfio_header *source)
 {
     sdfio_header *header = nullptr;
-    check(sdfio_header_create(nullptr, &header), "Creating the header failed");
+    check(sdfio_header_create(sdfio_default_allocator(), &header),
+          "Creating the header failed");
     Header owned(header, sdfio_header_free);
     check(sdfio_header_copy(header, source), "Copying the header failed");
     return owned;
@@ -41,7 +42,8 @@ Header copy_header(const sdfio_header *source)
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(nullptr, &reader), "Creating the reader failed");
+    check(sdfio_reader_create(sdfio_default_allocator(), &reader),
+          "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
     check(sdfio_reader_add_binary_format(reader),
           "Adding the binary format failed");
@@ -53,7 +55,8 @@ Reader create_reader()
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(nullptr, &writer), "Creating the writer failed");
+    check(sdfio_writer_create(sdfio_default_allocator(), &writer),
+          "Creating the writer failed");
     Writer owned(writer, sdfio_writer_free);
     check(sdfio_writer_add_binary_format(writer),
           "Adding the binary format failed");

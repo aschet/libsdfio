@@ -60,7 +60,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
     sdfio_header *header = NULL;
-    if (sdfio_header_create(NULL, &header) != SDFIO_OK)
+    if (sdfio_header_create(sdfio_default_allocator(), &header) != SDFIO_OK)
     {
         return 0;
     }

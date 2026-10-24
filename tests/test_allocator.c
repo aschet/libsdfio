@@ -256,10 +256,23 @@ static void check_arena(void)
 
 static void check_arguments(void)
 {
-    /* An allocator needs both of its functions. */
+    /* An allocator is needed, with both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
     sdfio_reader *reader_none = NULL;
     sdfio_writer *writer_none = NULL;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_create(NULL, &reader_none));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_create(NULL, &writer_none));
+    const sdfio_allocator *standard = sdfio_default_allocator();
+    CHECK(sdfio_default_allocator() == standard);
+    CHECK(standard != NULL && standard->allocate != NULL
+          && standard->release != NULL);
+    if (standard != NULL && standard->allocate != NULL
+        && standard->release != NULL)
+    {
+        void *block = standard->allocate(standard->user, 16);
+        CHECK(block != NULL);
+        standard->release(standard->user, block);
+    }
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_reader_create(&broken, &reader_none));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -267,15 +280,17 @@ static void check_arguments(void)
     CHECK(reader_none == NULL && writer_none == NULL);
 
     /* A place for the handle is needed. */
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_reader_create(NULL, NULL));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_create(NULL, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_reader_create(sdfio_default_allocator(), NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_writer_create(sdfio_default_allocator(), NULL));
 
     /* The options: a chunk that cannot be counted in bytes, a buffer without a
      * size, a format that is listed twice, and more formats than there are. */
     sdfio_reader *reader_made = NULL;
     sdfio_writer *writer_made = NULL;
-    CHECK_OK(sdfio_reader_create(NULL, &reader_made));
-    CHECK_OK(sdfio_writer_create(NULL, &writer_made));
+    CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &reader_made));
+    CHECK_OK(sdfio_writer_create(sdfio_default_allocator(), &writer_made));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_reader_set_chunk_values(reader_made, (size_t)-1));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -366,12 +381,12 @@ static void check_arguments(void)
     /* A handle needs a format of its direction before a file is opened or
      * created. */
     sdfio_reader *no_format_reader = NULL;
-    CHECK_OK(sdfio_reader_create(NULL, &no_format_reader));
+    CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &no_format_reader));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_open_memory(no_format_reader, junk, sizeof junk));
     sdfio_reader_free(no_format_reader);
     sdfio_writer *no_format_writer = NULL;
-    CHECK_OK(sdfio_writer_create(NULL, &no_format_writer));
+    CHECK_OK(sdfio_writer_create(sdfio_default_allocator(), &no_format_writer));
     sdfio_header *no_format_header = new_header();
     membuf no_format_sink = {0};
     const sdfio_stream no_format_stream = membuf_stream(&no_format_sink);
@@ -422,7 +437,7 @@ static void check_format_list(void)
     sdfio_reader_format second_read = {.prefix = 'y'};
     sdfio_reader_format third_read = {.prefix = 'z'};
     sdfio_reader *reader = NULL;
-    CHECK_OK(sdfio_reader_create(NULL, &reader));
+    CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &reader));
     CHECK_OK(sdfio_reader_install_format(reader, &first_read));
     CHECK_OK(sdfio_reader_install_format(reader, &second_read));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -435,7 +450,7 @@ static void check_format_list(void)
     sdfio_writer_format second_write = {.writes = SDFIO_ASCII};
     sdfio_writer_format third_write = {.writes = SDFIO_BINARY};
     sdfio_writer *writer = NULL;
-    CHECK_OK(sdfio_writer_create(NULL, &writer));
+    CHECK_OK(sdfio_writer_create(sdfio_default_allocator(), &writer));
     CHECK_OK(sdfio_writer_install_format(writer, &first_write));
     CHECK_OK(sdfio_writer_install_format(writer, &second_write));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,

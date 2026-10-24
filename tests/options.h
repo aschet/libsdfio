@@ -20,7 +20,8 @@ typedef enum test_format
     TEST_ASCII
 } test_format;
 
-/* Zero selects the default of an option, and the formats are listed. */
+/* Zero selects the default of an option, and the formats are listed. A null
+ * allocator selects the allocator of the library. */
 typedef struct test_options
 {
     const sdfio_allocator *allocator;
@@ -71,7 +72,10 @@ static inline sdfio_status add_writer_format(sdfio_writer *writer,
 static inline sdfio_status create_reader(const test_options *options,
                                          sdfio_reader **reader)
 {
-    sdfio_status status = sdfio_reader_create(options->allocator, reader);
+    sdfio_status status = sdfio_reader_create(options->allocator != NULL
+                                                  ? options->allocator
+                                                  : sdfio_default_allocator(),
+                                              reader);
     for (size_t i = 0; status == SDFIO_OK && i < 2; ++i)
     {
         status = add_reader_format(*reader, options->reader_formats[i]);
@@ -100,7 +104,10 @@ static inline sdfio_status create_reader(const test_options *options,
 static inline sdfio_status create_writer(const test_options *options,
                                          sdfio_writer **writer)
 {
-    sdfio_status status = sdfio_writer_create(options->allocator, writer);
+    sdfio_status status = sdfio_writer_create(options->allocator != NULL
+                                                  ? options->allocator
+                                                  : sdfio_default_allocator(),
+                                              writer);
     for (size_t i = 0; status == SDFIO_OK && i < 2; ++i)
     {
         status = add_writer_format(*writer, options->writer_formats[i]);

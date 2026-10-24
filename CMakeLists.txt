@@ -65,6 +65,7 @@ set(SDFIO_SOURCES
     src/heights.h
     src/heights_real.h
     src/allocation.c
+    src/allocator_default.c
     src/allocation.h
     src/message.h
     src/owner.h

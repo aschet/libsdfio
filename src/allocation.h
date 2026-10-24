@@ -17,8 +17,7 @@
 /**
  * Allocates memory through the allocator of a handle.
  *
- * @param allocator The allocator. If it is null or has no allocate function,
- * malloc is used.
+ * @param allocator The allocator, with both callbacks set.
  * @param size The size in bytes.
  * @return The memory, or null if there is none.
  */

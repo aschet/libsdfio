@@ -57,7 +57,8 @@ static sdfio_status write_excerpt(sdfio_writer *writer, sdfio_reader *reader,
     const size_t first_column = sdfio_header_columns(source) / 4;
     const size_t first_row = sdfio_header_rows(source) / 4;
     sdfio_header *header = NULL;
-    sdfio_status status = sdfio_header_create(NULL, &header);
+    sdfio_status status =
+        sdfio_header_create(sdfio_default_allocator(), &header);
     if (status == SDFIO_OK)
     {
         status = describe_excerpt(header, source, columns, rows);
@@ -106,7 +107,8 @@ int main(int argc, char **argv)
     }
     sdfio_reader *reader = NULL;
     sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    sdfio_status status =
+        sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
         status = sdfio_reader_add_binary_format(reader);
@@ -121,7 +123,7 @@ int main(int argc, char **argv)
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_create(NULL, &writer);
+        status = sdfio_writer_create(sdfio_default_allocator(), &writer);
     }
     if (status == SDFIO_OK)
     {

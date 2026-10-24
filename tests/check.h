@@ -156,7 +156,7 @@ static void free_made_headers(void)
 static inline sdfio_header *new_header(void)
 {
     sdfio_header *header = NULL;
-    CHECK_OK(sdfio_header_create(NULL, &header));
+    CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
     if (made_header_count == 0)
     {
         atexit(free_made_headers);

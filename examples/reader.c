@@ -9,7 +9,8 @@ int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "integer.sdf";
     sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    sdfio_status status =
+        sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
         status = sdfio_reader_add_binary_format(reader);

@@ -64,7 +64,8 @@ static sdfio_status describe_coded_values(sdfio_header *header)
 static int write_coded_values(const char *path)
 {
     sdfio_header *header = NULL;
-    sdfio_status status = sdfio_header_create(NULL, &header);
+    sdfio_status status =
+        sdfio_header_create(sdfio_default_allocator(), &header);
     if (status == SDFIO_OK)
     {
         status = describe_coded_values(header);
@@ -73,7 +74,7 @@ static int write_coded_values(const char *path)
     sdfio_writer *writer = NULL;
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_create(NULL, &writer);
+        status = sdfio_writer_create(sdfio_default_allocator(), &writer);
     }
     if (status == SDFIO_OK)
     {
@@ -106,7 +107,8 @@ static int write_coded_values(const char *path)
 static int read_coded_values(const char *path)
 {
     sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    sdfio_status status =
+        sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
         status = sdfio_reader_add_binary_format(reader);

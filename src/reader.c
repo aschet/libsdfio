@@ -40,7 +40,7 @@ sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
     }
     *reader = NULL;
     sdfio_allocator used;
-    if (!sdfio_allocator_resolve(allocator, &used))
+    if (!sdfio_allocator_take(allocator, &used))
     {
         return SDFIO_ERR_ARGUMENT;
     }

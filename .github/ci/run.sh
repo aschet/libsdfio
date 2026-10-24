@@ -187,7 +187,7 @@ run_firmware() {
     -o "$dir/firmware"
   "$prefix-size" "$dir/firmware"
   if "$prefix-nm" "$dir/firmware" \
-    | grep -E "sdfio_(ascii|parse_number|format_scientific)|add_ascii_format"; then
+    | grep -E "sdfio_(ascii|parse_number|format_scientific)|add_ascii_format|[[:space:]](malloc|free)$"; then
     echo "The image contains code that the program does not name." >&2
     exit 1
   fi

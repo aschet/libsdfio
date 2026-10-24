@@ -20,7 +20,8 @@ int main(void)
 #endif
     const sdfio_stream stream = sdfio_stdio_stream(stdin);
     sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    sdfio_status status =
+        sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (status == SDFIO_OK)
     {
         status = sdfio_reader_add_binary_format(reader);

@@ -213,7 +213,10 @@ static void check_copy(void)
 static void check_creation(void)
 {
     sdfio_header *header = NULL;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_create(NULL, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_header_create(sdfio_default_allocator(), NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_create(NULL, &header));
+    CHECK(header == NULL);
     const sdfio_allocator incomplete = {NULL, counting_allocate, NULL};
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_create(&incomplete, &header));
     CHECK(header == NULL);

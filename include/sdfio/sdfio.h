@@ -226,6 +226,15 @@ typedef struct sdfio_allocator
 } sdfio_allocator;
 
 /**
+ * Returns the allocator that uses malloc() and free(). A program that does not
+ * call the function does not contain them, which a program without a heap
+ * relies on.
+ *
+ * @return A pointer to a constant allocator, valid for the life of the program.
+ */
+SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
+
+/**
  * Header of a file (record 1), with the field names of the standard.
  *
  * The points of the matrix lie in a right-handed coordinate system: x grows
@@ -255,12 +264,13 @@ typedef struct sdfio_header sdfio_header;
  * "libsdfio", and zero columns and rows. The caller sets the number of columns
  * and rows and every other field that differs.
  *
- * @param[in] allocator The allocator of the header, or null for the standard
- * allocator.
+ * @param[in] allocator The allocator of the header, for example
+ * sdfio_default_allocator(). The structure is copied, so it need not outlive
+ * the call. Both callbacks must be set.
  * @param[out] header Receives the header, or null if the call fails. The
  * caller releases it with sdfio_header_free().
- * @retval SDFIO_ERR_ARGUMENT `header` is null, or the allocator lacks a
- * function.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the allocator lacks a
+ * callback.
  * @retval SDFIO_ERR_MEMORY The allocation failed.
  */
 SDFIO_API sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
@@ -687,9 +697,9 @@ typedef struct sdfio_reader sdfio_reader;
  * reader and may set its options, and the buffers are allocated when a file is
  * opened. Release the reader with sdfio_reader_free().
  *
- * @param[in] allocator The allocator for all memory of the reader. The
- * structure is copied, so it need not outlive the call. Null selects malloc()
- * and free(). Both callbacks must be set.
+ * @param[in] allocator The allocator for all memory of the reader, for example
+ * sdfio_default_allocator(). The structure is copied, so it need not outlive
+ * the call. Both callbacks must be set.
  * @param[out] reader Receives the reader, or null if the call fails.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the allocator lacks a
  * callback.
@@ -1013,9 +1023,9 @@ typedef struct sdfio_writer sdfio_writer;
  * writer and may set its options, and the buffers are allocated when a file is
  * created. Release the writer with sdfio_writer_free().
  *
- * @param[in] allocator The allocator for all memory of the writer. The
- * structure is copied, so it need not outlive the call. Null selects malloc()
- * and free(). Both callbacks must be set.
+ * @param[in] allocator The allocator for all memory of the writer, for example
+ * sdfio_default_allocator(). The structure is copied, so it need not outlive
+ * the call. Both callbacks must be set.
  * @param[out] writer Receives the writer, or null if the call fails.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the allocator lacks a
  * callback.

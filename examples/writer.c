@@ -55,7 +55,8 @@ static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
 static int write_surface(const char *path, sdfio_data_type type)
 {
     sdfio_header *header = NULL;
-    sdfio_status status = sdfio_header_create(NULL, &header);
+    sdfio_status status =
+        sdfio_header_create(sdfio_default_allocator(), &header);
     if (status == SDFIO_OK)
     {
         status = describe_surface(header, type);
@@ -63,7 +64,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     sdfio_writer *writer = NULL;
     if (status == SDFIO_OK)
     {
-        status = sdfio_writer_create(NULL, &writer);
+        status = sdfio_writer_create(sdfio_default_allocator(), &writer);
     }
     if (status == SDFIO_OK)
     {

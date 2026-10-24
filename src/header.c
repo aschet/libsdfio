@@ -28,7 +28,7 @@ sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
     }
     *header = NULL;
     sdfio_allocator used;
-    if (!sdfio_allocator_resolve(allocator, &used))
+    if (!sdfio_allocator_take(allocator, &used))
     {
         return SDFIO_ERR_ARGUMENT;
     }

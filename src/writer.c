@@ -26,7 +26,7 @@ sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
     }
     *writer = NULL;
     sdfio_allocator used;
-    if (!sdfio_allocator_resolve(allocator, &used))
+    if (!sdfio_allocator_take(allocator, &used))
     {
         return SDFIO_ERR_ARGUMENT;
     }

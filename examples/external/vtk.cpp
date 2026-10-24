@@ -47,7 +47,8 @@ void check(sdfio_status status, const char *message)
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(nullptr, &reader), "Creating the reader failed");
+    check(sdfio_reader_create(sdfio_default_allocator(), &reader),
+          "Creating the reader failed");
     Reader owned(reader, sdfio_reader_free);
     check(sdfio_reader_add_binary_format(reader),
           "Adding the binary format failed");

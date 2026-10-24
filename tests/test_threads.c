@@ -110,7 +110,7 @@ static void *write_and_read(void *argument)
     for (int round = 0; round < ROUNDS; ++round)
     {
         sdfio_header *header = NULL;
-        if (sdfio_header_create(NULL, &header) != SDFIO_OK
+        if (sdfio_header_create(sdfio_default_allocator(), &header) != SDFIO_OK
             || sdfio_header_set_revision(
                    header, revisions[(self->id + (size_t)round) % 2])
                    != SDFIO_OK

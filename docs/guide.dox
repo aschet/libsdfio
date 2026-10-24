@@ -349,7 +349,8 @@
  *
  * @section concepts_options Options, Formats, and Memory
  * A handle is created with sdfio_reader_create() or sdfio_writer_create(),
- * which take only the allocator. The program then sets the options of the
+ * which take only the allocator. sdfio_default_allocator() uses malloc() and
+ * free(); a program that never names it does not contain them. The program then sets the options of the
  * handle, and the options are fixed by the first attempt to open or create a
  * file:
  * - the formats that the handle uses, with sdfio_reader_add_binary_format(),

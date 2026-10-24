@@ -40,7 +40,8 @@ int main(void)
 
     int failed = 0;
     sdfio_header *header = NULL;
-    sdfio_status described = sdfio_header_create(NULL, &header);
+    sdfio_status described =
+        sdfio_header_create(sdfio_default_allocator(), &header);
     if (described == SDFIO_OK)
     {
         described = sdfio_header_set_columns(header, COLUMNS);
@@ -59,7 +60,8 @@ int main(void)
     }
     failed |= check(described, "header");
     sdfio_writer *writer = NULL;
-    sdfio_status made_writer = sdfio_writer_create(NULL, &writer);
+    sdfio_status made_writer =
+        sdfio_writer_create(sdfio_default_allocator(), &writer);
     if (made_writer == SDFIO_OK)
     {
         made_writer = sdfio_writer_add_binary_format(writer);
@@ -78,7 +80,8 @@ int main(void)
     sdfio_header_free(header);
 
     sdfio_reader *reader = NULL;
-    sdfio_status made_reader = sdfio_reader_create(NULL, &reader);
+    sdfio_status made_reader =
+        sdfio_reader_create(sdfio_default_allocator(), &reader);
     if (made_reader == SDFIO_OK)
     {
         made_reader = sdfio_reader_add_binary_format(reader);
