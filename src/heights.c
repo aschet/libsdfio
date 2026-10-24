@@ -301,7 +301,8 @@ static float nearby_float(float x)
     {
         return x;
     }
-    return x < 0.0F ? (x - magic) + magic : (x + magic) - magic;
+    const float offset = copysignf(magic, x);
+    return (x + offset) - offset;
 }
 
 /* The same for double, from 2^52 on. */
@@ -312,7 +313,8 @@ static double nearby_double(double x)
     {
         return x;
     }
-    return x < 0.0 ? (x - magic) + magic : (x + magic) - magic;
+    const double offset = copysign(magic, x);
+    return (x + offset) - offset;
 }
 #else
 static float nearby_float(float x)

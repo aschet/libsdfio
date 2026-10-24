@@ -490,6 +490,45 @@ static double top_of(sdfio_data_type type, double scale)
     return 0.0;
 }
 
+/* A height rounds to the nearest count, a tie to the even one, whatever the
+ * sign, and also next to the magnitude from which a float has no fraction. */
+static void check_rounding(void)
+{
+    static const double heights[] = {-2.5,  -1.5,    -0.5,    -0.0,  0.5,
+                                     1.5,   2.5,     0.49,    -0.49, 0.51,
+                                     -0.51, 32766.5, -32766.5};
+    static const int16_t expected[] = {-2, -2, 0, 0,  0,     2,     2,
+                                       0,  0,  1, -1, 32766, -32766};
+    const size_t count = sizeof heights / sizeof heights[0];
+    const sdfio_header *header =
+        description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, 1.0);
+    int16_t coded[sizeof heights / sizeof heights[0]];
+    CHECK_OK(sdfio_encode_heights(
+        header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights, count, coded));
+    CHECK(memcmp(coded, expected, sizeof expected) == 0);
+
+    float singles[sizeof heights / sizeof heights[0]];
+    for (size_t i = 0; i < count; ++i)
+    {
+        singles[i] = (float)heights[i];
+    }
+    CHECK_OK(sdfio_encode_heights(header, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                  singles, count, coded));
+    CHECK(memcmp(coded, expected, sizeof expected) == 0);
+
+    const sdfio_header *wide =
+        description(SDFIO_ISO_2_0, SDFIO_TYPE_INT32, 1.0);
+    const float large[] = {8388607.0F,  -8388607.0F, 8388608.0F,
+                           -8388608.0F, 16777216.0F, -16777216.0F};
+    int32_t large_coded[6];
+    CHECK_OK(sdfio_encode_heights(wide, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                  large, 6, large_coded));
+    for (size_t i = 0; i < 6; ++i)
+    {
+        CHECK(large_coded[i] == (int32_t)large[i]);
+    }
+}
+
 /* The calculation in float gives the heights, and the data, that the
  * calculation in double gives. */
 static void check_float_path(void)
@@ -579,5 +618,6 @@ int main(void)
     check_layout();
     check_tables();
     check_float_path();
+    check_rounding();
     return finish_tests();
 }
