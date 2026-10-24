@@ -190,6 +190,23 @@ endif()
 
 if(SDFIO_BUILD_DOCS)
     find_package(Doxygen REQUIRED)
+    set(SDFIO_DOXYGEN_LAYOUT "${PROJECT_BINARY_DIR}/DoxygenLayout.xml")
+    execute_process(
+        COMMAND "${DOXYGEN_EXECUTABLE}" -l "${SDFIO_DOXYGEN_LAYOUT}"
+        RESULT_VARIABLE layout_result
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+    file(READ "${SDFIO_DOXYGEN_LAYOUT}" layout)
+    set(pages_tab "<tab type=\"pages\" visible=\"yes\" title=\"\" intro=\"\"/>")
+    string(FIND "${layout}" "${pages_tab}" pages_tab_at)
+    if(NOT layout_result EQUAL 0 OR pages_tab_at EQUAL -1)
+        message(FATAL_ERROR "The layout of Doxygen has no tab for the pages")
+    endif()
+    string(REPLACE "${pages_tab}"
+        "<tab type=\"pages\" visible=\"yes\" title=\"Guide\" intro=\"\"/>"
+        layout "${layout}")
+    file(WRITE "${SDFIO_DOXYGEN_LAYOUT}" "${layout}")
     configure_file(cmake/Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
     add_custom_target(docs
         COMMAND "${DOXYGEN_EXECUTABLE}" "${PROJECT_BINARY_DIR}/Doxyfile"
