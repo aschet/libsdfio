@@ -93,7 +93,8 @@ static int next_line(sdfio_source *source, fixed_text *line, bool *ended,
         }
         if (line->size + 1 < sizeof line->text)
         {
-            line->text[line->size++] = (char)c;
+            line->text[line->size] = (char)c;
+            ++line->size;
             line->text[line->size] = '\0';
         }
         else if (!sdfio_is_space((char)c))
@@ -105,13 +106,10 @@ static int next_line(sdfio_source *source, fixed_text *line, bool *ended,
 
 static void skip_line(sdfio_source *source)
 {
-    int c = 0;
-    while ((c = sdfio_source_getc(source)) >= 0)
+    int c = sdfio_source_getc(source);
+    while (c >= 0 && c != '\n')
     {
-        if (c == '\n')
-        {
-            return;
-        }
+        c = sdfio_source_getc(source);
     }
 }
 
@@ -177,7 +175,8 @@ static bool revision_of(const char *version_number, size_t size,
          ++i)
     {
         const char *listed = version_numbers[i];
-        if (strlen(listed) == size && memcmp(listed, version_number, size) == 0)
+        if (strlen(listed) == size
+            && strncmp(listed, version_number, size) == 0)
         {
             *revision = (sdfio_revision)i;
             return true;
@@ -668,7 +667,7 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                           "says");
     }
     if (size == sizeof SDFIO_ASCII_BAD - 1
-        && memcmp(token, SDFIO_ASCII_BAD, size) == 0)
+        && strncmp(token, SDFIO_ASCII_BAD, size) == 0)
     {
         store_bad(header->data_type, dst, index);
         return SDFIO_OK;

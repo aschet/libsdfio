@@ -28,7 +28,8 @@
 
 sdfio_decimal_point sdfio_decimal_point_now(void)
 {
-    sdfio_decimal_point decimal_point = {{'.', '\0'}};
+    sdfio_decimal_point decimal_point = {{0}};
+    decimal_point.text[0] = '.';
     const struct lconv *locale = localeconv();
     if (locale != NULL && locale->decimal_point != NULL
         && locale->decimal_point[0] != '\0'
@@ -134,7 +135,8 @@ static bool scan_number(const sdfio_decimal_point *decimal_point,
         }
         else
         {
-            buffer[(*length)++] = text[k];
+            buffer[*length] = text[k];
+            ++*length;
         }
     }
     buffer[*length] = '\0';
@@ -257,7 +259,7 @@ size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
     {
         value = 0.0;
     }
-    if (isnan(value))
+    if (isnan(value) != 0)
     {
         return copy_text(out, capacity, "nan", 3);
     }
@@ -283,7 +285,8 @@ size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
     const char *rest = raw + used;
     if (rest < marker)
     {
-        text[used++] = '.';
+        text[used] = '.';
+        ++used;
         rest += strlen(decimal_point->text);
         memcpy(text + used, rest, (size_t)(marker - rest));
         used += (size_t)(marker - rest);
@@ -304,8 +307,10 @@ size_t sdfio_format_scientific(const sdfio_decimal_point *decimal_point,
     {
         return copy_text(out, capacity, "0", 1);
     }
-    text[used++] = 'e';
-    text[used++] = marker[1] == '-' ? '-' : '+';
+    text[used] = 'e';
+    ++used;
+    text[used] = marker[1] == '-' ? '-' : '+';
+    ++used;
     memset(text + used, '0', padding);
     used += padding;
     memcpy(text + used, exponent, exponent_size);

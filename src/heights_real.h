@@ -35,7 +35,7 @@ static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
 {
     *marker = (REAL)NAN;
     *present = false;
-    if (isnan(not_measured))
+    if (isnan(not_measured) != 0)
     {
         return true;
     }

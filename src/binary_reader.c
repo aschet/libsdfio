@@ -61,8 +61,8 @@ static bool revision_of(const unsigned char *version_number,
     for (size_t i = 0; i < sizeof version_numbers / sizeof version_numbers[0];
          ++i)
     {
-        if (memcmp(version_number, version_numbers[i],
-                   SDFIO_VERSION_NUMBER_SIZE)
+        if (strncmp((const char *)version_number, version_numbers[i],
+                    SDFIO_VERSION_NUMBER_SIZE)
             == 0)
         {
             *revision = (sdfio_revision)i;
@@ -223,7 +223,8 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
         return SDFIO_OK;
     }
     const size_t left = values_left * sdfio_data_type_size(header->data_type);
-    for (size_t done = 0; done < left;)
+    size_t done = 0;
+    while (done < left)
     {
         const size_t step =
             left - done < scratch_size ? left - done : scratch_size;

@@ -54,10 +54,11 @@ static bool at_star_line(sdfio_source *source)
 /* Takes the white space that precedes the text of the trailer. */
 static void skip_white_space(sdfio_source *source)
 {
-    int c = 0;
-    while ((c = sdfio_source_peek(source)) >= 0 && sdfio_is_space((char)c))
+    int c = sdfio_source_peek(source);
+    while (c >= 0 && sdfio_is_space((char)c))
     {
         ++source->position;
+        c = sdfio_source_peek(source);
     }
 }
 
@@ -74,7 +75,8 @@ static void take_character(sdfio_trailer_state *state, int c)
             return;
         }
         /* A CR without an LF is part of the text. */
-        state->held[state->held_count++] = '\r';
+        state->held[state->held_count] = '\r';
+        ++state->held_count;
         state->in_line = true;
     }
     if (c == '\r')
@@ -88,7 +90,8 @@ static void take_character(sdfio_trailer_state *state, int c)
     }
     else
     {
-        state->held[state->held_count++] = (unsigned char)c;
+        state->held[state->held_count] = (unsigned char)c;
+        ++state->held_count;
         state->in_line = true;
     }
 }
@@ -105,12 +108,14 @@ sdfio_status sdfio_trailer_read(sdfio_source *source,
         {
             if (state->line_ends > 0)
             {
-                buffer[(*size)++] = '\n';
+                buffer[*size] = '\n';
+                ++*size;
                 --state->line_ends;
             }
             else
             {
-                buffer[(*size)++] = (char)state->held[0];
+                buffer[*size] = (char)state->held[0];
+                ++*size;
                 state->held[0] = state->held[1];
                 --state->held_count;
             }

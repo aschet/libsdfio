@@ -196,17 +196,21 @@ static size_t put_integer(char *out, int32_t value)
         value < 0 ? UINT32_C(0) - (uint32_t)value : (uint32_t)value;
     do
     {
-        digits[count++] = (char)('0' + magnitude % 10U);
+        digits[count] = (char)('0' + magnitude % 10U);
+        ++count;
         magnitude /= 10U;
     } while (magnitude != 0);
     size_t used = 0;
     if (value < 0)
     {
-        out[used++] = '-';
+        out[used] = '-';
+        ++used;
     }
     while (count > 0)
     {
-        out[used++] = digits[--count];
+        --count;
+        out[used] = digits[count];
+        ++used;
     }
     return used;
 }
@@ -260,7 +264,8 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
         {
             if (writing->column > 0)
             {
-                text[used++] = ' ';
+                text[used] = ' ';
+                ++used;
             }
             used += format_value(header, &writing->decimal_point,
                                  (const unsigned char *)values + first * size,

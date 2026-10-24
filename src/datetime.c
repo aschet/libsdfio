@@ -165,7 +165,8 @@ static void put_digits(char *out, unsigned value, size_t width)
 {
     while (width > 0)
     {
-        out[--width] = (char)('0' + value % 10);
+        --width;
+        out[width] = (char)('0' + value % 10);
         value /= 10;
     }
 }
