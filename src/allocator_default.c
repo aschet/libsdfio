@@ -12,13 +12,13 @@
 #include <sdfio/sdfio.h>
 #include <stdlib.h>
 
-static void *allocate(void *user, size_t size)
+static void *default_allocate(void *user, size_t size)
 {
     (void)user;
     return malloc(size);
 }
 
-static void release(void *user, void *memory)
+static void default_release(void *user, void *memory)
 {
     (void)user;
     free(memory);
@@ -26,6 +26,7 @@ static void release(void *user, void *memory)
 
 const sdfio_allocator *sdfio_default_allocator(void)
 {
-    static const sdfio_allocator allocator = {NULL, allocate, release};
+    static const sdfio_allocator allocator = {NULL, default_allocate,
+                                              default_release};
     return &allocator;
 }

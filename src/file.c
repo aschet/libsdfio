@@ -41,13 +41,13 @@ sdfio_stream sdfio_stdio_stream(FILE *file)
     return stream;
 }
 
-static void close_file(void *user)
+static void stdio_close(void *user)
 {
     fclose(user);
 }
 
 /* Flushes and closes the file that a writer wrote. */
-static sdfio_status finish_file(void *user, sdfio_message *message)
+static sdfio_status stdio_finish(void *user, sdfio_message *message)
 {
     FILE *file = user;
     const bool flushed = fflush(file) == 0;
@@ -84,7 +84,7 @@ sdfio_status sdfio_file_adopt_reader(sdfio_reader *reader, FILE *file)
         fclose(file);
         return status;
     }
-    sdfio_reader_own(reader, (sdfio_owner){NULL, close_file, file});
+    sdfio_reader_own(reader, (sdfio_owner){NULL, stdio_close, file});
     return SDFIO_OK;
 }
 
@@ -103,7 +103,7 @@ sdfio_status sdfio_file_adopt_writer(sdfio_writer *writer, FILE *file,
         fclose(file);
         return status;
     }
-    sdfio_writer_own(writer, (sdfio_owner){finish_file, close_file, file});
+    sdfio_writer_own(writer, (sdfio_owner){stdio_finish, stdio_close, file});
     return SDFIO_OK;
 }
 
