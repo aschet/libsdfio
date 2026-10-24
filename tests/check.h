@@ -151,12 +151,15 @@ static void free_made_headers(void)
     }
 }
 
-/* A header with the defaults. The test ends by freeing it, so a test does not
- * pair every header with a call. The function is not thread safe. */
+/* A header with the defaults and dates, which a file needs. The test ends by
+ * freeing it, so a test does not pair every header with a call. The function is
+ * not thread safe. */
 static inline sdfio_header *new_header(void)
 {
     sdfio_header *header = NULL;
     CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
+    CHECK_OK(sdfio_header_set_creation_date(header, 1772600760));
+    CHECK_OK(sdfio_header_set_modification_date(header, 1772604360));
     if (made_header_count == 0)
     {
         atexit(free_made_headers);

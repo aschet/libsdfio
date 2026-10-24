@@ -32,7 +32,11 @@ static void generate_heights(void)
 
 static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
 {
-    sdfio_status status = sdfio_header_set_data_type(header, type);
+    sdfio_status status = sdfio_header_set_dates_now(header);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_data_type(header, type);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_columns(header, COLUMNS);

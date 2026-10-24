@@ -260,9 +260,11 @@ typedef struct sdfio_header sdfio_header;
  *
  * The defaults are: revision ISO-2.0, binary representation, data type
  * binary32, x_scale and y_scale of 1, z_scale SDFIO_AUTO_Z_SCALE, z_resolution
- * SDFIO_NO_RESOLUTION, both dates set to the current time, manufacturer_id
- * "libsdfio", and zero columns and rows. The caller sets the number of columns
- * and rows and every other field that differs.
+ * SDFIO_NO_RESOLUTION, both dates SDFIO_NO_TIME, manufacturer_id "libsdfio",
+ * and zero columns and rows. The caller sets the number of columns and rows,
+ * the dates, which a file that is written requires, and every other field that
+ * differs. The function does not read the clock, so a program without one
+ * needs none.
  *
  * @param[in] allocator The allocator of the header, for example
  * sdfio_default_allocator(). The structure is copied, so it need not outlive
@@ -287,6 +289,18 @@ SDFIO_API sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
  */
 SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
                                          const sdfio_header *src);
+
+/**
+ * Sets the creation date and the modification date to the time now, rounded
+ * down to the minute. The function is the only one of the library that reads
+ * the clock, so a program that does not call it does not link time().
+ *
+ * @param[in,out] header The header.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year of the clock is out
+ * of the range of the SDF files.
+ * @retval SDFIO_ERR_UNSUPPORTED The clock is not available.
+ */
+SDFIO_API sdfio_status sdfio_header_set_dates_now(sdfio_header *header);
 
 /**
  * Releases a header that sdfio_header_create() made. A null pointer is

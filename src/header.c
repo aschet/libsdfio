@@ -37,7 +37,6 @@ sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
     {
         return SDFIO_ERR_MEMORY;
     }
-    const time_t now = sdfio_now();
     *created = (sdfio_header){.revision = SDFIO_ISO_2_0,
                               .representation = SDFIO_BINARY,
                               .data_type = SDFIO_TYPE_FLOAT,
@@ -45,8 +44,8 @@ sdfio_status sdfio_header_create(const sdfio_allocator *allocator,
                               .y_scale = 1.0,
                               .z_scale = SDFIO_AUTO_Z_SCALE,
                               .z_resolution = SDFIO_NO_RESOLUTION,
-                              .creation_date = now,
-                              .modification_date = now,
+                              .creation_date = SDFIO_NO_TIME,
+                              .modification_date = SDFIO_NO_TIME,
                               .manufacturer_id = "libsdfio",
                               .allocator = used};
     *header = created;

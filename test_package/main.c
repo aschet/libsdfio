@@ -44,6 +44,10 @@ int main(void)
         sdfio_header_create(sdfio_default_allocator(), &header);
     if (described == SDFIO_OK)
     {
+        described = sdfio_header_set_dates_now(header);
+    }
+    if (described == SDFIO_OK)
+    {
         described = sdfio_header_set_columns(header, COLUMNS);
     }
     if (described == SDFIO_OK)

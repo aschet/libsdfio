@@ -369,13 +369,16 @@
  * The options are functions, and a sdfio_header is opaque, so that the library
  * can gain options and header fields without a change of its structures.
  *
- * A header is a separate object. sdfio_header_create() makes one with
- * defaults, the setters fill it, and sdfio_header_copy() copies one header
+ * A header is a separate object. sdfio_header_create() creates one with
+ * defaults and without dates, which a file needs: the setters or
+ * sdfio_header_set_dates_now(), the one function that reads the clock, set
+ * them. The setters fill it, and sdfio_header_copy() copies one header
  * into another, for example the header of a file that was read into a header
  * for a file to write. sdfio_header_free() releases it. A handle allocates
- * memory only when it is created, and when a file is opened or created. The handle comes first, and the buffer, the conversion chunk and
- * what the format needs come with the file. Reading and writing allocate
- * nothing, and the trailer is read into a buffer of the program.
+ * memory only when it is created, and when a file is opened or created. The
+ * handle comes first, and the buffer, the conversion chunk and what the format
+ * needs come with the file. Reading and writing allocate nothing, and the
+ * trailer is read into a buffer of the program.
  *
  * @section concepts_errors Errors
  * A function that can fail returns an sdfio_status, which sdfio_status_string()

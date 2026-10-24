@@ -60,6 +60,7 @@ set(SDFIO_SOURCES
     src/file.c
     src/header.c
     src/header.h
+    src/header_now.c
     src/init.c
     src/heights.c
     src/heights.h

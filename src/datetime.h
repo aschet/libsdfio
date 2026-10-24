@@ -16,11 +16,11 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Returns the time now, in whole minutes.
+ * Rounds a time down to a whole minute, the resolution of a date.
  *
- * @return The time, or SDFIO_NO_TIME if the clock is not available.
+ * @param time The time.
  */
-time_t sdfio_now(void);
+time_t sdfio_datetime_round(time_t time);
 
 /**
  * Formats the field of a date.

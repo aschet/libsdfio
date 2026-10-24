@@ -171,8 +171,8 @@ run_build() {
 # Builds the library as a static library and links the firmware image of the
 # allocators example, which writes a file to memory. The image must contain
 # neither code that reads files, nor code that handles the ASCII representation,
-# nor the heap of the C library. The job verifies this by searching the symbols
-# of the image.
+# nor the heap and the clock of the C library. The job verifies this by
+# searching the symbols of the image.
 run_firmware() {
   cmake -S . -B "$dir" -G Ninja \
     -DCMAKE_SYSTEM_NAME=Generic -DCMAKE_SYSTEM_PROCESSOR="$processor" \
@@ -184,12 +184,12 @@ run_firmware() {
   # shellcheck disable=SC2086
   "$prefix-gcc" -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles \
     -Wl,--entry=allocators -Iinclude -I"$dir/generated/include" \
-    -DSDFIO_STATIC_DEFINE examples/allocators.c examples/clock.c \
+    -DSDFIO_STATIC_DEFINE examples/allocators.c \
     "$dir/libsdfio.a" \
     -o "$dir/firmware"
   "$prefix-size" "$dir/firmware"
   if "$prefix-nm" "$dir/firmware" \
-    | grep -E "sdfio_(ascii|parse_number|format_scientific)|add_ascii_format|[[:space:]](malloc|free)$"; then
+    | grep -E "sdfio_(ascii|parse_number|format_scientific)|add_ascii_format|[[:space:]](malloc|free|time|gettimeofday|_gettimeofday)$"; then
     echo "The image contains code that the program does not name." >&2
     exit 1
   fi

@@ -182,14 +182,9 @@ static int get_digits(const char *text, size_t width)
     return value;
 }
 
-time_t sdfio_now(void)
+time_t sdfio_datetime_round(time_t time)
 {
-    const time_t now = time(NULL);
-    if (now == (time_t)-1)
-    {
-        return SDFIO_NO_TIME;
-    }
-    return (time_t)(minutes_of(now) * SECONDS_PER_MINUTE);
+    return (time_t)(minutes_of(time) * SECONDS_PER_MINUTE);
 }
 
 bool sdfio_datetime_representable(time_t time)

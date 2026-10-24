@@ -41,7 +41,8 @@ static void *failing_allocate(void *user, size_t size)
 
 static void check_defaults(void)
 {
-    sdfio_header *header = new_header();
+    sdfio_header *header = NULL;
+    CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
     CHECK(sdfio_header_revision(header) == SDFIO_ISO_2_0);
     CHECK(sdfio_header_representation(header) == SDFIO_BINARY);
     CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_FLOAT);
@@ -50,10 +51,24 @@ static void check_defaults(void)
     CHECK(sdfio_header_y_scale(header) == 1.0);
     CHECK(sdfio_header_z_scale(header) == SDFIO_AUTO_Z_SCALE);
     CHECK(sdfio_header_z_resolution(header) == SDFIO_NO_RESOLUTION);
-    CHECK(sdfio_header_creation_date(header) != SDFIO_NO_TIME);
-    CHECK(sdfio_header_creation_date(header)
-          == sdfio_header_modification_date(header));
+    CHECK(sdfio_header_creation_date(header) == SDFIO_NO_TIME);
+    CHECK(sdfio_header_modification_date(header) == SDFIO_NO_TIME);
     CHECK(strcmp(sdfio_header_manufacturer_id(header), "libsdfio") == 0);
+    sdfio_header_free(header);
+}
+
+/* The dates of the clock are one time, rounded down to the minute. */
+static void check_dates_now(void)
+{
+    sdfio_header *header = NULL;
+    CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
+    CHECK_OK(sdfio_header_set_dates_now(header));
+    const time_t created = sdfio_header_creation_date(header);
+    CHECK(created != SDFIO_NO_TIME);
+    CHECK(created == sdfio_header_modification_date(header));
+    CHECK(created % 60 == 0);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_dates_now(NULL));
+    sdfio_header_free(header);
 }
 
 static void check_setters(void)
@@ -258,6 +273,7 @@ static void check_copy_of_a_read_header(void)
 int main(void)
 {
     check_defaults();
+    check_dates_now();
     check_setters();
     check_refusals();
     check_cross_field_checks();

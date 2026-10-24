@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 enum
 {
@@ -65,9 +66,20 @@ static size_t store(void *user, const void *data, size_t size)
     return size;
 }
 
+/* The scanner has no clock library: it takes the time of the scan from its own
+ * hardware clock, here a constant. */
 static sdfio_status describe(sdfio_header *header)
 {
-    sdfio_status status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    const time_t scan_time = 1700000000;
+    sdfio_status status = sdfio_header_set_creation_date(header, scan_time);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_modification_date(header, scan_time);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_columns(header, COLUMNS);
