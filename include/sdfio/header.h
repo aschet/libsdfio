@@ -12,6 +12,7 @@
 #ifndef SDFIO_HEADER_H
 #define SDFIO_HEADER_H
 
+#include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
 #include <stdint.h>

@@ -14,6 +14,7 @@
 #define SDFIO_HEIGHTS_H
 
 #include <sdfio/header.h>
+#include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
 #include <math.h>

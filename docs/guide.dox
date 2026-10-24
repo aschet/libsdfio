@@ -424,7 +424,7 @@
  *     [ failed ]  (every later read fails, the header stays available)
  * @endcode
  *
- * - A new reader reads nothing. The program lists its formats and may set its
+ * - A new reader reads nothing. The program adds its formats and may set its
  *   options. The first attempt to open a file fixes them, and the buffers are
  *   allocated then. A reader is opened once: opening it again is an error. If
  *   the open fails, sdfio_reader_error_message() says why.
@@ -469,7 +469,7 @@
  *     [ ended ]
  * @endcode
  *
- * - The program lists the formats of a new writer and may set its options. The
+ * - The program adds the formats of a new writer and may set its options. The
  *   first attempt to create a file fixes them, and the buffers are allocated
  *   then.
  * - The header is checked when the file is created. Nothing is written yet,

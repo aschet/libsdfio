@@ -46,7 +46,7 @@ struct sdfio_writer
     sdfio_sink sink;
     /** What the format of the file keeps for it, or null. */
     void *format_state;
-    /** The listed formats. */
+    /** The added formats. */
     const sdfio_writer_format *formats[SDFIO_FORMAT_MAX];
     /** The format of the file. */
     const sdfio_writer_format *format;

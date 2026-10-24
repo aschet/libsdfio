@@ -20,11 +20,11 @@
  * the source. The version number is not consumed.
  *
  * @param source The source.
- * @param formats The listed reader formats.
+ * @param formats The added reader formats.
  * @param[out] format Receives the format.
  * @param[out] message Receives the reason of a failure.
  * @retval SDFIO_ERR_FORMAT The version number is not one of an SDF file.
- * @retval SDFIO_ERR_UNSUPPORTED The format of the file is not listed.
+ * @retval SDFIO_ERR_UNSUPPORTED The format of the file has not been added.
  * @retval SDFIO_ERR_IO The stream failed.
  */
 sdfio_status sdfio_select_reader_format(

@@ -106,7 +106,8 @@ struct sdfio_writer_format
  *
  * @param writer The writer.
  * @param format The format.
- * @retval SDFIO_ERR_ARGUMENT The writer is null, or lists the format already.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null, or has added the format
+ * already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
 sdfio_status sdfio_writer_install_format(sdfio_writer *writer,

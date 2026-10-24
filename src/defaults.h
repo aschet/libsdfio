@@ -27,7 +27,7 @@ enum
     SDFIO_DEFAULT_BUFFER = 16384,
     /** The smallest size of a buffer. */
     SDFIO_MINIMUM_BUFFER = 64,
-    /** The number of formats of a direction that a handle can list: the
+    /** The number of formats of a direction that a handle can add: the
      * binary and the ASCII format. */
     SDFIO_FORMAT_MAX = 2
 };

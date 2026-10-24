@@ -68,7 +68,6 @@
 #include <sdfio/header.h>
 #include <sdfio/heights.h>
 #include <sdfio/reader.h>
-#include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 #include <sdfio/version.h>
 #include <sdfio/writer.h>

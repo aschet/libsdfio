@@ -15,6 +15,7 @@
 
 #include <sdfio/header.h>
 #include <sdfio/heights.h>
+#include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
 #include <stdbool.h>
@@ -33,7 +34,7 @@ typedef struct sdfio_reader sdfio_reader;
  * created before the source is opened, so that a failed open can report its
  * reason.
  *
- * Only the handle is allocated here. The program lists the formats of the
+ * Only the handle is allocated here. The program adds the formats of the
  * reader and may set its options, and the buffers are allocated when a file is
  * opened. Release the reader with sdfio_reader_free().
  *
@@ -52,15 +53,16 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * Adds the binary format to the formats that the reader reads, the version
  * numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format before
  * a file is opened. The formats are tried in the order in which they are
- * listed, and sdfio_reader_version() lists their version numbers in that
+ * added, and sdfio_reader_version() lists their version numbers in that
  * order. A program that links the library statically contains the code of the
- * formats it lists and no other.
+ * formats it adds and no other.
  *
- * Like the other options of a reader, a format is listed before the first
+ * Like the other options of a reader, a format is added before the first
  * attempt to open a file.
  *
  * @param reader The reader.
- * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
+ * already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
 SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
@@ -72,7 +74,8 @@ SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
  * the format, so a program that does not add it does not contain that code.
  *
  * @param reader The reader.
- * @retval SDFIO_ERR_ARGUMENT The reader is null or lists the format already.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format
+ * already.
  * @retval SDFIO_ERR_STATE An attempt to open a file was made.
  */
 SDFIO_API sdfio_status sdfio_reader_add_ascii(sdfio_reader *reader);
@@ -118,7 +121,7 @@ SDFIO_API sdfio_status sdfio_reader_set_time_zone(
 
 /**
  * Returns the number of version numbers that a file can start with for the
- * formats that the reader lists: two for each format, one for each revision.
+ * formats that the reader adds: two for each format, one for each revision.
  *
  * @param[in] reader The reader. May be null, which has no formats.
  */
@@ -156,7 +159,8 @@ SDFIO_API void sdfio_reader_free(sdfio_reader *reader);
  * @retval SDFIO_ERR_ARGUMENT A pointer is null.
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The reader format of the file is not listed.
+ * @retval SDFIO_ERR_UNSUPPORTED The reader format of the file has not been
+ * added.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
@@ -173,7 +177,8 @@ SDFIO_API sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
  * @retval SDFIO_ERR_STATE The reader is open already.
  * @retval SDFIO_ERR_IO The stream failed.
  * @retval SDFIO_ERR_FORMAT The data is not an SDF file or is truncated.
- * @retval SDFIO_ERR_UNSUPPORTED The reader format of the file is not listed.
+ * @retval SDFIO_ERR_UNSUPPORTED The reader format of the file has not been
+ * added.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
 SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,

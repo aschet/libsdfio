@@ -16,6 +16,7 @@
 #include <sdfio/header.h>
 #include <sdfio/heights.h>
 #include <sdfio/reader.h>
+#include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
 #include <stddef.h>
@@ -31,7 +32,7 @@ typedef struct sdfio_writer sdfio_writer;
 /**
  * Creates a writer. The writer writes nothing until a file is created.
  *
- * Only the handle is allocated here. The program lists the formats of the
+ * Only the handle is allocated here. The program adds the formats of the
  * writer and may set its options, and the buffers are allocated when a file is
  * created. Release the writer with sdfio_writer_free().
  *
@@ -52,11 +53,12 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
  * of a file selects the one that writes it. A program that links the library
  * statically contains the code of the formats it adds and no other.
  *
- * Like the other options of a writer, a format is listed before the first
+ * Like the other options of a writer, a format is added before the first
  * attempt to create a file.
  *
  * @param writer The writer.
- * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
+ * already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
 SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
@@ -67,7 +69,8 @@ SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
  * the format, so a program that does not add it does not contain that code.
  *
  * @param writer The writer.
- * @retval SDFIO_ERR_ARGUMENT The writer is null or lists the format already.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format
+ * already.
  * @retval SDFIO_ERR_STATE An attempt to create a file was made.
  */
 SDFIO_API sdfio_status sdfio_writer_add_ascii(sdfio_writer *writer);

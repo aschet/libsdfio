@@ -12,7 +12,7 @@
 
 #include <sdfio/sdfio.h>
 
-/* A format that a handle lists, or none. */
+/* A format that a handle adds, or none. */
 typedef enum test_format
 {
     TEST_NO_FORMAT,
@@ -20,7 +20,7 @@ typedef enum test_format
     TEST_ASCII
 } test_format;
 
-/* Zero selects the default of an option, and the formats are listed. A null
+/* Zero selects the default of an option, and the formats are added. A null
  * allocator selects the allocator of the library. */
 typedef struct test_options
 {
