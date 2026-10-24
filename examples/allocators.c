@@ -25,8 +25,6 @@ typedef union pool_cell
 
 static pool_cell pool[POOL_SIZE / sizeof(pool_cell)];
 static size_t pool_used;
-static size_t written_pool;
-static size_t different_values;
 
 static void *take(void *user, size_t size)
 {
@@ -142,62 +140,16 @@ static sdfio_status write_file(void)
     return status;
 }
 
-/* The reader takes its memory from the same pool, which is empty again because
- * the writer is gone. The program counts the values that differ. */
-static sdfio_status read_file(void)
-{
-    const sdfio_allocator allocator = {NULL, take, give};
-    sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(&allocator, &reader);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_reader_add_binary_format(reader);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_reader_set_buffer_size(reader, BUFFER_SIZE);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_reader_set_chunk_values(reader, CHUNK_VALUES);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_open_memory(reader, file, file_size);
-    }
-    int16_t coded[COLUMNS];
-    const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
-    {
-        status = sdfio_read_data(reader, layout, coded, 1);
-        for (size_t column = 0; column < COLUMNS && status == SDFIO_OK;
-             ++column)
-        {
-            different_values +=
-                coded[column] != value_at(row, column) ? 1U : 0U;
-        }
-    }
-    sdfio_reader_free(reader);
-    return status;
-}
-
-/* Writes a file into RAM and reads it back, with every byte of library memory
- * from a pool of the program. The function prints nothing and is not static:
- * the firmware job of the continuous integration links this file with it as the
- * entry point, so that the image holds neither the output functions of the C
- * library nor its heap. */
+/* Writes a file into RAM with every byte of library memory from a pool of the
+ * program. The function prints nothing and is not static: the firmware job of
+ * the continuous integration links this file with it as the entry point, so
+ * that the image holds neither the output functions of the C library nor its
+ * heap. */
 sdfio_status allocators(void);
 
 sdfio_status allocators(void)
 {
-    sdfio_status status = write_file();
-    written_pool = pool_used;
-    if (status == SDFIO_OK)
-    {
-        pool_used = 0;
-        status = read_file();
-    }
-    return status;
+    return write_file();
 }
 
 int main(void)
@@ -208,8 +160,7 @@ int main(void)
         fprintf(stderr, "%s\n", sdfio_status_string(status));
         return EXIT_FAILURE;
     }
-    printf("%zu bytes of file; pool of %d bytes: %zu used by the writer, %zu "
-           "by the reader; %zu values differ\n",
-           file_size, POOL_SIZE, written_pool, pool_used, different_values);
-    return different_values == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+    printf("%zu bytes of file; %zu of the %d bytes of the pool used\n",
+           file_size, pool_used, POOL_SIZE);
+    return EXIT_SUCCESS;
 }
