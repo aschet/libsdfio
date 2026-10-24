@@ -26,7 +26,7 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-_Static_assert(SDFIO_VERSION_NUMBER_SIZE <= SDFIO_DATETIME_SIZE
+_Static_assert(SDFIO_MAGIC_SIZE <= SDFIO_DATETIME_SIZE
                    && SDFIO_ID_SIZE <= SDFIO_DATETIME_SIZE,
                "a text field of the header fits the buffer of put_text");
 
@@ -37,7 +37,7 @@ static size_t scratch_size(size_t chunk_values)
                : chunk_values * SDFIO_LARGEST_CODED_VALUE;
 }
 
-static const char *const version_numbers[] = {
+static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
 
 /* Writes a text in a field of a width: a text that is too long is cut, and one
@@ -92,7 +92,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         return sdfio_fail(message, SDFIO_ERR_RANGE,
                           "The time zone cannot convert the modification date");
     }
-    const char *version_number = version_numbers[header->revision];
+    const char *magic = magics[header->revision];
     const size_t columns_rows_size =
         sdfio_revision_columns_rows_size(header->revision);
     const unsigned char codes[SDFIO_BINARY_CODE_FIELDS] = {
@@ -100,7 +100,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         [SDFIO_BINARY_CODE_DATA_TYPE] = (unsigned char)header->data_type,
         [SDFIO_BINARY_CODE_CHECKSUM] = SDFIO_NONE};
     const bool written =
-        put_text(sink, version_number, SDFIO_VERSION_NUMBER_SIZE)
+        put_text(sink, magic, SDFIO_MAGIC_SIZE)
         && put_text(sink, header->manufacturer_id, SDFIO_ID_SIZE)
         && put_text(sink, created, SDFIO_DATETIME_SIZE)
         && put_text(sink, modified, SDFIO_DATETIME_SIZE)

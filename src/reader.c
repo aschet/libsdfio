@@ -128,30 +128,30 @@ sdfio_status sdfio_reader_set_time_zone(sdfio_reader *reader,
     return status;
 }
 
-size_t sdfio_reader_version_count(const sdfio_reader *reader)
+size_t sdfio_reader_magic_count(const sdfio_reader *reader)
 {
     size_t count = 0;
     for (size_t i = 0;
          reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
          ++i)
     {
-        count += reader->formats[i]->version_number_count;
+        count += reader->formats[i]->magic_count;
     }
     return count;
 }
 
-const char *sdfio_reader_version(const sdfio_reader *reader, size_t index)
+const char *sdfio_reader_magic(const sdfio_reader *reader, size_t index)
 {
     for (size_t i = 0;
          reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
          ++i)
     {
         const sdfio_reader_format *format = reader->formats[i];
-        if (index < format->version_number_count)
+        if (index < format->magic_count)
         {
-            return format->version_numbers[index];
+            return format->magics[index];
         }
-        index -= format->version_number_count;
+        index -= format->magic_count;
     }
     return NULL;
 }
@@ -216,7 +216,7 @@ static sdfio_status require_closed(sdfio_reader *reader)
     return SDFIO_OK;
 }
 
-/* Selects the format of the stream by its version number, and reads the
+/* Selects the format of the stream by its magic, and reads the
  * header. */
 static sdfio_status open_source(sdfio_reader *reader,
                                 const sdfio_stream *stream)

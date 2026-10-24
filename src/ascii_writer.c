@@ -95,7 +95,7 @@ static double load_real(sdfio_data_type type, const void *src, size_t index)
     return 0.0;
 }
 
-static const char *const version_numbers[] = {
+static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
 
 static bool append_text(sdfio_sink *sink, const char *text)
@@ -123,7 +123,7 @@ static bool append_scale(sdfio_sink *sink,
     return append_field(sink, name, text);
 }
 
-/* Writes the header: the version number and a line for each field. The dates
+/* Writes the header: the magic and a line for each field. The dates
  * are formatted first, so that nothing is written if one cannot be. */
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
@@ -154,7 +154,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                        : (size_t)SDFIO_ID_SIZE);
     char text[SDFIO_NUMBER_CAPACITY];
     const sdfio_decimal_point *point = &writing->decimal_point;
-    bool ok = append_text(sink, version_numbers[header->revision])
+    bool ok = append_text(sink, magics[header->revision])
               && append_text(sink, crlf)
               && append_field(sink, SDFIO_ASCII_MANUFACTURER_ID, identifier)
               && append_field(sink, SDFIO_ASCII_CREATE_DATE, created)

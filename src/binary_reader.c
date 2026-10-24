@@ -49,20 +49,16 @@ static double get_double(const unsigned char *bytes)
     return value;
 }
 
-static const char *const version_numbers[] = {
+static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
 
-/* The revision whose version number the bytes are, according to the version
- * numbers that the format lists. */
-static bool revision_of(const unsigned char *version_number,
-                        sdfio_revision *revision)
+/* The revision whose magic the bytes are, according to the magics
+ * that the format lists. */
+static bool revision_of(const unsigned char *magic, sdfio_revision *revision)
 {
-    for (size_t i = 0; i < sizeof version_numbers / sizeof version_numbers[0];
-         ++i)
+    for (size_t i = 0; i < sizeof magics / sizeof magics[0]; ++i)
     {
-        if (strncmp((const char *)version_number, version_numbers[i],
-                    SDFIO_VERSION_NUMBER_SIZE)
-            == 0)
+        if (strncmp((const char *)magic, magics[i], SDFIO_MAGIC_SIZE) == 0)
         {
             *revision = (sdfio_revision)i;
             return true;
@@ -108,17 +104,17 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 sdfio_message *message)
 {
     (void)state;
-    unsigned char version_number[SDFIO_VERSION_NUMBER_SIZE];
-    if (!take(source, version_number, sizeof version_number))
+    unsigned char magic[SDFIO_MAGIC_SIZE];
+    if (!take(source, magic, sizeof magic))
     {
-        return sdfio_source_failure(
-            source, message, "Not an SDF file, unexpected version number");
+        return sdfio_source_failure(source, message,
+                                    "Not an SDF file, unexpected magic");
     }
     sdfio_revision revision = SDFIO_ISO_2_0;
-    if (!revision_of(version_number, &revision))
+    if (!revision_of(magic, &revision))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Unknown or unsupported SDF version number");
+                          "Unknown or unsupported SDF magic");
     }
     const size_t columns_rows_size = sdfio_revision_columns_rows_size(revision);
     unsigned char identifier[SDFIO_ID_SIZE];
@@ -241,8 +237,8 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
 static const sdfio_reader_format binary_format = {
     .state_size = sizeof(sdfio_trailer_state),
     .prefix = 'b',
-    .version_numbers = version_numbers,
-    .version_number_count = sizeof version_numbers / sizeof version_numbers[0],
+    .magics = magics,
+    .magic_count = sizeof magics / sizeof magics[0],
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

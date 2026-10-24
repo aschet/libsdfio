@@ -358,16 +358,14 @@ static void check_arguments(void)
     free(sink.data);
 
     /* A file is read only if its format is added. */
-    static const char ascii_version_number[] = "aISO-2.0\r\n";
+    static const char ascii_magic[] = "aISO-2.0\r\n";
     sdfio_reader *reader = new_reader(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
-                 sdfio_open_memory(reader, ascii_version_number,
-                                   sizeof ascii_version_number));
+                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
     sdfio_reader_free(reader);
     reader = new_reader(all_formats());
     CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 sdfio_open_memory(reader, ascii_version_number,
-                                   sizeof ascii_version_number));
+                 sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
     sdfio_reader_free(reader);
 
     /* A handle needs a format of its direction before a file is opened or
@@ -389,35 +387,34 @@ static void check_arguments(void)
     free(no_format_sink.data);
 }
 
-/* The version numbers of a reader: those of its formats, in their order. */
-static void check_version_numbers(void)
+/* The magics of a reader: those of its formats, in their order. */
+static void check_magics(void)
 {
     sdfio_reader *all = new_reader(all_formats());
-    CHECK(sdfio_reader_version_count(all) == 4U);
-    CHECK(strcmp(sdfio_reader_version(all, 0), "bISO-1.0") == 0);
-    CHECK(strcmp(sdfio_reader_version(all, 1), "bISO-2.0") == 0);
-    CHECK(strcmp(sdfio_reader_version(all, 2), "aISO-1.0") == 0);
-    CHECK(strcmp(sdfio_reader_version(all, 3), "aISO-2.0") == 0);
-    for (size_t i = 0; i < sdfio_reader_version_count(all); ++i)
+    CHECK(sdfio_reader_magic_count(all) == 4U);
+    CHECK(strcmp(sdfio_reader_magic(all, 0), "bISO-1.0") == 0);
+    CHECK(strcmp(sdfio_reader_magic(all, 1), "bISO-2.0") == 0);
+    CHECK(strcmp(sdfio_reader_magic(all, 2), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_reader_magic(all, 3), "aISO-2.0") == 0);
+    for (size_t i = 0; i < sdfio_reader_magic_count(all); ++i)
     {
-        CHECK(strlen(sdfio_reader_version(all, i))
-              == SDFIO_VERSION_NUMBER_SIZE);
+        CHECK(strlen(sdfio_reader_magic(all, i)) == SDFIO_MAGIC_SIZE);
     }
-    CHECK(sdfio_reader_version(all, sdfio_reader_version_count(all)) == NULL);
+    CHECK(sdfio_reader_magic(all, sdfio_reader_magic_count(all)) == NULL);
     sdfio_reader_free(all);
 
     const test_options ascii_first = {
         .reader_formats = {TEST_ASCII, TEST_BINARY}};
     sdfio_reader *ascii = new_reader(&ascii_first);
-    CHECK(strcmp(sdfio_reader_version(ascii, 0), "aISO-1.0") == 0);
+    CHECK(strcmp(sdfio_reader_magic(ascii, 0), "aISO-1.0") == 0);
     sdfio_reader_free(ascii);
     const test_options binary_only = {.reader_formats = {TEST_BINARY}};
     sdfio_reader *binary = new_reader(&binary_only);
-    CHECK(sdfio_reader_version_count(binary) == 2U);
-    CHECK(sdfio_reader_version(binary, 2) == NULL);
+    CHECK(sdfio_reader_magic_count(binary) == 2U);
+    CHECK(sdfio_reader_magic(binary, 2) == NULL);
     sdfio_reader_free(binary);
-    CHECK(sdfio_reader_version_count(NULL) == 0U);
-    CHECK(sdfio_reader_version(NULL, 0) == NULL);
+    CHECK(sdfio_reader_magic_count(NULL) == 0U);
+    CHECK(sdfio_reader_magic(NULL, 0) == NULL);
 }
 
 /* The list of formats has room for the formats of the library only. */
@@ -453,7 +450,7 @@ static void check_format_list(void)
 int main(void)
 {
     check_format_list();
-    check_version_numbers();
+    check_magics();
     check_counted();
     check_small();
     check_arena();

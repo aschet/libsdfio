@@ -208,8 +208,8 @@ SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
 #define SDFIO_BAD_DOUBLE (-DBL_MAX)
 /** @} */
 
-/** The size of the version number that starts every file, in bytes. */
-#define SDFIO_VERSION_NUMBER_SIZE 8
+/** The size of the magic that starts every file, in bytes. */
+#define SDFIO_MAGIC_SIZE 8
 
 /** Return value of a read callback that failed. */
 #define SDFIO_STREAM_ERROR ((size_t)-1)

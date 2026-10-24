@@ -359,7 +359,7 @@ static void check_dates_set_to_zero(void)
 }
 
 /* An editor can put the UTF-8 byte order mark before an ASCII file, in front
- * of the version number. It is no part of a binary file, which a mark would
+ * of the magic. It is no part of a binary file, which a mark would
  * damage. */
 static void check_byte_order_mark(void)
 {

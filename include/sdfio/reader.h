@@ -53,7 +53,7 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * Adds the binary format to the formats that the reader reads, the version
  * numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format before
  * a file is opened. The formats are tried in the order in which they are
- * added, and sdfio_reader_version() lists their version numbers in that
+ * added, and sdfio_reader_magic() lists their magics in that
  * order.
  *
  * Like the other options of a reader, a format is added before the first
@@ -118,26 +118,26 @@ SDFIO_API sdfio_status sdfio_reader_set_time_zone(
     sdfio_reader *reader, const sdfio_time_zone *time_zone);
 
 /**
- * Returns the number of version numbers that a file can start with for the
+ * Returns the number of magics that a file can start with for the
  * formats that the reader adds: two for each format, one for each revision.
  *
  * @param[in] reader The reader. May be null, which has no formats.
  */
-SDFIO_API size_t sdfio_reader_version_count(const sdfio_reader *reader);
+SDFIO_API size_t sdfio_reader_magic_count(const sdfio_reader *reader);
 
 /**
- * Returns a version number that a file can start with, for example "bISO-2.0":
+ * Returns a magic that a file can start with, for example "bISO-2.0":
  * the letter b or a for the binary or the ASCII format, and the
- * revision. The text has SDFIO_VERSION_NUMBER_SIZE characters and a terminator.
- * A program can compare the first bytes of a file with each version number to
+ * revision. The text has SDFIO_MAGIC_SIZE characters and a terminator.
+ * A program can compare the first bytes of a file with each magic to
  * find out whether the reader reads it.
  *
  * @param[in] reader The reader.
- * @param index A number below sdfio_reader_version_count().
- * @return The version number, or null if the index is not below the count.
+ * @param index A number below sdfio_reader_magic_count().
+ * @return The magic, or null if the index is not below the count.
  */
-SDFIO_API const char *sdfio_reader_version(const sdfio_reader *reader,
-                                           size_t index);
+SDFIO_API const char *sdfio_reader_magic(const sdfio_reader *reader,
+                                         size_t index);
 
 /**
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.

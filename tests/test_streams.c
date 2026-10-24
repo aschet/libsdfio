@@ -283,11 +283,11 @@ static void check_header_errors(void)
         reader = new_reader(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
-        /* The date, the z-scale and the first character of the version number.
+        /* The date, the z-scale and the first character of the magic.
          */
         enum
         {
-            DATES_AT = SDFIO_VERSION_NUMBER_SIZE + SDFIO_ID_SIZE,
+            DATES_AT = SDFIO_MAGIC_SIZE + SDFIO_ID_SIZE,
             Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATETIME_SIZE
                          + 2 * sizeof(uint32_t) + 2 * sizeof(double)
         };
@@ -308,7 +308,7 @@ static void check_header_errors(void)
         sdfio_reader_free(reader);
         free(copy);
 
-        /* A byte order mark in front of the version number is not an SDF file.
+        /* A byte order mark in front of the magic is not an SDF file.
          */
         unsigned char *marked = malloc(size + 3);
         const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
@@ -450,12 +450,12 @@ static void add_line(char *text, size_t capacity, const char *name,
 }
 
 /* The status of opening an ASCII file whose header is as given. */
-static sdfio_status open_ascii(const char *version_number, const char *id,
+static sdfio_status open_ascii(const char *magic, const char *id,
                                const char *date, const char *points,
                                const char *z_scale, const char *line_end)
 {
     char text[512] = "";
-    add_line(text, sizeof text, version_number, "", line_end);
+    add_line(text, sizeof text, magic, "", line_end);
     add_line(text, sizeof text, "ManufacID = ", id, line_end);
     add_line(text, sizeof text, "CreateDate = ", date, line_end);
     add_line(text, sizeof text, "ModDate = ", date, line_end);
@@ -485,7 +485,7 @@ static void check_standard_rules(void)
     const char *const good_z = "1.00000000000000e-009";
     CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, crlf));
     CHECK_OK(open_ascii("aISO-2.0", "test", "010120261200", "1", good_z, "\n"));
-    /* The version number starts with a lower case a or b, and names a revision.
+    /* The magic starts with a lower case a or b, and names a revision.
      */
     CHECK_STATUS(
         SDFIO_ERR_FORMAT,

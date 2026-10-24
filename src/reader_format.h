@@ -29,15 +29,15 @@ struct sdfio_reader_format
     /** The size of what the format keeps for a file between its calls, which
      * the reader allocates and passes as `state`. Zero if it keeps nothing. */
     size_t state_size;
-    /** The first character of the version numbers, which identifies the
+    /** The first character of the magics, which identifies the
      * format. */
     char prefix;
-    /** The version numbers that the format reads, indexed by revision. The
-     * format determines the revision of a file by comparing the version number
+    /** The magics that the format reads, indexed by revision. The
+     * format determines the revision of a file by comparing the magic
      * of the file with these. */
-    const char *const *version_numbers;
-    /** The number of version numbers in the list. */
-    size_t version_number_count;
+    const char *const *magics;
+    /** The number of magics in the list. */
+    size_t magic_count;
 
     /**
      * Reads the header at the start of the source and leaves the source at the

@@ -162,20 +162,18 @@ static bool is_terminator(const char *line, size_t size)
     return size == 1 && line[0] == terminator;
 }
 
-static const char *const version_numbers[] = {
+static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "aISO-1.0", [SDFIO_ISO_2_0] = "aISO-2.0"};
 
-/* The revision whose version number the text is, according to the version
- * numbers that the format lists. */
-static bool revision_of(const char *version_number, size_t size,
+/* The revision whose magic the text is, according to the magics
+ * that the format lists. */
+static bool revision_of(const char *magic, size_t size,
                         sdfio_revision *revision)
 {
-    for (size_t i = 0; i < sizeof version_numbers / sizeof version_numbers[0];
-         ++i)
+    for (size_t i = 0; i < sizeof magics / sizeof magics[0]; ++i)
     {
-        const char *listed = version_numbers[i];
-        if (strlen(listed) == size
-            && strncmp(listed, version_number, size) == 0)
+        const char *listed = magics[i];
+        if (strlen(listed) == size && strncmp(listed, magic, size) == 0)
         {
             *revision = (sdfio_revision)i;
             return true;
@@ -468,8 +466,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     if (got == GOT_ERROR)
     {
         status = sdfio_source_failure(
-            source, message,
-            "The first line of the file is not a version number");
+            source, message, "The first line of the file is not a magic");
     }
     else if (got != GOT_ONE || !ended)
     {
@@ -479,13 +476,13 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     sdfio_revision revision = SDFIO_ISO_2_0;
     if (status == SDFIO_OK)
     {
-        const char *version_number = line.text;
-        size_t version_number_size = line.size;
-        sdfio_trim(&version_number, &version_number_size);
-        if (!revision_of(version_number, version_number_size, &revision))
+        const char *magic = line.text;
+        size_t magic_size = line.size;
+        sdfio_trim(&magic, &magic_size);
+        if (!revision_of(magic, magic_size, &revision))
         {
             status = sdfio_fail(message, SDFIO_ERR_FORMAT,
-                                "Unknown or unsupported SDF version number");
+                                "Unknown or unsupported SDF magic");
         }
     }
     header_fields fields = {0};
@@ -767,8 +764,8 @@ static sdfio_status read_trailer(sdfio_source *source, void *state,
 static const sdfio_reader_format ascii_format = {
     .state_size = sizeof(struct reading),
     .prefix = 'a',
-    .version_numbers = version_numbers,
-    .version_number_count = sizeof version_numbers / sizeof version_numbers[0],
+    .magics = magics,
+    .magic_count = sizeof magics / sizeof magics[0],
     .read_header = read_header,
     .read_values = read_values,
     .end_data = end_data,

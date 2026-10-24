@@ -77,12 +77,12 @@
  * file has an ASCII or a binary format. Both hold the same
  * information.
  *
- * @section format_versions Version Numbers
- * The file starts with a version number of 8 characters. Its first character is
- * `a` for the ASCII and `b` for the binary format, and the rest names
- * the version: `aISO-1.0`, `aISO-2.0`, `bISO-1.0` and `bISO-2.0`. The library
- * calls the version a revision, ISO-1.0 and ISO-2.0, because "version" names
- * the library.
+ * @section format_magic Magic
+ * The file starts with a magic of 8 characters, which the standard calls the
+ * version number. Its first character is `a` for the ASCII and `b` for the
+ * binary format, and the rest names the version: `aISO-1.0`, `aISO-2.0`,
+ * `bISO-1.0` and `bISO-2.0`. The library calls the version a revision,
+ * ISO-1.0 and ISO-2.0, because "version" names the library.
  *
  * <table class="doxtable">
  * <tr><th>Revision</th><th>Differences</th></tr>
@@ -101,7 +101,7 @@
  * <table class="doxtable">
  * <tr><th>Field</th><th>ASCII Name</th><th>Binary
  *   Type</th><th>Meaning</th></tr>
- * <tr><td>Version number</td><td>none</td><td>8 characters</td><td>See
+ * <tr><td>Magic</td><td>none</td><td>8 characters</td><td>See
  *   above.</td></tr>
  * <tr><td>Manufacturer's identifier</td><td><code>ManufacID</code></td><td>10
  *   characters</td><td>The source of the data, and possibly hardware and
@@ -207,7 +207,7 @@
  *
  * @section format_ascii The ASCII Format
  * - The file consists of lines that end with a carriage return and a line feed.
- * - The first line is the version number. It is followed by a line `Name =
+ * - The first line is the magic. It is followed by a line `Name =
  *   value` for each field of the header, in any order, and the names do not
  *   depend on the case.
  * - The three records end with a line that consists of the character `*`, and

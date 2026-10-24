@@ -40,7 +40,7 @@
  *
  * @par Standard
  * The library follows ISO 25178-71:2026, and a reader checks what the standard
- * defines: the version number, the data types of the revision, a compression
+ * defines: the magic, the data types of the revision, a compression
  * and a checksum type of 0, the ranges of the numbers of columns and rows
  * and of the dates, a positive z-scale, a manufacturer identifier of at most 10
  * characters and the string `BAD`. It tolerates these deviations:

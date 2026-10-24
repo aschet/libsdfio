@@ -17,7 +17,7 @@
 #include <sdfio/sdfio.h>
 #include <string.h>
 
-/* The reader format whose version numbers start with a byte. */
+/* The reader format whose magics start with a byte. */
 static const sdfio_reader_format *
 find_format(const sdfio_reader_format *const *formats, char prefix)
 {
@@ -37,7 +37,7 @@ static const unsigned char byte_order_mark[] = {0xEF, 0xBB, 0xBF};
 /* Tolerated deviation: an ASCII file can start with the UTF-8 byte order mark.
  *
  * Skips the byte order mark of an ASCII file. A binary file starts with its
- * version number, so a mark before one is no mark but damage. */
+ * magic, so a mark before one is no mark but damage. */
 static void skip_byte_order_mark(sdfio_source *source)
 {
     const size_t size = sizeof byte_order_mark;
@@ -54,18 +54,17 @@ sdfio_status sdfio_select_reader_format(
     const sdfio_reader_format **format, sdfio_message *message)
 {
     skip_byte_order_mark(source);
-    const size_t available =
-        sdfio_source_fill(source, SDFIO_VERSION_NUMBER_SIZE);
-    if (available < SDFIO_VERSION_NUMBER_SIZE)
+    const size_t available = sdfio_source_fill(source, SDFIO_MAGIC_SIZE);
+    if (available < SDFIO_MAGIC_SIZE)
     {
-        return sdfio_source_failure(
-            source, message, "Not an SDF file, unexpected version number");
+        return sdfio_source_failure(source, message,
+                                    "Not an SDF file, unexpected magic");
     }
     const char prefix = (char)source->buffer[source->position];
     if (prefix != 'a' && prefix != 'b')
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                          "Not an SDF file, unexpected version number");
+                          "Not an SDF file, unexpected magic");
     }
     *format = find_format(formats, prefix);
     if (*format == NULL)

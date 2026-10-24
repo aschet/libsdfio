@@ -62,7 +62,7 @@ static inline bool near_relative(double a, double b, double relative)
 
 /* A file in memory that a writer fills. */
 /** The size of the binary header of ISO-2.0, as the standard lays it out: the
- * version number of 8 bytes, the identifier of 10, two datetimes of 12, the
+ * magic of 8 bytes, the identifier of 10, two datetimes of 12, the
  * numbers of columns and of rows of 4 each, four binary64 numbers, and 3 bytes
  * of codes. */
 enum
