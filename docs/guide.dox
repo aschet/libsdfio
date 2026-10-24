@@ -72,8 +72,8 @@
 /**
  * @page format The SDF Format
  *
- * A file consists of three records: the header (record 1), the data area
- * (record 2) and the trailer (record 3). The file name extension is `.sdf`. A
+ * A file consists of three records: the header, the data area
+ * and the trailer. The file name extension is `.sdf`. A
  * file has an ASCII or a binary format. Both hold the same
  * information.
  *

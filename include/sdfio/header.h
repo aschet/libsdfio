@@ -6,7 +6,7 @@
 
 /**
  * @file
- * The header of a file (record 1).
+ * The header of a file.
  */
 
 #ifndef SDFIO_HEADER_H
@@ -24,7 +24,7 @@ extern "C"
 #endif
 
 /**
- * Header of a file (record 1), with the field names of the standard.
+ * Header of a file, with the field names of the standard.
  *
  * The points of the matrix lie in a right-handed coordinate system: x grows
  * with the column, y with the row, and z points to the viewer who looks from

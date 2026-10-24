@@ -202,7 +202,7 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
                                            const void *src);
 
 /**
- * Writes a line `field = value` of the trailer (record 3), which ISO-2.0
+ * Writes a line `field = value` of the trailer, which ISO-2.0
  * expects. The line goes to the stream as it is given, so the program
  * assembles nothing in memory. All rows of the data area must have been
  * written. The fields and the text of sdfio_write_trailer_text() can follow
@@ -226,7 +226,7 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
                                                  const char *value);
 
 /**
- * Writes text to the trailer (record 3), for a trailer that does not consist of
+ * Writes text to the trailer, for a trailer that does not consist of
  * fields. All rows of the data area must have been written. The text and the
  * fields of sdfio_write_trailer_field() can follow each other in any order.
  * sdfio_end_file() ends the trailer.
@@ -252,7 +252,7 @@ SDFIO_API sdfio_status sdfio_write_trailer_text(sdfio_writer *writer,
                                                 const char *text, size_t size);
 
 /**
- * Copies the trailer (record 3) of the file that a reader has opened to the
+ * Copies the trailer of the file that a reader has opened to the
  * file of a writer. The rows of the data area that the reader has not read are
  * read and discarded, and the writer must have written all of its rows. A
  * program that saves a changed file as a new one reads the rows, writes the

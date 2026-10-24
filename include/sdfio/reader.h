@@ -191,7 +191,7 @@ SDFIO_API sdfio_status sdfio_open_stream(sdfio_reader *reader,
 SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
 
 /**
- * Reads the next rows of the data area (record 2) as the file codes them.
+ * Reads the next rows of the data area as the file codes them.
  *
  * `dst` receives `rows` times `header->columns` coded values of
  * `header->data_type` in the byte order of the machine, in the order of the
@@ -255,7 +255,7 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
                                           sdfio_layout layout, void *dst);
 
 /**
- * Reads the next part of the trailer (record 3), the free text after the data
+ * Reads the next part of the trailer, the free text after the data
  * area, into a buffer of the caller.
  *
  * The call writes at most `capacity` bytes. A trailer that is longer than the
