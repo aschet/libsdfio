@@ -43,6 +43,7 @@ typedef struct pipe_source
     size_t position;
     size_t piece;
     size_t fail_at;
+    size_t calls;
 } pipe_source;
 
 static size_t pipe_read(void *user, void *data, size_t size)
@@ -52,9 +53,12 @@ static size_t pipe_read(void *user, void *data, size_t size)
     {
         return SDFIO_STREAM_ERROR;
     }
+    /* A piece of 0 stands for pieces of varying sizes, 1 to 13 bytes. */
+    const size_t piece =
+        pipe->piece != 0 ? pipe->piece : 1 + (pipe->calls++ * 5) % 13;
     size_t count = pipe->size - pipe->position;
     count = count < size ? count : size;
-    count = count < pipe->piece ? count : pipe->piece;
+    count = count < piece ? count : piece;
     memcpy(data, pipe->data + pipe->position, count);
     pipe->position += count;
     return count;
@@ -68,6 +72,9 @@ static sdfio_stream pipe_stream(pipe_source *pipe)
     return stream;
 }
 
+/* A stream may return less than asked at any call, in pieces of one byte,
+ * of varying sizes or of the whole file: the reader reads the same heights as
+ * from memory, and only 0 ends the data. */
 static void check_pipe(const char *path, size_t piece)
 {
     size_t size = 0;
@@ -76,7 +83,7 @@ static void check_pipe(const char *path, size_t piece)
     {
         return;
     }
-    pipe_source pipe = {data, size, 0, piece, SIZE_MAX};
+    pipe_source pipe = {data, size, 0, piece, SIZE_MAX, 0};
     const sdfio_stream stream = pipe_stream(&pipe);
 
     sdfio_reader *reader = new_reader(all_formats());
@@ -124,7 +131,7 @@ static void check_pipe(const char *path, size_t piece)
     sdfio_reader_free(reader);
 
     /* The trailer can be asked for first: the data is passed over. */
-    pipe = (pipe_source){data, size, 0, piece, SIZE_MAX};
+    pipe = (pipe_source){data, size, 0, piece, SIZE_MAX, 0};
     reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
     const char *trailer = NULL;
@@ -149,7 +156,7 @@ static void check_failing_stream(void)
     const size_t places[] = {10, 100, data_end - 50};
     for (size_t i = 0; i < sizeof places / sizeof places[0]; ++i)
     {
-        pipe_source pipe = {data, size, 0, 7, places[i]};
+        pipe_source pipe = {data, size, 0, 7, places[i], 0};
         const sdfio_stream stream = pipe_stream(&pipe);
         sdfio_reader *reader = new_reader(all_formats());
         sdfio_status status = sdfio_open_stream(reader, &stream);
@@ -429,7 +436,7 @@ static void check_huge_matrix(void)
                 (unsigned char)(sizes[i] >> (8 * byte));
         }
     }
-    pipe_source pipe = {file.data, file.size, 0, SIZE_MAX, SIZE_MAX};
+    pipe_source pipe = {file.data, file.size, 0, SIZE_MAX, SIZE_MAX, 0};
     const sdfio_stream stream = pipe_stream(&pipe);
     sdfio_reader *reader = new_reader(all_formats());
     CHECK_OK(sdfio_open_stream(reader, &stream));
@@ -636,7 +643,7 @@ static void check_missing_layout(void)
 
 int main(void)
 {
-    const size_t pieces[] = {1, 7, 4096, SIZE_MAX};
+    const size_t pieces[] = {0, 1, 7, 4096, SIZE_MAX};
     for (size_t i = 0; i < sizeof pieces / sizeof pieces[0]; ++i)
     {
         check_pipe(SAMPLES "iso2_surface_binary.sdf", pieces[i]);

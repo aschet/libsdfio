@@ -227,8 +227,9 @@ typedef struct sdfio_stream
     void *user;
     /**
      * Reads up to `size` bytes into `data`. Returns the number of bytes read,
-     * 0 at the end of the data, or SDFIO_STREAM_ERROR on failure. Returns fewer
-     * than `size` bytes only at the end of the data.
+     * or SDFIO_STREAM_ERROR on failure. The count can be smaller than `size`
+     * at any call, as for a pipe or a socket, and the reader calls again for
+     * the rest. Only 0 means the end of the data.
      */
     size_t (*read)(void *user, void *data, size_t size);
     /**

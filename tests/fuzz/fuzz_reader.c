@@ -37,7 +37,7 @@ typedef struct source
     size_t position;
 } source;
 
-/* A stream returns fewer bytes than asked only at the end. */
+/* A stream over a block of memory. */
 static size_t source_read(void *user, void *out, size_t size)
 {
     source *input = user;
