@@ -299,6 +299,7 @@ static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
 static const sdfio_writer_format ascii_format = {
     .state_size = sizeof(struct writing),
     .writes = SDFIO_ASCII,
+    .trailer_ends_line = true,
     .scratch_size = scratch_size,
     .write_header = write_header,
     .write_values = write_values,

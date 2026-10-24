@@ -38,6 +38,9 @@ struct sdfio_writer_format
     size_t state_size;
     /** The file format that the writer format writes. */
     sdfio_format writes;
+    /** Whether the end of the trailer is a line of its own, so that the line
+     * that the text leaves open is terminated before end_trailer(). */
+    bool trailer_ends_line;
 
     /**
      * Returns the bytes that the writer has to provide for write_values().

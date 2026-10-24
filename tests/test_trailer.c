@@ -21,11 +21,13 @@ typedef struct small_file
 {
     membuf file;
     sdfio_writer *writer;
+    sdfio_format format;
 } small_file;
 
 static void start_file(small_file *small, sdfio_format format)
 {
     sdfio_header *header = new_header();
+    small->format = format;
     CHECK_OK(sdfio_header_set_format(header, format));
     CHECK_OK(sdfio_header_set_columns(header, 2));
     CHECK_OK(sdfio_header_set_rows(header, 2));
@@ -52,7 +54,8 @@ static bool read_trailer_of(small_file *small, const char *expected)
     const bool equal =
         expected == NULL
             ? read == NULL || size == 0
-            : read != NULL && same(read, size, expected_read(expected));
+            : read != NULL
+                  && same(read, size, expected_read(small->format, expected));
     sdfio_reader_free(reader);
     free(small->file.data);
     return equal;
@@ -71,9 +74,9 @@ static void check_fields(void)
         CHECK_OK(sdfio_write_trailer_field(small.writer, "Scans", "-42"));
         CHECK_OK(
             sdfio_write_trailer_field(small.writer, "Magnification", "20.5"));
-        /* One line each, in order, with LF and without the last end. */
+        /* One line each, in order, with LF. */
         CHECK(read_trailer_of(&small, "OperatorName = Jane Doe\nEmpty = \n"
-                                      "Scans = -42\nMagnification = 20.5"));
+                                      "Scans = -42\nMagnification = 20.5\n"));
 
         /* No field and no text: no trailer. */
         start_file(&small, formats[i]);
@@ -85,7 +88,7 @@ static void check_fields(void)
         CHECK_OK(sdfio_write_trailer_field(small.writer, "A", "b"));
         CHECK_OK(sdfio_write_trailer_text(small.writer, "more\ntext", 9));
         CHECK_OK(sdfio_write_trailer_field(small.writer, "C", "d"));
-        CHECK(read_trailer_of(&small, "free text\nA = b\nmore\ntext\nC = d"));
+        CHECK(read_trailer_of(&small, "free text\nA = b\nmore\ntext\nC = d\n"));
     }
 }
 
@@ -116,7 +119,7 @@ static void check_what_a_line_may_be(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_field(NULL, "A", "b"));
     /* A refused line is not written, and the writer goes on. */
     CHECK_OK(sdfio_write_trailer_field(small.writer, "Part_2b", "x"));
-    CHECK(read_trailer_of(&small, "Part_2b = x"));
+    CHECK(read_trailer_of(&small, "Part_2b = x\n"));
 }
 
 /* A field belongs after the rows, and not after the end. */
@@ -178,7 +181,9 @@ static void check_the_text_is_written_as_given(void)
             const char *read = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &read, &size));
-            CHECK(read != NULL && same(read, size, expected_read(trailers[t])));
+            CHECK(
+                read != NULL
+                && same(read, size, expected_read(SDFIO_BINARY, trailers[t])));
             sdfio_reader_free(reader);
             free(file.data);
         }
@@ -271,10 +276,12 @@ static void check_the_end(void)
         membuf file = file_with_text(formats[r], "abc");
         sdfio_reader *reader = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+        const char *expected = expected_read(formats[r], "abc");
+        const size_t expected_size = strlen(expected);
         char buffer[4];
         size_t size = 0;
-        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
-        CHECK(size == 4 && memcmp(buffer, "abc\n", 4) == 0);
+        CHECK_OK(sdfio_read_trailer(reader, buffer, expected_size, &size));
+        CHECK(size == expected_size && memcmp(buffer, expected, size) == 0);
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
         CHECK(size == 0);
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
@@ -352,7 +359,7 @@ static void check_rows_after_the_trailer(void)
         char buffer[8];
         size_t size = 0;
         CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
-        CHECK(size == 4);
+        CHECK(size == strlen(expected_read(formats[r], "abc")));
         CHECK_STATUS(SDFIO_ERR_STATE,
                      sdfio_read_data(reader,
                                      sdfio_layout_packed(SDFIO_TYPE_FLOAT), row,
@@ -479,45 +486,58 @@ static void check_copy_trailer(void)
     }
 }
 
-/* The copy keeps the white space of the text, also at its start and its end. */
-static void check_copy_keeps_white_space(void)
+/* The copy keeps the text, with its white space also at its start and its end,
+ * and the end of its last line: an ASCII file has no trailer without one. */
+static void check_copy_keeps_the_text(void)
 {
-    static const char written[] = "\n  A = 1\n\n\tB = 2 \n\n";
+    static const char *const written[] = {"\n  A = 1\n\n\tB = 2 \n\n",
+                                          "A = 1\n\n  open", "tail\r"};
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
-    for (size_t from = 0; from < 2; ++from)
+    for (size_t t = 0; t < sizeof written / sizeof written[0]; ++t)
     {
-        for (size_t to = 0; to < 2; ++to)
+        for (size_t from = 0; from < 2; ++from)
         {
-            membuf source = file_with_text(formats[from], written);
-            sdfio_reader *reader = new_reader(all_formats());
-            CHECK_OK(sdfio_open_memory(reader, source.data, source.size));
-            sdfio_header *header = new_header();
-            CHECK_OK(sdfio_header_copy(header, sdfio_reader_header(reader)));
-            CHECK_OK(sdfio_header_set_format(header, formats[to]));
+            for (size_t to = 0; to < 2; ++to)
+            {
+                char source_text[4096];
+                char want[4096];
+                snprintf(source_text, sizeof source_text, "%s",
+                         expected_read(formats[from], written[t]));
+                snprintf(want, sizeof want, "%s",
+                         expected_read(formats[to], source_text));
 
-            membuf file = {0};
-            const sdfio_stream stream = membuf_stream(&file);
-            sdfio_writer *writer = new_writer(all_formats());
-            CHECK_OK(sdfio_create_stream(writer, &stream, header));
-            float heights[4];
-            CHECK_OK(sdfio_read_heights(
-                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
-            CHECK_OK(sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
-            CHECK_OK(sdfio_copy_trailer(reader, writer));
-            CHECK_OK(sdfio_end_file(writer));
-            sdfio_writer_free(writer);
-            sdfio_reader_free(reader);
-            free(source.data);
+                membuf source = file_with_text(formats[from], written[t]);
+                sdfio_reader *reader = new_reader(all_formats());
+                CHECK_OK(sdfio_open_memory(reader, source.data, source.size));
+                sdfio_header *header = new_header();
+                CHECK_OK(
+                    sdfio_header_copy(header, sdfio_reader_header(reader)));
+                CHECK_OK(sdfio_header_set_format(header, formats[to]));
 
-            reader = new_reader(all_formats());
-            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-            const char *read = NULL;
-            size_t size = 0;
-            CHECK_OK(read_trailer_text(reader, 0, &read, &size));
-            CHECK(read != NULL && same(read, size, written));
-            sdfio_reader_free(reader);
-            free(file.data);
+                membuf file = {0};
+                const sdfio_stream stream = membuf_stream(&file);
+                sdfio_writer *writer = new_writer(all_formats());
+                CHECK_OK(sdfio_create_stream(writer, &stream, header));
+                float heights[4];
+                CHECK_OK(sdfio_read_heights(
+                    reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
+                CHECK_OK(sdfio_write_heights(
+                    writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
+                CHECK_OK(sdfio_copy_trailer(reader, writer));
+                CHECK_OK(sdfio_end_file(writer));
+                sdfio_writer_free(writer);
+                sdfio_reader_free(reader);
+                free(source.data);
+
+                reader = new_reader(all_formats());
+                CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+                const char *read = NULL;
+                size_t size = 0;
+                CHECK_OK(read_trailer_text(reader, 0, &read, &size));
+                CHECK(read != NULL && same(read, size, want));
+                sdfio_reader_free(reader);
+                free(file.data);
+            }
         }
     }
 }
@@ -701,7 +721,7 @@ int main(void)
     check_text_in_parts();
     check_a_field_ends_an_open_line();
     check_copy_trailer();
-    check_copy_keeps_white_space();
+    check_copy_keeps_the_text();
     check_copy_trailer_failures();
     check_next_field();
     check_find_field();

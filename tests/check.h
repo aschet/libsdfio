@@ -194,10 +194,11 @@ enum
 };
 
 /* The text that a reader returns for a text written to the trailer: CRLF reads
- * as LF, and the line that is open at the end of the text is terminated, which
- * sdfio_end_file() does. The text is in a buffer of the function and is valid
- * until the next call. */
-static inline const char *expected_read(const char *written)
+ * as LF, and in an ASCII file the line that is open at the end of the text is
+ * terminated, which sdfio_end_file() does there. The text is in a buffer of the
+ * function and is valid until the next call. */
+static inline const char *expected_read(sdfio_format format,
+                                        const char *written)
 {
     static char text[4096];
     size_t size = 0;
@@ -208,7 +209,7 @@ static inline const char *expected_read(const char *written)
             text[size++] = written[i];
         }
     }
-    if (size > 0 && text[size - 1] != '\n')
+    if (format == SDFIO_ASCII && size > 0 && text[size - 1] != '\n')
     {
         text[size++] = '\n';
     }

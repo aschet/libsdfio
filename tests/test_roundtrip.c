@@ -141,8 +141,9 @@ static void check_roundtrip(sdfio_revision revision, sdfio_format format,
     const char *trailer = NULL;
     size_t size = 0;
     CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
-    CHECK(trailer != NULL && size == strlen(expected_read(tagged_trailer))
-          && memcmp(trailer, expected_read(tagged_trailer), size) == 0);
+    CHECK(trailer != NULL
+          && size == strlen(expected_read(format, tagged_trailer))
+          && memcmp(trailer, expected_read(format, tagged_trailer), size) == 0);
     const char *second = memchr(trailer, '\n', size);
     const char *name = NULL;
     const char *value = NULL;
@@ -894,17 +895,15 @@ static void check_trailer_line_ends(void)
     {
         const char *written;
         const char *in_file; /* the bytes of a binary trailer */
-        const char *read;
     };
     const struct variant variants[] = {
-        {"A = 1\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
-        {"A = 1\r\nB = 2", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
-        {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n", "A = 1\nB = 2\n"},
-        {"A = 1\r\nB = 2\nC = 3", "A = 1\r\nB = 2\r\nC = 3\r\n",
-         "A = 1\nB = 2\nC = 3\n"},
-        {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2\r\n", "A = 1\n\nB = 2\n"},
-        {"A = 1", "A = 1\r\n", "A = 1\n"},
-        {"\n  A = 1\n\n", "\r\n  A = 1\r\n\r\n", "\n  A = 1\n\n"},
+        {"A = 1\nB = 2", "A = 1\r\nB = 2"},
+        {"A = 1\r\nB = 2", "A = 1\r\nB = 2"},
+        {"A = 1\nB = 2\n", "A = 1\r\nB = 2\r\n"},
+        {"A = 1\r\nB = 2\nC = 3", "A = 1\r\nB = 2\r\nC = 3"},
+        {"A = 1\n\nB = 2", "A = 1\r\n\r\nB = 2"},
+        {"A = 1", "A = 1"},
+        {"\n  A = 1\n\n", "\r\n  A = 1\r\n\r\n"},
     };
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t s = 0; s < 2; ++s)
@@ -946,8 +945,9 @@ static void check_trailer_line_ends(void)
             const char *trailer = NULL;
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
-            CHECK(trailer != NULL && size == strlen(variants[v].read)
-                  && memcmp(trailer, variants[v].read, size) == 0);
+            const char *read = expected_read(formats[s], variants[v].written);
+            CHECK(trailer != NULL && size == strlen(read)
+                  && memcmp(trailer, read, size) == 0);
             sdfio_reader_free(reader);
             free(file.data);
         }
@@ -1026,8 +1026,10 @@ static void check_read_line_ends(void)
             size_t size = 0;
             CHECK_OK(read_trailer_text(reader, 0, &trailer, &size));
             CHECK(trailer != NULL
-                  && size == strlen(expected_read(tagged_trailer))
-                  && memcmp(trailer, expected_read(tagged_trailer), size) == 0);
+                  && size == strlen(expected_read(SDFIO_ASCII, tagged_trailer))
+                  && memcmp(trailer, expected_read(SDFIO_ASCII, tagged_trailer),
+                            size)
+                         == 0);
             sdfio_reader_free(reader);
             free(other.data);
         }

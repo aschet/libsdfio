@@ -65,6 +65,16 @@ bool sdfio_crlf_write(sdfio_sink *sink, sdfio_crlf_state *state,
 bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state);
 
 /**
+ * Writes the CR that ended the last text, as a character of the line, because
+ * no text follows.
+ *
+ * @param sink The sink.
+ * @param[in,out] state The state of the text.
+ * @return False if the sink failed.
+ */
+bool sdfio_crlf_flush(sdfio_sink *sink, sdfio_crlf_state *state);
+
+/**
  * Tells whether a text is the name of a field: letters, digits and `_`.
  *
  * @param name The name, 0-terminated.

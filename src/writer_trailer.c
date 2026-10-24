@@ -127,7 +127,9 @@ sdfio_status sdfio_end_file(sdfio_writer *writer)
     {
         return status;
     }
-    if (!sdfio_crlf_end(&writer->sink, &writer->trailer_text))
+    if (!(writer->format->trailer_ends_line
+              ? sdfio_crlf_end(&writer->sink, &writer->trailer_text)
+              : sdfio_crlf_flush(&writer->sink, &writer->trailer_text)))
     {
         return sdfio_writer_sink_failure(writer);
     }

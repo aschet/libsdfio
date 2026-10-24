@@ -233,13 +233,14 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
  *
  * The text is not interpreted, and a call can write any part of it: the line
  * that a call leaves open continues with the text of the next call, so the text
- * can be split anywhere. A field line or sdfio_end_file() terminates the
- * line that is open, so a text without a line end at its end gets one. Every
- * line end of the text (LF or CRLF) is written as CRLF, as the standard
- * specifies, in ASCII and in binary files. sdfio_read_trailer() returns the
- * lines with LF. In an ASCII file a line that consists only of `*` ends the
- * record, so the text must not contain one; lines of
- * sdfio_write_trailer_field() never do.
+ * can be split anywhere. A field line terminates the line that is open. So
+ * does sdfio_end_file() in an ASCII file, whose closing line `*` starts a line:
+ * a text without a line end at its end gets one there. A binary file ends with
+ * the text as it is. Every line end of the text (LF or CRLF) is written as
+ * CRLF, as the standard specifies, in ASCII and in binary files.
+ * sdfio_read_trailer() returns the lines with LF. In an ASCII file a line that
+ * consists only of `*` ends the record, so the text must not contain one;
+ * lines of sdfio_write_trailer_field() never do.
  *
  * @param[in,out] writer The writer.
  * @param[in] text The text.

@@ -88,6 +88,13 @@ bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state)
            && write_line_end(sink);
 }
 
+bool sdfio_crlf_flush(sdfio_sink *sink, sdfio_crlf_state *state)
+{
+    const bool held = state->pending_cr;
+    state->pending_cr = false;
+    return !held || sdfio_sink_write(sink, &carriage_return, 1);
+}
+
 static bool is_name_character(char c)
 {
     return isdigit((unsigned char)c)
