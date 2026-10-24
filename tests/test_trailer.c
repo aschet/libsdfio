@@ -531,6 +531,122 @@ static void check_copy_trailer_failures(void)
     free(file.data);
 }
 
+/* The fields of a text: the lines of the form Name = Value in order, and no
+ * other line. */
+static void check_next_field(void)
+{
+    static const char text[] =
+        "Operator = Ada\nfree text\n  Note=  a = b  \n\nlast=\n= no\n"
+        "X Y = no\nCRLF = yes\r\nno separator";
+    const char *const names[] = {"Operator", "Note", "last", "CRLF"};
+    const char *const values[] = {"Ada", "a = b", "", "yes"};
+    size_t position = 0;
+    for (size_t i = 0; i < 4; ++i)
+    {
+        const char *name = NULL;
+        const char *value = NULL;
+        size_t name_size = 0;
+        size_t value_size = 0;
+        CHECK(sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                       &name_size, &value, &value_size));
+        CHECK(same(name, name_size, names[i]));
+        CHECK(same(value, value_size, values[i]));
+    }
+    const char *name = NULL;
+    const char *value = NULL;
+    size_t name_size = 0;
+    size_t value_size = 0;
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    &name_size, &value, &value_size));
+    CHECK(position == sizeof text - 1);
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    &name_size, &value, &value_size));
+
+    position = 0;
+    CHECK(!sdfio_trailer_next_field(NULL, 0, &position, &name, &name_size,
+                                    &value, &value_size));
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, NULL, &name,
+                                    &name_size, &value, &value_size));
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, NULL,
+                                    &name_size, &value, &value_size));
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    NULL, &value, &value_size));
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    &name_size, NULL, &value_size));
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    &name_size, &value, NULL));
+    position = sizeof text;
+    CHECK(!sdfio_trailer_next_field(text, sizeof text - 1, &position, &name,
+                                    &name_size, &value, &value_size));
+}
+
+/* A name is found without regard to case, the first of several fields counts,
+ * and a missing field leaves no value. */
+static void check_find_field(void)
+{
+    static const char text[] =
+        "Operator = Ada\nnote = first\nNOTE = second\nEmpty =\n";
+    const char *value = text;
+    size_t value_size = 99;
+    CHECK(sdfio_trailer_find_field(text, sizeof text - 1, "operator", &value,
+                                   &value_size));
+    CHECK(same(value, value_size, "Ada"));
+    CHECK(sdfio_trailer_find_field(text, sizeof text - 1, "Note", &value,
+                                   &value_size));
+    CHECK(same(value, value_size, "first"));
+    CHECK(sdfio_trailer_find_field(text, sizeof text - 1, "EMPTY", &value,
+                                   &value_size));
+    CHECK(value_size == 0);
+    CHECK(!sdfio_trailer_find_field(text, sizeof text - 1, "Missing", &value,
+                                    &value_size));
+    CHECK(value == NULL && value_size == 0);
+    CHECK(!sdfio_trailer_find_field(text, sizeof text - 1, "Operato", &value,
+                                    &value_size));
+    CHECK(!sdfio_trailer_find_field(text, sizeof text - 1, "", &value,
+                                    &value_size));
+    CHECK(!sdfio_trailer_find_field(NULL, 0, "Note", &value, &value_size));
+    CHECK(!sdfio_trailer_find_field(text, sizeof text - 1, NULL, &value,
+                                    &value_size));
+    CHECK(!sdfio_trailer_find_field(text, sizeof text - 1, "Note", NULL,
+                                    &value_size));
+    CHECK(
+        !sdfio_trailer_find_field(text, sizeof text - 1, "Note", &value, NULL));
+}
+
+/* The fields that a writer wrote are found in the text that a reader returns,
+ * in both representations. */
+static void check_fields_of_a_file(void)
+{
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t r = 0; r < 2; ++r)
+    {
+        small_file small;
+        start_file(&small, representations[r]);
+        CHECK_OK(sdfio_write_trailer_field(small.writer, "OperatorName",
+                                           "Jane Doe"));
+        CHECK_OK(
+            sdfio_write_trailer_field(small.writer, "Magnification", "20.5"));
+        CHECK_OK(sdfio_end_trailer(small.writer));
+        sdfio_writer_free(small.writer);
+
+        sdfio_reader *reader = new_reader(all_formats());
+        CHECK_OK(sdfio_open_memory(reader, small.file.data, small.file.size));
+        const char *text = NULL;
+        size_t size = 0;
+        CHECK_OK(read_trailer_text(reader, 0, &text, &size));
+        const char *value = NULL;
+        size_t value_size = 0;
+        CHECK(sdfio_trailer_find_field(text, size, "magnification", &value,
+                                       &value_size));
+        CHECK(same(value, value_size, "20.5"));
+        CHECK(sdfio_trailer_find_field(text, size, "OperatorName", &value,
+                                       &value_size));
+        CHECK(same(value, value_size, "Jane Doe"));
+        sdfio_reader_free(reader);
+        free(small.file.data);
+    }
+}
+
 int main(void)
 {
     check_fields();
@@ -545,5 +661,8 @@ int main(void)
     check_a_field_ends_an_open_line();
     check_copy_trailer();
     check_copy_trailer_failures();
+    check_next_field();
+    check_find_field();
+    check_fields_of_a_file();
     return finish_tests();
 }

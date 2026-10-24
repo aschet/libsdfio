@@ -20,7 +20,8 @@
 /**
  * @example reader.c
  * Reads a file as heights in metres of type float, prints the revision, the
- * size and the mean height, and prints the trailer.
+ * size and the mean height, and prints the trailer. The value of a field of the
+ * trailer is found with sdfio_trailer_find_field().
  */
 
 /**

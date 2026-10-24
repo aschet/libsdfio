@@ -1006,6 +1006,52 @@ SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader, char *buffer,
                                           size_t capacity, size_t *size);
 
 /**
+ * Finds the next field of a trailer text, a line of the form `Name = Value`,
+ * which ISO-2.0 expects. The text is the text that sdfio_read_trailer()
+ * returned, or any text with LF or CRLF as line ends. The lines that are not
+ * fields are skipped.
+ *
+ * The name consists of letters, digits and `_`. White space around the name,
+ * the separator and the value is not part of them. A value ends at the end of
+ * the line, so it can contain `=`, and it can be empty. The name and the value
+ * point into `text`, which must outlive their use.
+ *
+ * @param[in] text The text of the trailer.
+ * @param size The length of the text in bytes.
+ * @param[in,out] position The offset of the line to start with: 0 for the
+ * start of the text. The function sets it behind the line that it found, so the
+ * next call continues there.
+ * @param[out] name Receives the name.
+ * @param[out] name_size Receives the length of the name.
+ * @param[out] value Receives the value.
+ * @param[out] value_size Receives the length of the value.
+ * @return True if a field was found. False at the end of the text, or if a
+ * pointer is null.
+ */
+SDFIO_API bool sdfio_trailer_next_field(const char *text, size_t size,
+                                        size_t *position, const char **name,
+                                        size_t *name_size, const char **value,
+                                        size_t *value_size);
+
+/**
+ * Finds the value of the field of a name in a trailer text. The name is
+ * compared without regard to case, as the standard has it for field names. If
+ * the text has several fields of the name, the first one counts. The rules of
+ * sdfio_trailer_next_field() apply.
+ *
+ * @param[in] text The text of the trailer.
+ * @param size The length of the text in bytes.
+ * @param[in] name The name of the field.
+ * @param[out] value Receives the value, or null if there is no such field.
+ * @param[out] value_size Receives the length of the value, or 0.
+ * @return True if the field was found. False if there is none, or if a pointer
+ * is null.
+ */
+SDFIO_API bool sdfio_trailer_find_field(const char *text, size_t size,
+                                        const char *name, const char **value,
+                                        size_t *value_size);
+
+/**
  * Returns a description of the most recent failure of the reader, or an empty
  * string if none occurred. The result is never null.
  *

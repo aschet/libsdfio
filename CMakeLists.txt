@@ -76,6 +76,7 @@ set(SDFIO_SOURCES
     src/reader_heights.c
     src/reader_state.h
     src/reader_trailer.c
+    src/trailer_fields.c
     src/reader_file.h
     src/reader_format.h
     src/revision.c

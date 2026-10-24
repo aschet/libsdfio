@@ -194,7 +194,9 @@
  * applied. It is optional, has a variable length, and extends to the end of the
  * file. It is text in 7-bit ASCII. The first version of the format did not
  * define its content. An ISO-2.0 file uses the form of the header for it, a
- * line `Name = Value` for each field.
+ * line `Name = Value` for each field. sdfio_trailer_find_field() and
+ * sdfio_trailer_next_field() find the fields in the text that
+ * sdfio_read_trailer() returns.
  *
  * @section format_binary The Binary Representation
  * The header has fixed fields in the order above, and nothing separates the

@@ -78,6 +78,14 @@ int main(int argc, char **argv)
                measured > 0 ? sum / (double)measured : 0.0, (int)trailer_size,
                trailer);
     }
+    const char *operator_name = NULL;
+    size_t operator_size = 0;
+    if (status == SDFIO_OK
+        && sdfio_trailer_find_field(trailer, trailer_size, "OperatorName",
+                                    &operator_name, &operator_size))
+    {
+        printf("operator: %.*s\n", (int)operator_size, operator_name);
+    }
     free(heights);
     sdfio_reader_free(reader);
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
