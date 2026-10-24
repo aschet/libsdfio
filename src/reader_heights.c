@@ -16,8 +16,7 @@
 #include "reader_state.h"
 
 sdfio_status sdfio_read_heights(sdfio_reader *reader,
-                                const sdfio_layout *layout_of_buffer,
-                                double not_measured, void *dst)
+                                const sdfio_layout *layout_of_buffer, void *dst)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
@@ -61,9 +60,9 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader,
             status = sdfio_reader_take_values(reader, reader->chunk, count);
             if (status == SDFIO_OK)
             {
-                status = sdfio_decode_heights(header, &layout, not_measured,
-                                              reader->chunk, count,
-                                              row + (ptrdiff_t)first * element);
+                status =
+                    sdfio_decode_heights(header, &layout, reader->chunk, count,
+                                         row + (ptrdiff_t)first * element);
                 if (status != SDFIO_OK)
                 {
                     sdfio_fail(&reader->message, status,

@@ -93,7 +93,7 @@ static sdfio_status round_trip(const test_options *config, sdfio_format format,
         if (status == SDFIO_OK)
         {
             status = sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, written);
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), written);
         }
         if (status == SDFIO_OK)
         {
@@ -119,7 +119,7 @@ static sdfio_status round_trip(const test_options *config, sdfio_format format,
         if (status == SDFIO_OK)
         {
             status = sdfio_read_heights(
-                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, read);
+                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), read);
         }
         const char *trailer = NULL;
         size_t trailer_size = 0;

@@ -81,7 +81,7 @@ static int write_surface(const char *path, sdfio_data_type type)
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(
-            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights);
+            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
     }
     if (status == SDFIO_OK)
     {

@@ -39,7 +39,7 @@ int main(void)
     CHECK_OK(sdfio_create_wfile(writer, path, header));
     CHECK(file_exists(path));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                 NAN, heights));
+                                 heights));
     CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
@@ -48,7 +48,7 @@ int main(void)
     CHECK_OK(sdfio_open_wfile(reader, path));
     double back[4] = {0};
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                NAN, back));
+                                back));
     CHECK(back[0] == 1.0 && back[3] == 4.0);
     sdfio_reader_free(reader);
     _wremove(path);

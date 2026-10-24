@@ -142,13 +142,11 @@ SDFIO_API const sdfio_layout *sdfio_layout_packed(sdfio_data_type type);
  *
  * `count` values of `header->data_type` are converted with `header->z_scale`.
  * The height i is stored at `heights + i * layout->element_stride`. A point
- * that is not measured becomes `not_measured`. The function needs no handle, so
- * it works on data from any source.
+ * that is not measured becomes NaN. The function needs no handle, so it works
+ * on data from any source.
  *
  * @param[in] header The header that describes the values.
  * @param[in] layout The layout of the output buffer.
- * @param not_measured The value of a point that is not measured. NaN selects no
- * marker: such a point is NaN.
  * @param[in] data The values of the data area.
  * @param count The number of values.
  * @param[out] heights The output buffer.
@@ -157,7 +155,6 @@ SDFIO_API const sdfio_layout *sdfio_layout_packed(sdfio_data_type type);
  */
 SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
                                             const sdfio_layout *layout,
-                                            double not_measured,
                                             const void *data, size_t count,
                                             void *heights);
 
@@ -165,14 +162,11 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * Converts heights in metres into values of the data area. It is the inverse of
  * sdfio_decode_heights().
  *
- * The heights are divided by `header->z_scale`. NaN, infinity and
- * `not_measured` become the bad value. Integer results are rounded to the
- * nearest value.
+ * The heights are divided by `header->z_scale`. NaN and infinity become the bad
+ * value. Integer results are rounded to the nearest value.
  *
  * @param[in] header The header that describes the values.
  * @param[in] layout The layout of the input buffer.
- * @param not_measured The value that labels a point that is not measured. NaN
- * selects no marker.
  * @param[in] heights The heights.
  * @param count The number of heights.
  * @param[out] data The values of the data area.
@@ -184,7 +178,6 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  */
 SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
                                             const sdfio_layout *layout,
-                                            double not_measured,
                                             const void *heights, size_t count,
                                             void *data);
 
@@ -202,15 +195,12 @@ SDFIO_API double sdfio_suggest_z_scale_for_range(sdfio_data_type type,
 
 /**
  * Determines the z-scale for a matrix of heights in metres, as
- * sdfio_write_heights() does: the range of the finite heights, excluding the
- * points that `not_measured` marks, is determined and passed to
- * sdfio_suggest_z_scale_for_range(). It is intended for sdfio_write_data() with
- * an integer data type.
+ * sdfio_write_heights() does: the range of the finite heights is determined and
+ * passed to sdfio_suggest_z_scale_for_range(). It is intended for
+ * sdfio_write_data() with an integer data type.
  *
  * @param type The data type.
  * @param[in] layout The layout of the buffer.
- * @param not_measured The value that labels a point that is not measured. NaN
- * selects no marker.
  * @param[in] heights The heights.
  * @param rows The number of rows.
  * @param columns The number of columns.
@@ -219,7 +209,6 @@ SDFIO_API double sdfio_suggest_z_scale_for_range(sdfio_data_type type,
  */
 SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
                                              const sdfio_layout *layout,
-                                             double not_measured,
                                              const void *heights, size_t rows,
                                              size_t columns, double *z_scale);
 

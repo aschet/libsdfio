@@ -184,7 +184,7 @@ static void check_against(const expectation *e)
     double *heights = malloc(count * sizeof *heights);
     CHECK(heights != NULL);
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                NAN, heights));
+                                heights));
 
     const char *trailer = NULL;
     size_t trailer_size = 0;
@@ -283,7 +283,7 @@ static void check_unrecorded(const unsigned char *bytes, size_t size)
               && sdfio_header_rows(header) == 20);
         static float heights[30 * 20];
         CHECK_OK(sdfio_read_heights(
-            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights));
+            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
     }
     sdfio_reader_free(reader);
 }

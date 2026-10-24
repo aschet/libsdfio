@@ -235,17 +235,13 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  * layout.element_stride`. The row y = 0 is the first row. A negative row
  * stride, with `dst` at the first element of the row y = 0, which is the last
  * row in memory, stores the matrix upside down. A point that is not measured
- * becomes `not_measured`.
+ * becomes NaN.
  *
  * The function reads from the first row of the data area, so no rows may have
  * been read before.
  *
  * @param[in,out] reader The reader.
  * @param[in] layout The layout of the buffer.
- * @param not_measured The value of a point that is not measured. NaN selects no
- * marker: such a point is NaN. The value is compared in the precision of the
- * type of the buffer, so -9999.1 marks the points of a `float` buffer that
- * hold the `float` nearest to -9999.1.
  * @param[out] dst The buffer for the heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
@@ -256,7 +252,7 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  */
 SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
                                           const sdfio_layout *layout,
-                                          double not_measured, void *dst);
+                                          void *dst);
 
 /**
  * Reads the next part of the trailer, the free text after the data

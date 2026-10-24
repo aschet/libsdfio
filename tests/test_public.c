@@ -120,7 +120,7 @@ int main(void)
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                 NAN, heights));
+                                 heights));
     CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
     CHECK_OK(sdfio_write_trailer_field(writer, "Averages", "16"));
     CHECK_OK(sdfio_end_file(writer));
@@ -138,7 +138,7 @@ int main(void)
     }
     float back[6];
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                NAN, back));
+                                back));
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
@@ -149,7 +149,7 @@ int main(void)
     reader = membuf_reopen(reader, &file);
     float packed[6];
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                NAN, packed));
+                                packed));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
@@ -161,7 +161,7 @@ int main(void)
                              coded, 2));
     CHECK(coded[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
-                               read, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN,
+                               read, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
                                coded, 6, back));
     sdfio_reader_free(reader);
     free(file.data);

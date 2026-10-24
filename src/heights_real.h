@@ -28,26 +28,6 @@ static bool REAL_NAME(is_finite)(REAL value)
     return REAL_ABS(value) <= REAL_MAX;
 }
 
-/* The marker of the caller as a number of the type of the heights. NaN is no
- * marker. False if the marker does not fit the type. */
-static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
-                                 bool *present)
-{
-    *marker = (REAL)NAN;
-    *present = false;
-    if (isnan(not_measured) != 0)
-    {
-        return true;
-    }
-    if (isfinite(not_measured) && fabs(not_measured) > (double)REAL_MAX)
-    {
-        return false;
-    }
-    *marker = (REAL)not_measured;
-    *present = true;
-    return true;
-}
-
 /**
  * A case of the decoding, for SDFIO_SCALARS(): a coded value is converted
  * to the type of the heights and multiplied by the scale. The lowest value of
@@ -61,7 +41,7 @@ static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
             memcpy(&coded_value,                                               \
                    (const unsigned char *)coded + i * sizeof coded_value,      \
                    sizeof coded_value);                                        \
-            REAL height = marker;                                              \
+            REAL height = (REAL)NAN;                                           \
             if (coded_value != (type)(low))                                    \
             {                                                                  \
                 if ((floating) && sizeof(type) > sizeof(REAL))                 \
@@ -90,15 +70,8 @@ static bool REAL_NAME(marker_of)(double not_measured, REAL *marker,
 
 static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                                       const void *coded, size_t count,
-                                      void *heights, ptrdiff_t element,
-                                      double not_measured)
+                                      void *heights, ptrdiff_t element)
 {
-    REAL marker = 0;
-    bool has_marker = false;
-    if (!REAL_NAME(marker_of)(not_measured, &marker, &has_marker))
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
     REAL_NAME(scale_type) scale;
     REAL_NAME(scale_init)(header->z_scale, &scale);
     switch (header->data_type)
@@ -114,8 +87,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
  * A case of the encoding, for SDFIO_SCALARS(): a height is divided by the scale
  * and rounded to a whole number for an integer type, and checked against the
  * range of the type and against the bad value, which is the lowest value of the
- * type. A height that is not a finite number, or that equals the marker, is
- * written as the bad value.
+ * type. A height that is not a finite number is written as the bad value.
  */
 #define ENCODE_CASE(data, type, low, high, floating)                           \
     case data:                                                                 \
@@ -126,8 +98,7 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
                    (const unsigned char *)heights + (ptrdiff_t)i * element,    \
                    sizeof height);                                             \
             type coded_value = (type)(low);                                    \
-            if (REAL_NAME(is_finite)(height)                                   \
-                && !(has_marker && height == marker))                          \
+            if (REAL_NAME(is_finite)(height))                                  \
             {                                                                  \
                 REAL quotient = 0;                                             \
                 REAL correction = 0;                                           \
@@ -173,15 +144,8 @@ static sdfio_status REAL_NAME(decode)(const sdfio_header *header,
 
 static sdfio_status REAL_NAME(encode)(const sdfio_header *header,
                                       const void *heights, ptrdiff_t element,
-                                      size_t count, void *coded,
-                                      double not_measured)
+                                      size_t count, void *coded)
 {
-    REAL marker = 0;
-    bool has_marker = false;
-    if (!REAL_NAME(marker_of)(not_measured, &marker, &has_marker))
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
     REAL_NAME(scale_type) scale;
     REAL_NAME(scale_init)(header->z_scale, &scale);
     switch (header->data_type)
@@ -194,11 +158,10 @@ static sdfio_status REAL_NAME(encode)(const sdfio_header *header,
 #undef ENCODE_CASE
 
 /* The lowest and the highest height of a matrix, without the heights that are
- * not finite and those that the marker labels. */
+ * not finite. */
 static void REAL_NAME(find_range)(const void *heights, size_t rows,
                                   size_t columns, ptrdiff_t row_stride,
-                                  ptrdiff_t element, REAL marker,
-                                  bool has_marker, double *lowest,
+                                  ptrdiff_t element, double *lowest,
                                   double *highest)
 {
     REAL low = REAL_MAX;
@@ -212,8 +175,7 @@ static void REAL_NAME(find_range)(const void *heights, size_t rows,
         {
             REAL height;
             memcpy(&height, at + (ptrdiff_t)column * element, sizeof height);
-            if (!REAL_NAME(is_finite)(height)
-                || (has_marker && height == marker))
+            if (!REAL_NAME(is_finite)(height))
             {
                 continue;
             }

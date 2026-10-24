@@ -302,12 +302,12 @@
  *
  * @section concepts_missing Points That Are Not Measured
  * A point that is not measured has the bad value of the data type in the data
- * area. A height in metres has no such value, so the program picks its
- * representation: NaN, or a marker such as -9999 that it passes as the argument
- * `not_measured` of the functions that read, write or convert heights. NaN as
- * that argument means no marker. The conversion functions translate between
- * the two. A float marker is compared in the precision of the float, so -9999.1
- * marks the float nearest to it.
+ * area. A height in metres has no such value, so it is NaN: the functions that
+ * read or convert heights deliver NaN for such a point, and the functions that
+ * write or convert heights take NaN and infinity as such a point. This is also
+ * the convention of ISO 25178-72 for the binary float formats. A program whose
+ * data uses a marker such as -9999 replaces it with NaN before writing, and
+ * NaN with the marker after reading.
  *
  * @section concepts_layout Layouts
  * A buffer of the program is described by an sdfio_layout: the type of its

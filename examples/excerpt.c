@@ -1,7 +1,6 @@
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -75,7 +74,7 @@ static sdfio_status write_excerpt(sdfio_writer *writer, sdfio_reader *reader,
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(
-            writer, &layout, NAN,
+            writer, &layout,
             heights + first_row * sdfio_header_columns(source) + first_column);
     }
     if (status == SDFIO_OK)
@@ -144,7 +143,7 @@ int main(int argc, char **argv)
     if (status == SDFIO_OK)
     {
         status = sdfio_read_heights(
-            reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, heights);
+            reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
     }
     if (status == SDFIO_OK)
     {

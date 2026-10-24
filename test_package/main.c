@@ -9,7 +9,6 @@
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -75,10 +74,10 @@ int main(void)
     if (made_writer == SDFIO_OK && described == SDFIO_OK)
     {
         failed |= check(sdfio_create_file(writer, path, header), "create");
-        failed |= check(
-            sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                NAN, heights),
-            "write");
+        failed |=
+            check(sdfio_write_heights(
+                      writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights),
+                  "write");
         failed |= check(sdfio_end_file(writer), "trailer");
     }
     sdfio_writer_free(writer);
@@ -97,7 +96,7 @@ int main(void)
         failed |= check(sdfio_open_file(reader, path), "open");
         failed |=
             check(sdfio_read_heights(
-                      reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, read),
+                      reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), read),
                   "read");
     }
     sdfio_reader_free(reader);

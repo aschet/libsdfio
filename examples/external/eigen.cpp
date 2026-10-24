@@ -79,7 +79,7 @@ Eigen::MatrixXd read_matrix(sdfio_reader *reader)
     Eigen::MatrixXd heights(
         static_cast<Eigen::Index>(sdfio_header_rows(header)),
         static_cast<Eigen::Index>(sdfio_header_columns(header)));
-    check(sdfio_read_heights(reader, layout_of(heights), NAN, heights.data()),
+    check(sdfio_read_heights(reader, layout_of(heights), heights.data()),
           sdfio_reader_error_message(reader));
     return heights;
 }
@@ -137,8 +137,7 @@ void write_matrix(const char *path, const sdfio_header *source,
     Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), layout_of(heights), NAN,
-                              heights.data()),
+    check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data()),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_end_file(writer.get()),
           sdfio_writer_error_message(writer.get()));

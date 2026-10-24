@@ -37,7 +37,7 @@ static void start_file(small_file *small, sdfio_format format)
     small->writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(small->writer, &stream, header));
     CHECK_OK(sdfio_write_heights(
-        small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights));
+        small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
 }
 
 /* Ends the file and reads its trailer back: the text, or none, which a binary
@@ -185,7 +185,7 @@ static void check_the_text_is_written_as_given(void)
             sdfio_writer *writer = new_writer(all_formats());
             CHECK_OK(sdfio_create_stream(writer, &stream, header));
             CHECK_OK(sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, &height));
+                writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), &height));
             CHECK_OK(sdfio_write_trailer_text(writer, trailers[t],
                                               strlen(trailers[t])));
             CHECK_OK(sdfio_end_file(writer));
@@ -213,7 +213,7 @@ static void check_the_text_is_written_as_given(void)
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                 NAN, &height));
+                                 &height));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_write_trailer_text(writer, NULL, 5));
     CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
@@ -383,7 +383,7 @@ static void check_rows_after_the_trailer(void)
         CHECK_STATUS(SDFIO_ERR_STATE,
                      sdfio_read_heights(reader,
                                         sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                        NAN, heights));
+                                        heights));
         sdfio_reader_free(reader);
         free(file.data);
     }
@@ -477,9 +477,9 @@ static void check_copy_trailer(void)
             CHECK_OK(sdfio_create_stream(writer, &stream, header));
             float heights[4];
             CHECK_OK(sdfio_read_heights(
-                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights));
+                reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
             CHECK_OK(sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights));
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
             CHECK_OK(sdfio_copy_trailer(reader, writer));
             CHECK_OK(sdfio_write_trailer_field(writer, "Note", "cropped"));
             CHECK_OK(sdfio_end_file(writer));
@@ -535,11 +535,9 @@ static void check_copy_keeps_the_text(void)
                 CHECK_OK(sdfio_create_stream(writer, &stream, header));
                 float heights[4];
                 CHECK_OK(sdfio_read_heights(
-                    reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN,
-                    heights));
+                    reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
                 CHECK_OK(sdfio_write_heights(
-                    writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN,
-                    heights));
+                    writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
                 CHECK_OK(sdfio_copy_trailer(reader, writer));
                 CHECK_OK(sdfio_end_file(writer));
                 sdfio_writer_free(writer);
@@ -585,7 +583,7 @@ static void check_copy_trailer_failures(void)
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_copy_trailer(reader, writer));
     const float heights[4] = {0};
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                 NAN, heights));
+                                 heights));
     sdfio_reader *closed = new_reader(all_formats());
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_copy_trailer(closed, writer));
     CHECK(strcmp(sdfio_writer_error_message(writer),

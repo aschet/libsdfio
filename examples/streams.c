@@ -72,7 +72,7 @@ int main(void)
         status = sdfio_read_data(reader, &coded_layout, coded, 1);
         if (status == SDFIO_OK)
         {
-            status = sdfio_decode_heights(header, &heights_layout, NAN, coded,
+            status = sdfio_decode_heights(header, &heights_layout, coded,
                                           columns, heights);
         }
         for (size_t column = 0; column < columns && status == SDFIO_OK;

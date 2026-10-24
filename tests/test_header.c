@@ -274,7 +274,7 @@ static void check_bytes_of_the_identifier(void)
             sdfio_writer *writer = new_writer(all_formats());
             CHECK_OK(sdfio_create_stream(writer, &stream, header));
             CHECK_OK(sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, &height));
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height));
             CHECK_OK(sdfio_end_file(writer));
             sdfio_writer_free(writer);
 

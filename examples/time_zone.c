@@ -1,7 +1,6 @@
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -106,7 +105,7 @@ int main(void)
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(
-            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, &height);
+            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height);
     }
     if (status == SDFIO_OK)
     {
