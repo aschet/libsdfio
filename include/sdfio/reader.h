@@ -264,8 +264,10 @@ SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
  *
  * The call writes at most `capacity` bytes. A trailer that is longer than the
  * buffer is read by calling the function again, and `*size` is 0 when the
- * trailer is at its end, also for a file without one. The text is not
- * terminated. Rows of the data area that have not been read are read and
+ * trailer is at its end, also for a file without one. A program that needs the
+ * whole trailer calls the function until it returns 0 bytes. The text is bytes,
+ * not terminated, and its encoding is not checked: the standard asks for 7-bit
+ * ASCII. Rows of the data area that have not been read are read and
  * discarded by the first call.
  *
  * Every line end of the text is LF, whether the file has CRLF or LF, in ASCII
@@ -296,23 +298,25 @@ SDFIO_API sdfio_status sdfio_read_trailer(sdfio_reader *reader, char *buffer,
  * The name consists of letters, digits and `_`. White space around the name,
  * the separator and the value is not part of them. A value ends at the end of
  * the line, so it can contain `=`, and it can be empty. The name and the value
- * point into `text`, which must outlive their use.
+ * are given as offsets from the start of `text` and as lengths, so the bytes
+ * are `text + name_at` and `text + value_at`. The text is bytes, not
+ * terminated, and its encoding is not checked.
  *
  * @param[in] text The text of the trailer.
  * @param size The length of the text in bytes.
  * @param[in,out] position The offset of the line to start with: 0 for the
  * start of the text. The function sets it behind the line that it found, so the
  * next call continues there.
- * @param[out] name Receives the name.
+ * @param[out] name_at Receives the offset of the name.
  * @param[out] name_size Receives the length of the name.
- * @param[out] value Receives the value.
+ * @param[out] value_at Receives the offset of the value.
  * @param[out] value_size Receives the length of the value.
  * @return True if a field was found. False at the end of the text, or if a
  * pointer is null.
  */
 SDFIO_API bool sdfio_trailer_next_field(const char *text, size_t size,
-                                        size_t *position, const char **name,
-                                        size_t *name_size, const char **value,
+                                        size_t *position, size_t *name_at,
+                                        size_t *name_size, size_t *value_at,
                                         size_t *value_size);
 
 /**
@@ -324,18 +328,20 @@ SDFIO_API bool sdfio_trailer_next_field(const char *text, size_t size,
  * @param[in] text The text of the trailer.
  * @param size The length of the text in bytes.
  * @param[in] name The name of the field.
- * @param[out] value Receives the value, or null if there is no such field.
+ * @param[out] value_at Receives the offset of the value from the start of
+ * `text`, or 0 if there is no such field.
  * @param[out] value_size Receives the length of the value, or 0.
  * @return True if the field was found. False if there is none, or if a pointer
  * is null.
  */
 SDFIO_API bool sdfio_trailer_find_field(const char *text, size_t size,
-                                        const char *name, const char **value,
+                                        const char *name, size_t *value_at,
                                         size_t *value_size);
 
 /**
  * Returns a description of the most recent failure of the reader, or an empty
- * string if none occurred. The result is never null.
+ * string if none occurred. The result is never null, and a string of the
+ * library, valid for the life of the program.
  *
  * @param[in] reader The reader.
  */

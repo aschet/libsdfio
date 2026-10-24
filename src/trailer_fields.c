@@ -14,11 +14,11 @@
 #include <string.h>
 
 bool sdfio_trailer_next_field(const char *text, size_t size, size_t *position,
-                              const char **name, size_t *name_size,
-                              const char **value, size_t *value_size)
+                              size_t *name_at, size_t *name_size,
+                              size_t *value_at, size_t *value_size)
 {
-    if (text == NULL || position == NULL || name == NULL || name_size == NULL
-        || value == NULL || value_size == NULL)
+    if (text == NULL || position == NULL || name_at == NULL || name_size == NULL
+        || value_at == NULL || value_size == NULL)
     {
         return false;
     }
@@ -30,9 +30,13 @@ bool sdfio_trailer_next_field(const char *text, size_t size, size_t *position,
         const size_t line_size =
             newline != NULL ? (size_t)(newline - line) : left;
         *position += newline != NULL ? line_size + 1 : line_size;
-        if (sdfio_tagged_split(line, line_size, name, name_size, value,
+        const char *name = NULL;
+        const char *value = NULL;
+        if (sdfio_tagged_split(line, line_size, &name, name_size, &value,
                                value_size))
         {
+            *name_at = (size_t)(name - text);
+            *value_at = (size_t)(value - text);
             return true;
         }
     }
@@ -40,25 +44,26 @@ bool sdfio_trailer_next_field(const char *text, size_t size, size_t *position,
 }
 
 bool sdfio_trailer_find_field(const char *text, size_t size, const char *name,
-                              const char **value, size_t *value_size)
+                              size_t *value_at, size_t *value_size)
 {
-    if (name == NULL || value == NULL || value_size == NULL)
+    if (name == NULL || value_at == NULL || value_size == NULL)
     {
         return false;
     }
     const size_t name_length = strlen(name);
     size_t position = 0;
-    const char *field = NULL;
+    size_t field_at = 0;
     size_t field_size = 0;
-    while (sdfio_trailer_next_field(text, size, &position, &field, &field_size,
-                                    value, value_size))
+    while (sdfio_trailer_next_field(text, size, &position, &field_at,
+                                    &field_size, value_at, value_size))
     {
-        if (sdfio_tagged_name_equal(field, field_size, name, name_length))
+        if (sdfio_tagged_name_equal(text + field_at, field_size, name,
+                                    name_length))
         {
             return true;
         }
     }
-    *value = NULL;
+    *value_at = 0;
     *value_size = 0;
     return false;
 }

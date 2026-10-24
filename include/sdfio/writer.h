@@ -299,7 +299,8 @@ SDFIO_API sdfio_status sdfio_end_file(sdfio_writer *writer);
 
 /**
  * Returns a description of the most recent failure of the writer, or an empty
- * string if none occurred. The result is never null.
+ * string if none occurred. The result is never null, and a string of the
+ * library, valid for the life of the program.
  *
  * @param[in] writer The writer.
  */
