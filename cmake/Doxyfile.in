@@ -10,6 +10,7 @@ PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
 INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
+                         @PROJECT_SOURCE_DIR@/docs/guide.dox \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
                          @PROJECT_SOURCE_DIR@/examples/external

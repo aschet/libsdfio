@@ -23,10 +23,11 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
         return status;
     }
     const sdfio_header *header = &reader->header;
-    if (reader->next_row != 0)
+    if (reader->next_row != 0 || reader->trailer_begun)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
-                          "Rows were read already");
+                          "Rows were read already, or the trailer was asked "
+                          "for");
     }
     status = sdfio_check_heights_layout(&layout, header, &reader->message);
     if (status != SDFIO_OK)

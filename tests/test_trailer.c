@@ -340,6 +340,37 @@ static void check_the_ascii_record(void)
     }
 }
 
+/* After the trailer was asked for, the rows cannot be read, whichever rows
+ * were read before: the position is behind the data area. */
+static void check_rows_after_the_trailer(void)
+{
+    const sdfio_representation representations[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t r = 0; r < 2; ++r)
+    {
+        membuf file = file_with_text(representations[r], "abc");
+        sdfio_reader *reader = sdfio_reader_new(all_formats());
+        CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+        float row[2];
+        CHECK_OK(sdfio_read_data(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 row, 1));
+        char buffer[8];
+        size_t size = 0;
+        CHECK_OK(sdfio_read_trailer(reader, buffer, sizeof buffer, &size));
+        CHECK(size == 3);
+        CHECK_STATUS(SDFIO_ERR_STATE,
+                     sdfio_read_data(reader,
+                                     sdfio_layout_packed(SDFIO_TYPE_FLOAT), row,
+                                     1));
+        float heights[4];
+        CHECK_STATUS(SDFIO_ERR_STATE,
+                     sdfio_read_heights(reader,
+                                        sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                        heights));
+        sdfio_reader_free(reader);
+        free(file.data);
+    }
+}
+
 int main(void)
 {
     check_fields();
@@ -349,5 +380,6 @@ int main(void)
     check_parts();
     check_the_end();
     check_the_ascii_record();
+    check_rows_after_the_trailer();
     return finish_tests();
 }

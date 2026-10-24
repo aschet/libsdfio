@@ -8,27 +8,9 @@
  * @file
  * Reading and writing of ISO 25178-71 SDF surface data files.
  *
- * The revisions ISO-1.0 and ISO-2.0 are supported, each in the ASCII and in the
- * binary representation. An SDF file consists of three records: the
- * header (record 1), the data area (record 2) and the trailer (record 3).
- *
- * @par Layers
- * The interface consists of four layers. A program uses the highest layer that
- * suffices.
- * 1. Handles and streams. A reader or a writer operates on a file, a block of
- *    memory or caller-supplied callbacks. It holds one buffer and one
- *    conversion chunk of the file, never the whole file.
- * 2. Records. sdfio_get_header() provides the header. sdfio_read_data() and
- *    sdfio_write_data() transfer the data area row by row in the coded form of
- *    the file. sdfio_read_trailer(), sdfio_write_trailer_field() and
- *    sdfio_write_trailer_text() transfer the trailer, and sdfio_end_trailer()
- * ends a file that is written.
- * 3. Heights. sdfio_decode_heights() and sdfio_encode_heights() convert between
- *    the coded values of the data area and heights in metres. They require
- *    only a header, no handle.
- * 4. Matrices. sdfio_read_heights() and sdfio_write_heights() combine layers 2
- *    and 3 for a complete matrix, in a plain array or in a buffer that lies in
- *    memory as described by strides.
+ * The main page introduces the library, and the guide pages describe the file
+ * format, the concepts and the states of a reader and of a writer. This
+ * description holds the rules of the header file itself.
  *
  * @par Naming
  * Every identifier that the library provides begins with `sdfio_` (functions
@@ -39,60 +21,17 @@
  * sdfio_open_file() and sdfio_create_file() are declared in `<sdfio/file.h>`.
  * This header does not include `<stdio.h>`.
  *
- * @par Data and heights
- * The data area (record 2) holds the data matrix of the columns and rows of the
- * header. It stores one coded value per point, in the data type of the file,
- * in units of the z-scale of the header. sdfio_read_data() and
- * sdfio_write_data() transfer the coded values. A height is the same point in
- * metres, as a float or a double. A point that is not measured has the bad
- * value of the data type in the data area, and NaN or a marker that the program
- * chooses in heights.
- * sdfio_read_heights() and sdfio_write_heights() transfer heights, and
- * sdfio_decode_heights() and sdfio_encode_heights() convert between the two.
- *
- * @par Memory
- * The library allocates no memory for the data, the heights or the trailer. The
- * caller allocates the buffers and obtains their size from sdfio_data_size(),
- * sdfio_data_row_size(), sdfio_heights_size() and sdfio_heights_row_size(),
- * with a check for arithmetic overflow. A reader or a writer obtains its own
- * memory through the allocator of its sdfio_config, when it is created and when
- * a file is created or opened, and at no other time.
- *
- * @par Formats
- * A reader reads the representations whose reader formats its configuration
- * lists, and a writer writes those whose writer formats it lists. The library
- * lists nothing by itself. A program that links the library statically
- * contains the code of the formats that it names and no other: a program that
- * only writes binary files names sdfio_binary_writer_format and contains no
- * code to read files or to handle ASCII.
- *
- * @par Error handling
- * A function that can fail returns an sdfio_status, or a null pointer where it
- * returns a handle. sdfio_reader_error_message() and
- * sdfio_writer_error_message() describe the most recent failure of a handle.
- *
- * @par Points that are not measured
- * Heights in metres represent a point that is not measured by NaN or by a
- * marker chosen by the caller (see sdfio_layout). The coded values of the data
- * area represent it by the bad value of the data type: SDFIO_BAD_INT16 and the
- * like. ASCII files write the string `BAD`.
- *
- * @par Locale
- * Numbers in ASCII files are read and written with the decimal point `.`,
- * independent of `LC_NUMERIC`.
- *
  * @par Versioning
  * Structures such as sdfio_header are plain structures that the caller
  * initializes. Changing one is an incompatible change and increments the major
  * version.
  *
  * @par Standard
- * The library follows ISO 25178-71:2026. A writer writes what the standard
- * defines and nothing else. A reader checks the version number, the data types
- * of the revision, a compression and a checksum type of 0, the ranges of the
- * numbers of columns and rows and of the dates, a positive z-scale, a
- * manufacturer identifier of at most 10 characters and the string `BAD`. It
- * tolerates these deviations:
+ * The library follows ISO 25178-71:2026, and a reader checks what the standard
+ * defines: the version number, the data types of the revision, a compression
+ * and a checksum type of 0, the ranges of the numbers of columns and rows
+ * and of the dates, a positive z-scale, a manufacturer identifier of at most 10
+ * characters and the string `BAD`. It tolerates these deviations:
  * - Numbers in an ASCII file can be in any decimal or scientific form, where
  *   the standard has the normalized form with a signed exponent. Files of
  *   MountainsMap have such numbers.
@@ -109,28 +48,6 @@
  * - A field of an ASCII header that the standard does not define is ignored,
  *   and a field that appears more than once counts with its last value.
  * - The trailer of an ISO-2.0 file need not be in the tagged format.
- *
- * @par Limitations
- * Rows of a file can be read only in order.
- *
- * @par Thread safety
- * The library has no global state. Distinct handles can be used concurrently by
- * distinct threads, including over the same memory when it is only read. A
- * single handle must not be used by more than one thread at a time. The locale
- * must not be changed while a call is in progress.
- */
-
-/**
- * @mainpage libsdfio
- *
- * libsdfio is a bare-bones, portable C library that reads and writes the SDF
- * surface data files of ISO 25178-71, in the revisions ISO-1.0 and ISO-2.0 and
- * in the ASCII and the binary format.
- *
- * The interface is declared in `<sdfio/sdfio.h>`, which does not depend on the
- * file functions of the C library, and in `<sdfio/file.h>`, which adds the
- * functions for files. The description of `<sdfio/sdfio.h>` gives an overview
- * of the layers of the interface. The example programs show typical uses.
  */
 
 #ifndef SDFIO_SDFIO_H

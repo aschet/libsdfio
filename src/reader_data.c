@@ -88,6 +88,11 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
         return status;
     }
     const sdfio_header *header = &reader->header;
+    if (reader->trailer_begun && rows > 0)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
+                          "The trailer was asked for, so no row can be read");
+    }
     if (rows > header->rows - reader->next_row)
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
