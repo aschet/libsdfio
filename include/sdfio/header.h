@@ -82,7 +82,7 @@ SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
 /**
  * Sets the creation date and the modification date to the time now, rounded
  * down to the minute. The function is the only one of the library that reads
- * the clock, so a program that does not call it does not link time().
+ * the clock.
  *
  * @param[in,out] header The header.
  * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year of the clock is out

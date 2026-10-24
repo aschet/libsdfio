@@ -10,8 +10,7 @@
  *
  * The functions of the C library that print and parse numbers use the decimal
  * point of the current locale, whereas the files always use `.`. Only the ASCII
- * format uses this code, so a program that does not add that format does not
- * contain it.
+ * format uses this code.
  */
 
 #include "number_text.h"

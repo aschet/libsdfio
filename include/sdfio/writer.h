@@ -50,8 +50,7 @@ SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
 /**
  * Adds the binary format to the formats that the writer writes. A writer needs
  * at least one format before a file is created, and the format of the header
- * of a file selects the one that writes it. A program that links the library
- * statically contains the code of the formats it adds and no other.
+ * of a file selects the one that writes it.
  *
  * Like the other options of a writer, a format is added before the first
  * attempt to create a file.
@@ -65,8 +64,7 @@ SDFIO_API sdfio_status sdfio_writer_add_binary(sdfio_writer *writer);
 
 /**
  * Adds the ASCII format to the formats that the writer writes. The rules of
- * sdfio_writer_add_binary() apply. The code to print numbers is part of
- * the format, so a program that does not add it does not contain that code.
+ * sdfio_writer_add_binary() apply.
  *
  * @param writer The writer.
  * @retval SDFIO_ERR_ARGUMENT The writer is null or has added the format

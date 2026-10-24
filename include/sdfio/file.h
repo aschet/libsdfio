@@ -8,9 +8,8 @@
  * @file
  * Files of the C library.
  *
- * The declarations are separate from `<sdfio/sdfio.h>`, so that a program
- * without a file system, for example a scanner that sends its data over a link,
- * does not require `<stdio.h>`.
+ * The functions use `<stdio.h>`. `<sdfio/sdfio.h>` does not include this
+ * header.
  */
 
 #ifndef SDFIO_FILE_H

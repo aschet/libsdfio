@@ -6,8 +6,7 @@
 
 /**
  * @file allocator_default.c
- * @brief The allocator that uses malloc() and free(), in a file of its own so
- * that a program which does not name it does not link them.
+ * @brief The allocator that uses malloc() and free().
  */
 
 #include <sdfio/sdfio.h>

@@ -183,9 +183,7 @@ typedef struct sdfio_allocator
 } sdfio_allocator;
 
 /**
- * Returns the allocator that uses malloc() and free(). A program that does not
- * call the function does not contain them, which a program without a heap
- * relies on.
+ * Returns the allocator that uses malloc() and free().
  *
  * @return A pointer to a constant allocator, valid for the life of the program.
  */

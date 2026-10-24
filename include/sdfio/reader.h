@@ -54,8 +54,7 @@ SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
  * numbers `bISO-1.0` and `bISO-2.0`. A reader needs at least one format before
  * a file is opened. The formats are tried in the order in which they are
  * added, and sdfio_reader_version() lists their version numbers in that
- * order. A program that links the library statically contains the code of the
- * formats it adds and no other.
+ * order.
  *
  * Like the other options of a reader, a format is added before the first
  * attempt to open a file.
@@ -70,8 +69,7 @@ SDFIO_API sdfio_status sdfio_reader_add_binary(sdfio_reader *reader);
 /**
  * Adds the ASCII format to the formats that the reader reads, the version
  * numbers `aISO-1.0` and `aISO-2.0`. The rules of
- * sdfio_reader_add_binary() apply. The code to parse numbers is part of
- * the format, so a program that does not add it does not contain that code.
+ * sdfio_reader_add_binary() apply.
  *
  * @param reader The reader.
  * @retval SDFIO_ERR_ARGUMENT The reader is null or has added the format

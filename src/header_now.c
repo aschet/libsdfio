@@ -6,8 +6,7 @@
 
 /**
  * @file header_now.c
- * @brief The dates of a header from the clock, in a file of its own so that a
- * program which does not name the function does not link time().
+ * @brief The dates of a header from the clock.
  */
 
 #include "datetime.h"
