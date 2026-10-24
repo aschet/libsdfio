@@ -92,8 +92,7 @@ typedef enum sdfio_status
     /** The data is not an SDF file, is damaged or is truncated. */
     SDFIO_ERR_FORMAT,
     /**
-     * The file needs a format that the configuration of the handle does not
-     * list.
+     * The file needs a format that the handle does not list.
      */
     SDFIO_ERR_UNSUPPORTED,
     /** A number does not fit the type that has to hold it. */
@@ -259,7 +258,7 @@ typedef struct sdfio_header
      * ISO-2.0 files store UTC. ISO-1.0 files store the local clock
      * of the writer, without a time zone. The library does not know the zone,
      * so it keeps such a clock reading as it is, as if it were UTC, unless
-     * the configuration supplies an sdfio_time_zone.
+     * the program sets an sdfio_time_zone.
      */
     time_t creation_date;
     /** Last modification date and time. The rules of creation_date apply. */
@@ -414,9 +413,6 @@ typedef struct sdfio_reader_format sdfio_reader_format;
  */
 typedef struct sdfio_writer_format sdfio_writer_format;
 
-/** The number of formats of a direction that a configuration can list. */
-#define SDFIO_FORMAT_MAX 2
-
 /** Reads the binary representation, the version numbers `bISO-1.0` and
  * `bISO-2.0`. */
 SDFIO_API extern const sdfio_reader_format sdfio_binary_reader_format;
@@ -436,85 +432,6 @@ SDFIO_API extern const sdfio_reader_format sdfio_ascii_reader_format;
  * so a program that does not list it does not contain that code.
  */
 SDFIO_API extern const sdfio_writer_format sdfio_ascii_writer_format;
-
-/**
- * Configuration of a reader or a writer.
- *
- * A field that is zero selects its default, except the formats, which the
- * program lists. sdfio_config_init() sets every field to zero; a program that
- * does not use an initializer must call it before it assigns fields. A null
- * pointer in place of a configuration lists no format and so is invalid.
- */
-typedef struct sdfio_config
-{
-    /**
-     * Allocator for all memory of the handle. The structure is copied, so it
-     * need not outlive the call that receives it. Null selects malloc() and
-     * free(). Both callbacks must be set.
-     */
-    const sdfio_allocator *allocator;
-    /**
-     * Size in bytes of the buffer between the handle and its stream. Zero
-     * selects 16384. A value below 64 is raised to 64. A smaller buffer causes
-     * more calls of the stream callbacks.
-     */
-    size_t buffer_size;
-    /**
-     * Number of values that are converted at a time. Zero selects 1024. The
-     * chunk occupies up to 8 bytes per value; a writer of the ASCII
-     * representation occupies more.
-     */
-    size_t chunk_values;
-    /**
-     * Conversion of the dates of ISO-1.0 files. The structure is
-     * copied, so it need not outlive the call that receives it. Null selects no
-     * conversion.
-     */
-    const sdfio_time_zone *time_zone;
-    /**
-     * The formats that a reader uses, in the order in which
-     * sdfio_version_number() lists their version numbers. Unused entries are
-     * null. A reader needs at least one. A writer ignores them.
-     */
-    const sdfio_reader_format *reader_formats[SDFIO_FORMAT_MAX];
-    /**
-     * The formats that a writer uses. Unused entries are null. A writer needs
-     * at least one. A reader ignores them.
-     */
-    const sdfio_writer_format *writer_formats[SDFIO_FORMAT_MAX];
-} sdfio_config;
-
-/**
- * Initializes a configuration: every field is zero, so each selects its
- * default and no format is listed. The caller lists the formats and sets
- * every other field that differs.
- *
- * @param[out] config The configuration to initialize.
- */
-SDFIO_API void sdfio_config_init(sdfio_config *config);
-
-/**
- * Returns the number of version numbers that a file can start with for the
- * reader formats of a configuration: two for each format, one for each
- * revision.
- *
- * @param[in] config The configuration.
- */
-SDFIO_API size_t sdfio_version_number_count(const sdfio_config *config);
-
-/**
- * Returns a version number that a file can start with, for example "bISO-2.0":
- * the letter b or a for the binary or the ASCII representation, and the
- * revision. The text has SDFIO_VERSION_NUMBER_SIZE characters and a terminator.
- * A program can compare the first bytes of a file with each version number to
- * find out whether a reader with this configuration reads it.
- *
- * @param[in] config The configuration.
- * @param index A number below sdfio_version_number_count().
- * @return The version number, or null if the index is not below the count.
- */
-SDFIO_API const char *sdfio_version_number(const sdfio_config *config,
-                                           size_t index);
 
 /**
  * Returns the size in bytes of a buffer for the whole data area: `header->rows`
@@ -581,18 +498,100 @@ typedef struct sdfio_reader sdfio_reader;
  * created before the source is opened, so that a failed open can report its
  * reason.
  *
- * The handle, the buffer and the conversion chunk are allocated by this
- * function. Release the reader with sdfio_reader_free().
+ * Only the handle is allocated here. The program lists the formats of the
+ * reader and may set its options, and the buffers are allocated when a file is
+ * opened. Release the reader with sdfio_reader_free().
  *
- * @param[in] config The configuration, with at least one reader format.
+ * @param[in] allocator The allocator for all memory of the reader. The
+ * structure is copied, so it need not outlive the call. Null selects malloc()
+ * and free(). Both callbacks must be set.
  * @param[out] reader Receives the reader, or null if the call fails.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null, the allocator of the
- * configuration lacks a callback, no reader format is listed, or the chunk is
- * too large for its buffers.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the allocator lacks a
+ * callback.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
-SDFIO_API sdfio_status sdfio_reader_create(const sdfio_config *config,
+SDFIO_API sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
                                            sdfio_reader **reader);
+
+/**
+ * Lists a format that the reader reads. A reader needs at least one before a
+ * file is opened. The formats are tried in the order in which they are listed,
+ * and sdfio_reader_version_number() lists their version numbers in that order.
+ * A program that links the library statically contains the code of the formats
+ * it lists and no other.
+ *
+ * Like the other options of a reader, a format is listed before the first
+ * attempt to open a file.
+ *
+ * @param reader The reader.
+ * @param[in] format A reader format, for example sdfio_binary_reader_format.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the format is listed already,
+ * or the reader lists the largest number of formats already.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+SDFIO_API sdfio_status sdfio_reader_add_format(
+    sdfio_reader *reader, const sdfio_reader_format *format);
+
+/**
+ * Sets the size in bytes of the buffer between the reader and its stream. The
+ * default is 16384. A value below 64 is raised to 64. A smaller buffer causes
+ * more calls of the stream callbacks.
+ *
+ * @param reader The reader.
+ * @param size The size, not 0.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or the size is 0.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+SDFIO_API sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader,
+                                                    size_t size);
+
+/**
+ * Sets the number of values that the reader converts at a time. The default is
+ * 1024. The chunk occupies up to 8 bytes per value.
+ *
+ * @param reader The reader.
+ * @param count The number of values, not 0 and not so large that the chunk
+ * cannot be counted in bytes.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null or the number is not valid.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+SDFIO_API sdfio_status sdfio_reader_set_chunk_values(sdfio_reader *reader,
+                                                     size_t count);
+
+/**
+ * Sets the conversion of the dates of ISO-1.0 files. The structure is copied,
+ * so it need not outlive the call. Null selects no conversion, which is the
+ * default.
+ *
+ * @param reader The reader.
+ * @param[in] time_zone The time zone, or null.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null.
+ * @retval SDFIO_ERR_STATE An attempt to open a file was made.
+ */
+SDFIO_API sdfio_status sdfio_reader_set_time_zone(
+    sdfio_reader *reader, const sdfio_time_zone *time_zone);
+
+/**
+ * Returns the number of version numbers that a file can start with for the
+ * formats that the reader lists: two for each format, one for each revision.
+ *
+ * @param[in] reader The reader. May be null, which has no formats.
+ */
+SDFIO_API size_t sdfio_reader_version_number_count(const sdfio_reader *reader);
+
+/**
+ * Returns a version number that a file can start with, for example "bISO-2.0":
+ * the letter b or a for the binary or the ASCII representation, and the
+ * revision. The text has SDFIO_VERSION_NUMBER_SIZE characters and a terminator.
+ * A program can compare the first bytes of a file with each version number to
+ * find out whether the reader reads it.
+ *
+ * @param[in] reader The reader.
+ * @param index A number below sdfio_reader_version_number_count().
+ * @return The version number, or null if the index is not below the count.
+ */
+SDFIO_API const char *sdfio_reader_version_number(const sdfio_reader *reader,
+                                                  size_t index);
 
 /**
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.
@@ -813,19 +812,80 @@ SDFIO_API const char *sdfio_reader_error_message(const sdfio_reader *reader);
 typedef struct sdfio_writer sdfio_writer;
 
 /**
- * Creates a writer. The writer writes nothing until a file is created. The
- * buffer is allocated by this function, the remaining memory when the file is
+ * Creates a writer. The writer writes nothing until a file is created.
+ *
+ * Only the handle is allocated here. The program lists the formats of the
+ * writer and may set its options, and the buffers are allocated when a file is
  * created. Release the writer with sdfio_writer_free().
  *
- * @param[in] config The configuration, with at least one writer format.
+ * @param[in] allocator The allocator for all memory of the writer. The
+ * structure is copied, so it need not outlive the call. Null selects malloc()
+ * and free(). Both callbacks must be set.
  * @param[out] writer Receives the writer, or null if the call fails.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null, the allocator of the
- * configuration lacks a callback, no writer format is listed, or the chunk is
- * too large for its buffers.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the allocator lacks a
+ * callback.
  * @retval SDFIO_ERR_MEMORY An allocation failed.
  */
-SDFIO_API sdfio_status sdfio_writer_create(const sdfio_config *config,
+SDFIO_API sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
                                            sdfio_writer **writer);
+
+/**
+ * Lists a format that the writer writes. A writer needs at least one before a
+ * file is created, and the representation of a file selects the format. A
+ * program that links the library statically contains the code of the formats it
+ * lists and no other.
+ *
+ * Like the other options of a writer, a format is listed before the first
+ * attempt to create a file.
+ *
+ * @param writer The writer.
+ * @param[in] format A writer format, for example sdfio_binary_writer_format.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, the format is listed already,
+ * or the writer lists the largest number of formats already.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+SDFIO_API sdfio_status sdfio_writer_add_format(
+    sdfio_writer *writer, const sdfio_writer_format *format);
+
+/**
+ * Sets the size in bytes of the buffer between the writer and its stream. The
+ * default is 16384. A value below 64 is raised to 64. A smaller buffer causes
+ * more calls of the stream callbacks.
+ *
+ * @param writer The writer.
+ * @param size The size, not 0.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or the size is 0.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+SDFIO_API sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer,
+                                                    size_t size);
+
+/**
+ * Sets the number of values that the writer converts at a time. The default is
+ * 1024. The chunk occupies up to 8 bytes per value; a writer of the ASCII
+ * representation occupies more.
+ *
+ * @param writer The writer.
+ * @param count The number of values, not 0 and not so large that the chunk
+ * cannot be counted in bytes.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null or the number is not valid.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+SDFIO_API sdfio_status sdfio_writer_set_chunk_values(sdfio_writer *writer,
+                                                     size_t count);
+
+/**
+ * Sets the conversion of the dates of ISO-1.0 files. The structure is copied,
+ * so it need not outlive the call. Null selects no conversion, which is the
+ * default.
+ *
+ * @param writer The writer.
+ * @param[in] time_zone The time zone, or null.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null.
+ * @retval SDFIO_ERR_STATE An attempt to create a file was made.
+ */
+SDFIO_API sdfio_status sdfio_writer_set_time_zone(
+    sdfio_writer *writer, const sdfio_time_zone *time_zone);
 
 /**
  * Releases a writer. A file that sdfio_create_file() created and
@@ -848,7 +908,7 @@ SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
  * written: a data type that the revision does not permit, a scale that is not
  * positive, a date that is not set, or a number of columns or rows that the
  * header cannot hold.
- * @retval SDFIO_ERR_RANGE The time zone of the configuration cannot convert a
+ * @retval SDFIO_ERR_RANGE The time zone of the writer cannot convert a
  * date. It is reported when the header is written, with the first rows.
  * @retval SDFIO_ERR_STATE The writer has created a file already.
  * @retval SDFIO_ERR_UNSUPPORTED The writer format of the representation is not

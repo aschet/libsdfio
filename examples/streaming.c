@@ -19,11 +19,16 @@ int main(void)
     _setmode(_fileno(stdin), _O_BINARY);
 #endif
     const sdfio_stream stream = sdfio_stdio_stream(stdin);
-    const sdfio_config config = {
-        .reader_formats = {&sdfio_binary_reader_format,
-                           &sdfio_ascii_reader_format}};
     sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(&config, &reader);
+    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_reader_add_format(reader, &sdfio_ascii_reader_format);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_open_stream(reader, &stream);

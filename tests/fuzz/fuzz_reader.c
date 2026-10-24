@@ -8,6 +8,7 @@
  * handles of the usual and of a tiny configuration. The library must answer
  * with a status and never fail otherwise. */
 
+#include "../options.h"
 #include <sdfio/sdfio.h>
 
 #include <stdbool.h>
@@ -116,23 +117,23 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
     const uint8_t control = data[0];
-    const sdfio_config tiny = {.buffer_size = 1,
+    const test_options tiny = {.buffer_size = 1,
                                .chunk_values = 1,
                                .reader_formats = {&sdfio_binary_reader_format,
                                                   &sdfio_ascii_reader_format}};
-    const sdfio_config small = {.buffer_size = 100,
+    const test_options small = {.buffer_size = 100,
                                 .chunk_values = 7,
                                 .reader_formats = {&sdfio_binary_reader_format,
                                                    &sdfio_ascii_reader_format}};
-    const sdfio_config defaults = {
+    const test_options defaults = {
         .reader_formats = {&sdfio_binary_reader_format,
                            &sdfio_ascii_reader_format}};
-    const sdfio_config *config = (control & CONTROL_TINY)    ? &tiny
+    const test_options *config = (control & CONTROL_TINY)    ? &tiny
                                  : (control & CONTROL_SMALL) ? &small
                                                              : &defaults;
     source input = {data + CONTROL_SIZE, size - CONTROL_SIZE, 0};
     sdfio_reader *reader = NULL;
-    if (sdfio_reader_create(config, &reader) != SDFIO_OK)
+    if (create_reader(config, &reader) != SDFIO_OK)
     {
         return 0;
     }

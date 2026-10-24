@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_WRITER_STATE_H
 #define SDFIO_SRC_WRITER_STATE_H
 
+#include "defaults.h"
 #include "message.h"
 #include "owner.h"
 #include "sink.h"
@@ -54,14 +55,16 @@ struct sdfio_writer
     bool trailer_open;
     /** The index of the next row to write. */
     size_t next_row;
-    /** The allocator of the configuration. */
+    /** The allocator of the writer. */
     sdfio_allocator allocator;
-    /** The time zone of the configuration. */
+    /** The time zone of the writer. */
     sdfio_time_zone zone;
     /** What a file adds to the writer. */
     sdfio_owner owner;
     /** The number of values converted at a time. */
     size_t chunk_values;
+    /** The size of the buffer of the sink in bytes. */
+    size_t buffer_size;
     /** The room for a chunk of values in the data type of the file, made when
      * the file is created. */
     unsigned char *coded;

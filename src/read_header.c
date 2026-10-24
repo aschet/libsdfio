@@ -10,6 +10,7 @@
  */
 
 #include "read_header.h"
+#include "defaults.h"
 #include "message.h"
 #include "source.h"
 #include <sdfio/sdfio.h>
@@ -69,8 +70,8 @@ sdfio_status sdfio_select_reader_format(
     if (*format == NULL)
     {
         return sdfio_fail(message, SDFIO_ERR_UNSUPPORTED,
-                          "The format of this SDF file is not listed in the "
-                          "configuration");
+                          "The format of this SDF file is not listed for the "
+                          "reader");
     }
     return SDFIO_OK;
 }

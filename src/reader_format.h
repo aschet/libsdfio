@@ -20,8 +20,8 @@
  * A reader format: the functions that read a representation of the files.
  *
  * The reader knows nothing of the representations. It calls the formats that
- * the configuration lists, so that the code of a format that no program names
- * is not linked.
+ * the program lists, so that the code of a format that no program names is
+ * not linked.
  */
 struct sdfio_reader_format
 {

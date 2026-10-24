@@ -18,17 +18,6 @@ namespace
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 using Writer = std::unique_ptr<sdfio_writer, decltype(&sdfio_writer_free)>;
 
-sdfio_config make_config()
-{
-    sdfio_config config;
-    sdfio_config_init(&config);
-    config.reader_formats[0] = &sdfio_binary_reader_format;
-    config.reader_formats[1] = &sdfio_ascii_reader_format;
-    return config;
-}
-
-const sdfio_config config = make_config();
-
 void check(sdfio_status status, const char *message)
 {
     if (status != SDFIO_OK)
@@ -41,15 +30,23 @@ void check(sdfio_status status, const char *message)
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(&config, &reader), "The reader cannot be made");
-    return Reader(reader, sdfio_reader_free);
+    check(sdfio_reader_create(nullptr, &reader), "The reader cannot be made");
+    Reader owned(reader, sdfio_reader_free);
+    check(sdfio_reader_add_format(reader, &sdfio_binary_reader_format),
+          "The binary format cannot be listed");
+    check(sdfio_reader_add_format(reader, &sdfio_ascii_reader_format),
+          "The ASCII format cannot be listed");
+    return owned;
 }
 
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(&config, &writer), "The writer cannot be made");
-    return Writer(writer, sdfio_writer_free);
+    check(sdfio_writer_create(nullptr, &writer), "The writer cannot be made");
+    Writer owned(writer, sdfio_writer_free);
+    check(sdfio_writer_add_format(writer, &sdfio_binary_writer_format),
+          "The binary format cannot be listed");
+    return owned;
 }
 
 // Eigen stores a matrix column by column: the elements of a row are one column

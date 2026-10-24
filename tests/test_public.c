@@ -75,19 +75,6 @@ static void check_init(void)
     CHECK(zone.user == NULL);
     CHECK(zone.local_to_utc == NULL);
     CHECK(zone.utc_to_local == NULL);
-
-    sdfio_config config;
-    memset(&config, 0xA5, sizeof config);
-    sdfio_config_init(&config);
-    CHECK(config.allocator == NULL);
-    CHECK(config.buffer_size == 0);
-    CHECK(config.chunk_values == 0);
-    CHECK(config.time_zone == NULL);
-    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
-    {
-        CHECK(config.reader_formats[i] == NULL);
-        CHECK(config.writer_formats[i] == NULL);
-    }
 }
 
 int main(void)

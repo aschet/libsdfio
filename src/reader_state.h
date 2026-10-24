@@ -12,6 +12,7 @@
 #ifndef SDFIO_SRC_READER_STATE_H
 #define SDFIO_SRC_READER_STATE_H
 
+#include "defaults.h"
 #include "message.h"
 #include "owner.h"
 #include "reader_format.h"
@@ -44,9 +45,9 @@ struct sdfio_reader
     const sdfio_reader_format *formats[SDFIO_FORMAT_MAX];
     /** The format of the open file. */
     const sdfio_reader_format *format;
-    /** The allocator of the configuration. */
+    /** The allocator of the reader. */
     sdfio_allocator allocator;
-    /** The time zone of the configuration. */
+    /** The time zone of the reader. */
     sdfio_time_zone zone;
     /** What a file adds to the reader. */
     sdfio_owner owner;
@@ -70,6 +71,8 @@ struct sdfio_reader
     unsigned char *chunk;
     /** The number of values in a chunk. */
     size_t chunk_values;
+    /** The size of the buffer of the source in bytes. */
+    size_t buffer_size;
 };
 
 /**

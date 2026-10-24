@@ -307,23 +307,30 @@
  *   a file is read once and in order. Rows can therefore be read only in the
  *   order of the file.
  *
- * @section concepts_config Configuration, formats and memory
- * sdfio_config is the argument of sdfio_reader_create() and sdfio_writer_create(). It
- * holds
- * - the formats that the handle uses: sdfio_binary_reader_format and
+ * @section concepts_options Options, formats and memory
+ * A handle is created with sdfio_reader_create() or sdfio_writer_create(),
+ * which take only the allocator. The program then sets the options of the
+ * handle, and the options are fixed by the first attempt to open or create a
+ * file:
+ * - the formats that the handle uses, with sdfio_reader_add_format() and
+ *   sdfio_writer_add_format(): sdfio_binary_reader_format and
  *   sdfio_ascii_reader_format for a reader, and the writer formats for a
  *   writer. The library lists none by itself. A program that links the library
  *   statically contains the code of the formats it names and no other;
- * - the allocator, the size of the buffer between the handle and its stream,
- * and the number of values that are converted at a time. Zero selects a
- * default;
- * - the time zone callbacks for the dates of ISO-1.0 files.
+ * - the size of the buffer between the handle and its stream, and the number of
+ *   values that are converted at a time, with the functions
+ *   `set_buffer_size` and `set_chunk_values`. A handle that does not set them
+ *   uses defaults;
+ * - the time zone callbacks for the dates of ISO-1.0 files, with the functions
+ *   `set_time_zone`.
  *
- * Initialize a configuration with sdfio_config_init() before assigning fields.
+ * The options are functions, so that the library can gain options without a
+ * change of its structures.
+ *
  * A handle allocates memory only when it is created, and when a file is opened
- * or created: the handle, the buffer and the conversion chunk, and what the
- * format needs. Reading and writing allocate nothing, and the trailer is read
- * into a buffer of the program.
+ * or created. The handle comes first, and the buffer, the conversion chunk and
+ * what the format needs come with the file. Reading and writing allocate
+ * nothing, and the trailer is read into a buffer of the program.
  *
  * @section concepts_errors Errors
  * A function that can fail returns an sdfio_status, which sdfio_status_string()
@@ -347,25 +354,32 @@
  * @section states_reader Reader
  * @code{.unparsed}
  * sdfio_reader_create()
- *       |
- *       v
- *    [ new ] -- sdfio_open_file / _memory / _stream --> [ open ]
- *                  (the header is read and checked)        |
- *                                                          | sdfio_read_data()
- *                                                          v
- *                                                    [ reading rows ]
- *                                                          |
- *                       all rows read, or sdfio_read_trailer() first
- *                                                          v
- *                                                    [ trailer ]
- *                                                          |
- *                     an error, or sdfio_reader_free() at any time
- *                                                          v
- *                                                      [ failed ] / freed
+ *         |
+ *         v
+ *     [ new ]     the formats and the options are set in this state
+ *         |
+ *         | sdfio_open_file(), sdfio_open_memory(), sdfio_open_stream()
+ *         | (the header is read and checked, the buffers are allocated)
+ *         v
+ *     [ open ]
+ *         |
+ *         | sdfio_read_data(), sdfio_read_heights()
+ *         v
+ *     [ reading rows ]
+ *         |
+ *         | all rows read, or sdfio_read_trailer() first
+ *         v
+ *     [ trailer ]
+ *         |
+ *         | an error in the data area or the trailer, at any point
+ *         v
+ *     [ failed ]  (every later read fails, the header stays available)
  * @endcode
  *
- * - A new reader reads nothing. It is opened once: opening it again is an
- *   error. If the open fails, sdfio_reader_error_message() says why.
+ * - A new reader reads nothing. The program lists its formats and may set its
+ *   options. The first attempt to open a file fixes them, and the buffers are
+ *   allocated then. A reader is opened once: opening it again is an error. If
+ *   the open fails, sdfio_reader_error_message() says why.
  * - After the open, sdfio_get_header() returns the header, which stays valid
  *   until the reader is freed.
  * - sdfio_read_data() reads rows in order, and sdfio_read_heights() reads the
@@ -383,21 +397,33 @@
  * @section states_writer Writer
  * @code{.unparsed}
  * sdfio_writer_create()
- *       |
- *       v
- *    [ new ] -- sdfio_create_file / _stream --> [ created ]
- *                (the header is checked,              |
- *                 and not written yet)                | sdfio_write_data()
- *                                                     v
- *                                               [ writing rows ]
- *                                                     |
- *                                     all rows written (the header went out
- *                                     with the first row)
- *                                                     v
- *                                               [ trailer ] --
- * sdfio_end_trailer() --> [ ended ]
+ *         |
+ *         v
+ *     [ new ]     the formats and the options are set in this state
+ *         |
+ *         | sdfio_create_file(), sdfio_create_stream()
+ *         | (the header is checked and not written yet, the buffers are
+ *         |  allocated)
+ *         v
+ *     [ created ]
+ *         |
+ *         | sdfio_write_data(), sdfio_write_heights()
+ *         | (the header goes out with the first row)
+ *         v
+ *     [ writing rows ]
+ *         |
+ *         | all rows written
+ *         v
+ *     [ trailer ]  sdfio_write_trailer_field(), sdfio_write_trailer_text()
+ *         |
+ *         | sdfio_end_trailer()
+ *         v
+ *     [ ended ]
  * @endcode
  *
+ * - The program lists the formats of a new writer and may set its options. The
+ *   first attempt to create a file fixes them, and the buffers are allocated
+ *   then.
  * - The header is checked when the file is created. Nothing is written yet,
  *   because sdfio_write_heights() may still determine the z-scale from the
  *   heights. The header goes out with the first row, or with the end of the

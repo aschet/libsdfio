@@ -50,6 +50,7 @@ set(SDFIO_SOURCES
     src/chunk.h
     src/data_type.c
     src/data_type.h
+    src/defaults.h
     src/datetime.c
     src/datetime.h
     src/number_text.c
@@ -58,10 +59,10 @@ set(SDFIO_SOURCES
     src/file.c
     src/header.c
     src/header.h
+    src/init.c
     src/heights.c
     src/heights.h
     src/heights_real.h
-    src/version_numbers.c
     src/allocation.c
     src/allocation.h
     src/message.h
@@ -77,8 +78,6 @@ set(SDFIO_SOURCES
     src/reader_format.h
     src/revision.c
     src/revision.h
-    src/settings.c
-    src/settings.h
     src/sink.c
     src/sink.h
     src/sizes.c

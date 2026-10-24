@@ -35,17 +35,6 @@ namespace
 
 using Reader = std::unique_ptr<sdfio_reader, decltype(&sdfio_reader_free)>;
 
-sdfio_config make_config()
-{
-    sdfio_config config;
-    sdfio_config_init(&config);
-    config.reader_formats[0] = &sdfio_binary_reader_format;
-    config.reader_formats[1] = &sdfio_ascii_reader_format;
-    return config;
-}
-
-const sdfio_config config = make_config();
-
 void check(sdfio_status status, const char *message)
 {
     if (status != SDFIO_OK)
@@ -58,8 +47,13 @@ void check(sdfio_status status, const char *message)
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(&config, &reader), "The reader cannot be made");
-    return Reader(reader, sdfio_reader_free);
+    check(sdfio_reader_create(nullptr, &reader), "The reader cannot be made");
+    Reader owned(reader, sdfio_reader_free);
+    check(sdfio_reader_add_format(reader, &sdfio_binary_reader_format),
+          "The binary format cannot be listed");
+    check(sdfio_reader_add_format(reader, &sdfio_ascii_reader_format),
+          "The ASCII format cannot be listed");
+    return owned;
 }
 
 float *heights_of(vtkImageData *image)

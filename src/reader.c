@@ -11,11 +11,11 @@
 
 #include "allocation.h"
 #include "data_type.h"
+#include "defaults.h"
 #include "header.h"
 #include "read_header.h"
 #include "reader_file.h"
 #include "reader_state.h"
-#include "settings.h"
 #include <string.h>
 
 static size_t memory_read(void *user, void *data, size_t size)
@@ -31,7 +31,7 @@ static size_t memory_read(void *user, void *data, size_t size)
     return count;
 }
 
-sdfio_status sdfio_reader_create(const sdfio_config *config,
+sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
                                  sdfio_reader **reader)
 {
     if (reader == NULL)
@@ -39,35 +39,151 @@ sdfio_status sdfio_reader_create(const sdfio_config *config,
         return SDFIO_ERR_ARGUMENT;
     }
     *reader = NULL;
-    sdfio_settings settings;
-    if (!sdfio_config_resolve(config, &settings)
-        || settings.reader_formats[0] == NULL)
+    sdfio_allocator used = {0};
+    if (allocator != NULL)
     {
-        return SDFIO_ERR_ARGUMENT;
+        if (!sdfio_allocator_valid(allocator))
+        {
+            return SDFIO_ERR_ARGUMENT;
+        }
+        used = *allocator;
     }
-    sdfio_reader *handle = sdfio_allocate(&settings.allocator, sizeof *handle);
+    sdfio_reader *handle = sdfio_allocate(&used, sizeof *handle);
     if (handle == NULL)
     {
         return SDFIO_ERR_MEMORY;
     }
-    *handle = (sdfio_reader){.allocator = settings.allocator,
-                             .zone = settings.zone,
-                             .chunk_values = settings.chunk};
-    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
-    {
-        handle->formats[i] = settings.reader_formats[i];
-    }
-    handle->chunk = sdfio_allocate(&handle->allocator,
-                                   settings.chunk * SDFIO_LARGEST_CODED_VALUE);
-    if (handle->chunk == NULL
-        || !sdfio_source_create(&handle->source, settings.buffer,
-                                &handle->allocator))
-    {
-        sdfio_reader_free(handle);
-        return SDFIO_ERR_MEMORY;
-    }
+    *handle = (sdfio_reader){.allocator = used,
+                             .chunk_values = SDFIO_DEFAULT_CHUNK,
+                             .buffer_size = SDFIO_DEFAULT_BUFFER};
     *reader = handle;
     return SDFIO_OK;
+}
+
+/* Whether the buffers were made, which the first attempt to open a file does:
+ * the options are fixed from then on. */
+static bool buffers_made(const sdfio_reader *reader)
+{
+    return reader->chunk != NULL || reader->source.buffer != NULL;
+}
+
+/* The precondition of every setter: a reader and no attempt to open a file. */
+static sdfio_status require_new(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (buffers_made(reader))
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
+                          "The options are set before a file is opened");
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_reader_add_format(sdfio_reader *reader,
+                                     const sdfio_reader_format *format)
+{
+    sdfio_status status = require_new(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (format == NULL)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "A format is needed");
+    }
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
+    {
+        if (reader->formats[i] == format)
+        {
+            return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                              "The format is listed already");
+        }
+        if (reader->formats[i] == NULL)
+        {
+            reader->formats[i] = format;
+            return SDFIO_OK;
+        }
+    }
+    return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                      "More formats are listed than the library has");
+}
+
+sdfio_status sdfio_reader_set_buffer_size(sdfio_reader *reader, size_t size)
+{
+    const sdfio_status status = require_new(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (size == 0)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The buffer needs a size");
+    }
+    reader->buffer_size =
+        size < SDFIO_MINIMUM_BUFFER ? SDFIO_MINIMUM_BUFFER : size;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_reader_set_chunk_values(sdfio_reader *reader, size_t count)
+{
+    const sdfio_status status = require_new(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (!sdfio_chunk_valid(count))
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The number of values of a chunk is 0 or too large");
+    }
+    reader->chunk_values = count;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_reader_set_time_zone(sdfio_reader *reader,
+                                        const sdfio_time_zone *time_zone)
+{
+    const sdfio_status status = require_new(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    reader->zone = time_zone != NULL ? *time_zone : (sdfio_time_zone){0};
+    return SDFIO_OK;
+}
+
+size_t sdfio_reader_version_number_count(const sdfio_reader *reader)
+{
+    size_t count = 0;
+    for (size_t i = 0;
+         reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
+         ++i)
+    {
+        count += reader->formats[i]->version_number_count;
+    }
+    return count;
+}
+
+const char *sdfio_reader_version_number(const sdfio_reader *reader,
+                                        size_t index)
+{
+    for (size_t i = 0;
+         reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
+         ++i)
+    {
+        const sdfio_reader_format *format = reader->formats[i];
+        if (index < format->version_number_count)
+        {
+            return format->version_numbers[index];
+        }
+        index -= format->version_number_count;
+    }
+    return NULL;
 }
 
 void sdfio_reader_free(sdfio_reader *reader)
@@ -128,6 +244,24 @@ static sdfio_status open_source(sdfio_reader *reader,
     {
         return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
                           "The reader is open already");
+    }
+    if (reader->formats[0] == NULL)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "List a format before a file is opened");
+    }
+    if (reader->chunk == NULL)
+    {
+        reader->chunk =
+            sdfio_allocate(&reader->allocator,
+                           reader->chunk_values * SDFIO_LARGEST_CODED_VALUE);
+    }
+    if (reader->chunk == NULL
+        || (reader->source.buffer == NULL
+            && !sdfio_source_create(&reader->source, reader->buffer_size,
+                                    &reader->allocator)))
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY, "Out of memory");
     }
     sdfio_source_init(&reader->source, stream);
     sdfio_status status = sdfio_select_reader_format(

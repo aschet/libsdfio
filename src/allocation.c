@@ -6,7 +6,7 @@
 
 /**
  * @file allocation.c
- * @brief Allocation through the allocator of a configuration.
+ * @brief Allocation through the allocator of a handle.
  */
 
 #include "allocation.h"

@@ -7,6 +7,7 @@
 /* Writes a file from a header and heights that the input makes up, with
  * numbers of every kind. A file that the writer wrote has to be read. */
 
+#include "../options.h"
 #include <sdfio/sdfio.h>
 
 #include <stdint.h>
@@ -87,14 +88,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memcpy(&heights[i], rest + i * sizeof(float), sizeof(float));
     }
 
-    const sdfio_config config = {
+    const test_options config = {
         .reader_formats = {&sdfio_binary_reader_format,
                            &sdfio_ascii_reader_format},
         .writer_formats = {&sdfio_binary_writer_format,
                            &sdfio_ascii_writer_format}};
     sink output = {NULL, 0};
     sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(&config, &writer);
+    sdfio_status status = create_writer(&config, &writer);
     if (status == SDFIO_OK)
     {
         const sdfio_stream stream = {&output, NULL, sink_write};
@@ -121,7 +122,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
          * they are coded, and the trailer. Heights in metres may overflow the
          * element type, which is not a fault of the file. */
         sdfio_reader *reader = NULL;
-        sdfio_status read_status = sdfio_reader_create(&config, &reader);
+        sdfio_status read_status = create_reader(&config, &reader);
         if (read_status == SDFIO_OK)
         {
             read_status = sdfio_open_memory(reader, output.data, output.size);

@@ -29,11 +29,15 @@ static void print_date(const char *label, time_t date)
     printf("%-38s %s\n", label, text);
 }
 
-static time_t read_creation_date(const sdfio_config *config, const char *path)
+static time_t read_creation_date(const sdfio_time_zone *time_zone,
+                                 const char *path)
 {
     sdfio_reader *reader = NULL;
     time_t date = SDFIO_NO_TIME;
-    if (sdfio_reader_create(config, &reader) == SDFIO_OK
+    if (sdfio_reader_create(NULL, &reader) == SDFIO_OK
+        && sdfio_reader_add_format(reader, &sdfio_binary_reader_format)
+               == SDFIO_OK
+        && sdfio_reader_set_time_zone(reader, time_zone) == SDFIO_OK
         && sdfio_open_file(reader, path) == SDFIO_OK)
     {
         date = sdfio_get_header(reader)->creation_date;
@@ -51,10 +55,6 @@ int main(void)
     zone central_europe = {3600};
     const sdfio_time_zone time_zone = {&central_europe, local_to_utc,
                                        utc_to_local};
-    const sdfio_config with_zone = {
-        .time_zone = &time_zone,
-        .reader_formats = {&sdfio_binary_reader_format},
-        .writer_formats = {&sdfio_binary_writer_format}};
 
     sdfio_header header;
     sdfio_header_init(&header);
@@ -67,7 +67,15 @@ int main(void)
     const float height = 1e-6F;
 
     sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(&with_zone, &writer);
+    sdfio_status status = sdfio_writer_create(NULL, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_set_time_zone(writer, &time_zone);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_create_file(writer, path, &header);
@@ -93,7 +101,7 @@ int main(void)
 
     print_date("written, UTC:", header.creation_date);
     print_date("read with the time zone, UTC:",
-               read_creation_date(&with_zone, path));
+               read_creation_date(&time_zone, path));
     print_date("read without, the clock of the file:",
                read_creation_date(NULL, path));
     return EXIT_SUCCESS;

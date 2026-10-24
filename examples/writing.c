@@ -40,10 +40,12 @@ static int write_surface(const char *path, sdfio_data_type type)
     header.x_scale = 1e-6;
     header.y_scale = 1e-6;
 
-    const sdfio_config config = {
-        .writer_formats = {&sdfio_binary_writer_format}};
     sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(&config, &writer);
+    sdfio_status status = sdfio_writer_create(NULL, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_create_file(writer, path, &header);

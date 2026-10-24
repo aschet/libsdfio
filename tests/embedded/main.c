@@ -84,13 +84,20 @@ int main(void)
 {
     static int16_t coded[COLUMNS];
     const sdfio_allocator allocator = {NULL, take, give};
-    const sdfio_config config = {
-        .allocator = &allocator,
-        .buffer_size = 128,
-        .chunk_values = 16,
-        .writer_formats = {&sdfio_binary_writer_format}};
     sdfio_writer *writer = NULL;
-    sdfio_status status = sdfio_writer_create(&config, &writer);
+    sdfio_status status = sdfio_writer_create(&allocator, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_set_buffer_size(writer, 128);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_set_chunk_values(writer, 16);
+    }
     sdfio_header header;
     sdfio_header_init(&header);
     header.data_type = SDFIO_TYPE_INT16;

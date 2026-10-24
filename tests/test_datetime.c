@@ -231,7 +231,7 @@ static void check_file(void)
 {
     const sdfio_time_zone zone = {NULL, central_europe_to_utc,
                                   central_europe_to_local};
-    const sdfio_config with_zone = {.time_zone = &zone, ALL_FORMATS};
+    const test_options with_zone = {.time_zone = &zone, ALL_FORMATS};
     sdfio_header header;
     sdfio_header_init(&header);
     header.revision = SDFIO_ISO_1_0;
@@ -270,7 +270,7 @@ static void check_file(void)
 
     /* A writer whose time zone refuses the date creates no file. */
     const sdfio_time_zone refusing = {NULL, refuse, refuse};
-    const sdfio_config refusing_config = {.time_zone = &refusing, ALL_FORMATS};
+    const test_options refusing_config = {.time_zone = &refusing, ALL_FORMATS};
     membuf refused = {0};
     const sdfio_stream refused_stream = membuf_stream(&refused);
     writer = new_writer(&refusing_config);

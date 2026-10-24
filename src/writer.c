@@ -11,13 +11,13 @@
 
 #include "allocation.h"
 #include "data_type.h"
+#include "defaults.h"
 #include "header.h"
-#include "settings.h"
 #include "writer_file.h"
 #include "writer_state.h"
 #include <string.h>
 
-sdfio_status sdfio_writer_create(const sdfio_config *config,
+sdfio_status sdfio_writer_create(const sdfio_allocator *allocator,
                                  sdfio_writer **writer)
 {
     if (writer == NULL)
@@ -25,34 +25,122 @@ sdfio_status sdfio_writer_create(const sdfio_config *config,
         return SDFIO_ERR_ARGUMENT;
     }
     *writer = NULL;
-    sdfio_settings settings;
-    if (!sdfio_config_resolve(config, &settings)
-        || settings.writer_formats[0] == NULL)
+    sdfio_allocator used = {0};
+    if (allocator != NULL)
     {
-        return SDFIO_ERR_ARGUMENT;
+        if (!sdfio_allocator_valid(allocator))
+        {
+            return SDFIO_ERR_ARGUMENT;
+        }
+        used = *allocator;
     }
-    sdfio_writer *handle = sdfio_allocate(&settings.allocator, sizeof *handle);
+    sdfio_writer *handle = sdfio_allocate(&used, sizeof *handle);
     if (handle == NULL)
     {
         return SDFIO_ERR_MEMORY;
     }
-    *handle = (sdfio_writer){.allocator = settings.allocator,
-                             .zone = settings.zone,
-                             .chunk_values = settings.chunk};
+    *handle = (sdfio_writer){.allocator = used,
+                             .chunk_values = SDFIO_DEFAULT_CHUNK,
+                             .buffer_size = SDFIO_DEFAULT_BUFFER};
+    *writer = handle;
+    return SDFIO_OK;
+}
+
+/* Whether the buffers were made, which the first attempt to create a file
+ * does: the options are fixed from then on. */
+static bool buffers_made(const sdfio_writer *writer)
+{
+    return writer->coded != NULL || writer->sink.buffer != NULL;
+}
+
+/* The precondition of every setter: a writer and no attempt to create a file.
+ */
+static sdfio_status require_new(sdfio_writer *writer)
+{
+    if (writer == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (buffers_made(writer))
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_STATE,
+                          "The options are set before a file is created");
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_writer_add_format(sdfio_writer *writer,
+                                     const sdfio_writer_format *format)
+{
+    const sdfio_status status = require_new(writer);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (format == NULL)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "A format is needed");
+    }
     for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
     {
-        handle->formats[i] = settings.writer_formats[i];
+        if (writer->formats[i] == format)
+        {
+            return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                              "The format is listed already");
+        }
+        if (writer->formats[i] == NULL)
+        {
+            writer->formats[i] = format;
+            return SDFIO_OK;
+        }
     }
-    handle->coded = sdfio_allocate(&handle->allocator,
-                                   settings.chunk * SDFIO_LARGEST_CODED_VALUE);
-    if (handle->coded == NULL
-        || !sdfio_sink_create(&handle->sink, settings.buffer,
-                              &handle->allocator))
+    return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                      "More formats are listed than the library has");
+}
+
+sdfio_status sdfio_writer_set_buffer_size(sdfio_writer *writer, size_t size)
+{
+    const sdfio_status status = require_new(writer);
+    if (status != SDFIO_OK)
     {
-        sdfio_writer_free(handle);
-        return SDFIO_ERR_MEMORY;
+        return status;
     }
-    *writer = handle;
+    if (size == 0)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "The buffer needs a size");
+    }
+    writer->buffer_size =
+        size < SDFIO_MINIMUM_BUFFER ? SDFIO_MINIMUM_BUFFER : size;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_writer_set_chunk_values(sdfio_writer *writer, size_t count)
+{
+    const sdfio_status status = require_new(writer);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (!sdfio_chunk_valid(count))
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "The number of values of a chunk is 0 or too large");
+    }
+    writer->chunk_values = count;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_writer_set_time_zone(sdfio_writer *writer,
+                                        const sdfio_time_zone *time_zone)
+{
+    const sdfio_status status = require_new(writer);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    writer->zone = time_zone != NULL ? *time_zone : (sdfio_time_zone){0};
     return SDFIO_OK;
 }
 
@@ -128,8 +216,8 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     if (writer_format_for(writer->formats, header->representation) == NULL)
     {
         return sdfio_fail(&writer->message, SDFIO_ERR_UNSUPPORTED,
-                          "The format of the representation is not listed in "
-                          "the configuration");
+                          "The format of the representation is not listed for "
+                          "the writer");
     }
     return SDFIO_OK;
 }
@@ -147,24 +235,31 @@ static sdfio_status start_stream(sdfio_writer *writer,
     const sdfio_writer_format *format =
         writer_format_for(writer->formats, header->representation);
     const size_t scratch = format->scratch_size(writer->chunk_values);
-    if (scratch > 0)
+    if (writer->coded == NULL)
+    {
+        writer->coded =
+            sdfio_allocate(&writer->allocator,
+                           writer->chunk_values * SDFIO_LARGEST_CODED_VALUE);
+    }
+    if (writer->scratch == NULL && scratch > 0)
     {
         writer->scratch = sdfio_allocate(&writer->allocator, scratch);
-        if (writer->scratch == NULL)
-        {
-            return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY,
-                              "Out of memory");
-        }
     }
-    if (format->state_size > 0)
+    if (writer->format_state == NULL && format->state_size > 0)
     {
         writer->format_state =
             sdfio_allocate(&writer->allocator, format->state_size);
-        if (writer->format_state == NULL)
-        {
-            return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY,
-                              "Out of memory");
-        }
+    }
+    if (writer->coded == NULL || (writer->scratch == NULL && scratch > 0)
+        || (writer->format_state == NULL && format->state_size > 0)
+        || (writer->sink.buffer == NULL
+            && !sdfio_sink_create(&writer->sink, writer->buffer_size,
+                                  &writer->allocator)))
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_MEMORY, "Out of memory");
+    }
+    if (format->state_size > 0)
+    {
         memset(writer->format_state, 0, format->state_size);
     }
     writer->header = *header;

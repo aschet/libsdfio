@@ -46,13 +46,13 @@ int main(void)
     header.y_scale = 1.0e-6;
 
     int failed = 0;
-    const sdfio_config config = {
-        .reader_formats = {&sdfio_binary_reader_format,
-                           &sdfio_ascii_reader_format},
-        .writer_formats = {&sdfio_binary_writer_format,
-                           &sdfio_ascii_writer_format}};
     sdfio_writer *writer = NULL;
-    const sdfio_status made_writer = sdfio_writer_create(&config, &writer);
+    sdfio_status made_writer = sdfio_writer_create(NULL, &writer);
+    if (made_writer == SDFIO_OK)
+    {
+        made_writer =
+            sdfio_writer_add_format(writer, &sdfio_binary_writer_format);
+    }
     failed |= check(made_writer, "writer");
     if (made_writer == SDFIO_OK)
     {
@@ -66,7 +66,12 @@ int main(void)
     sdfio_writer_free(writer);
 
     sdfio_reader *reader = NULL;
-    const sdfio_status made_reader = sdfio_reader_create(&config, &reader);
+    sdfio_status made_reader = sdfio_reader_create(NULL, &reader);
+    if (made_reader == SDFIO_OK)
+    {
+        made_reader =
+            sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+    }
     failed |= check(made_reader, "reader");
     if (made_reader == SDFIO_OK)
     {

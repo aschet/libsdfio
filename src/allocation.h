@@ -6,7 +6,7 @@
 
 /**
  * @file allocation.h
- * @brief Allocation through the allocator of a configuration.
+ * @brief Allocation through the allocator of a handle.
  */
 
 #ifndef SDFIO_SRC_ALLOCATION_H
@@ -15,7 +15,7 @@
 #include <sdfio/sdfio.h>
 
 /**
- * Allocates memory through the allocator of a configuration.
+ * Allocates memory through the allocator of a handle.
  *
  * @param allocator The allocator. If it is null or has no allocate function,
  * malloc is used.

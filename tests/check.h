@@ -15,18 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "options.h"
 #include <sdfio/sdfio.h>
 
-/* The formats of a handle that reads and writes both representations. */
-#define ALL_FORMATS                                                            \
-    .reader_formats = {&sdfio_binary_reader_format,                            \
-                       &sdfio_ascii_reader_format},                            \
-    .writer_formats = {&sdfio_binary_writer_format,                            \
-                       &sdfio_ascii_writer_format}
-
-/* A configuration with them, made where it is used: a program that links the
+/* The options with them, made where they are used: a program that links the
  * DLL cannot take the address of its formats in a constant initializer. */
-#define all_formats() (&(const sdfio_config){ALL_FORMATS})
+#define all_formats() (&(const test_options){ALL_FORMATS})
 
 static int failures = 0;
 static int checks = 0;
@@ -125,18 +119,18 @@ static inline sdfio_layout layout_with_rows(sdfio_data_type type,
     return layout;
 }
 
-/* A reader or a writer for a configuration that is valid. */
-static inline sdfio_reader *new_reader(const sdfio_config *config)
+/* A reader or a writer for options that are valid. */
+static inline sdfio_reader *new_reader(const test_options *options)
 {
     sdfio_reader *reader = NULL;
-    CHECK_OK(sdfio_reader_create(config, &reader));
+    CHECK_OK(create_reader(options, &reader));
     return reader;
 }
 
-static inline sdfio_writer *new_writer(const sdfio_config *config)
+static inline sdfio_writer *new_writer(const test_options *options)
 {
     sdfio_writer *writer = NULL;
-    CHECK_OK(sdfio_writer_create(config, &writer));
+    CHECK_OK(create_writer(options, &writer));
     return writer;
 }
 

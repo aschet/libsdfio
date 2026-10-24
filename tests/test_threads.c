@@ -87,7 +87,7 @@ static void *read_files(void *argument)
     {
         const size_t index = (self->id + (size_t)round) % FILE_COUNT;
         sdfio_reader *reader = NULL;
-        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        if (create_reader(all_formats(), &reader) != SDFIO_OK)
         {
             ++self->errors;
             return NULL;
@@ -124,7 +124,7 @@ static void *write_and_read(void *argument)
         membuf file = {0};
         const sdfio_stream stream = membuf_stream(&file);
         sdfio_writer *writer = NULL;
-        if (sdfio_writer_create(all_formats(), &writer) != SDFIO_OK)
+        if (create_writer(all_formats(), &writer) != SDFIO_OK)
         {
             ++self->errors;
             return NULL;
@@ -141,7 +141,7 @@ static void *write_and_read(void *argument)
 
         double back[ROWS * COLUMNS];
         sdfio_reader *reader = NULL;
-        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        if (create_reader(all_formats(), &reader) != SDFIO_OK)
         {
             ++self->errors;
             return NULL;
@@ -180,7 +180,7 @@ static void *read_shared(void *argument)
     for (int round = 0; round < ROUNDS; ++round)
     {
         sdfio_reader *reader = NULL;
-        if (sdfio_reader_create(all_formats(), &reader) != SDFIO_OK)
+        if (create_reader(all_formats(), &reader) != SDFIO_OK)
         {
             ++self->errors;
             return NULL;

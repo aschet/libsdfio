@@ -8,11 +8,16 @@
 int main(int argc, char **argv)
 {
     const char *path = argc > 1 ? argv[1] : "integer.sdf";
-    const sdfio_config config = {
-        .reader_formats = {&sdfio_binary_reader_format,
-                           &sdfio_ascii_reader_format}};
     sdfio_reader *reader = NULL;
-    sdfio_status status = sdfio_reader_create(&config, &reader);
+    sdfio_status status = sdfio_reader_create(NULL, &reader);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_reader_add_format(reader, &sdfio_binary_reader_format);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_reader_add_format(reader, &sdfio_ascii_reader_format);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_open_file(reader, path);
