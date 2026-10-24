@@ -78,13 +78,23 @@ int main(int argc, char **argv)
                measured > 0 ? sum / (double)measured : 0.0, (int)trailer_size,
                trailer);
     }
-    const char *operator_name = NULL;
-    size_t operator_size = 0;
-    if (status == SDFIO_OK
-        && sdfio_trailer_find_field(trailer, trailer_size, "OperatorName",
-                                    &operator_name, &operator_size))
+    size_t position = 0;
+    const char *name = NULL;
+    const char *value = NULL;
+    size_t name_size = 0;
+    size_t value_size = 0;
+    while (status == SDFIO_OK
+           && sdfio_trailer_next_field(trailer, trailer_size, &position, &name,
+                                       &name_size, &value, &value_size))
     {
-        printf("operator: %.*s\n", (int)operator_size, operator_name);
+        printf("field %.*s: %.*s\n", (int)name_size, name, (int)value_size,
+               value);
+    }
+    if (status == SDFIO_OK
+        && sdfio_trailer_find_field(trailer, trailer_size, "operatorname",
+                                    &value, &value_size))
+    {
+        printf("operator: %.*s\n", (int)value_size, value);
     }
     free(heights);
     sdfio_reader_free(reader);
