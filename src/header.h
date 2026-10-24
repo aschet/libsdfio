@@ -6,7 +6,7 @@
 
 /**
  * @file header.h
- * @brief The state of a header and its check before writing.
+ * @brief State of a header and its check before writing.
  */
 
 #ifndef SDFIO_SRC_HEADER_H

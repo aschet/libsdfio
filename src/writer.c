@@ -6,7 +6,7 @@
 
 /**
  * @file writer.c
- * @brief The life of a writer: creation, options, file start, release.
+ * @brief Life of a writer: creation, options, file start, release.
  */
 
 #include "allocator.h"

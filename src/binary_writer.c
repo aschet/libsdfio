@@ -9,7 +9,7 @@
  * @brief Writing of the binary format: header fields, values of the data type,
  * trailer at the end of the file.
  *
- * The files store values in little-endian byte order, regardless of the byte
+ * Files store values in little-endian byte order, regardless of the byte
  * order of the host.
  */
 

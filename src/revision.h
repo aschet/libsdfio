@@ -6,8 +6,8 @@
 
 /**
  * @file revision.h
- * @brief The revisions and their differences: data types, field sizes of
- * columns and rows, dates.
+ * @brief Revisions and their differences: data types, field sizes of columns
+ * and rows, dates.
  */
 
 #ifndef SDFIO_SRC_REVISION_H

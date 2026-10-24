@@ -6,7 +6,7 @@
 
 /**
  * @file header.c
- * @brief The header: creation, copy, accessors and the check before writing.
+ * @brief Header: creation, copy, accessors and the check before writing.
  */
 
 #include "header.h"

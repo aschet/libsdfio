@@ -6,7 +6,7 @@
 
 /**
  * @file source.h
- * @brief The buffer in front of the stream of a reader.
+ * @brief Buffer in front of the stream of a reader.
  */
 
 #ifndef SDFIO_SRC_SOURCE_H

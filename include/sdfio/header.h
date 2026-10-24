@@ -6,7 +6,7 @@
 
 /**
  * @file
- * The header of a file: size, scales, data type, dates and manufacturer. It is
+ * Header of a file: size, scales, data type, dates and manufacturer. It is
  * opaque: a writer takes one, and a reader gives one.
  */
 

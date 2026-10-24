@@ -6,8 +6,8 @@
 
 /**
  * @file options.h
- * @brief The options that readers and writers share: allocator, time zone,
- * buffer size and chunk size.
+ * @brief Options that readers and writers share: allocator, time zone, buffer
+ * size and chunk size.
  */
 
 #ifndef SDFIO_SRC_OPTIONS_H

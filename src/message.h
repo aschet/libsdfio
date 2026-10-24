@@ -6,7 +6,7 @@
 
 /**
  * @file message.h
- * @brief The text of the last failure of a handle.
+ * @brief Text of the last failure of a handle.
  */
 
 #ifndef SDFIO_SRC_MESSAGE_H

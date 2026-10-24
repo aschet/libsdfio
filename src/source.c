@@ -6,7 +6,7 @@
 
 /**
  * @file source.c
- * @brief The buffer in front of the stream of a reader.
+ * @brief Buffer in front of the stream of a reader.
  */
 
 #include "source.h"

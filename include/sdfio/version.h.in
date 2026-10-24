@@ -6,7 +6,7 @@
 
 /**
  * @file
- * The version of the library as macros.
+ * Version of the library as macros.
  */
 
 #ifndef SDFIO_VERSION_H
