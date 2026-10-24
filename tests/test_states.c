@@ -148,7 +148,7 @@ static sdfio_status writer_call_in(sdfio_writer *writer, writer_call call,
         return write_rows(writer, ROWS + 1);
     case WRITER_HEIGHTS:
         return sdfio_write_heights(
-            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), values);
+            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, values);
     case WRITER_FIELD:
         return sdfio_write_trailer_field(writer, "Name", "value");
     case WRITER_END:
@@ -337,7 +337,7 @@ static sdfio_status reader_call_in(sdfio_reader *reader, reader_call call,
         return read_rows(reader, 0);
     case READER_HEIGHTS:
         return sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                  heights);
+                                  NAN, heights);
     case READER_TRAILER_PART:
         return sdfio_read_trailer(reader, part, sizeof part, &size);
     case READER_CALLS:

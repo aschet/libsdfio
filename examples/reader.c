@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     if (status == SDFIO_OK)
     {
         status = sdfio_read_heights(
-            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
+            reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights);
     }
     char trailer[1024];
     size_t trailer_size = 0;

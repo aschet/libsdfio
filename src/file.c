@@ -32,13 +32,12 @@ static size_t stdio_write(void *user, const void *data, size_t size)
     return fwrite(data, 1, size, (FILE *)user);
 }
 
-sdfio_stream sdfio_stdio_stream(FILE *file)
+void sdfio_stdio_stream(sdfio_stream *stream, FILE *file)
 {
-    sdfio_stream stream = {0};
-    stream.user = file;
-    stream.read = stdio_read;
-    stream.write = stdio_write;
-    return stream;
+    sdfio_stream_init(stream);
+    stream->user = file;
+    stream->read = stdio_read;
+    stream->write = stdio_write;
 }
 
 static void stdio_close(void *user)
@@ -77,7 +76,8 @@ sdfio_status sdfio_file_adopt_reader(sdfio_reader *reader, FILE *file)
         return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_IO,
                           "The file cannot be opened");
     }
-    const sdfio_stream stream = sdfio_stdio_stream(file);
+    sdfio_stream stream;
+    sdfio_stdio_stream(&stream, file);
     const sdfio_status status = sdfio_open_stream(reader, &stream);
     if (status != SDFIO_OK)
     {
@@ -96,7 +96,8 @@ sdfio_status sdfio_file_adopt_writer(sdfio_writer *writer, FILE *file,
         return sdfio_fail(sdfio_writer_message(writer), SDFIO_ERR_IO,
                           "The file cannot be created");
     }
-    const sdfio_stream stream = sdfio_stdio_stream(file);
+    sdfio_stream stream;
+    sdfio_stdio_stream(&stream, file);
     const sdfio_status status = sdfio_create_stream(writer, &stream, header);
     if (status != SDFIO_OK)
     {

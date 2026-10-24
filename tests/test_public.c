@@ -60,9 +60,21 @@ static void check_init(void)
     memset(&layout, 0xA5, sizeof layout);
     sdfio_layout_init(&layout);
     CHECK(layout.type == SDFIO_TYPE_FLOAT);
-    CHECK(isnan(layout.not_measured));
     CHECK(layout.element_stride == 0);
     CHECK(layout.row_stride == 0);
+
+    /* The packed layouts are constants of the library, one for each type. */
+    const sdfio_data_type types[] = {SDFIO_TYPE_FLOAT, SDFIO_TYPE_INT8,
+                                     SDFIO_TYPE_INT16, SDFIO_TYPE_INT32,
+                                     SDFIO_TYPE_DOUBLE};
+    for (size_t i = 0; i < sizeof types / sizeof types[0]; ++i)
+    {
+        const sdfio_layout *packed = sdfio_layout_packed(types[i]);
+        CHECK(packed != NULL && packed->type == types[i]
+              && packed->element_stride == 0 && packed->row_stride == 0);
+        CHECK(sdfio_layout_packed(types[i]) == packed);
+    }
+    CHECK(sdfio_layout_packed((sdfio_data_type)99) == NULL);
 
     sdfio_time_zone zone;
     memset(&zone, 0xA5, sizeof zone);
@@ -89,7 +101,7 @@ int main(void)
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                 heights));
+                                 NAN, heights));
     CHECK_OK(sdfio_write_trailer_field(writer, "Note", "public"));
     CHECK_OK(sdfio_write_trailer_field(writer, "Averages", "16"));
     CHECK_OK(sdfio_end_file(writer));
@@ -107,7 +119,7 @@ int main(void)
     }
     float back[6];
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                back));
+                                NAN, back));
     CHECK(isnan(back[2]) && fabsf(back[5] - 6e-6f) < 1e-9f);
     const char *trailer = NULL;
     size_t size = 0;
@@ -118,7 +130,7 @@ int main(void)
     reader = membuf_reopen(reader, &file);
     float packed[6];
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
-                                packed));
+                                NAN, packed));
     for (size_t i = 0; i < 6; ++i)
     {
         CHECK(isnan(back[i]) ? isnan(packed[i]) : packed[i] == back[i]);
@@ -130,7 +142,7 @@ int main(void)
                              coded, 2));
     CHECK(coded[2] == SDFIO_BAD_INT16);
     CHECK_STATUS(SDFIO_OK, sdfio_decode_heights(
-                               read, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                               read, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN,
                                coded, 6, back));
     sdfio_reader_free(reader);
     free(file.data);

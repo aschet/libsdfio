@@ -114,7 +114,7 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
 static inline sdfio_layout layout_with_rows(sdfio_data_type type,
                                             ptrdiff_t row_stride)
 {
-    sdfio_layout layout = sdfio_layout_packed(type);
+    sdfio_layout layout = *sdfio_layout_packed(type);
     layout.row_stride = row_stride;
     return layout;
 }

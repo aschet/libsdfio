@@ -35,10 +35,10 @@ extern "C"
  * `_setmode(_fileno(stdin), _O_BINARY)`. The files of sdfio_open_file() and
  * sdfio_create_file() are always binary.
  *
- * @param file The C file.
- * @return A stream whose `user` is the file.
+ * @param[out] stream The stream, whose `user` is the file.
+ * @param[in] file The C file.
  */
-SDFIO_API sdfio_stream sdfio_stdio_stream(FILE *file);
+SDFIO_API void sdfio_stdio_stream(sdfio_stream *stream, FILE *file);
 
 /**
  * Opens the file at a path as the source and reads its header, as

@@ -203,16 +203,15 @@ SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
  * data type of the file: the element (y, x) is stored at
  * `dst + y * layout.row_stride + x * layout.element_stride`, where y counts
  * the rows from the first row that is read. sdfio_layout_packed() describes
- * values that follow each other. The field `not_measured` of the layout is not
- * used, because the bad value of the data type marks a point that is not
- * measured.
+ * values that follow each other. The bad value of the data type marks a point
+ * that is not measured.
  *
  * The first row read is the first row stored in the file, the row with y = 0.
  *
  * After an error the reader rejects further reads.
  *
  * @param[in,out] reader The reader.
- * @param layout The layout of the buffer.
+ * @param[in] layout The layout of the buffer.
  * @param[out] dst The buffer for the coded values.
  * @param rows The number of rows to read.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
@@ -224,7 +223,7 @@ SDFIO_API const sdfio_header *sdfio_reader_header(const sdfio_reader *reader);
  * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
  */
 SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
-                                       sdfio_layout layout, void *dst,
+                                       const sdfio_layout *layout, void *dst,
                                        size_t rows);
 
 /**
@@ -236,13 +235,17 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  * layout.element_stride`. The row y = 0 is the first row. A negative row
  * stride, with `dst` at the first element of the row y = 0, which is the last
  * row in memory, stores the matrix upside down. A point that is not measured
- * becomes `layout.not_measured`.
+ * becomes `not_measured`.
  *
  * The function reads from the first row of the data area, so no rows may have
  * been read before.
  *
  * @param[in,out] reader The reader.
- * @param layout The layout of the buffer.
+ * @param[in] layout The layout of the buffer.
+ * @param not_measured The value of a point that is not measured. NaN selects no
+ * marker: such a point is NaN. The value is compared in the precision of the
+ * type of the buffer, so -9999.1 marks the points of a `float` buffer that
+ * hold the `float` nearest to -9999.1.
  * @param[out] dst The buffer for the heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is open, an earlier error ended the reading,
@@ -252,7 +255,8 @@ SDFIO_API sdfio_status sdfio_read_data(sdfio_reader *reader,
  * @retval SDFIO_ERR_FORMAT The data area is damaged or truncated.
  */
 SDFIO_API sdfio_status sdfio_read_heights(sdfio_reader *reader,
-                                          sdfio_layout layout, void *dst);
+                                          const sdfio_layout *layout,
+                                          double not_measured, void *dst);
 
 /**
  * Reads the next part of the trailer, the free text after the data

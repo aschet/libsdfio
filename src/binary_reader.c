@@ -26,6 +26,7 @@
 #include "text.h"
 #include "trailer_text.h"
 #include <limits.h>
+#include <math.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
 

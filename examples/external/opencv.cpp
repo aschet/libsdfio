@@ -7,6 +7,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -76,7 +77,7 @@ Reader open(const char *path)
 // continuous, such as a region of interest, is used as it is.
 sdfio_layout bottom_up(const cv::Mat &image)
 {
-    sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     layout.row_stride = -static_cast<ptrdiff_t>(image.step);
     return layout;
 }
@@ -86,7 +87,7 @@ cv::Mat read_heights(sdfio_reader *reader)
     const sdfio_header *header = sdfio_reader_header(reader);
     cv::Mat heights(static_cast<int>(sdfio_header_rows(header)),
                     static_cast<int>(sdfio_header_columns(header)), CV_32F);
-    check(sdfio_read_heights(reader, bottom_up(heights),
+    check(sdfio_read_heights(reader, bottom_up(heights), NAN,
                              heights.ptr(heights.rows - 1)),
           sdfio_reader_error_message(reader));
     return heights;
@@ -110,7 +111,7 @@ void write_heights(const char *path, const sdfio_header *source,
     Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), bottom_up(heights),
+    check(sdfio_write_heights(writer.get(), bottom_up(heights), NAN,
                               heights.ptr(heights.rows - 1)),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_end_file(writer.get()),
@@ -125,7 +126,7 @@ cv::Mat read_into_region(const char *path)
     cv::Mat region =
         canvas(cv::Rect(100, 50, static_cast<int>(sdfio_header_columns(header)),
                         static_cast<int>(sdfio_header_rows(header))));
-    check(sdfio_read_heights(reader.get(), bottom_up(region),
+    check(sdfio_read_heights(reader.get(), bottom_up(region), NAN,
                              region.ptr(region.rows - 1)),
           sdfio_reader_error_message(reader.get()));
     return canvas;

@@ -34,9 +34,11 @@
  *
  * @par Versioning
  * The handles and sdfio_header are opaque, so a new option or a new field of
- * the header becomes a new function. A structure that the caller fills, such as
- * sdfio_layout, is a plain structure; changing one is an incompatible change
- * and increments the major version.
+ * the header becomes a new function. The structures that the caller fills are
+ * plain structures: sdfio_layout, sdfio_stream, sdfio_allocator and
+ * sdfio_time_zone. They are frozen for the major version, and a new property
+ * becomes a new function. A structure crosses the interface by pointer, never
+ * by value.
  *
  * @par Standard
  * The library follows ISO 25178-71:2026, and a reader checks what the standard

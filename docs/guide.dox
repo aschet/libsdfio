@@ -301,18 +301,20 @@
  * @section concepts_missing Points That Are Not Measured
  * A point that is not measured has the bad value of the data type in the data
  * area. A height in metres has no such value, so the program picks its
- * representation: NaN, or a marker such as -9999 that
- * sdfio_layout::not_measured names. The conversion functions translate between
+ * representation: NaN, or a marker such as -9999 that it passes as the argument
+ * `not_measured` of the functions that read, write or convert heights. NaN as
+ * that argument means no marker. The conversion functions translate between
  * the two. A float marker is compared in the precision of the float, so -9999.1
  * marks the float nearest to it.
  *
  * @section concepts_layout Layouts
  * A buffer of the program is described by an sdfio_layout: the type of its
- * elements, the marker for a point that is not measured, and two strides. The
- * element at the row y and the column x is at the byte
+ * elements and two strides. The functions take it by pointer. The element at
+ * the row y and the column x is at the byte
  * `y * row_stride + x * element_stride` from the pointer that the program
- * passes. A plain array needs no strides (sdfio_layout_packed()). With strides
- * the matrix is read or written in place when it is part of something else:
+ * passes. A plain array needs no strides: sdfio_layout_packed() returns its
+ * layout, a constant of the library. With strides the matrix is read or written
+ * in place when it is part of something else:
  *
  * - the z member of an array of points, or a channel of an interleaved image;
  * - a matrix in column-major order, such as an Eigen matrix;
@@ -320,8 +322,9 @@
  *   last row, as many image libraries store it.
  *
  * The layout must keep the elements apart, which sdfio reports as an invalid
- * argument if it does not. Initialize a layout with sdfio_layout_init() or
- * sdfio_layout_packed() before assigning fields.
+ * argument if it does not. A program that needs strides initializes a layout
+ * with sdfio_layout_init(), or copies the one of sdfio_layout_packed(), and
+ * then assigns the fields.
  *
  * @section concepts_handles Readers and Writers
  * A reader (sdfio_reader) reads one file, and a writer (sdfio_writer) writes

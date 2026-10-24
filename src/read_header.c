@@ -14,6 +14,7 @@
 #include "header.h"
 #include "message.h"
 #include "source.h"
+#include <math.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
 

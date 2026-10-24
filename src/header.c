@@ -17,6 +17,7 @@
 #include "message.h"
 #include "revision.h"
 #include "text.h"
+#include <math.h>
 #include <string.h>
 
 sdfio_status sdfio_header_create(const sdfio_allocator *allocator,

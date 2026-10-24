@@ -10,6 +10,7 @@
 #include "../options.h"
 #include <sdfio/sdfio.h>
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,7 +115,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (status == SDFIO_OK)
         {
             status = sdfio_write_heights(
-                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), NAN, heights);
         }
         if (status == SDFIO_OK)
         {

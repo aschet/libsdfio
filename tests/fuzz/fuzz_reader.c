@@ -11,6 +11,7 @@
 #include "../options.h"
 #include <sdfio/sdfio.h>
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -75,8 +76,9 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
             }
             if (heights != NULL)
             {
-                (void)sdfio_read_heights(
-                    reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
+                (void)sdfio_read_heights(reader,
+                                         sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                         NAN, heights);
                 free(heights);
             }
         }
@@ -92,11 +94,11 @@ static void read_everything(sdfio_reader *reader, bool as_heights)
         if (row != NULL)
         {
             const sdfio_layout layout =
-                sdfio_layout_packed(sdfio_header_data_type(header));
+                *sdfio_layout_packed(sdfio_header_data_type(header));
             for (size_t i = 0; i < sdfio_header_rows(header) && i < ROW_LIMIT;
                  ++i)
             {
-                if (sdfio_read_data(reader, layout, row, 1) != SDFIO_OK)
+                if (sdfio_read_data(reader, &layout, row, 1) != SDFIO_OK)
                 {
                     break;
                 }

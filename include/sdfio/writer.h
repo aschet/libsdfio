@@ -160,7 +160,7 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * y = 0.
  *
  * @param[in,out] writer The writer.
- * @param layout The layout of the buffer.
+ * @param[in] layout The layout of the buffer.
  * @param[in] src The coded values to write.
  * @param rows The number of rows to write.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, `rows` exceeds the rows
@@ -172,8 +172,8 @@ SDFIO_API sdfio_status sdfio_create_stream(sdfio_writer *writer,
  * @retval SDFIO_ERR_IO The stream failed.
  */
 SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
-                                        sdfio_layout layout, const void *src,
-                                        size_t rows);
+                                        const sdfio_layout *layout,
+                                        const void *src, size_t rows);
 
 /**
  * Writes the whole data area from a matrix of heights in metres that lies in
@@ -183,11 +183,13 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
  * The layout is that of sdfio_read_heights(): the element (y, x) is at
  * `src + y * layout.row_stride + x * layout.element_stride`, and the row y = 0
  * is the first row. For an integer data type with SDFIO_AUTO_Z_SCALE the
- * z-scale is selected from the heights. NaN, infinity and `layout.not_measured`
- * label points that are not measured. Call sdfio_end_file() afterwards.
+ * z-scale is selected from the heights. NaN, infinity and `not_measured` label
+ * points that are not measured. Call sdfio_end_file() afterwards.
  *
  * @param[in,out] writer The writer.
- * @param layout The layout of the buffer.
+ * @param[in] layout The layout of the buffer.
+ * @param not_measured The value that labels a point that is not measured, as in
+ * sdfio_read_heights(). NaN selects no marker.
  * @param[in] src The heights.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  * @retval SDFIO_ERR_STATE No file is created, an earlier error ended the
@@ -198,7 +200,8 @@ SDFIO_API sdfio_status sdfio_write_data(sdfio_writer *writer,
  * @retval SDFIO_ERR_IO The stream failed.
  */
 SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
-                                           sdfio_layout layout,
+                                           const sdfio_layout *layout,
+                                           double not_measured,
                                            const void *src);
 
 /**

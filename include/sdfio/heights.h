@@ -17,7 +17,6 @@
 #include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
-#include <math.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -84,8 +83,7 @@ SDFIO_API sdfio_status sdfio_heights_row_size(const sdfio_header *header,
 
 /**
  * Description of a buffer of the caller for heights or for the values of the
- * data area: the type of its elements, how a point that is not measured is
- * marked in heights, and how the matrix lies in memory.
+ * data area: the type of its elements, and how the matrix lies in memory.
  *
  * The element (y, x) is at `data + y * row_stride + x * element_stride`. Both
  * strides can be negative. They must keep the elements apart: either the rows
@@ -93,8 +91,10 @@ SDFIO_API sdfio_status sdfio_heights_row_size(const sdfio_header *header,
  * or written in place where they are not contiguous, for example the z member
  * of an array of points, one channel of an interleaved image or a column-major
  * matrix. sdfio_layout_packed() describes a plain array. A program that does
- * not use an initializer calls sdfio_layout_init() before it assigns fields:
- * the default of `not_measured` is NaN, not zero.
+ * not use an initializer calls sdfio_layout_init() before it assigns fields.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of a buffer is a new function.
  */
 typedef struct sdfio_layout
 {
@@ -102,14 +102,6 @@ typedef struct sdfio_layout
      * or SDFIO_TYPE_DOUBLE, and for the values of the data area it is the data
      * type of the file. */
     sdfio_data_type type;
-    /**
-     * Marker for a point that is not measured in heights. The values of the
-     * data area do not use it. NaN selects no marker: such a point is NaN. The
-     * marker is compared in the precision of the type of the buffer, so -9999.1
-     * marks the points of a float buffer that hold the float nearest to
-     * -9999.1.
-     */
-    double not_measured;
     /**
      * Distance in bytes between consecutive elements within a row. 0 selects
      * elements that follow each other directly.
@@ -126,37 +118,37 @@ typedef struct sdfio_layout
 
 /**
  * Initializes a layout of a plain array of `float` elements: the elements
- * follow each other, the rows follow each other, and NaN marks a point of
- * heights that is not measured. The caller sets the type and every other field
- * that differs.
+ * follow each other and the rows follow each other. The caller sets the type
+ * and every other field that differs.
  *
  * @param[out] layout The layout to initialize.
  */
 SDFIO_API void sdfio_layout_init(sdfio_layout *layout);
 
 /**
- * Returns the layout of a plain array: the elements follow each other, the rows
- * follow each other, and NaN marks a point of heights that is not measured.
+ * Returns the layout of a plain array: the elements follow each other and the
+ * rows follow each other. The layout is a constant of the library, valid for
+ * the life of the program, and the same for every thread. A program that needs
+ * other strides copies it, or uses sdfio_layout_init().
  *
  * @param type The type of the elements: SDFIO_TYPE_FLOAT or SDFIO_TYPE_DOUBLE
  * for heights, and the data type of the file for the values of the data area.
+ * @return The layout, or null if `type` is not a data type.
  */
-static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
-{
-    sdfio_layout layout = {type, NAN, 0, 0};
-    return layout;
-}
+SDFIO_API const sdfio_layout *sdfio_layout_packed(sdfio_data_type type);
 
 /**
  * Converts values of the data area into heights in metres.
  *
  * `count` values of `header->data_type` are converted with `header->z_scale`.
- * The height i is stored at `heights + i * layout.element_stride`. A point that
- * is not measured becomes `layout.not_measured`. The function needs no handle,
- * so it works on data from any source.
+ * The height i is stored at `heights + i * layout->element_stride`. A point
+ * that is not measured becomes `not_measured`. The function needs no handle, so
+ * it works on data from any source.
  *
  * @param[in] header The header that describes the values.
- * @param layout The layout of the output buffer.
+ * @param[in] layout The layout of the output buffer.
+ * @param not_measured The value of a point that is not measured. NaN selects no
+ * marker: such a point is NaN.
  * @param[in] data The values of the data area.
  * @param count The number of values.
  * @param[out] heights The output buffer.
@@ -164,7 +156,8 @@ static inline sdfio_layout sdfio_layout_packed(sdfio_data_type type)
  * @retval SDFIO_ERR_RANGE A height does not fit the type of the buffer.
  */
 SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
-                                            sdfio_layout layout,
+                                            const sdfio_layout *layout,
+                                            double not_measured,
                                             const void *data, size_t count,
                                             void *heights);
 
@@ -173,11 +166,13 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * sdfio_decode_heights().
  *
  * The heights are divided by `header->z_scale`. NaN, infinity and
- * `layout.not_measured` become the bad value. Integer results are rounded to
- * the nearest value.
+ * `not_measured` become the bad value. Integer results are rounded to the
+ * nearest value.
  *
  * @param[in] header The header that describes the values.
- * @param layout The layout of the input buffer.
+ * @param[in] layout The layout of the input buffer.
+ * @param not_measured The value that labels a point that is not measured. NaN
+ * selects no marker.
  * @param[in] heights The heights.
  * @param count The number of heights.
  * @param[out] data The values of the data area.
@@ -188,7 +183,8 @@ SDFIO_API sdfio_status sdfio_decode_heights(const sdfio_header *header,
  * measured.
  */
 SDFIO_API sdfio_status sdfio_encode_heights(const sdfio_header *header,
-                                            sdfio_layout layout,
+                                            const sdfio_layout *layout,
+                                            double not_measured,
                                             const void *heights, size_t count,
                                             void *data);
 
@@ -207,12 +203,14 @@ SDFIO_API double sdfio_suggest_z_scale_for_range(sdfio_data_type type,
 /**
  * Determines the z-scale for a matrix of heights in metres, as
  * sdfio_write_heights() does: the range of the finite heights, excluding the
- * points that `layout.not_measured` marks, is determined and passed to
+ * points that `not_measured` marks, is determined and passed to
  * sdfio_suggest_z_scale_for_range(). It is intended for sdfio_write_data() with
  * an integer data type.
  *
  * @param type The data type.
- * @param layout The layout of the buffer.
+ * @param[in] layout The layout of the buffer.
+ * @param not_measured The value that labels a point that is not measured. NaN
+ * selects no marker.
  * @param[in] heights The heights.
  * @param rows The number of rows.
  * @param columns The number of columns.
@@ -220,7 +218,8 @@ SDFIO_API double sdfio_suggest_z_scale_for_range(sdfio_data_type type,
  * @retval SDFIO_ERR_ARGUMENT A pointer is null or the strides are invalid.
  */
 SDFIO_API sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
-                                             sdfio_layout layout,
+                                             const sdfio_layout *layout,
+                                             double not_measured,
                                              const void *heights, size_t rows,
                                              size_t columns, double *z_scale);
 

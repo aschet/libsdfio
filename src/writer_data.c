@@ -91,7 +91,8 @@ static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
+sdfio_status sdfio_write_data(sdfio_writer *writer,
+                              const sdfio_layout *layout_of_buffer,
                               const void *src, size_t rows)
 {
     sdfio_status status = sdfio_writer_require_writable(writer);
@@ -110,6 +111,12 @@ sdfio_status sdfio_write_data(sdfio_writer *writer, sdfio_layout layout,
         return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
                           "The rows to write are null");
     }
+    if (layout_of_buffer == NULL)
+    {
+        return sdfio_fail(&writer->message, SDFIO_ERR_ARGUMENT,
+                          "The layout of the buffer is null");
+    }
+    sdfio_layout layout = *layout_of_buffer;
     status = sdfio_layout_check_data(&layout, header, rows, &writer->message);
     if (status != SDFIO_OK)
     {

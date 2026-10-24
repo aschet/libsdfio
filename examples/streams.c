@@ -18,7 +18,8 @@ int main(void)
      * binary file. */
     _setmode(_fileno(stdin), _O_BINARY);
 #endif
-    const sdfio_stream stream = sdfio_stdio_stream(stdin);
+    sdfio_stream stream;
+    sdfio_stdio_stream(&stream, stdin);
     sdfio_reader *reader = NULL;
     sdfio_status status =
         sdfio_reader_create(sdfio_default_allocator(), &reader);
@@ -62,16 +63,16 @@ int main(void)
     double lowest = INFINITY;
     double highest = -INFINITY;
     const sdfio_layout coded_layout =
-        sdfio_layout_packed(sdfio_header_data_type(header));
-    const sdfio_layout heights_layout = sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
+        *sdfio_layout_packed(sdfio_header_data_type(header));
+    const sdfio_layout heights_layout = *sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     const size_t columns = sdfio_header_columns(header);
     for (size_t row = 0; row < sdfio_header_rows(header) && status == SDFIO_OK;
          ++row)
     {
-        status = sdfio_read_data(reader, coded_layout, coded, 1);
+        status = sdfio_read_data(reader, &coded_layout, coded, 1);
         if (status == SDFIO_OK)
         {
-            status = sdfio_decode_heights(header, heights_layout, coded,
+            status = sdfio_decode_heights(header, &heights_layout, NAN, coded,
                                           columns, heights);
         }
         for (size_t column = 0; column < columns && status == SDFIO_OK;

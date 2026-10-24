@@ -22,6 +22,7 @@
 #include "tagged.h"
 #include "text.h"
 #include "trailer_text.h"
+#include <math.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
 

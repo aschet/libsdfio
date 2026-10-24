@@ -81,8 +81,9 @@ static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
-                             void *dst, size_t rows)
+sdfio_status sdfio_read_data(sdfio_reader *reader,
+                             const sdfio_layout *layout_of_buffer, void *dst,
+                             size_t rows)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
@@ -106,6 +107,12 @@ sdfio_status sdfio_read_data(sdfio_reader *reader, sdfio_layout layout,
         return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
                           "The memory to read the rows into is null");
     }
+    if (layout_of_buffer == NULL)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The layout of the buffer is null");
+    }
+    sdfio_layout layout = *layout_of_buffer;
     status = sdfio_layout_check_data(&layout, header, rows, &reader->message);
     if (status != SDFIO_OK)
     {

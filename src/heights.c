@@ -18,12 +18,25 @@
 #include "header.h"
 #include "message.h"
 #include <float.h>
+#include <math.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
 
+static const sdfio_layout packed_layouts[] = {
+    [SDFIO_TYPE_FLOAT] = {SDFIO_TYPE_FLOAT, 0, 0},
+    [SDFIO_TYPE_INT8] = {SDFIO_TYPE_INT8, 0, 0},
+    [SDFIO_TYPE_INT16] = {SDFIO_TYPE_INT16, 0, 0},
+    [SDFIO_TYPE_INT32] = {SDFIO_TYPE_INT32, 0, 0},
+    [SDFIO_TYPE_DOUBLE] = {SDFIO_TYPE_DOUBLE, 0, 0}};
+
 void sdfio_layout_init(sdfio_layout *layout)
 {
-    *layout = sdfio_layout_packed(SDFIO_TYPE_FLOAT);
+    *layout = packed_layouts[SDFIO_TYPE_FLOAT];
+}
+
+const sdfio_layout *sdfio_layout_packed(sdfio_data_type type)
+{
+    return sdfio_data_type_valid(type) ? &packed_layouts[type] : NULL;
 }
 
 ptrdiff_t sdfio_element_stride(sdfio_layout layout)
@@ -382,9 +395,15 @@ typedef scale_double scale_type_double;
 #undef REAL
 
 sdfio_status sdfio_decode_heights(const sdfio_header *header,
-                                  sdfio_layout layout, const void *data,
+                                  const sdfio_layout *layout_of_heights,
+                                  double not_measured, const void *data,
                                   size_t count, void *heights)
 {
+    if (layout_of_heights == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    sdfio_layout layout = *layout_of_heights;
     if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
         || sdfio_layout_check(&layout, 1, count, NULL) != SDFIO_OK)
@@ -394,15 +413,21 @@ sdfio_status sdfio_decode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(layout);
     return layout.type == SDFIO_TYPE_FLOAT
                ? decode_float(header, data, count, heights, element,
-                              layout.not_measured)
+                              not_measured)
                : decode_double(header, data, count, heights, element,
-                               layout.not_measured);
+                               not_measured);
 }
 
 sdfio_status sdfio_encode_heights(const sdfio_header *header,
-                                  sdfio_layout layout, const void *heights,
+                                  const sdfio_layout *layout_of_heights,
+                                  double not_measured, const void *heights,
                                   size_t count, void *data)
 {
+    if (layout_of_heights == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    sdfio_layout layout = *layout_of_heights;
     if (!usable_description(header, layout)
         || (count > 0 && (data == NULL || heights == NULL))
         || sdfio_layout_check(&layout, 1, count, NULL) != SDFIO_OK
@@ -413,9 +438,9 @@ sdfio_status sdfio_encode_heights(const sdfio_header *header,
     const ptrdiff_t element = sdfio_element_stride(layout);
     return layout.type == SDFIO_TYPE_FLOAT
                ? encode_float(header, heights, element, count, data,
-                              layout.not_measured)
+                              not_measured)
                : encode_double(header, heights, element, count, data,
-                               layout.not_measured);
+                               not_measured);
 }
 
 double sdfio_suggest_z_scale_for_range(sdfio_data_type type, double lowest,
@@ -459,9 +484,9 @@ double sdfio_suggest_z_scale_for_range(sdfio_data_type type, double lowest,
 }
 
 /* The lowest and the highest height of a matrix that a layout describes. */
-static sdfio_status find_range(sdfio_layout layout, const void *heights,
-                               size_t rows, size_t columns, double *lowest,
-                               double *highest)
+static sdfio_status find_range(sdfio_layout layout, double not_measured,
+                               const void *heights, size_t rows, size_t columns,
+                               double *lowest, double *highest)
 {
     if (!sdfio_heights_type_valid(layout.type) || lowest == NULL
         || highest == NULL || (rows > 0 && columns > 0 && heights == NULL)
@@ -474,7 +499,7 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
     if (layout.type == SDFIO_TYPE_FLOAT)
     {
         float marker = 0.0F;
-        if (!marker_of_float(layout.not_measured, &marker, &has_marker))
+        if (!marker_of_float(not_measured, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }
@@ -484,7 +509,7 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
     else
     {
         double marker = 0.0;
-        if (!marker_of_double(layout.not_measured, &marker, &has_marker))
+        if (!marker_of_double(not_measured, &marker, &has_marker))
         {
             return SDFIO_ERR_ARGUMENT;
         }
@@ -494,18 +519,21 @@ static sdfio_status find_range(sdfio_layout layout, const void *heights,
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_suggest_z_scale(sdfio_data_type type, sdfio_layout layout,
-                                   const void *heights, size_t rows,
-                                   size_t columns, double *z_scale)
+sdfio_status sdfio_suggest_z_scale(sdfio_data_type type,
+                                   const sdfio_layout *layout_of_heights,
+                                   double not_measured, const void *heights,
+                                   size_t rows, size_t columns, double *z_scale)
 {
-    if (!sdfio_data_type_valid(type) || z_scale == NULL)
+    if (!sdfio_data_type_valid(type) || layout_of_heights == NULL
+        || z_scale == NULL)
     {
         return SDFIO_ERR_ARGUMENT;
     }
     double lowest = 0.0;
     double highest = 0.0;
     const sdfio_status status =
-        find_range(layout, heights, rows, columns, &lowest, &highest);
+        find_range(*layout_of_heights, not_measured, heights, rows, columns,
+                   &lowest, &highest);
     if (status == SDFIO_OK)
     {
         *z_scale = sdfio_suggest_z_scale_for_range(type, lowest, highest);

@@ -89,11 +89,11 @@ static int write_coded_values(const char *path)
         status = sdfio_create_file(writer, path, header);
     }
     int16_t row[COLUMNS];
-    const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
+    const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t y = 0; y < ROWS && status == SDFIO_OK; ++y)
     {
         generate_coded_row(row, y, bad_value);
-        status = sdfio_write_data(writer, layout, row, 1);
+        status = sdfio_write_data(writer, &layout, row, 1);
     }
     if (status == SDFIO_OK)
     {
@@ -143,11 +143,11 @@ static int read_coded_values(const char *path)
     size_t measured = 0;
     size_t out_of_place = 0;
     double sum = 0.0;
-    const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
+    const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
     const size_t columns = sdfio_header_columns(header);
     for (size_t y = 0; status == SDFIO_OK && y < sdfio_header_rows(header); ++y)
     {
-        status = sdfio_read_data(reader, layout, row, 1);
+        status = sdfio_read_data(reader, &layout, row, 1);
         generate_coded_row(expected, y, bad_value);
         out_of_place +=
             memcmp(row, expected, columns * sizeof *row) != 0 ? 1 : 0;

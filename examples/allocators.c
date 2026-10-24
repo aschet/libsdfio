@@ -134,14 +134,14 @@ static sdfio_status write_file(void)
         status = sdfio_create_stream(writer, &stream, header);
     }
     int16_t coded[COLUMNS];
-    const sdfio_layout layout = sdfio_layout_packed(SDFIO_TYPE_INT16);
+    const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {
         for (size_t column = 0; column < COLUMNS; ++column)
         {
             coded[column] = value_at(row, column);
         }
-        status = sdfio_write_data(writer, layout, coded, 1);
+        status = sdfio_write_data(writer, &layout, coded, 1);
     }
     if (status == SDFIO_OK)
     {

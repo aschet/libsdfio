@@ -15,8 +15,9 @@
 #include "heights.h"
 #include "reader_state.h"
 
-sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
-                                void *dst)
+sdfio_status sdfio_read_heights(sdfio_reader *reader,
+                                const sdfio_layout *layout_of_buffer,
+                                double not_measured, void *dst)
 {
     sdfio_status status = sdfio_reader_require_readable(reader);
     if (status != SDFIO_OK)
@@ -30,6 +31,12 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
                           "Rows have been read already, or the reading of the "
                           "trailer has begun");
     }
+    if (layout_of_buffer == NULL)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "The layout of the buffer is null");
+    }
+    sdfio_layout layout = *layout_of_buffer;
     status = sdfio_layout_check_heights(&layout, header, &reader->message);
     if (status != SDFIO_OK)
     {
@@ -54,9 +61,9 @@ sdfio_status sdfio_read_heights(sdfio_reader *reader, sdfio_layout layout,
             status = sdfio_reader_take_values(reader, reader->chunk, count);
             if (status == SDFIO_OK)
             {
-                status =
-                    sdfio_decode_heights(header, layout, reader->chunk, count,
-                                         row + (ptrdiff_t)first * element);
+                status = sdfio_decode_heights(header, &layout, not_measured,
+                                              reader->chunk, count,
+                                              row + (ptrdiff_t)first * element);
                 if (status != SDFIO_OK)
                 {
                     sdfio_fail(&reader->message, status,

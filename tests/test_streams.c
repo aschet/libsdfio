@@ -89,7 +89,7 @@ static void check_pipe(const char *path, size_t piece)
             malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
                    * sizeof(double));
         CHECK_OK(sdfio_read_heights(
-            reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
+            reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, heights));
         /* The same heights, in the same places, as from memory. */
         sdfio_reader *in_memory = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
@@ -97,7 +97,7 @@ static void check_pipe(const char *path, size_t piece)
             malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
                    * sizeof(double));
         CHECK_OK(sdfio_read_heights(
-            in_memory, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), expected));
+            in_memory, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, expected));
         for (size_t i = 0;
              i < sdfio_header_rows(header) * sdfio_header_columns(header); ++i)
         {
@@ -117,7 +117,7 @@ static void check_pipe(const char *path, size_t piece)
         CHECK_STATUS(SDFIO_ERR_STATE,
                      sdfio_read_heights(reader,
                                         sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                        heights));
+                                        NAN, heights));
         free(heights);
     }
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_open_stream(reader, &stream));
@@ -160,7 +160,7 @@ static void check_failing_stream(void)
                 malloc(sdfio_header_rows(header) * sdfio_header_columns(header)
                        * sizeof(double));
             status = sdfio_read_heights(
-                reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
+                reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, heights);
             free(heights);
         }
         CHECK(status == SDFIO_ERR_IO);
@@ -198,7 +198,7 @@ static void check_damage(const char *path)
                            * sizeof(double)
                        + 1);
             const sdfio_status status = sdfio_read_heights(
-                reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
+                reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), NAN, heights);
             if (length < size / 2)
             {
                 CHECK(status != SDFIO_OK);
@@ -234,8 +234,9 @@ static void check_damage(const char *path)
             if (count < (size_t)1 << 20)
             {
                 double *heights = malloc(count * sizeof(double) + 1);
-                (void)sdfio_read_heights(
-                    reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights);
+                (void)sdfio_read_heights(reader,
+                                         sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                         NAN, heights);
                 free(heights);
             }
             const char *trailer = NULL;
@@ -362,7 +363,7 @@ static void check_file(void)
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_file(writer, path, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                 heights));
+                                 NAN, heights));
     CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     CHECK(file_exists(path));
@@ -371,7 +372,7 @@ static void check_file(void)
     CHECK_OK(sdfio_open_file(reader, path));
     double back[4] = {0};
     CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                back));
+                                NAN, back));
     CHECK(back[3] == 4.0 && back[0] == 1.0);
     sdfio_reader_free(reader);
     remove(path);
@@ -415,7 +416,7 @@ static void check_huge_matrix(void)
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &out, header));
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                 &height));
+                                 NAN, &height));
     CHECK_OK(sdfio_end_file(writer));
     sdfio_writer_free(writer);
     /* The numbers of columns and rows, 4 bytes each in little endian. */
@@ -551,10 +552,86 @@ static void check_failing_sink(void)
     double heights[16] = {0};
     /* A small file is buffered: the failure shows when it is flushed. */
     CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                 heights));
+                                 NAN, heights));
     CHECK_STATUS(SDFIO_ERR_IO, sdfio_end_file(writer));
     CHECK_STATUS(SDFIO_ERR_STATE, sdfio_end_file(writer));
     sdfio_writer_free(writer);
+}
+
+/* The stream over a C file reads and writes the file, which stays open. */
+static void check_stdio_stream(void)
+{
+    FILE *file = tmpfile();
+    CHECK(file != NULL);
+    if (file == NULL)
+    {
+        return;
+    }
+    sdfio_stream stream;
+    sdfio_stdio_stream(&stream, file);
+    CHECK(stream.user == file && stream.read != NULL && stream.write != NULL);
+
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 2));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    const float heights[2] = {1e-6F, 2e-6F};
+    sdfio_writer *writer = new_writer(all_formats());
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 NAN, heights));
+    CHECK_OK(sdfio_end_file(writer));
+    sdfio_writer_free(writer);
+    CHECK(fflush(file) == 0);
+
+    CHECK(fseek(file, 0, SEEK_SET) == 0);
+    float back[2];
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_OK(sdfio_open_stream(reader, &stream));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                NAN, back));
+    CHECK(back[0] == heights[0] && back[1] == heights[1]);
+    sdfio_reader_free(reader);
+    CHECK(fclose(file) == 0);
+}
+
+/* A call without a layout is refused. */
+static void check_missing_layout(void)
+{
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    sdfio_writer *writer = new_writer(all_formats());
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
+    const float height = 1e-6F;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_data(writer, NULL, &height, 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_heights(writer, NULL, NAN, &height));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 NAN, &height));
+    CHECK_OK(sdfio_end_file(writer));
+    sdfio_writer_free(writer);
+
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    float back = 0.0F;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_data(reader, NULL, &back, 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_read_heights(reader, NULL, NAN, &back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                NAN, &back));
+    sdfio_reader_free(reader);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_decode_heights(header, NULL, NAN, &back, 1, &back));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_encode_heights(header, NULL, NAN, &back, 1, &back));
+    double z_scale = 0.0;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_suggest_z_scale(SDFIO_TYPE_INT16, NULL, NAN, &back, 1, 1,
+                                       &z_scale));
+    free(file.data);
 }
 
 int main(void)
@@ -574,6 +651,8 @@ int main(void)
     check_damage(SAMPLES "iso1_surface_binary.sdf");
     check_damage(SAMPLES "iso2_surface_ascii.sdf");
     check_file();
+    check_stdio_stream();
+    check_missing_layout();
     check_huge_matrix();
     check_failing_sink();
     check_standard_rules();
