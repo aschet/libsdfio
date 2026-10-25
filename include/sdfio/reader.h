@@ -8,6 +8,79 @@
  * @file
  * Reader: opens a file, memory or a stream, and reads the data area, as rows or
  * as heights, and the trailer.
+ *
+ * @par Process
+ * A reader reads one file at a time, from the start to the end:
+ * -# sdfio_reader_create() creates the reader.
+ * -# sdfio_reader_add_binary() and sdfio_reader_add_ascii() add the formats
+ *    that it reads, at least one. sdfio_reader_set_buffer(),
+ *    sdfio_reader_set_chunk() and sdfio_reader_set_time_zone() set the
+ *    options.
+ * -# sdfio_open_file(), sdfio_open_memory() or sdfio_open_stream() opens the
+ *    file and reads its header, which sdfio_reader_header() returns.
+ * -# sdfio_read_heights() reads the whole data area, or sdfio_read_data() reads
+ *    it in parts of one row or more, in the order of the file.
+ * -# sdfio_read_trailer() reads the trailer, in parts, until it returns 0
+ *    bytes.
+ * -# sdfio_reader_free() releases the reader.
+ *
+ * @par States
+ * A reader is in one of four states. It is new until a file is opened, then in
+ * the state data. The first call of sdfio_read_trailer() moves it to trailer,
+ * and the rows that were not read are discarded. An error that loses the
+ * position in the stream moves it to failed: SDFIO_ERR_IO, SDFIO_ERR_FORMAT,
+ * or SDFIO_ERR_RANGE in a call that reads. The header stays available in every
+ * state after the opening.
+ * - Formats and options can be set in the state new only. The first attempt to
+ *   open a file fixes them.
+ * - A call that the state does not allow returns SDFIO_ERR_STATE, and an
+ *   invalid argument returns SDFIO_ERR_ARGUMENT. Neither changes the state or
+ *   the position in the file.
+ * - An opening that fails leaves the reader new, so it can open another file.
+ *
+ * @par Example
+ * @code
+ * sdfio_reader *reader = NULL;
+ * sdfio_status status =
+ *     sdfio_reader_create(sdfio_default_allocator(), &reader);
+ * if (status == SDFIO_OK)
+ * {
+ *     status = sdfio_reader_add_binary(reader);
+ * }
+ * if (status == SDFIO_OK)
+ * {
+ *     status = sdfio_open_file(reader, "surface.sdf");
+ * }
+ * float *heights = NULL;
+ * if (status == SDFIO_OK)
+ * {
+ *     size_t size = 0;
+ *     status = sdfio_heights_size(sdfio_reader_header(reader),
+ *                                 SDFIO_TYPE_FLOAT, &size);
+ *     heights = malloc(size);
+ *     if (status == SDFIO_OK && heights != NULL)
+ *     {
+ *         status = sdfio_read_heights(
+ *             reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
+ *     }
+ * }
+ * char text[256];
+ * size_t count = 1;
+ * while (status == SDFIO_OK && count > 0)
+ * {
+ *     status = sdfio_read_trailer(reader, text, sizeof text, &count);
+ *     if (status == SDFIO_OK)
+ *     {
+ *         fwrite(text, 1, count, stdout);
+ *     }
+ * }
+ * if (status != SDFIO_OK)
+ * {
+ *     fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
+ * }
+ * free(heights);
+ * sdfio_reader_free(reader);
+ * @endcode
  */
 
 #ifndef SDFIO_READER_H
