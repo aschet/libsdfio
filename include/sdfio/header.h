@@ -6,8 +6,7 @@
 
 /**
  * @file
- * Header of a file: size, scales, data type, dates and manufacturer. It is
- * opaque: a writer takes one, and a reader gives one.
+ * Header of a file: size, scales, data type, dates and manufacturer.
  */
 
 #ifndef SDFIO_HEADER_H
