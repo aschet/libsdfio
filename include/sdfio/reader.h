@@ -42,7 +42,7 @@
 #define SDFIO_READER_H
 
 #include <sdfio/header.h>
-#include <sdfio/heights.h>
+#include <sdfio/layout.h>
 #include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 

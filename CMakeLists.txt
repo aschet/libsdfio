@@ -65,7 +65,8 @@ set(SDFIO_SOURCES
     src/header_now.c
     src/init.c
     src/heights.c
-    src/heights.h
+    src/layout.c
+    src/layout.h
     src/heights_real.h
     src/allocator.c
     src/allocator_default.c
@@ -161,6 +162,7 @@ target_sources(sdfio
                 include/sdfio/file.h
                 include/sdfio/header.h
                 include/sdfio/heights.h
+                include/sdfio/layout.h
                 include/sdfio/reader.h
                 include/sdfio/sdfio.h
                 include/sdfio/trailer.h

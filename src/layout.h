@@ -5,12 +5,12 @@
  */
 
 /**
- * @file heights.h
+ * @file layout.h
  * @brief Checks of a buffer layout against the matrix of a file.
  */
 
-#ifndef SDFIO_SRC_HEIGHTS_H
-#define SDFIO_SRC_HEIGHTS_H
+#ifndef SDFIO_SRC_LAYOUT_H
+#define SDFIO_SRC_LAYOUT_H
 
 #include "message.h"
 #include <sdfio/sdfio.h>
@@ -76,4 +76,4 @@ sdfio_status sdfio_layout_check_data(sdfio_layout *layout,
                                      const sdfio_header *header, size_t rows,
                                      sdfio_message *message);
 
-#endif /* SDFIO_SRC_HEIGHTS_H */
+#endif /* SDFIO_SRC_LAYOUT_H */

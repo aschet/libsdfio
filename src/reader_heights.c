@@ -12,7 +12,7 @@
 #include "chunk.h"
 #include "data_type.h"
 #include "header.h"
-#include "heights.h"
+#include "layout.h"
 #include "reader_state.h"
 
 sdfio_status sdfio_read_heights(sdfio_reader *reader,

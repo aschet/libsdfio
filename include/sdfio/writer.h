@@ -51,7 +51,7 @@
 #define SDFIO_WRITER_H
 
 #include <sdfio/header.h>
-#include <sdfio/heights.h>
+#include <sdfio/layout.h>
 #include <sdfio/reader.h>
 #include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>

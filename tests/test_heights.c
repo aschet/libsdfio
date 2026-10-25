@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "heights.h"
+#include "layout.h"
 
 static sdfio_header *description(sdfio_revision revision, sdfio_data_type type,
                                  double z_scale)
