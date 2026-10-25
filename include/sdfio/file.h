@@ -13,10 +13,13 @@
 #ifndef SDFIO_FILE_H
 #define SDFIO_FILE_H
 
+#include <sdfio/reader.h>
+#include <sdfio/sdfio_export.h>
+#include <sdfio/types.h>
+#include <sdfio/writer.h>
+
 #include <stdio.h>
 #include <wchar.h>
-
-#include "sdfio/sdfio.h"
 
 #ifdef __cplusplus
 extern "C"

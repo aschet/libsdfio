@@ -13,7 +13,6 @@
 #define SDFIO_SRC_BINARY_H
 
 #include <sdfio/sdfio.h>
-#include <stdint.h>
 
 /* Layout of the binary header after the fields of the number of columns and
  * the number of rows: four binary64 numbers followed by three bytes of codes.

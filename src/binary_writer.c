@@ -21,6 +21,7 @@
 #include "fields.h"
 #include "header.h"
 #include "message.h"
+#include "revision.h"
 #include "sink.h"
 #include "writer_format.h"
 #include <limits.h>

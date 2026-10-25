@@ -10,7 +10,6 @@
  */
 
 #include "chunk.h"
-#include "data_type.h"
 #include "header.h"
 #include "layout.h"
 #include "reader_state.h"

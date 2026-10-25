@@ -10,7 +10,6 @@
  */
 
 #include "text.h"
-#include <string.h>
 
 void sdfio_trim(const char **text, size_t *size)
 {

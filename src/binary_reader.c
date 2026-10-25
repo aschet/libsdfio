@@ -23,7 +23,6 @@
 #include "reader_format.h"
 #include "revision.h"
 #include "source.h"
-#include "tagged.h"
 #include "text.h"
 #include "trailer_text.h"
 #include <limits.h>

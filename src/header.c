@@ -13,10 +13,8 @@
 #include "allocator.h"
 #include "data_type.h"
 #include "datetime.h"
-#include "defaults.h"
 #include "message.h"
 #include "revision.h"
-#include "text.h"
 #include <math.h>
 #include <string.h>
 

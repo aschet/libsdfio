@@ -16,7 +16,6 @@
 #include <sdfio/sdfio_export.h>
 
 #include <float.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>

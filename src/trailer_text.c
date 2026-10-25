@@ -10,7 +10,6 @@
  */
 
 #include "trailer_text.h"
-#include "text.h"
 
 /* The bytes of the source that are looked at to find a line that consists
  * of `*`, so that the white space around the star is at most 30 bytes. */

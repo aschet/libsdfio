@@ -15,6 +15,7 @@
 #include <sdfio/sdfio_export.h>
 #include <sdfio/types.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 

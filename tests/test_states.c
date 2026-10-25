@@ -8,7 +8,6 @@
  * state, as the guide gives it. */
 
 #include "check.h"
-#include <string.h>
 
 enum
 {
