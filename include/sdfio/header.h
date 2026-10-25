@@ -30,12 +30,8 @@ extern "C"
  * with the column, y with the row, and z points to the viewer who looks from
  * above. The row y = 0 is the first row of the file.
  *
- * A header is opaque. sdfio_header_create() creates one with defaults, the
- * setters fill it, sdfio_header_copy() copies it and sdfio_header_free()
- * releases it. A reader describes the file that it opened by a header that
- * sdfio_reader_header() returns. A writer takes a header as the description of
- * the file to create and keeps a copy. The compression type and the checksum
- * type are not members: the standard allows neither.
+ * A writer keeps a copy of the header it takes. The compression type and the
+ * checksum type are not members: the standard allows neither.
  *
  * Setters check what depends on their field alone. sdfio_create_file() and
  * sdfio_create_stream() check the rest: the data type against the revision,
