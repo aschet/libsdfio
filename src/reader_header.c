@@ -5,12 +5,12 @@
  */
 
 /**
- * @file read_header.c
+ * @file reader_header.c
  * @brief Choosing of the format from the first bytes, and reading of the
  * header.
  */
 
-#include "read_header.h"
+#include "reader_header.h"
 #include "defaults.h"
 #include "header.h"
 #include "message.h"

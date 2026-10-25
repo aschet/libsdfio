@@ -13,8 +13,8 @@
 #include "data_type.h"
 #include "defaults.h"
 #include "header.h"
-#include "read_header.h"
 #include "reader_file.h"
+#include "reader_header.h"
 #include "reader_state.h"
 #include <string.h>
 

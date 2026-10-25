@@ -72,8 +72,8 @@ set(SDFIO_SOURCES
     src/allocator.h
     src/message.h
     src/owner.h
-    src/read_header.c
-    src/read_header.h
+    src/reader_header.c
+    src/reader_header.h
     src/reader.c
     src/reader_data.c
     src/reader_heights.c
