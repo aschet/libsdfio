@@ -24,7 +24,7 @@
  * @par Headers
  * This header includes the others: `<sdfio/types.h>` (status, enumerations,
  * allocator, stream, time zone), `<sdfio/header.h>`, `<sdfio/heights.h>`
- * (sizes, conversion), `<sdfio/layout.h>`, `<sdfio/reader.h>`,
+ * (conversion), `<sdfio/layout.h>`, `<sdfio/reader.h>`, `<sdfio/sizes.h>`,
  * `<sdfio/trailer.h>` (parsing of a trailer text) and `<sdfio/writer.h>`. A
  * program can include the one that it needs.
  *
@@ -71,6 +71,7 @@
 #include <sdfio/heights.h>
 #include <sdfio/layout.h>
 #include <sdfio/reader.h>
+#include <sdfio/sizes.h>
 #include <sdfio/trailer.h>
 #include <sdfio/types.h>
 #include <sdfio/version.h>

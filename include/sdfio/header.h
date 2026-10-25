@@ -332,6 +332,15 @@ SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
 SDFIO_API sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
                                                      const char *manufacturer);
 
+/**
+ * Returns true if a revision permits a data type.
+ *
+ * @param revision The revision.
+ * @param type The data type.
+ */
+SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
+                                     sdfio_data_type type);
+
 #ifdef __cplusplus
 }
 #endif

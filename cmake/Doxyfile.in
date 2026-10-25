@@ -14,6 +14,7 @@ INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/heights.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/layout.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/reader.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/sizes.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/trailer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/writer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \

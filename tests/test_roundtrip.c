@@ -244,7 +244,7 @@ static void check_rows(sdfio_revision revision, sdfio_format format)
     {
         coded[i] = (int16_t)((int)i * 37 - 100);
     }
-    coded[3] = INT16_MIN; /* the marker of a point not measured in ISO */
+    coded[3] = INT16_MIN; /* the bad value of int16 */
     coded[4] = INT16_MAX; /* an ordinary coded value */
 
     membuf file = {0};
@@ -398,14 +398,15 @@ static void check_errors(void)
 
     /* A height that would be read as a point not measured. */
     CHECK_OK(sdfio_header_set_z_scale(header, 1.0));
-    double marker[1] = {-32768.0};
+    double bad_height[1] = {-32768.0};
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));
     writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
-                 sdfio_write_heights(
-                     writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), marker));
+                 sdfio_write_heights(writer,
+                                     sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                     bad_height));
     sdfio_writer_free(writer);
 
     /* A description that cannot be written. */

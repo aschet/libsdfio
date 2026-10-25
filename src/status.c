@@ -6,15 +6,10 @@
 
 /**
  * @file status.c
- * @brief Version and status texts.
+ * @brief Texts of the status codes.
  */
 
 #include <sdfio/sdfio.h>
-
-const char *sdfio_version(void)
-{
-    return SDFIO_VERSION_STRING;
-}
 
 const char *sdfio_status_string(sdfio_status status)
 {
@@ -35,7 +30,7 @@ const char *sdfio_status_string(sdfio_status status)
     case SDFIO_ERR_RANGE:
         return "a number does not fit its type";
     case SDFIO_ERR_BAD_VALUE:
-        return "a height equals the marker of a point that is not measured";
+        return "a height equals the bad value of its data type";
     case SDFIO_ERR_MEMORY:
         return "out of memory";
     }

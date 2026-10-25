@@ -91,6 +91,7 @@ set(SDFIO_SOURCES
     src/source.c
     src/source.h
     src/status.c
+    src/version.c
     src/tagged.c
     src/tagged.h
     src/trailer_text.c
@@ -165,6 +166,7 @@ target_sources(sdfio
                 include/sdfio/layout.h
                 include/sdfio/reader.h
                 include/sdfio/sdfio.h
+                include/sdfio/sizes.h
                 include/sdfio/trailer.h
                 include/sdfio/types.h
                 include/sdfio/writer.h

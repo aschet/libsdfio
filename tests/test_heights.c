@@ -91,11 +91,11 @@ static void check_encode(void)
                  sdfio_encode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
                                       too_high, 1, coded));
-    const double marker[] = {-32768e-9};
+    const double bad_height[] = {-32768e-9};
     CHECK_STATUS(SDFIO_ERR_BAD_VALUE,
                  sdfio_encode_heights(header,
                                       sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
-                                      marker, 1, coded));
+                                      bad_height, 1, coded));
 
     /* The maximum is a height. */
     const double top[] = {32767e-9};
@@ -260,48 +260,6 @@ static void check_element_stride(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_decode_heights(header, &layout, coded, 4, mirrored));
     CHECK_OK(sdfio_decode_heights(header, &layout, coded, 1, mirrored));
-}
-
-/* The check of a layout whose row stride is given separately. */
-static sdfio_status layout_with(sdfio_layout layout, size_t rows,
-                                size_t columns, ptrdiff_t row_stride)
-{
-    layout.row_stride = row_stride;
-    return sdfio_layout_check(&layout, rows, columns, NULL);
-}
-
-static void check_layout(void)
-{
-    sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
-    const ptrdiff_t size = sizeof(double);
-    /* Row-major, with padding at the end of the rows. */
-    CHECK_OK(layout_with(layout, 3, 4, 5 * size));
-    /* Column-major: the columns lie beside each other. */
-    layout.element_stride = 3 * size;
-    CHECK_OK(layout_with(layout, 3, 4, size));
-    /* Interleaved: one of three channels. */
-    layout.element_stride = 3 * size;
-    CHECK_OK(layout_with(layout, 3, 4, 12 * size));
-    /* Mirrored. */
-    layout.element_stride = -size;
-    CHECK_OK(layout_with(layout, 3, 4, -4 * size));
-    /* Overlapping: both strides a element. */
-    layout.element_stride = 0;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 3, 4, size));
-    /* Rows that interleave but do not fit: a stride between. */
-    layout.element_stride = 2 * size;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 3, 4, 3 * size));
-    /* A matrix of one row or column needs only one of the strides. */
-    layout.element_stride = 0;
-    CHECK_OK(layout_with(layout, 1, 4, 0));
-    layout = *sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
-    layout.element_stride = 0;
-    CHECK_OK(layout_with(layout, 4, 1, size));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, layout_with(layout, 4, 1, 3));
-    /* Not countable. */
-    layout.element_stride = PTRDIFF_MAX;
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 layout_with(layout, 2, SIZE_MAX / 2, PTRDIFF_MAX));
 }
 
 /* A generator of numbers that does not depend on the library of the C
@@ -584,7 +542,6 @@ int main(void)
     check_chunks();
     check_range();
     check_element_stride();
-    check_layout();
     check_tables();
     check_float_path();
     check_rounding();

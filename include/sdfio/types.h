@@ -26,10 +26,6 @@ extern "C"
 {
 #endif
 
-/** Returns the version of the library that is loaded, as "major.minor.patch".
- */
-SDFIO_API const char *sdfio_version(void);
-
 /** Result of a function call. The values are part of the interface. */
 typedef enum sdfio_status
 {
@@ -125,15 +121,6 @@ typedef enum sdfio_data_type
     /** `double`: IEEE 754 binary64. */
     SDFIO_TYPE_DOUBLE = 7
 } sdfio_data_type;
-
-/**
- * Returns true if a revision permits a data type.
- *
- * @param revision The revision.
- * @param type The data type.
- */
-SDFIO_API bool sdfio_revision_allows(sdfio_revision revision,
-                                     sdfio_data_type type);
 
 /**
  * The bad value of each data type, the number that labels a point that is not

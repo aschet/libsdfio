@@ -6,15 +6,30 @@
 
 /**
  * @file
- * Version of the library as macros.
+ * Version of the library.
  */
 
 #ifndef SDFIO_VERSION_H
 #define SDFIO_VERSION_H
 
+#include <sdfio/sdfio_export.h>
+
 #define SDFIO_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
 #define SDFIO_VERSION_MINOR @PROJECT_VERSION_MINOR@
 #define SDFIO_VERSION_PATCH @PROJECT_VERSION_PATCH@
 #define SDFIO_VERSION_STRING "@PROJECT_VERSION@"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/** Returns the version of the library that is loaded, as "major.minor.patch".
+ */
+SDFIO_API const char *sdfio_version(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SDFIO_VERSION_H */
