@@ -247,7 +247,6 @@ SDFIO_API sdfio_status sdfio_write_heights(sdfio_writer *writer,
  *
  * The value is text. The caller formats numbers, for instance with snprintf()
  * in the C locale, because a locale with a decimal comma would produce `20,5`.
- * White space around a value is lost when the line is read.
  *
  * @param[in,out] writer The writer.
  * @param[in] name The field name: letters, digits and `_`.
