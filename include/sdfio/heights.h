@@ -7,6 +7,35 @@
 /**
  * @file
  * Buffer sizes, layouts, and the conversion between coded values and heights.
+ *
+ * @par Coded Values and Heights
+ * The data area holds coded values in the data type of the file. A coded value
+ * multiplied by the z-scale of the header is the height of the point in
+ * metres. A program uses the highest of three layers that suffices:
+ * - sdfio_read_data() and sdfio_write_data() transfer the coded values as the
+ *   file has them.
+ * - sdfio_decode_heights() and sdfio_encode_heights() convert between coded
+ *   values and heights. They need a header and no reader or writer.
+ * - sdfio_read_heights() and sdfio_write_heights() transfer the whole matrix as
+ *   heights.
+ *
+ * @par Points That Are Not Measured
+ * A point that is not measured has the bad value of the data type as a coded
+ * value, and NaN as a height. The encoding of heights takes NaN and infinity
+ * as such a point.
+ *
+ * @par Z-Scale
+ * A file of an integer type trades range against resolution by its z-scale.
+ * sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() give the
+ * smallest z-scale that fits the heights, and sdfio_write_heights() uses it if
+ * the header has SDFIO_AUTO_Z_SCALE.
+ *
+ * @par Buffers
+ * The functions with `size` in their name give the size of a buffer for a
+ * matrix or a row. A layout describes a buffer in memory by the type of its
+ * elements and two strides, so that a matrix can be transferred in place when
+ * it is part of something else: a member of a structure, a column-major matrix
+ * or a matrix upside down.
  */
 
 #ifndef SDFIO_HEIGHTS_H

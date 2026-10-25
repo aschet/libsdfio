@@ -7,6 +7,44 @@
 /**
  * @file
  * Writer of a file or a stream.
+ *
+ * @par Process
+ * A writer writes one file at a time, from the start to the end:
+ * -# sdfio_writer_create() creates the writer.
+ * -# sdfio_writer_add_binary() and sdfio_writer_add_ascii() add the formats
+ *    that it writes, at least one. sdfio_writer_set_buffer(),
+ *    sdfio_writer_set_chunk() and sdfio_writer_set_time_zone() set the
+ *    options.
+ * -# sdfio_create_file() or sdfio_create_stream() starts the file from a
+ *    header.
+ * -# sdfio_write_heights() writes the whole data area, or sdfio_write_data()
+ *    writes it in parts of one row or more, in the order of the file, until
+ *    all rows of the header are written.
+ * -# sdfio_write_trailer_field(), sdfio_write_trailer_text() and
+ *    sdfio_copy_trailer() write the trailer, which is optional.
+ * -# sdfio_end_file() ends the file, also if it has no trailer.
+ * -# sdfio_writer_free() releases the writer.
+ *
+ * @par States
+ * A writer is in one of five states. It is new until a file is created, then
+ * created. When all rows are written, the first call that writes the trailer
+ * moves it to trailer. sdfio_end_file() moves it to ended, from created if all
+ * rows are written, or from trailer. An error that loses the position in the
+ * stream moves it to failed: an error of the stream, of writing the header or
+ * of closing the file, and a height in sdfio_write_heights() that cannot be
+ * written.
+ * - Formats and options can be set in the state new only. The first creation
+ *   that passes the checks of the header fixes them.
+ * - The header is checked and copied when the file is created, so later changes
+ *   of it have no effect. It is written with the first rows, because
+ *   sdfio_write_heights() can still determine the z-scale.
+ * - A call that the state does not allow returns SDFIO_ERR_STATE, and an
+ *   invalid argument returns SDFIO_ERR_ARGUMENT. Neither changes the state or
+ *   the position in the file.
+ * - A creation that fails leaves the writer new, so it can create the file
+ *   again.
+ * - A writer that is released before sdfio_end_file() leaves an incomplete
+ *   file.
  */
 
 #ifndef SDFIO_WRITER_H
