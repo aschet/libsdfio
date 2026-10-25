@@ -30,9 +30,7 @@ extern "C"
 typedef struct sdfio_reader sdfio_reader;
 
 /**
- * Creates a reader. The reader reads nothing until a source is opened. It is
- * created before the source is opened, so that a failed open can report its
- * reason.
+ * Creates a reader. The reader reads nothing until a source is opened.
  *
  * Only the handle is allocated here. The program adds the formats of the
  * reader and may set its options, and the buffers are allocated when a file is
