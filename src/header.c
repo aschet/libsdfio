@@ -6,7 +6,7 @@
 
 /**
  * @file header.c
- * @brief Header.
+ * @brief Header of a file.
  */
 
 #include "header.h"

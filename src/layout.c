@@ -6,7 +6,7 @@
 
 /**
  * @file layout.c
- * @brief Layouts of buffers.
+ * @brief Layout of a buffer in memory.
  */
 
 #include "layout.h"

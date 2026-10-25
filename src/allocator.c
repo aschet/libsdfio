@@ -6,7 +6,7 @@
 
 /**
  * @file allocator.c
- * @brief Allocator of a handle.
+ * @brief Allocation and release of memory through the allocator of the program.
  */
 
 #include "allocator.h"

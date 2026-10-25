@@ -6,7 +6,7 @@
 
 /**
  * @file header.h
- * @brief Header.
+ * @brief Header of a file.
  */
 
 #ifndef SDFIO_SRC_HEADER_H
