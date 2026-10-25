@@ -9,27 +9,22 @@
  * Reading and writing of ISO 25178-71 SDF surface data files.
  *
  * @par Standard
- * The library follows ISO 25178-71:2026, and a reader checks what the standard
- * defines: the magic, the data types of the revision, a compression
- * and a checksum type of 0, the ranges of the numbers of columns and rows
- * and of the dates, a positive z-scale, a manufacturer identifier of at most 10
- * characters and the string `BAD`. It tolerates these deviations:
+ * The library follows ISO 25178-71:2026. A reader accepts these deviations:
  * - Numbers in an ASCII file can be in any decimal or scientific form, where
- *   the standard has the normalized form with a signed exponent. Files of
- *   MountainsMap have such numbers.
+ *   the standard has the normalized form with a signed exponent.
  * - A manufacturer identifier in a binary file ends at its first 0 byte, where
- *   the standard fills it with spaces; the bytes after the 0 are ignored. Files
- *   of MountainsMap have such identifiers.
- * - A date of the character 0 only, or of the byte 0 only, is a date that is
- *   not recorded and reads as SDFIO_NO_TIME. In an ASCII file such a date can
- *   have fewer than 12 characters.
- * - An ASCII file can end its lines with LF instead of CRLF, and the final
- *   line `*` after the trailer can be missing.
- * - An ASCII file can start with the UTF-8 byte order mark that some editors
- *   add.
+ *   the standard fills it with spaces.
+ * - A date of the character 0 only, or of the byte 0 only, reads as
+ *   SDFIO_NO_TIME. In an ASCII file such a date can have fewer than 12
+ *   characters.
+ * - An ASCII file can end its lines with LF instead of CRLF, can start with the
+ *   UTF-8 byte order mark, and can lack the final line `*` after the trailer.
  * - A field of an ASCII header that the standard does not define is ignored,
  *   and a field that appears more than once counts with its last value.
- * - The trailer of an ISO-2.0 file need not be in the tagged format.
+ *
+ * The library does not enforce the 7-bit ASCII encoding of the manufacturer's
+ * identifier and of the trailer, and the tagged format of the trailer of an
+ * ISO-2.0 file.
  */
 
 #ifndef SDFIO_SDFIO_H
