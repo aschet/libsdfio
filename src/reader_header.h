@@ -10,8 +10,8 @@
  * header.
  */
 
-#ifndef SDFIO_SRC_READ_HEADER_H
-#define SDFIO_SRC_READ_HEADER_H
+#ifndef SDFIO_SRC_READER_HEADER_H
+#define SDFIO_SRC_READER_HEADER_H
 
 #include "message.h"
 #include "reader_format.h"
@@ -51,4 +51,4 @@ sdfio_status sdfio_read_header(sdfio_source *source,
                                const sdfio_time_zone *zone,
                                sdfio_message *message);
 
-#endif /* SDFIO_SRC_READ_HEADER_H */
+#endif /* SDFIO_SRC_READER_HEADER_H */

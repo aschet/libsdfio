@@ -6,7 +6,7 @@
 
 /**
  * @file layout.h
- * @brief Checks of a buffer layout against the matrix of a file.
+ * @brief Layouts of buffers.
  */
 
 #ifndef SDFIO_SRC_LAYOUT_H

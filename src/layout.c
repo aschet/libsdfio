@@ -6,7 +6,7 @@
 
 /**
  * @file layout.c
- * @brief Layouts of buffers: the packed layouts and the checks of strides.
+ * @brief Layouts of buffers.
  */
 
 #include "layout.h"
