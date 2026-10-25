@@ -11,9 +11,11 @@
  * @par Standard
  * The library follows ISO 25178-71:2026. A reader accepts these deviations:
  * - Numbers in an ASCII file can be in any decimal or scientific form, where
- *   the standard has the normalized form with a signed exponent.
+ *   the standard has the normalized form with a signed exponent. Files of a
+ *   commercial application have such numbers.
  * - A manufacturer identifier in a binary file ends at its first 0 byte, where
- *   the standard fills it with spaces.
+ *   the standard fills it with spaces. Files of a commercial application have
+ *   such identifiers.
  * - A date of the character 0 only, or of the byte 0 only, reads as
  *   SDFIO_NO_TIME. In an ASCII file such a date can have fewer than 12
  *   characters.
