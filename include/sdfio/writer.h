@@ -265,20 +265,15 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
 /**
  * Writes text to the trailer. ISO-2.0 requires the trailer to consist of lines
  * in the form of sdfio_write_trailer_field(); the form of the text is neither
- * checked nor enforced. All rows of the data area must have been written. The
- * text and the fields of sdfio_write_trailer_field() can follow each other in
- * any order. sdfio_end_file() ends the trailer.
+ * checked nor enforced. All rows must have been written. The text and the
+ * fields can follow each other in any order.
  *
- * The text is not interpreted, and a call can write any part of it: the line
- * that a call leaves open continues with the text of the next call, so the text
- * can be split anywhere. A field line terminates the line that is open. So
- * does sdfio_end_file() in an ASCII file, whose closing line `*` starts a line:
- * a text without a line end at its end gets one there. A binary file ends with
- * the text as it is. Every line end of the text (LF or CRLF) is written as
- * CRLF, as the standard specifies, in ASCII and in binary files.
- * sdfio_read_trailer() returns the lines with LF. In an ASCII file a line that
- * consists only of `*` ends the record, so the text must not contain one;
- * lines of sdfio_write_trailer_field() never do.
+ * A call can write any part of the text: an open line continues with the next
+ * call. A field line ends the open line, and so does sdfio_end_file() in an
+ * ASCII file, before its closing line `*`. A binary file ends with the text as
+ * it is. Line ends, LF or CRLF, are written as CRLF in both formats. In an
+ * ASCII file a line that consists only of `*` ends the record, so the text must
+ * not contain one.
  *
  * @param[in,out] writer The writer.
  * @param[in] text The text.
