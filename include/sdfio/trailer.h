@@ -6,7 +6,7 @@
 
 /**
  * @file
- * Fields of a trailer text.
+ * Parsing of the fields of a trailer text.
  */
 
 #ifndef SDFIO_TRAILER_H
