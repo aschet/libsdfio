@@ -17,10 +17,7 @@
 
 /** The size in bytes of the largest coded value of the data area, which is a
  * binary64 number. */
-enum
-{
-    SDFIO_LARGEST_CODED_VALUE = 8
-};
+#define SDFIO_LARGEST_CODED_VALUE 8
 
 /**
  * Table of the data types of the format, for use as an X macro.

@@ -37,13 +37,10 @@ enum
     GOT_ERROR = -1
 };
 
-enum
-{
-    /* The characters of a line of the header or of a word of the data area
-     * that are kept, with the terminator. The standard bounds the fields of
-     * the header, and the longest number has fewer characters. */
-    TEXT_CAPACITY = 128
-};
+/* The characters of a line of the header or of a word of the data area
+ * that are kept, with the terminator. The standard bounds the fields of
+ * the header, and the longest number has fewer characters. */
+#define TEXT_CAPACITY 128
 
 /* A line or a word of the text, of which the first characters are kept. */
 typedef struct fixed_text

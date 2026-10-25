@@ -182,11 +182,8 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
     return ok ? SDFIO_OK : sdfio_sink_failure(message);
 }
 
-enum
-{
-    /* The digits of the largest integer of a data type, int32. */
-    INTEGER_DIGITS = 10
-};
+/* The digits of the largest integer of a data type, int32. */
+#define INTEGER_DIGITS 10
 
 /* Writes an integer in decimal digits, without a terminator. */
 static size_t put_integer(char *out, int32_t value)

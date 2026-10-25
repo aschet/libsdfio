@@ -12,11 +12,8 @@
 #include "reader_state.h"
 #include "writer_state.h"
 
-enum
-{
-    /* The size of the parts in which the trailer is copied. */
-    COPY_PART = 256
-};
+/* The size of the parts in which the trailer is copied. */
+#define COPY_PART 256
 
 sdfio_status sdfio_copy_trailer(sdfio_reader *reader, sdfio_writer *writer)
 {

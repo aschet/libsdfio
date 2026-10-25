@@ -12,12 +12,9 @@
 #include "trailer_text.h"
 #include "text.h"
 
-enum
-{
-    /* The bytes of the source that are looked at to find a line that consists
-     * of `*`, so that the white space around the star is at most 30 bytes. */
-    STAR_WINDOW = 32
-};
+/* The bytes of the source that are looked at to find a line that consists
+ * of `*`, so that the white space around the star is at most 30 bytes. */
+#define STAR_WINDOW 32
 
 static bool is_blank(int c)
 {

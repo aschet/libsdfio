@@ -15,21 +15,18 @@
 #include <sdfio/sdfio.h>
 
 /** The sizes and the digits of numbers. */
-enum
-{
-    /** The size of the longest number of an ASCII data area. */
-    SDFIO_NUMBER_CAPACITY = 64,
-    /** The size of the text of a decimal point. */
-    SDFIO_DECIMAL_POINT_CAPACITY = 8,
-    /** The digits after the point of a binary32. */
-    SDFIO_FLOAT_DIGITS = 6,
-    /** The digits of the exponent of a binary32. */
-    SDFIO_FLOAT_EXPONENT = 2,
-    /** The digits after the point of a binary64. */
-    SDFIO_DOUBLE_DIGITS = 14,
-    /** The digits of the exponent of a binary64. */
-    SDFIO_DOUBLE_EXPONENT = 3
-};
+/** The size of the longest number of an ASCII data area. */
+#define SDFIO_NUMBER_CAPACITY 64
+/** The size of the text of a decimal point. */
+#define SDFIO_DECIMAL_POINT_CAPACITY 8
+/** The digits after the point of a binary32. */
+#define SDFIO_FLOAT_DIGITS 6
+/** The digits of the exponent of a binary32. */
+#define SDFIO_FLOAT_EXPONENT 2
+/** The digits after the point of a binary64. */
+#define SDFIO_DOUBLE_DIGITS 14
+/** The digits of the exponent of a binary64. */
+#define SDFIO_DOUBLE_EXPONENT 3
 
 /**
  * The character that the locale uses for the decimal point.

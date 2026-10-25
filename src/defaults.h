@@ -19,18 +19,15 @@
 #include <stdint.h>
 
 /** The defaults of the options, and the limits of the lists. */
-enum
-{
-    /** The number of values a reader or a writer converts at a time. */
-    SDFIO_DEFAULT_CHUNK = 1024,
-    /** The size of the buffer of a reader or a writer. */
-    SDFIO_DEFAULT_BUFFER = 16384,
-    /** The smallest size of a buffer. */
-    SDFIO_MINIMUM_BUFFER = 64,
-    /** The number of formats of a direction that a handle can add: the
-     * binary and the ASCII format. */
-    SDFIO_FORMAT_MAX = 2
-};
+/** The number of values a reader or a writer converts at a time. */
+#define SDFIO_DEFAULT_CHUNK 1024
+/** The size of the buffer of a reader or a writer. */
+#define SDFIO_DEFAULT_BUFFER 16384
+/** The smallest size of a buffer. */
+#define SDFIO_MINIMUM_BUFFER 64
+/** The number of formats of a direction that a handle can add: the
+ * binary and the ASCII format. */
+#define SDFIO_FORMAT_MAX 2
 
 /**
  * Tells whether a number of values is a valid size of a chunk: not 0, and not

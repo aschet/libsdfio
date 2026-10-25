@@ -22,34 +22,25 @@
 #include <ctype.h>
 #include <string.h>
 
-enum
-{
-    /* The first year that a date field can hold. */
-    FIRST_YEAR = 1,
-    /* The last year that a date field can hold. */
-    LAST_YEAR = 9999
-};
+/* The first year that a date field can hold. */
+#define FIRST_YEAR 1
+/* The last year that a date field can hold. */
+#define LAST_YEAR 9999
 
-enum
-{
-    SECONDS_PER_MINUTE = 60,
-    MINUTES_PER_HOUR = 60,
-    HOURS_PER_DAY = 24,
-    MINUTES_PER_DAY = MINUTES_PER_HOUR * HOURS_PER_DAY,
-    MONTHS_PER_YEAR = 12
-};
+#define SECONDS_PER_MINUTE 60
+#define MINUTES_PER_HOUR 60
+#define HOURS_PER_DAY 24
+#define MINUTES_PER_DAY ((int64_t)MINUTES_PER_HOUR * HOURS_PER_DAY)
+#define MONTHS_PER_YEAR 12
 
 /* The proleptic Gregorian calendar. Days are counted from 1970-01-01. */
-enum
-{
-    DAYS_PER_YEAR = 365,
-    /* The leap days of 400 years: 100 by four, less 4 by 100, plus 1 by 400. */
-    DAYS_PER_400_YEARS = 400 * DAYS_PER_YEAR + 97,
-    YEARS_PER_400_YEARS = 400,
-    /* From 0001-01-01 to 1970-01-01 */
-    YEAR_ONE_TO_EPOCH = 719162,
-    FEBRUARY = 2
-};
+#define DAYS_PER_YEAR 365
+/* The leap days of 400 years: 100 by four, less 4 by 100, plus 1 by 400. */
+#define DAYS_PER_400_YEARS (400 * DAYS_PER_YEAR + 97)
+#define YEARS_PER_400_YEARS 400
+/* From 0001-01-01 to 1970-01-01 */
+#define YEAR_ONE_TO_EPOCH 719162
+#define FEBRUARY 2
 
 /* The quotient rounded toward negative infinity, where C rounds toward 0. */
 static int64_t floor_div(int64_t a, int64_t b)
@@ -142,19 +133,16 @@ static bool seconds_to_time(int64_t seconds, time_t *out)
 }
 
 /* The positions and the widths of the fields in the text DDMMYYYYhhmm. */
-enum
-{
-    DAY_AT = 0,
-    DAY_WIDTH = 2,
-    MONTH_AT = DAY_AT + DAY_WIDTH,
-    MONTH_WIDTH = 2,
-    YEAR_AT = MONTH_AT + MONTH_WIDTH,
-    YEAR_WIDTH = 4,
-    HOUR_AT = YEAR_AT + YEAR_WIDTH,
-    HOUR_WIDTH = 2,
-    MINUTE_AT = HOUR_AT + HOUR_WIDTH,
-    MINUTE_WIDTH = 2
-};
+#define DAY_AT 0
+#define DAY_WIDTH 2
+#define MONTH_AT (DAY_AT + DAY_WIDTH)
+#define MONTH_WIDTH 2
+#define YEAR_AT (MONTH_AT + MONTH_WIDTH)
+#define YEAR_WIDTH 4
+#define HOUR_AT (YEAR_AT + YEAR_WIDTH)
+#define HOUR_WIDTH 2
+#define MINUTE_AT (HOUR_AT + HOUR_WIDTH)
+#define MINUTE_WIDTH 2
 
 _Static_assert(MINUTE_AT + MINUTE_WIDTH == SDFIO_DATETIME_SIZE,
                "the fields have to fill the date");

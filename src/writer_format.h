@@ -18,10 +18,7 @@
 
 /** The room for the text of one value in an ASCII data area, with its
  * separator, which is the most that a format asks for. */
-enum
-{
-    SDFIO_TEXT_PER_VALUE = 32
-};
+#define SDFIO_TEXT_PER_VALUE 32
 
 typedef struct sdfio_writer_format sdfio_writer_format;
 
