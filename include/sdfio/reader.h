@@ -37,50 +37,6 @@
  *   invalid argument returns SDFIO_ERR_ARGUMENT. Neither changes the state or
  *   the position in the file.
  * - An opening that fails leaves the reader new, so it can open another file.
- *
- * @par Example
- * @code
- * sdfio_reader *reader = NULL;
- * sdfio_status status =
- *     sdfio_reader_create(sdfio_default_allocator(), &reader);
- * if (status == SDFIO_OK)
- * {
- *     status = sdfio_reader_add_binary(reader);
- * }
- * if (status == SDFIO_OK)
- * {
- *     status = sdfio_open_file(reader, "surface.sdf");
- * }
- * float *heights = NULL;
- * if (status == SDFIO_OK)
- * {
- *     size_t size = 0;
- *     status = sdfio_heights_size(sdfio_reader_header(reader),
- *                                 SDFIO_TYPE_FLOAT, &size);
- *     heights = malloc(size);
- *     if (status == SDFIO_OK && heights != NULL)
- *     {
- *         status = sdfio_read_heights(
- *             reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights);
- *     }
- * }
- * char text[256];
- * size_t count = 1;
- * while (status == SDFIO_OK && count > 0)
- * {
- *     status = sdfio_read_trailer(reader, text, sizeof text, &count);
- *     if (status == SDFIO_OK)
- *     {
- *         fwrite(text, 1, count, stdout);
- *     }
- * }
- * if (status != SDFIO_OK)
- * {
- *     fprintf(stderr, "%s\n", sdfio_reader_error_message(reader));
- * }
- * free(heights);
- * sdfio_reader_free(reader);
- * @endcode
  */
 
 #ifndef SDFIO_READER_H
