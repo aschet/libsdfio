@@ -166,6 +166,9 @@ typedef enum sdfio_data_type
  * A header calls them when it is created. A handle calls them for all of its
  * memory, and only when it is created and when a file is created or opened.
  * Reading and writing allocate nothing, so a pool can be sized in advance.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of an allocator is a new function.
  */
 typedef struct sdfio_allocator
 {
@@ -196,6 +199,9 @@ SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
  * A reader uses `read`. A writer uses `write`. The bytes are processed once and
  * in order, as for a pipe. A program that does not use an initializer calls
  * sdfio_stream_init() before it assigns fields.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of a stream is a new function.
  */
 typedef struct sdfio_stream
 {
@@ -234,6 +240,9 @@ SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
  * no conversion. ISO-2.0 files store UTC and are not affected. The callbacks
  * are called by the thread that uses the handle. A program that does not use an
  * initializer calls sdfio_time_zone_init() before it assigns fields.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of a time zone is a new function.
  */
 typedef struct sdfio_time_zone
 {
