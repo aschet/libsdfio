@@ -317,7 +317,8 @@ sdfio_status sdfio_header_check(const sdfio_header *header,
     {
         return sdfio_fail(
             message, SDFIO_ERR_ARGUMENT,
-            "The product of the columns and the rows does not fit in size_t");
+            "The product of the columns and the rows of the header is larger "
+            "than SIZE_MAX");
     }
     if (header->columns > sdfio_max_columns_and_rows(header->revision)
         || header->rows > sdfio_max_columns_and_rows(header->revision))
