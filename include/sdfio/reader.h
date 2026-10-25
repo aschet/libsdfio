@@ -6,8 +6,7 @@
 
 /**
  * @file
- * Reader: opens a file, memory or a stream, and reads the data area, as rows or
- * as heights, and the trailer.
+ * Reader of a file, memory or a stream.
  *
  * @par Process
  * A reader reads one file at a time, from the start to the end:

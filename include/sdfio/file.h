@@ -6,7 +6,7 @@
 
 /**
  * @file
- * Opening and creating files by path, and the stream over a C file.
+ * Files by path, and the stream over a C file.
  * `<sdfio/sdfio.h>` does not include this header.
  */
 

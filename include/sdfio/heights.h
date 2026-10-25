@@ -6,8 +6,7 @@
 
 /**
  * @file
- * Buffer sizes, the layout of a buffer in memory, and the conversion between
- * coded values and heights in metres.
+ * Buffer sizes, layouts, and the conversion between coded values and heights.
  */
 
 #ifndef SDFIO_HEIGHTS_H
