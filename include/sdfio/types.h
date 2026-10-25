@@ -227,15 +227,13 @@ SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
  * Conversion of the dates of ISO-1.0 files between the local clock of the
  * writer and UTC.
  *
- * These files store the clock reading without a time zone, and only the
- * program can know the zone, including its rules for daylight saving time. The
- * callbacks receive and return times in the form of a time_t, with a resolution
- * of one minute. A clock reading is expressed as if it were UTC. A callback
- * returns SDFIO_NO_TIME if it cannot convert the time. A callback that is null
- * performs no conversion. ISO-2.0 files store UTC and are not affected. The
- * callbacks are called by the thread that uses the handle. A program that does
- * not use an initializer calls sdfio_time_zone_init() before it assigns
- * fields.
+ * These files store the clock reading without a time zone. The callbacks
+ * receive and return times in the form of a time_t, with a resolution of one
+ * minute. A clock reading is expressed as if it were UTC. A callback returns
+ * SDFIO_NO_TIME if it cannot convert the time. A callback that is null performs
+ * no conversion. ISO-2.0 files store UTC and are not affected. The callbacks
+ * are called by the thread that uses the handle. A program that does not use an
+ * initializer calls sdfio_time_zone_init() before it assigns fields.
  */
 typedef struct sdfio_time_zone
 {
