@@ -15,9 +15,9 @@
  * - sdfio_read_data() and sdfio_write_data() transfer the coded values as the
  *   file has them.
  * - sdfio_decode_heights() and sdfio_encode_heights() convert between coded
- *   values and heights. They need a header and no reader or writer.
+ *   values and heights in metres. They need a header and no reader or writer.
  * - sdfio_read_heights() and sdfio_write_heights() transfer the whole matrix as
- *   heights.
+ *   heights in metres.
  *
  * @par Points That Are Not Measured
  * A point that is not measured has the bad value of the data type as a coded
