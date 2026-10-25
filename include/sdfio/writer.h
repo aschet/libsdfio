@@ -263,10 +263,11 @@ SDFIO_API sdfio_status sdfio_write_trailer_field(sdfio_writer *writer,
                                                  const char *value);
 
 /**
- * Writes text to the trailer, for a trailer that does not consist of
- * fields. All rows of the data area must have been written. The text and the
- * fields of sdfio_write_trailer_field() can follow each other in any order.
- * sdfio_end_file() ends the trailer.
+ * Writes text to the trailer. ISO-2.0 requires the trailer to consist of lines
+ * in the form of sdfio_write_trailer_field(); the form of the text is neither
+ * checked nor enforced. All rows of the data area must have been written. The
+ * text and the fields of sdfio_write_trailer_field() can follow each other in
+ * any order. sdfio_end_file() ends the trailer.
  *
  * The text is not interpreted, and a call can write any part of it: the line
  * that a call leaves open continues with the text of the next call, so the text
