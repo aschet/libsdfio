@@ -163,6 +163,7 @@ target_sources(sdfio
                 include/sdfio/heights.h
                 include/sdfio/reader.h
                 include/sdfio/sdfio.h
+                include/sdfio/trailer.h
                 include/sdfio/types.h
                 include/sdfio/writer.h
                 "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/sdfio_export.h"

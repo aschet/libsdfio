@@ -13,6 +13,7 @@ INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/header.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/heights.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/reader.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/trailer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/writer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
                          @PROJECT_SOURCE_DIR@/docs/guide.dox \
