@@ -160,6 +160,12 @@ typedef enum sdfio_data_type
 #define SDFIO_NO_RESOLUTION (-1.0)
 
 /**
+ * Length in bytes of the longest manufacturer's identifier, the size of its
+ * field in both formats.
+ */
+#define SDFIO_MANUFACTURER_ID_MAX 10
+
+/**
  * Memory management callbacks that replace malloc() and free(), for example
  * with a pool or a bump allocator.
  *

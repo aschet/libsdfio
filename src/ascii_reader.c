@@ -222,7 +222,7 @@ typedef struct header_fields
     /* Whether the file has the field. */
     bool found[FIELD_COUNT];
     /* The manufacturer's ID, terminated. */
-    char identifier[SDFIO_ID_SIZE + 1];
+    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1];
     /* The creation date and time. */
     char created[SDFIO_DATETIME_SIZE];
     /* The last modification date and time. */
@@ -298,7 +298,8 @@ static sdfio_status store_field(header_fields *fields, enum field field,
     {
     case MANUFACTURER_ID:
     {
-        const size_t kept = size < SDFIO_ID_SIZE ? size : SDFIO_ID_SIZE;
+        const size_t kept =
+            size < SDFIO_MANUFACTURER_ID_MAX ? size : SDFIO_MANUFACTURER_ID_MAX;
         memcpy(fields->identifier, value, kept);
         fields->identifier[kept] = '\0';
         break;

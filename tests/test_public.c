@@ -99,6 +99,7 @@ static void check_constants(void)
     CHECK(SDFIO_STREAM_ERROR == SIZE_MAX);
     CHECK(sizeof SDFIO_STREAM_ERROR == sizeof(size_t));
     CHECK(SDFIO_AUTO_Z_SCALE == 0.0 && SDFIO_NO_RESOLUTION == -1.0);
+    CHECK(SDFIO_MANUFACTURER_ID_MAX == 10);
 }
 
 int main(void)

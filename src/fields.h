@@ -17,8 +17,6 @@
 /** The fields of the file. */
 enum
 {
-    /** The size of the identifier in the header of a binary file. */
-    SDFIO_ID_SIZE = 10,
     /** The size of a date field, DDMMYYYYhhmm. */
     SDFIO_DATETIME_SIZE = 12,
     /** The code of "no compression" and "no checksum". */

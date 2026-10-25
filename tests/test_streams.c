@@ -294,7 +294,7 @@ static void check_header_errors(void)
          */
         enum
         {
-            DATES_AT = sizeof "bISO-2.0" - 1 + SDFIO_ID_SIZE,
+            DATES_AT = sizeof "bISO-2.0" - 1 + SDFIO_MANUFACTURER_ID_MAX,
             Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATETIME_SIZE
                          + 2 * sizeof(uint32_t) + 2 * sizeof(double)
         };
@@ -458,10 +458,10 @@ static void add_line(char *text, size_t capacity, const char *name,
 
 /* The status of opening an ASCII file whose header is as given. If it opens,
  * `manufacturer` receives the identifier that the reader returns. */
-static sdfio_status read_ascii(const char *magic, const char *id,
-                               const char *date, const char *points,
-                               const char *z_scale, const char *line_end,
-                               char (*manufacturer)[SDFIO_ID_SIZE + 1])
+static sdfio_status
+read_ascii(const char *magic, const char *id, const char *date,
+           const char *points, const char *z_scale, const char *line_end,
+           char (*manufacturer)[SDFIO_MANUFACTURER_ID_MAX + 1])
 {
     char text[512] = "";
     add_line(text, sizeof text, magic, "", line_end);
@@ -539,7 +539,7 @@ static void check_standard_rules(void)
             open_ascii("aISO-2.0", "test", bad_dates[i], "1", good_z, crlf));
     }
     /* An identifier of more than 10 characters is cut. */
-    char identifier[SDFIO_ID_SIZE + 1] = "";
+    char identifier[SDFIO_MANUFACTURER_ID_MAX + 1] = "";
     CHECK_OK(read_ascii("aISO-2.0", "0123456789", "010120261200", "1", good_z,
                         crlf, &identifier));
     CHECK(strcmp(identifier, "0123456789") == 0);

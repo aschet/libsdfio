@@ -272,7 +272,7 @@ sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
         return SDFIO_ERR_ARGUMENT;
     }
     size_t length = 0;
-    while (length < SDFIO_ID_SIZE && manufacturer[length] != '\0')
+    while (length < SDFIO_MANUFACTURER_ID_MAX && manufacturer[length] != '\0')
     {
         if (manufacturer[length] == '\r' || manufacturer[length] == '\n')
         {

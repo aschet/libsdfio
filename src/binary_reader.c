@@ -88,8 +88,9 @@ static bool take_revision(sdfio_source *source, sdfio_revision *revision)
  * whatever was in memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
-    const unsigned char *end = memchr(field, '\0', SDFIO_ID_SIZE);
-    size_t size = end != NULL ? (size_t)(end - field) : SDFIO_ID_SIZE;
+    const unsigned char *end = memchr(field, '\0', SDFIO_MANUFACTURER_ID_MAX);
+    size_t size =
+        end != NULL ? (size_t)(end - field) : SDFIO_MANUFACTURER_ID_MAX;
     while (size > 0 && sdfio_is_space((char)field[size - 1]))
     {
         --size;
@@ -124,7 +125,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                     "The magic of the file is not supported");
     }
     const size_t columns_rows_size = sdfio_revision_columns_rows_size(revision);
-    unsigned char identifier[SDFIO_ID_SIZE];
+    unsigned char identifier[SDFIO_MANUFACTURER_ID_MAX];
     unsigned char created_text[SDFIO_DATETIME_SIZE];
     unsigned char modified_text[SDFIO_DATETIME_SIZE];
     unsigned char columns_field[sizeof(uint32_t)];

@@ -403,6 +403,8 @@
  * <td>The writer selects the z-scale.</td></tr>
  * <tr><td>SDFIO_NO_RESOLUTION</td><td>double</td><td>-1.0</td>
  * <td>The z-resolution is not known.</td></tr>
+ * <tr><td>SDFIO_MANUFACTURER_ID_MAX</td><td>int</td><td>10</td>
+ * <td>The length of the longest manufacturer's identifier.</td></tr>
  * <tr><td>SDFIO_STREAM_ERROR</td><td>size_t</td><td>the largest size_t</td>
  * <td>The result of a read callback that failed.</td></tr>
  * </table>

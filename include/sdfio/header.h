@@ -310,24 +310,24 @@ SDFIO_API sdfio_status sdfio_header_set_modified(sdfio_header *header,
                                                  time_t modified);
 
 /**
- * Returns the manufacturer's identifier: at most 10 bytes, the size of
- * the field of the standard, terminated by a null character. The standard asks
- * for 7-bit ASCII, and the bytes of a file are returned as they are. The
- * pointer is valid until the header is modified or freed.
+ * Returns the manufacturer's identifier: at most SDFIO_MANUFACTURER_ID_MAX
+ * bytes, terminated by a null character. The standard asks for 7-bit ASCII,
+ * and the bytes of a file are returned as they are. The pointer is valid until
+ * the header is modified or freed.
  *
  * @param[in] header The header.
  */
 SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
 
 /**
- * Sets the manufacturer's identifier. An identifier of more than 10 bytes is
- * cut to its first 10 bytes.
+ * Sets the manufacturer's identifier. An identifier of more than
+ * SDFIO_MANUFACTURER_ID_MAX bytes is cut to that length.
  *
  * @param[in,out] header The header.
  * @param[in] manufacturer The identifier, terminated by a null character.
  * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the identifier contains a
- * CR or an LF within its first 10 bytes. The encoding is not checked; the
- * standard asks for 7-bit ASCII.
+ * CR or an LF within the first SDFIO_MANUFACTURER_ID_MAX bytes. The encoding
+ * is not checked; the standard asks for 7-bit ASCII.
  */
 SDFIO_API sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
                                                      const char *manufacturer);
