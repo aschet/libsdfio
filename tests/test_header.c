@@ -107,6 +107,10 @@ static void check_setters(void)
     CHECK(strcmp(sdfio_header_manufacturer(header), "") == 0);
     CHECK_OK(sdfio_header_set_manufacturer(header, " !~"));
     CHECK(strcmp(sdfio_header_manufacturer(header), " !~") == 0);
+    CHECK_OK(sdfio_header_set_manufacturer(header, "01234567890123"));
+    CHECK(strcmp(sdfio_header_manufacturer(header), "0123456789") == 0);
+    CHECK_OK(sdfio_header_set_manufacturer(header, "0123456789\r\n"));
+    CHECK(strcmp(sdfio_header_manufacturer(header), "0123456789") == 0);
 }
 
 /* A setter refuses what is wrong in its field alone, and changes nothing. */
@@ -133,8 +137,6 @@ static void check_refusals(void)
                      sdfio_header_set_z_resolution(header, not_finite[i]));
     }
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_z_scale(header, -1.0));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_header_set_manufacturer(header, "01234567890"));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_header_set_manufacturer(header, NULL));
     /* A line end would corrupt a header of the ASCII format. */

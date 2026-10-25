@@ -271,16 +271,17 @@ sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    const size_t length = strlen(manufacturer);
-    if (length > SDFIO_ID_SIZE)
+    size_t length = 0;
+    while (length < SDFIO_ID_SIZE && manufacturer[length] != '\0')
     {
-        return SDFIO_ERR_ARGUMENT;
+        if (manufacturer[length] == '\r' || manufacturer[length] == '\n')
+        {
+            return SDFIO_ERR_ARGUMENT;
+        }
+        ++length;
     }
-    if (strpbrk(manufacturer, "\r\n") != NULL)
-    {
-        return SDFIO_ERR_ARGUMENT;
-    }
-    memcpy(header->manufacturer_id, manufacturer, length + 1);
+    memcpy(header->manufacturer_id, manufacturer, length);
+    header->manufacturer_id[length] = '\0';
     return SDFIO_OK;
 }
 

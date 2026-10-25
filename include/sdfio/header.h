@@ -320,12 +320,13 @@ SDFIO_API sdfio_status sdfio_header_set_modified(sdfio_header *header,
 SDFIO_API const char *sdfio_header_manufacturer(const sdfio_header *header);
 
 /**
- * Sets the manufacturer's identifier.
+ * Sets the manufacturer's identifier. An identifier of more than 10 bytes is
+ * cut to its first 10 bytes.
  *
  * @param[in,out] header The header.
  * @param[in] manufacturer The identifier, terminated by a null character.
- * @retval SDFIO_ERR_ARGUMENT A pointer is null, the identifier is longer than
- * 10 bytes, or it contains a CR or an LF. The encoding is not checked; the
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the identifier contains a
+ * CR or an LF within its first 10 bytes. The encoding is not checked; the
  * standard asks for 7-bit ASCII.
  */
 SDFIO_API sdfio_status sdfio_header_set_manufacturer(sdfio_header *header,
