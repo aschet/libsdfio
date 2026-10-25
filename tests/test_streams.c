@@ -456,10 +456,12 @@ static void add_line(char *text, size_t capacity, const char *name,
     CHECK(written >= 0 && (size_t)written < capacity - used);
 }
 
-/* The status of opening an ASCII file whose header is as given. */
-static sdfio_status open_ascii(const char *magic, const char *id,
+/* The status of opening an ASCII file whose header is as given. If it opens,
+ * `manufacturer` receives the identifier that the reader returns. */
+static sdfio_status read_ascii(const char *magic, const char *id,
                                const char *date, const char *points,
-                               const char *z_scale, const char *line_end)
+                               const char *z_scale, const char *line_end,
+                               char (*manufacturer)[SDFIO_ID_SIZE + 1])
 {
     char text[512] = "";
     add_line(text, sizeof text, magic, "", line_end);
@@ -481,8 +483,20 @@ static sdfio_status open_ascii(const char *magic, const char *id,
     add_line(text, sizeof text, "*", "", line_end);
     sdfio_reader *reader = new_reader(all_formats());
     const sdfio_status status = sdfio_open_memory(reader, text, strlen(text));
+    if (status == SDFIO_OK && manufacturer != NULL)
+    {
+        snprintf(*manufacturer, sizeof *manufacturer, "%s",
+                 sdfio_header_manufacturer(sdfio_reader_header(reader)));
+    }
     sdfio_reader_free(reader);
     return status;
+}
+
+static sdfio_status open_ascii(const char *magic, const char *id,
+                               const char *date, const char *points,
+                               const char *z_scale, const char *line_end)
+{
+    return read_ascii(magic, id, date, points, z_scale, line_end, NULL);
 }
 
 /* What the standard demands of a header, and the reader holds to. */
@@ -524,12 +538,14 @@ static void check_standard_rules(void)
             SDFIO_ERR_FORMAT,
             open_ascii("aISO-2.0", "test", bad_dates[i], "1", good_z, crlf));
     }
-    /* The identifier has 10 characters at most. */
-    CHECK_OK(open_ascii("aISO-2.0", "0123456789", "010120261200", "1", good_z,
-                        crlf));
-    CHECK_STATUS(SDFIO_ERR_FORMAT,
-                 open_ascii("aISO-2.0", "01234567890", "010120261200", "1",
-                            good_z, crlf));
+    /* An identifier of more than 10 characters is cut. */
+    char identifier[SDFIO_ID_SIZE + 1] = "";
+    CHECK_OK(read_ascii("aISO-2.0", "0123456789", "010120261200", "1", good_z,
+                        crlf, &identifier));
+    CHECK(strcmp(identifier, "0123456789") == 0);
+    CHECK_OK(read_ascii("aISO-2.0", "0123456789ABC", "010120261200", "1",
+                        good_z, crlf, &identifier));
+    CHECK(strcmp(identifier, "0123456789") == 0);
     /* The number of columns is 2 bytes in ISO-1.0 and 4 bytes in ISO-2.0. */
     CHECK_STATUS(
         SDFIO_ERR_FORMAT,

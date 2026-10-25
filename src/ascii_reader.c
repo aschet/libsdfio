@@ -297,15 +297,12 @@ static sdfio_status store_field(header_fields *fields, enum field field,
     switch (field)
     {
     case MANUFACTURER_ID:
-        if (size > SDFIO_ID_SIZE)
-        {
-            return sdfio_fail(message, SDFIO_ERR_FORMAT,
-                              "The manufacturer's ID of the header has more "
-                              "than 10 characters");
-        }
-        memcpy(fields->identifier, value, size);
-        fields->identifier[size] = '\0';
+    {
+        const size_t kept = size < SDFIO_ID_SIZE ? size : SDFIO_ID_SIZE;
+        memcpy(fields->identifier, value, kept);
+        fields->identifier[kept] = '\0';
         break;
+    }
     case CREATE_DATE:
         valid = copy_datetime(fields->created, value, size);
         break;

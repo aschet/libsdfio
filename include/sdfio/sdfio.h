@@ -19,6 +19,8 @@
  *   characters.
  * - An ASCII file can end its lines with LF instead of CRLF, can start with the
  *   UTF-8 byte order mark, and can lack the final line `*` after the trailer.
+ * - A manufacturer identifier of an ASCII file can have more than 10
+ *   characters. The reader keeps the first 10.
  * - A field of an ASCII header that the standard does not define is ignored,
  *   and a field that appears more than once counts with its last value.
  *
