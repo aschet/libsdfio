@@ -132,9 +132,9 @@
 /**
  * @page format SDF Format
  * @details A file consists of three records: the header, the data area and the
- * trailer. The file name extension is `.sdf`. A file has an ASCII or a binary
- * format. Both hold the same information. A reader or a writer supports a
- * format after it is added with sdfio_reader_add_binary(),
+ * trailer. The file name extension is `.sdf`. A file has a 7-bit ASCII or a
+ * binary format. Both hold the same information. A reader or a writer supports
+ * a format after it is added with sdfio_reader_add_binary(),
  * sdfio_reader_add_ascii() or one of the two functions of the writer. The file
  * starts with a magic of 8 characters, which the standard calls the version
  * number. Its first character is `a` for the ASCII and `b` for the binary
