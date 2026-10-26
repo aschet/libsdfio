@@ -38,11 +38,11 @@ static time_t read_creation_date(const sdfio_time_zone *time_zone,
                                  const char *path)
 {
     sdfio_reader *reader = NULL;
+    sdfio_reader_create(sdfio_default_allocator(), &reader);
+    sdfio_reader_add_binary(reader);
+    sdfio_reader_set_time_zone(reader, time_zone);
     time_t date = SDFIO_NO_TIME;
-    if (sdfio_reader_create(sdfio_default_allocator(), &reader) == SDFIO_OK
-        && sdfio_reader_add_binary(reader) == SDFIO_OK
-        && sdfio_reader_set_time_zone(reader, time_zone) == SDFIO_OK
-        && sdfio_open_file(reader, path) == SDFIO_OK)
+    if (sdfio_open_file(reader, path) == SDFIO_OK)
     {
         date = sdfio_header_created(sdfio_reader_header(reader));
     }
@@ -64,49 +64,20 @@ int main(void)
     const float height = 1e-6F;
 
     sdfio_header *header = NULL;
-    sdfio_status status =
-        sdfio_header_create(sdfio_default_allocator(), &header);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_revision(header, SDFIO_ISO_1_0);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_columns(header, 1);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_rows(header, 1);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_created(header, written);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_modified(header, written);
-    }
+    sdfio_header_create(sdfio_default_allocator(), &header);
+    sdfio_header_set_revision(header, SDFIO_ISO_1_0);
+    sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    sdfio_header_set_columns(header, 1);
+    sdfio_header_set_rows(header, 1);
+    sdfio_header_set_created(header, written);
+    sdfio_header_set_modified(header, written);
+
     sdfio_writer *writer = NULL;
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_create(sdfio_default_allocator(), &writer);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_add_binary(writer);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_set_time_zone(writer, &time_zone);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_create_file(writer, path, header);
-    }
+    sdfio_writer_create(sdfio_default_allocator(), &writer);
+    sdfio_writer_add_binary(writer);
+    sdfio_writer_set_time_zone(writer, &time_zone);
+
+    sdfio_status status = sdfio_create_file(writer, path, header);
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(

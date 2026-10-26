@@ -32,32 +32,26 @@ void check(sdfio_status status, const char *message)
 Header copy_header(const sdfio_header *source)
 {
     sdfio_header *header = nullptr;
-    check(sdfio_header_create(sdfio_default_allocator(), &header),
-          "Creating the header failed");
-    Header owned(header, sdfio_header_free);
-    check(sdfio_header_copy(header, source), "Copying the header failed");
-    return owned;
+    sdfio_header_create(sdfio_default_allocator(), &header);
+    sdfio_header_copy(header, source);
+    return {header, sdfio_header_free};
 }
 
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(sdfio_default_allocator(), &reader),
-          "Creating the reader failed");
-    Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_binary(reader), "Adding the binary format failed");
-    check(sdfio_reader_add_ascii(reader), "Adding the ASCII format failed");
-    return owned;
+    sdfio_reader_create(sdfio_default_allocator(), &reader);
+    sdfio_reader_add_binary(reader);
+    sdfio_reader_add_ascii(reader);
+    return {reader, sdfio_reader_free};
 }
 
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(sdfio_default_allocator(), &writer),
-          "Creating the writer failed");
-    Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_binary(writer), "Adding the binary format failed");
-    return owned;
+    sdfio_writer_create(sdfio_default_allocator(), &writer);
+    sdfio_writer_add_binary(writer);
+    return {writer, sdfio_writer_free};
 }
 
 // Eigen stores a matrix column by column: the elements of a row are one column
@@ -79,7 +73,8 @@ Eigen::MatrixXd read_matrix(sdfio_reader *reader)
     Eigen::MatrixXd heights(
         static_cast<Eigen::Index>(sdfio_header_rows(header)),
         static_cast<Eigen::Index>(sdfio_header_columns(header)));
-    check(sdfio_read_heights(reader, layout_of(heights), heights.data()),
+    const sdfio_layout layout = layout_of(heights);
+    check(sdfio_read_heights(reader, &layout, heights.data()),
           sdfio_reader_error_message(reader));
     return heights;
 }
@@ -132,12 +127,12 @@ void write_matrix(const char *path, const sdfio_header *source,
                   const Eigen::MatrixXd &heights)
 {
     Header header = copy_header(source);
-    check(sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT),
-          "Setting the data type failed");
+    sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT);
     Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), layout_of(heights), heights.data()),
+    const sdfio_layout layout = layout_of(heights);
+    check(sdfio_write_heights(writer.get(), &layout, heights.data()),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_end_file(writer.get()),
           sdfio_writer_error_message(writer.get()));

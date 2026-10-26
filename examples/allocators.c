@@ -65,31 +65,15 @@ static size_t store(void *user, const void *data, size_t size)
 
 /* The scanner has no clock library: it takes the time of the scan from its own
  * hardware clock, here a constant. */
-static sdfio_status describe(sdfio_header *header)
+static void describe(sdfio_header *header)
 {
     const time_t scan_time = 1700000000;
-    sdfio_status status = sdfio_header_set_created(header, scan_time);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_modified(header, scan_time);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_columns(header, COLUMNS);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_rows(header, ROWS);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_z_scale(header, 1.0e-9);
-    }
-    return status;
+    sdfio_header_set_created(header, scan_time);
+    sdfio_header_set_modified(header, scan_time);
+    sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    sdfio_header_set_columns(header, COLUMNS);
+    sdfio_header_set_rows(header, ROWS);
+    sdfio_header_set_z_scale(header, 1.0e-9);
 }
 
 static int16_t value_at(size_t row, size_t column)
@@ -98,36 +82,25 @@ static int16_t value_at(size_t row, size_t column)
 }
 
 /* The writer and the header take their memory from the pool, with a small
- * buffer and a small chunk, so that the pool stays small. */
+ * buffer and a small chunk, so that the pool stays small. The pool is the one
+ * resource that can run out, so the calls that allocate are checked. */
 static sdfio_status write_file(void)
 {
     const sdfio_allocator allocator = {NULL, take, give};
     sdfio_writer *writer = NULL;
     sdfio_header *header = NULL;
+    const sdfio_stream stream = {NULL, NULL, store};
     sdfio_status status = sdfio_writer_create(&allocator, &writer);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_add_binary(writer);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_set_buffer(writer, BUFFER_SIZE);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_set_chunk(writer, CHUNK_VALUES);
-    }
     if (status == SDFIO_OK)
     {
         status = sdfio_header_create(&allocator, &header);
     }
     if (status == SDFIO_OK)
     {
-        status = describe(header);
-    }
-    const sdfio_stream stream = {NULL, NULL, store};
-    if (status == SDFIO_OK)
-    {
+        sdfio_writer_add_binary(writer);
+        sdfio_writer_set_buffer(writer, BUFFER_SIZE);
+        sdfio_writer_set_chunk(writer, CHUNK_VALUES);
+        describe(header);
         status = sdfio_create_stream(writer, &stream, header);
     }
     int16_t coded[COLUMNS];

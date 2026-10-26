@@ -33,32 +33,26 @@ void check(sdfio_status status, const char *message)
 Header copy_header(const sdfio_header *source)
 {
     sdfio_header *header = nullptr;
-    check(sdfio_header_create(sdfio_default_allocator(), &header),
-          "Creating the header failed");
-    Header owned(header, sdfio_header_free);
-    check(sdfio_header_copy(header, source), "Copying the header failed");
-    return owned;
+    sdfio_header_create(sdfio_default_allocator(), &header);
+    sdfio_header_copy(header, source);
+    return {header, sdfio_header_free};
 }
 
 Reader create_reader()
 {
     sdfio_reader *reader = nullptr;
-    check(sdfio_reader_create(sdfio_default_allocator(), &reader),
-          "Creating the reader failed");
-    Reader owned(reader, sdfio_reader_free);
-    check(sdfio_reader_add_binary(reader), "Adding the binary format failed");
-    check(sdfio_reader_add_ascii(reader), "Adding the ASCII format failed");
-    return owned;
+    sdfio_reader_create(sdfio_default_allocator(), &reader);
+    sdfio_reader_add_binary(reader);
+    sdfio_reader_add_ascii(reader);
+    return {reader, sdfio_reader_free};
 }
 
 Writer create_writer()
 {
     sdfio_writer *writer = nullptr;
-    check(sdfio_writer_create(sdfio_default_allocator(), &writer),
-          "Creating the writer failed");
-    Writer owned(writer, sdfio_writer_free);
-    check(sdfio_writer_add_binary(writer), "Adding the binary format failed");
-    return owned;
+    sdfio_writer_create(sdfio_default_allocator(), &writer);
+    sdfio_writer_add_binary(writer);
+    return {writer, sdfio_writer_free};
 }
 
 Reader open(const char *path)
@@ -86,8 +80,8 @@ cv::Mat read_heights(sdfio_reader *reader)
     const sdfio_header *header = sdfio_reader_header(reader);
     cv::Mat heights(static_cast<int>(sdfio_header_rows(header)),
                     static_cast<int>(sdfio_header_columns(header)), CV_32F);
-    check(sdfio_read_heights(reader, bottom_up(heights),
-                             heights.ptr(heights.rows - 1)),
+    const sdfio_layout layout = bottom_up(heights);
+    check(sdfio_read_heights(reader, &layout, heights.ptr(heights.rows - 1)),
           sdfio_reader_error_message(reader));
     return heights;
 }
@@ -105,12 +99,12 @@ void write_heights(const char *path, const sdfio_header *source,
                    const cv::Mat &heights)
 {
     Header header = copy_header(source);
-    check(sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT),
-          "Setting the data type failed");
+    sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT);
     Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
-    check(sdfio_write_heights(writer.get(), bottom_up(heights),
+    const sdfio_layout layout = bottom_up(heights);
+    check(sdfio_write_heights(writer.get(), &layout,
                               heights.ptr(heights.rows - 1)),
           sdfio_writer_error_message(writer.get()));
     check(sdfio_end_file(writer.get()),
@@ -125,9 +119,10 @@ cv::Mat read_into_region(const char *path)
     cv::Mat region =
         canvas(cv::Rect(100, 50, static_cast<int>(sdfio_header_columns(header)),
                         static_cast<int>(sdfio_header_rows(header))));
-    check(sdfio_read_heights(reader.get(), bottom_up(region),
-                             region.ptr(region.rows - 1)),
-          sdfio_reader_error_message(reader.get()));
+    const sdfio_layout layout = bottom_up(region);
+    check(
+        sdfio_read_heights(reader.get(), &layout, region.ptr(region.rows - 1)),
+        sdfio_reader_error_message(reader.get()));
     return canvas;
 }
 

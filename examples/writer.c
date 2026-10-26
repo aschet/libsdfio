@@ -28,36 +28,16 @@ static void generate_heights(void)
     }
 }
 
-static sdfio_status describe_surface(sdfio_header *header,
-                                     sdfio_revision revision,
-                                     sdfio_data_type type)
+static void describe_surface(sdfio_header *header, sdfio_revision revision,
+                             sdfio_data_type type)
 {
-    sdfio_status status = sdfio_header_set_dates(header, time(NULL));
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_revision(header, revision);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_data_type(header, type);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_columns(header, COLUMNS);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_rows(header, ROWS);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_x_scale(header, 1e-6);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_set_y_scale(header, 1e-6);
-    }
-    return status;
+    sdfio_header_set_dates(header, time(NULL));
+    sdfio_header_set_revision(header, revision);
+    sdfio_header_set_data_type(header, type);
+    sdfio_header_set_columns(header, COLUMNS);
+    sdfio_header_set_rows(header, ROWS);
+    sdfio_header_set_x_scale(header, 1e-6);
+    sdfio_header_set_y_scale(header, 1e-6);
 }
 
 /* An ISO-1.0 file holds the clock of the writer, so the writer gets the time
@@ -66,29 +46,15 @@ static int write_surface(const char *path, sdfio_revision revision,
                          sdfio_data_type type)
 {
     sdfio_header *header = NULL;
-    sdfio_status status =
-        sdfio_header_create(sdfio_default_allocator(), &header);
-    if (status == SDFIO_OK)
-    {
-        status = describe_surface(header, revision, type);
-    }
+    sdfio_header_create(sdfio_default_allocator(), &header);
+    describe_surface(header, revision, type);
+
     sdfio_writer *writer = NULL;
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_create(sdfio_default_allocator(), &writer);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_add_binary(writer);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_writer_set_time_zone(writer, sdfio_system_time_zone());
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_create_file(writer, path, header);
-    }
+    sdfio_writer_create(sdfio_default_allocator(), &writer);
+    sdfio_writer_add_binary(writer);
+    sdfio_writer_set_time_zone(writer, sdfio_system_time_zone());
+
+    sdfio_status status = sdfio_create_file(writer, path, header);
     if (status == SDFIO_OK)
     {
         status = sdfio_write_heights(
@@ -96,14 +62,8 @@ static int write_surface(const char *path, sdfio_revision revision,
     }
     if (status == SDFIO_OK)
     {
-        status = sdfio_write_trailer_field(writer, "OperatorName", "Jane Doe");
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_write_trailer_field(writer, "Magnification", "20.5");
-    }
-    if (status == SDFIO_OK)
-    {
+        sdfio_write_trailer_field(writer, "OperatorName", "Jane Doe");
+        sdfio_write_trailer_field(writer, "Magnification", "20.5");
         status = sdfio_end_file(writer);
     }
     if (status != SDFIO_OK)
