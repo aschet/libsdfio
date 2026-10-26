@@ -26,9 +26,14 @@
  *   format, and every data type that a revision allows: int8, int16,
  *   int32, binary32 and binary64.
  * - Two ways to the data. The coded values of the data area, as the file has
- *   them, and heights in metres as `float` or `double`. Buffers can lie in
- *   memory in any order, for example as a column of a structure, a channel of
- *   an image, or upside down.
+ *   them, and heights in metres as `float` or `double`, where a point that is
+ *   not measured is NaN. Buffers can lie in memory in any order, described by a
+ *   layout of strides and read or written in place, without a copy: for
+ *   example as a member of a structure, a channel of an image, a column-major
+ *   matrix, or upside down.
+ * - The dates of ISO-1.0 files, which hold the local clock of the writer, are
+ *   converted to UTC and back through a time zone, for example the one of the
+ *   machine.
  * - Files, blocks of memory and callbacks as sources and sinks. A reader needs
  *   no seek, so it also reads a pipe. It holds one buffer and never the whole
  *   file.
@@ -42,8 +47,21 @@
  *   64-bit.
  * - Conformance to the standard. A writer writes what the standard defines; the
  *   text of a trailer is the program's own. A reader checks what the standard
- * defines and tolerates the deviations of files in the field, which are listed
- * in the description of sdfio.h.
+ *   defines and tolerates the deviations of files in the field, which are
+ *   listed in the description of sdfio.h.
+ *
+ * @section limitations Limitations
+ * - A handle is not shared between threads. Different handles can be used by
+ *   different threads at the same time, and the handles hold no global state.
+ * - Numbers in ASCII files use the decimal point `.`, independent of
+ *   `LC_NUMERIC`. The program must not change the locale while a call is in
+ *   progress.
+ * - A reader needs no seek, so it reads a file once and in order. Rows can be
+ *   read only in the order of the file.
+ * - A failure in the middle of the data area loses the position in the stream,
+ *   so the handle refuses further reads or writes.
+ * - The library and the program that calls it have to be built with the same
+ *   width of `time_t`, see @ref building_time.
  *
  * @section standard Standard and Heritage
  * The library implements ISO 25178-71:2026, "Geometrical product specifications
@@ -59,8 +77,6 @@
  * @section pages Guide
  * - @ref format describes the file: the three records, the header, the data
  *   area, the trailer and the two formats.
- * - @ref concepts describes the ideas of the library: coded values and heights,
- *   layouts, formats and configuration, streams, memory and errors.
  * - @ref building describes how to build, install and use the library, and the
  *   width of `time_t`.
  * - @ref references lists the documents.
@@ -170,6 +186,15 @@
  *    z comes out of the page, to the viewer
  * @endcode
  *
+ * A coded value is not a length. It becomes the height of the point in metres
+ * when it is multiplied by the z-scale. A file of an integer type spends the
+ * range of the type on the heights of the measurement, and the z-scale decides
+ * what one step of the integer is worth, so it trades the range against the
+ * resolution. The z-scale of a file that holds heights between -80 and +80
+ * micrometres in int16 values is about 2.4e-9 metres. A file of a
+ * floating-point type usually holds metres directly, with the z-scale 1, but
+ * any z-scale is valid.
+ *
  * <table class="doxtable">
  * <tr><th>Data
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
@@ -244,182 +269,6 @@
  * OperatorName = Jane Doe
  * *
  * @endcode
- */
-
-/**
- * @page concepts Concepts
- *
- * @section concepts_values Coded Values and Heights
- * The data area stores coded values, one for each point, in the data type of
- * the file. A coded value is not a length. It becomes the height of the point
- * in metres when it is multiplied by the z-scale of the header.
- *
- * - A file of an integer type spends the range of the type on the heights of
- *   the measurement. The z-scale decides what one step of the integer is worth,
- *   so it trades the range against the resolution. The z-scale of a file that
- *   holds heights between -80 and +80 micrometres in int16 values is about
- *   2.4e-9 metres. sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() find
- *   the smallest z-scale that fits the heights.
- * - A file of a floating-point type usually holds metres directly, with the
- *   z-scale 1, but any z-scale is valid.
- *
- * The library offers both views. They are layers, and a program uses the
- * highest one that suffices:
- *
- * <table class="doxtable">
- * <tr><th>Layer</th><th>Functions</th><th>Use</th></tr>
- * <tr><td>Coded values</td><td>sdfio_read_data(),
- *   sdfio_write_data()</td><td>The values as the file has them, row by row. For
- *   a program that processes the integers of an instrument itself, or that
- *   transfers data without a conversion.</td></tr>
- * <tr><td>Conversion</td><td>sdfio_decode_heights(),
- *   sdfio_encode_heights()</td><td>Converts rows between coded values and
- *   heights. Needs only a header, no handle.</td></tr>
- * <tr><td>Matrices</td><td>sdfio_read_heights(),
- *   sdfio_write_heights()</td><td>The whole matrix as heights in metres, in one
- *   call.</td></tr>
- * </table>
- *
- * A function that encodes heights rounds an integer to the nearest value. A
- * height that does not fit the data type with the z-scale is an error
- * (SDFIO_ERR_RANGE), and so is a height that would be written as the bad value
- * (SDFIO_ERR_BAD_VALUE), because a reader would take it for a point that is not
- * measured. sdfio_write_heights() chooses the z-scale of an integer file if the
- * header has SDFIO_AUTO_Z_SCALE.
- *
- * @section concepts_coordinates Coordinate System
- * The points of a file lie in a right-handed coordinate system, as the standard
- * has it: x grows with the column, y with the row, and z, the height, points to
- * the viewer who looks from above. The point of the first row and the first
- * column is at x = 0 and y = 0, in metres. The row y = 0 comes first in the
- * file, and sdfio_read_data() and sdfio_read_heights() deliver the rows in that
- * order.
- *
- * The orientation matters when the matrix goes into a picture. Image libraries
- * count rows from the top, and the surface from y = 0 at the bottom, so a
- * program that shows a surface unchanged shows it upside down. A negative row
- * stride in the layout (see below) turns the matrix without a copy.
- *
- * @section concepts_missing Points That Are Not Measured
- * A point that is not measured has the bad value of the data type in the data
- * area. A height in metres has no such value, so it is NaN: the functions that
- * read or convert heights deliver NaN for such a point, and the functions that
- * write or convert heights take NaN and infinity as such a point. This is also
- * the convention of ISO 25178-72 for the binary float formats. A program whose
- * data uses a marker such as -9999 replaces it with NaN before writing, and
- * NaN with the marker after reading.
- *
- * @section concepts_layout Layouts
- * A buffer of the program is described by an sdfio_layout: the type of its
- * elements and two strides. The functions take it by pointer. The element at
- * the row y and the column x is at the byte
- * `y * row_stride + x * element_stride` from the pointer that the program
- * passes. A plain array needs no strides: sdfio_layout_packed() returns its
- * layout, a constant of the library. With strides the matrix is read or written
- * in place when it is part of something else:
- *
- * - the z member of an array of points, or a channel of an interleaved image;
- * - a matrix in column-major order, such as an Eigen matrix;
- * - a matrix upside down, with a negative row stride and the pointer at the
- *   last row, as many image libraries store it.
- *
- * The layout must keep the elements apart, which sdfio reports as an invalid
- * argument if it does not. A program that needs strides initializes a layout
- * with sdfio_layout_init(), or copies the one of sdfio_layout_packed(), and
- * then assigns the fields.
- *
- * @section concepts_handles Readers and Writers
- * A reader (sdfio_reader) reads one file, and a writer (sdfio_writer) writes
- * one. Both are opaque handles, created from a configuration, and freed with
- * their free function. A handle is not shared between threads, but different
- * handles can be used by different threads at the same time. The handles
- * hold no global state.
- *
- * @section concepts_sources Files, Memory, and Streams
- * A reader or a writer works on one of these:
- * - a file, with sdfio_open_file() and sdfio_create_file() of `<sdfio/file.h>`,
- *   which also has versions for wide-character paths on Windows;
- * - a block of memory, with sdfio_open_memory();
- * - a sdfio_stream, a pair of callbacks for reading or writing bytes, with
- *   sdfio_open_stream() and sdfio_create_stream(). A reader needs no seek, and
- *   a file is read once and in order. Rows can therefore be read only in the
- *   order of the file.
- *
- * @section concepts_modify Saving a Changed File
- * A program that opens a file, changes it and saves the result as a new file
- * copies the header of the file with sdfio_header_copy() and sets what
- * differs: the number of columns and rows of a part that it cuts out, the
- * modification date, or the format. The writer keeps its own copy of
- * the header when the file is created. The rows go from the reader to the
- * writer, and sdfio_copy_trailer() then copies the trailer, because the trailer
- * follows the data area. Fields of sdfio_write_trailer_field() can follow the
- * copy. A date that a reader reports as SDFIO_NO_TIME has to be set before the
- * header can be written. The example @ref excerpt.c shows these steps.
- *
- * @section concepts_options Options, Formats, and Memory
- * A handle is created with sdfio_reader_create() or sdfio_writer_create(),
- * which take only the allocator. sdfio_default_allocator() uses malloc() and
- * free(). The program then sets the options of the handle. The first attempt
- * to open or create a file fixes the options:
- * - the formats that the handle uses, with sdfio_reader_add_binary(),
- *   sdfio_reader_add_ascii() and the two functions of the writer. The
- *   library adds none by itself;
- * - the size of the buffer between the handle and its stream, and the number of
- *   values that are converted at a time, with the functions
- *   `set_buffer` and `set_chunk`. A handle that does not set them
- *   uses defaults;
- * - the time zone callbacks for the dates of ISO-1.0 files, with the functions
- *   `set_time_zone`.
- *
- * The options are set by functions, and a sdfio_header is opaque.
- *
- * A header is a separate object. sdfio_header_create() creates one with
- * defaults and without dates, which a file needs: sdfio_header_set_created(),
- * sdfio_header_set_modified() or sdfio_header_set_dates() set them. The setters
- * fill it, and sdfio_header_copy() copies one header
- * into another, for example the header of a file that was read into a header
- * for a file to write. sdfio_header_free() releases it. A handle allocates
- * memory only when it is created, and when a file is opened or created. The
- * handle comes first, and the buffer, the conversion chunk and what the format
- * needs come with the file. Reading and writing allocate nothing, and the
- * trailer is read into a buffer of the program.
- *
- * @section concepts_constants Constants
- * The constants of the interface are macros, and these are their types and
- * values:
- *
- * <table class="doxtable">
- * <tr><th>Constant</th><th>Type</th><th>Value</th><th>Meaning</th></tr>
- * <tr><td>SDFIO_BAD_INT8, SDFIO_BAD_INT16, SDFIO_BAD_INT32</td><td>int</td>
- * <td>-128, -32768, -2147483648</td>
- * <td>The bad values of the integer data types: the minimum of each.</td></tr>
- * <tr><td>SDFIO_BAD_FLOAT</td><td>float</td><td>-FLT_MAX</td>
- * <td>The bad value of SDFIO_TYPE_FLOAT: the lowest finite value.</td></tr>
- * <tr><td>SDFIO_BAD_DOUBLE</td><td>double</td><td>-DBL_MAX</td>
- * <td>The bad value of SDFIO_TYPE_DOUBLE: the lowest finite value.</td></tr>
- * <tr><td>SDFIO_NO_TIME</td><td>time_t</td><td>-1</td>
- * <td>A date that is not recorded.</td></tr>
- * <tr><td>SDFIO_AUTO_Z_SCALE</td><td>double</td><td>0.0</td>
- * <td>The writer selects the z-scale.</td></tr>
- * <tr><td>SDFIO_NO_RESOLUTION</td><td>double</td><td>-1.0</td>
- * <td>The z-resolution is not known.</td></tr>
- * <tr><td>SDFIO_MANUFACTURER_ID_MAX</td><td>int</td><td>10</td>
- * <td>The length of the longest manufacturer's identifier.</td></tr>
- * <tr><td>SDFIO_STREAM_ERROR</td><td>size_t</td><td>the largest size_t</td>
- * <td>The result of a read callback that failed.</td></tr>
- * </table>
- *
- * @section concepts_errors Errors
- * A function that can fail returns an sdfio_status, which sdfio_status_string()
- * names. The reader or writer also keeps a text that describes the most recent
- * failure (sdfio_reader_error_message(), sdfio_writer_error_message()). A
- * failure in the middle of the data area loses the position in the stream, so
- * the handle refuses further reads or writes afterwards.
- *
- * @section concepts_locale Locale
- * Numbers in ASCII files use the decimal point `.`, independent of
- * `LC_NUMERIC`. The program must not change the locale while a call is in
- * progress.
  */
 
 /**
