@@ -173,28 +173,28 @@
  * @section format_header Header
  * <table class="doxtable">
  * <tr><th>Field Name</th><th>Binary Type</th><th>Meaning</th></tr>
- * <tr><td><code>ManufacID</code></td><td>char[10]</td><td>The source of the
- *   data, and possibly hardware and software.</td></tr>
+ * <tr><td><code>ManufacID</code></td><td>char[10]</td><td>Source of the data,
+ *   and possibly hardware and software.</td></tr>
  * <tr><td><code>CreateDate</code></td><td>char[12]</td><td>When the data was
  *   generated.</td></tr>
  * <tr><td><code>ModDate</code></td><td>char[12]</td><td>When the file was last
  *   modified.</td></tr>
- * <tr><td><code>NumPoints</code></td><td>uint16_t or uint32_t</td><td>The
- *   number of columns M, the points along x.</td></tr>
- * <tr><td><code>NumProfiles</code></td><td>uint16_t or uint32_t</td><td>The
- *   number of rows N, the profiles along y. 1 for a profile.</td></tr>
- * <tr><td><code>Xscale</code></td><td>double</td><td>The sampling interval
+ * <tr><td><code>NumPoints</code></td><td>uint16_t or uint32_t</td><td>Number
+ *   of columns M, the points along x.</td></tr>
+ * <tr><td><code>NumProfiles</code></td><td>uint16_t or uint32_t</td><td>Number
+ *   of rows N, the profiles along y. 1 for a profile.</td></tr>
+ * <tr><td><code>Xscale</code></td><td>double</td><td>Sampling interval
  *   along x in metres.</td></tr>
- * <tr><td><code>Yscale</code></td><td>double</td><td>The sampling interval
+ * <tr><td><code>Yscale</code></td><td>double</td><td>Sampling interval
  *   along y in metres, meaningless for a profile.</td></tr>
- * <tr><td><code>Zscale</code></td><td>double</td><td>The positive factor that
+ * <tr><td><code>Zscale</code></td><td>double</td><td>Positive factor that
  *   turns a coded value into metres.</td></tr>
- * <tr><td><code>Zresolution</code></td><td>double</td><td>The quantization
+ * <tr><td><code>Zresolution</code></td><td>double</td><td>Quantization
  *   step of the instrument in metres, or a negative number if it is
  *   unknown.</td></tr>
  * <tr><td><code>Compression</code></td><td>uint8_t</td><td>0, no
  *   compression.</td></tr>
- * <tr><td><code>DataType</code></td><td>uint8_t</td><td>The code of the data
+ * <tr><td><code>DataType</code></td><td>uint8_t</td><td>Code of the data
  *   type of the values in the data area, see Data Types.</td></tr>
  * <tr><td><code>CheckType</code></td><td>uint8_t</td><td>0, no
  *   checksum.</td></tr>
