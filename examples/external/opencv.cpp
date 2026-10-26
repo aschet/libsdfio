@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -87,13 +88,23 @@ cv::Mat read_heights(sdfio_reader *reader)
     return heights;
 }
 
+// Only the points that are measured enter the average: the blur of the heights
+// is divided by the blur of the mask of these points. A point that is not
+// measured stays NaN.
 cv::Mat smooth(const cv::Mat &heights)
 {
-    cv::Mat filled = heights.clone();
-    // A point that is not measured is NaN.
-    cv::patchNaNs(filled, 0.0);
-    cv::GaussianBlur(filled, filled, cv::Size(5, 5), 1.0);
-    return filled;
+    cv::Mat measured;
+    cv::compare(heights, heights, measured, cv::CMP_EQ);
+    cv::Mat weights;
+    measured.convertTo(weights, CV_32F, 1.0 / 255.0);
+    cv::Mat values = heights.clone();
+    values.setTo(0.0, ~measured);
+    cv::GaussianBlur(values, values, cv::Size(5, 5), 1.0);
+    cv::GaussianBlur(weights, weights, cv::Size(5, 5), 1.0);
+    cv::Mat smoothed;
+    cv::divide(values, weights, smoothed);
+    smoothed.setTo(std::numeric_limits<float>::quiet_NaN(), ~measured);
+    return smoothed;
 }
 
 void write_heights(const char *path, const sdfio_header *source,
