@@ -149,11 +149,11 @@
  *
  * <table class="doxtable">
  * <tr><th>Revision</th><th>Differences</th></tr>
- * <tr><td>ISO-1.0</td><td>The data types int16, int32 and binary64. A binary
- *   file stores the numbers of columns and rows in 2 bytes each. The dates have
+ * <tr><td>ISO-1.0</td><td>The data types int16_t, int32_t and double. A binary
+ *   file stores the numbers of columns and rows as uint16_t. The dates have
  *   no time zone.</td></tr>
- * <tr><td>ISO-2.0</td><td>Adds the data types int8 and binary32. A binary file
- *   stores the numbers of columns and rows in 4 bytes each. The dates are UTC,
+ * <tr><td>ISO-2.0</td><td>Adds the data types int8_t and float. A binary file
+ *   stores the numbers of columns and rows as uint32_t. The dates are UTC,
  *   and the trailer has the form of the header.</td></tr>
  * </table>
  *
@@ -166,53 +166,48 @@
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
  *   of a Point That Is Not Measured</th></tr>
  * <tr><td>float (binary32)</td><td>3</td><td>4
- *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT</td></tr>
+ *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>-FLT_MAX</td></tr>
  * <tr><td>int8_t</td><td>4</td><td>1
- *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8</td></tr>
+ *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>INT8_MIN</td></tr>
  * <tr><td>int16_t</td><td>5</td><td>2
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>INT16_MIN</td></tr>
  * <tr><td>int32_t</td><td>6</td><td>4
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>INT32_MIN</td></tr>
  * <tr><td>double (binary64)</td><td>7</td><td>8
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>-DBL_MAX</td></tr>
  * </table>
  *
  * A point that is not measured, or is spurious, is labelled with the minimum
  * value of the data type, which the standard does not permit for any valid
  * coded value. An ASCII file writes the string `BAD` instead. The library
- * defines the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
+ * provides the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
  * `SDFIO_BAD_INT32`, `SDFIO_BAD_FLOAT` and `SDFIO_BAD_DOUBLE`.
  *
  * @section format_header Header
  * <table class="doxtable">
  * <tr><th>Field</th><th>ASCII Name</th><th>Binary
  *   Type</th><th>Meaning</th></tr>
- * <tr><td>Manufacturer's identifier</td><td><code>ManufacID</code></td><td>10
- *   characters</td><td>The source of the data, and possibly hardware and
+ * <tr><td>Manufacturer's identifier</td><td><code>ManufacID</code></td><td>char[10]</td><td>The source of the data, and possibly hardware and
  *   software.</td></tr>
- * <tr><td>Creation date</td><td><code>CreateDate</code></td><td>12
- *   characters</td><td>When the data was generated.</td></tr>
- * <tr><td>Modification date</td><td><code>ModDate</code></td><td>12
- *   characters</td><td>When the file was last modified.</td></tr>
+ * <tr><td>Creation date</td><td><code>CreateDate</code></td><td>char[12]</td><td>When the data was generated.</td></tr>
+ * <tr><td>Modification date</td><td><code>ModDate</code></td><td>char[12]</td><td>When the file was last modified.</td></tr>
  * <tr><td>Columns M</td><td><code>NumPoints</code></td><td>uint16_t or
  *   uint32_t</td><td>The points along x.</td></tr>
  * <tr><td>Rows N</td><td><code>NumProfiles</code></td><td>uint16_t or
  *   uint32_t</td><td>The profiles along y. 1 for a profile.</td></tr>
- * <tr><td>X-scale</td><td><code>Xscale</code></td><td>binary64</td><td>The
+ * <tr><td>X-scale</td><td><code>Xscale</code></td><td>double</td><td>The
  *   sampling interval along x in metres.</td></tr>
- * <tr><td>Y-scale</td><td><code>Yscale</code></td><td>binary64</td><td>The
+ * <tr><td>Y-scale</td><td><code>Yscale</code></td><td>double</td><td>The
  *   sampling interval along y in metres, meaningless for a profile.</td></tr>
- * <tr><td>Z-scale</td><td><code>Zscale</code></td><td>binary64</td><td>The
+ * <tr><td>Z-scale</td><td><code>Zscale</code></td><td>double</td><td>The
  *   positive factor that turns a coded value into metres.</td></tr>
- * <tr><td>Z-resolution</td><td><code>Zresolution</code></td><td>binary64</td><td>The
+ * <tr><td>Z-resolution</td><td><code>Zresolution</code></td><td>double</td><td>The
  *   quantization step of the instrument in metres, or a negative number if it
  *   is unknown.</td></tr>
- * <tr><td>Compression</td><td><code>Compression</code></td><td>1
- *   byte</td><td>0, no compression.</td></tr>
- * <tr><td>Data type</td><td><code>DataType</code></td><td>1 byte</td><td>The
+ * <tr><td>Compression</td><td><code>Compression</code></td><td>uint8_t</td><td>0, no compression.</td></tr>
+ * <tr><td>Data type</td><td><code>DataType</code></td><td>uint8_t</td><td>The
  *   code of the type of the values, see Data Types.</td></tr>
- * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>1
- *   byte</td><td>0, no checksum.</td></tr>
+ * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>uint8_t</td><td>0, no checksum.</td></tr>
  * </table>
  *
  * The names `NumPoints` and `NumProfiles` come from the first versions of the
@@ -265,7 +260,7 @@
  * range of the type on the heights of the measurement, and the z-scale decides
  * what one step of the integer is worth, so it trades the range against the
  * resolution. The z-scale of a file that holds heights between -80 and +80
- * micrometres in int16 values is about 2.4e-9 metres. A file of a
+ * micrometres in int16_t values is about 2.4e-9 metres. A file of a
  * floating-point type usually holds metres directly, with the z-scale 1, but
  * any z-scale is valid.
  *
@@ -330,8 +325,8 @@
  *   of the data area can have any length. The data area holds N times M values.
  * - The decimal point is `.`. The library uses it whatever the locale and reads
  *   any decimal or scientific form of a number.
- * - A value of binary32 is written with 7 significant digits and a two-digit
- *   exponent, as in `1.500000e+00`. A value of binary64 is written with 15
+ * - A value of `float` is written with 7 significant digits and a two-digit
+ *   exponent, as in `1.500000e+00`. A value of `double` is written with 15
  *   digits and a three-digit exponent, as in `1.50000000000000e+000`. The
  *   integers are written in decimal digits.
  *
