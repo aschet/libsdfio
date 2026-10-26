@@ -67,8 +67,9 @@ struct sdfio_writer
     /** The room for a chunk of values in the data type of the file, created
      * when the file is created. */
     unsigned char *coded;
-    /** The room that the format asks for to write a chunk of values. */
-    void *scratch;
+    /** The room in which the format forms a chunk of values as the file stores
+     * them, before it writes them to the sink. */
+    void *file_chunk;
 };
 
 /**

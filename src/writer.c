@@ -128,7 +128,7 @@ void sdfio_writer_free(sdfio_writer *writer)
     sdfio_sink_destroy(&writer->sink);
     const sdfio_allocator allocator = writer->options.allocator;
     sdfio_release(&allocator, writer->coded);
-    sdfio_release(&allocator, writer->scratch);
+    sdfio_release(&allocator, writer->file_chunk);
     sdfio_release(&allocator, writer->format_state);
     sdfio_release(&allocator, writer);
 }
@@ -155,7 +155,6 @@ sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status)
     return status;
 }
 
-/* The added writer format of a file format, or null. */
 static const sdfio_writer_format *
 writer_format_for(const sdfio_writer_format *const *formats,
                   sdfio_format format)
@@ -192,7 +191,6 @@ sdfio_status sdfio_writer_check(sdfio_writer *writer,
     return SDFIO_OK;
 }
 
-/* Checks the header, and prepares the writer for the format of the file. */
 static sdfio_status start_stream(sdfio_writer *writer,
                                  const sdfio_stream *stream,
                                  const sdfio_header *header)
@@ -204,23 +202,26 @@ static sdfio_status start_stream(sdfio_writer *writer,
     }
     const sdfio_writer_format *format =
         writer_format_for(writer->formats, header->format);
-    const size_t scratch = format->scratch_size(writer->options.chunk_values);
+    const size_t file_chunk_bytes =
+        format->file_chunk_size(writer->options.chunk_values);
     if (writer->coded == NULL)
     {
         writer->coded = sdfio_allocate(&writer->options.allocator,
                                        writer->options.chunk_values
                                            * SDFIO_LARGEST_CODED_VALUE);
     }
-    if (writer->scratch == NULL && scratch > 0)
+    if (writer->file_chunk == NULL && file_chunk_bytes > 0)
     {
-        writer->scratch = sdfio_allocate(&writer->options.allocator, scratch);
+        writer->file_chunk =
+            sdfio_allocate(&writer->options.allocator, file_chunk_bytes);
     }
     if (writer->format_state == NULL && format->state_size > 0)
     {
         writer->format_state =
             sdfio_allocate(&writer->options.allocator, format->state_size);
     }
-    if (writer->coded == NULL || (writer->scratch == NULL && scratch > 0)
+    if (writer->coded == NULL
+        || (writer->file_chunk == NULL && file_chunk_bytes > 0)
         || (writer->format_state == NULL && format->state_size > 0)
         || (writer->sink.buffer == NULL
             && !sdfio_sink_create(&writer->sink, writer->options.buffer_size,

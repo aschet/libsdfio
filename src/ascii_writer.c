@@ -241,18 +241,18 @@ static size_t format_value(const sdfio_header *header,
                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
 }
 
-static size_t scratch_size(size_t chunk_values)
+static size_t file_chunk_size(size_t chunk_values)
 {
     return chunk_values * SDFIO_TEXT_PER_VALUE;
 }
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
-                                 void *scratch, size_t chunk_values,
+                                 void *file_chunk, size_t chunk_values,
                                  sdfio_message *message)
 {
     struct writing *writing = state;
-    char *text = scratch;
+    char *text = file_chunk;
     const size_t size = sdfio_data_type_size(header->data_type);
     for (size_t first = 0; first < count; first += chunk_values)
     {
@@ -298,7 +298,7 @@ static const sdfio_writer_format ascii_format = {
     .state_size = sizeof(struct writing),
     .writes = SDFIO_ASCII,
     .trailer_ends_line = true,
-    .scratch_size = scratch_size,
+    .file_chunk_size = file_chunk_size,
     .write_header = write_header,
     .write_values = write_values,
     .begin_trailer = write_terminator,

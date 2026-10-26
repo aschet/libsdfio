@@ -723,13 +723,13 @@ static sdfio_status read_values(sdfio_source *source,
 }
 
 static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
-                             bool complete, size_t values_left, void *scratch,
-                             size_t scratch_size, sdfio_message *message)
+                             bool complete, size_t values_left, void *chunk,
+                             size_t chunk_size, sdfio_message *message)
 {
     (void)header;
     (void)values_left;
-    (void)scratch;
-    (void)scratch_size;
+    (void)chunk;
+    (void)chunk_size;
     return complete ? finish_data(source, message) : skip_data(source, message);
 }
 

@@ -215,8 +215,8 @@ static sdfio_status read_values(sdfio_source *source,
 }
 
 static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
-                             bool complete, size_t values_left, void *scratch,
-                             size_t scratch_size, sdfio_message *message)
+                             bool complete, size_t values_left, void *chunk,
+                             size_t chunk_size, sdfio_message *message)
 {
     if (complete)
     {
@@ -226,9 +226,8 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
     size_t done = 0;
     while (done < left)
     {
-        const size_t step =
-            left - done < scratch_size ? left - done : scratch_size;
-        if (sdfio_source_read(source, scratch, step) != step)
+        const size_t step = left - done < chunk_size ? left - done : chunk_size;
+        if (sdfio_source_read(source, chunk, step) != step)
         {
             return sdfio_source_failure(
                 source, message,

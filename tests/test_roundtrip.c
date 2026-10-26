@@ -603,12 +603,12 @@ static void check_element_stride(void)
 
     /* Strides that make the elements overlap are refused, and nothing is
      * written. */
-    double scratch[ROWS * COLUMNS] = {0};
+    double untouched[ROWS * COLUMNS] = {0};
     layout = layout_with_rows(SDFIO_TYPE_DOUBLE, sizeof(double));
     reader = membuf_reopen(reader, &from_plain);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_read_heights(reader, &layout, scratch));
-    CHECK(scratch[0] == 0.0 && scratch[ROWS * COLUMNS - 1] == 0.0);
+                 sdfio_read_heights(reader, &layout, untouched));
+    CHECK(untouched[0] == 0.0 && untouched[ROWS * COLUMNS - 1] == 0.0);
     CHECK(strstr(sdfio_reader_error_message(reader), "overlap") != NULL);
     sdfio_reader_free(reader);
 

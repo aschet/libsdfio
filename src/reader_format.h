@@ -20,9 +20,10 @@ typedef struct sdfio_reader_format sdfio_reader_format;
 /**
  * A reader format: the functions that read one format of the files.
  *
- * The reader knows nothing of the file formats. It calls the formats that
- * the program adds. The source file of a format names its functions after the
- * members of this structure, without a prefix.
+ * The reader knows the structure of a file, a header, the data area and the
+ * trailer, and leaves the details of a format to these functions. The source
+ * file of a format names its functions after the members of this structure,
+ * without a prefix.
  */
 struct sdfio_reader_format
 {
@@ -81,15 +82,15 @@ struct sdfio_reader_format
      * @param header The header of the file.
      * @param complete Whether every row was read.
      * @param values_left The number of values that were not read.
-     * @param scratch Room for the format to read into.
-     * @param scratch_size The size of `scratch` in bytes.
+     * @param chunk Room for the format to read the values that it skips into.
+     * @param chunk_size The size of `chunk` in bytes.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_FORMAT The data area is damaged or ends early.
      * @retval SDFIO_ERR_IO The stream failed.
      */
     sdfio_status (*end_data)(sdfio_source *source, const sdfio_header *header,
-                             bool complete, size_t values_left, void *scratch,
-                             size_t scratch_size, sdfio_message *message);
+                             bool complete, size_t values_left, void *chunk,
+                             size_t chunk_size, sdfio_message *message);
 
     /**
      * Reads the next part of the trailer into a buffer, with LF as line ends.

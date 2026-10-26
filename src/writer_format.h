@@ -23,9 +23,10 @@ typedef struct sdfio_writer_format sdfio_writer_format;
 
 /**
  * A writer format: the functions that write one format of the files.
- * The writer knows nothing of the file formats, as the reader does not. The
- * source file of a format names its functions after the members of this
- * structure, without a prefix.
+ * The writer knows the structure of a file, a header, the data area and the
+ * trailer, and leaves the details of a format to these functions. The source
+ * file of a format names its functions after the members of this structure,
+ * without a prefix.
  */
 struct sdfio_writer_format
 {
@@ -39,11 +40,12 @@ struct sdfio_writer_format
     bool trailer_ends_line;
 
     /**
-     * Returns the bytes that the writer has to provide for write_values().
+     * Returns the size in bytes of the room for a chunk of values as the file
+     * stores them, which the writer provides to write_values().
      *
      * @param chunk_values The number of values that a call gets at most.
      */
-    size_t (*scratch_size)(size_t chunk_values);
+    size_t (*file_chunk_size)(size_t chunk_values);
 
     /**
      * Writes the header.
@@ -70,14 +72,15 @@ struct sdfio_writer_format
      * bytes.
      * @param values The values in the data type of the header.
      * @param count The number of values.
-     * @param scratch Room of scratch_size() bytes.
-     * @param chunk_values The number of values that `scratch` serves.
+     * @param file_chunk Room of file_chunk_size() bytes, for the chunk as the
+     * file stores it.
+     * @param chunk_values The number of values that `file_chunk` serves.
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_IO The stream failed.
      */
     sdfio_status (*write_values)(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
-                                 void *scratch, size_t chunk_values,
+                                 void *file_chunk, size_t chunk_values,
                                  sdfio_message *message);
 
     /**

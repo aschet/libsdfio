@@ -31,7 +31,7 @@
 _Static_assert((size_t)SDFIO_MANUFACTURER_ID_MAX <= (size_t)SDFIO_DATETIME_SIZE,
                "a text field of the header fits the buffer of put_text");
 
-static size_t scratch_size(size_t chunk_values)
+static size_t file_chunk_size(size_t chunk_values)
 {
     return sdfio_host_is_little_endian()
                ? 0
@@ -117,7 +117,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
-                                 void *scratch, size_t chunk_values,
+                                 void *file_chunk, size_t chunk_values,
                                  sdfio_message *message)
 {
     (void)state;
@@ -131,9 +131,10 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
     for (size_t first = 0; first < count; first += chunk_values)
     {
         const size_t n = sdfio_chunk_count(count, first, chunk_values);
-        memcpy(scratch, (const unsigned char *)values + first * size, n * size);
-        sdfio_fix_endianness(scratch, n, size);
-        if (!sdfio_sink_write(sink, scratch, n * size))
+        memcpy(file_chunk, (const unsigned char *)values + first * size,
+               n * size);
+        sdfio_fix_endianness(file_chunk, n, size);
+        if (!sdfio_sink_write(sink, file_chunk, n * size))
         {
             return sdfio_sink_failure(message);
         }
@@ -157,7 +158,7 @@ static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
 
 static const sdfio_writer_format binary_format = {
     .writes = SDFIO_BINARY,
-    .scratch_size = scratch_size,
+    .file_chunk_size = file_chunk_size,
     .write_header = write_header,
     .write_values = write_values,
     .begin_trailer = begin_trailer,

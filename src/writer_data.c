@@ -57,7 +57,7 @@ sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
 {
     const sdfio_status status = writer->format->write_values(
         &writer->sink, &writer->header, writer->format_state, values, count,
-        writer->scratch, writer->options.chunk_values, &writer->message);
+        writer->file_chunk, writer->options.chunk_values, &writer->message);
     return status == SDFIO_OK ? status : sdfio_writer_fail(writer, status);
 }
 
