@@ -133,7 +133,7 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
         const size_t n = sdfio_chunk_count(count, first, chunk_values);
         memcpy(file_chunk, (const unsigned char *)values + first * size,
                n * size);
-        sdfio_fix_endianness(file_chunk, n, size);
+        sdfio_convert_byte_order(file_chunk, n, size);
         if (!sdfio_sink_write(sink, file_chunk, n * size))
         {
             return sdfio_sink_failure(message);

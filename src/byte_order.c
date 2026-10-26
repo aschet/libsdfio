@@ -63,13 +63,13 @@ SWAP_VALUES(64)
 
 #undef SWAP_VALUES
 
-void sdfio_fix_endianness(void *values, size_t count, size_t size)
+void sdfio_convert_byte_order(void *values, size_t count, size_t value_size)
 {
     if (sdfio_host_is_little_endian())
     {
         return;
     }
-    switch (size)
+    switch (value_size)
     {
     case sizeof(uint16_t):
         swap_values16(values, count);
