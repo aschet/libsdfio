@@ -144,9 +144,7 @@
  * int16_t, int32_t and double for the data area, stores the numbers of columns
  * and rows of a binary file as uint16_t and has dates without a time zone.
  * ISO-2.0 adds int8_t and float for the data area, stores the numbers as
- * uint32_t, has dates in UTC and a trailer in the form of the header. Both
- * revisions have a field for a compression and for a checksum of the data. The
- * standard defines only the value 0, for none, so a file has neither.
+ * uint32_t, has dates in UTC and a trailer in the form of the header.
  *
  * @section format_types Data Types
  * The values of the data area have one of these data types, which the header
@@ -157,22 +155,20 @@
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
  *   of a Point That Is Not Measured</th></tr>
  * <tr><td>float (binary32)</td><td>3</td><td>4
- *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>-FLT_MAX</td></tr>
+ *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT (-FLT_MAX)</td></tr>
  * <tr><td>int8_t</td><td>4</td><td>1
- *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>INT8_MIN</td></tr>
+ *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8 (INT8_MIN)</td></tr>
  * <tr><td>int16_t</td><td>5</td><td>2
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>INT16_MIN</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16 (INT16_MIN)</td></tr>
  * <tr><td>int32_t</td><td>6</td><td>4
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>INT32_MIN</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32 (INT32_MIN)</td></tr>
  * <tr><td>double (binary64)</td><td>7</td><td>8
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>-DBL_MAX</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE (-DBL_MAX)</td></tr>
  * </table>
  *
  * A point that is not measured, or is spurious, is labelled with the minimum
  * value of the data type, which the standard does not permit for any valid
- * coded value. An ASCII file writes the string `BAD` instead. The library
- * provides the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
- * `SDFIO_BAD_INT32`, `SDFIO_BAD_FLOAT` and `SDFIO_BAD_DOUBLE`.
+ * coded value. An ASCII file writes the string `BAD` instead.
  *
  * @section format_header Header
  * <table class="doxtable">
