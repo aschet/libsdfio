@@ -131,14 +131,14 @@
 
 /**
  * @page format SDF Format
- * @details The SDF format stores the heights of a profile or of an areal
- * surface measurement on a rectangular grid. It serves as a software
- * measurement standard, a set of reference data with which the software of
- * surface texture measuring instruments is verified, and as an interchange
- * format for topography data. A file consists of three records: the header, the
- * data area and the trailer. The file name extension is `.sdf`. A file has a
- * 7-bit ASCII or a binary format. Both hold the same information. A reader or a
- * writer supports a format after it is added with sdfio_reader_add_binary(),
+ * @details An SDF file holds the heights of a profile or of an areal surface
+ * measurement on a rectangular grid. It is used as a software measurement
+ * standard, a set of reference data with which the software of surface texture
+ * measuring instruments is verified, and as an interchange format for
+ * topography data. A file consists of three records: the header, the data area
+ * and the trailer. The file name extension is `.sdf`. A file has a 7-bit ASCII
+ * or a binary format. Both hold the same information. A reader or a writer
+ * supports a format after it is added with sdfio_reader_add_binary(),
  * sdfio_reader_add_ascii() or one of the two functions of the writer. The file
  * starts with a magic of 8 characters, which the standard calls the version
  * number. Its first character is `a` for the ASCII and `b` for the binary
