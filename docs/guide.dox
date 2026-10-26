@@ -64,17 +64,6 @@
  * - The library and the program that calls it have to be built with the same
  *   width of `time_t`, see @ref building_time.
  *
- * @section standard Standard and Heritage
- * The library implements ISO 25178-71:2026, "Geometrical product specifications
- * (GPS) -- Surface texture: Areal -- Part 71: Surface data file (SDF) file
- * format", in its versions ISO-1.0 and ISO-2.0.
- *
- * The format goes back to the BCR format that the European project on the
- * characterisation of roughness in three dimensions proposed in 1993. ISO-1.0
- * standardizes it, and some of the oddities of the format, such as the names
- * `NumPoints` and `NumProfiles`, come from that proposal. The library does not
- * support BCR-1.0 files. Its revisions are those of the standard.
- *
  * @section pages Guide
  * - @ref format describes the file: the three records, the header, the data
  *   area, the trailer and the two formats.
