@@ -198,12 +198,11 @@
  * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>uint8_t</td><td>0, no checksum.</td></tr>
  * </table>
  *
- * The names `NumPoints` and `NumProfiles` come from the first versions of the
- * format, which were meant for tactile instruments that measure profiles. A
- * binary header is the magic followed by the fields in this order, and has 81
- * bytes in ISO-1.0 and 85 bytes in ISO-2.0. In sdfio_header the identifier is a
- * string, the dates are a `time_t`, and the columns and rows are a `uint32_t`,
- * the type of ISO-2.0.
+ * The names `NumPoints` and `NumProfiles` stem from tactile instruments that
+ * measure profiles: `NumPoints` is the number of points of a profile and
+ * `NumProfiles` the number of profiles. In a binary file the fields follow the
+ * magic in the order of the table. In an ASCII file the magic is the first
+ * line, and the other fields can appear in any order.
  *
  * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
  * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
