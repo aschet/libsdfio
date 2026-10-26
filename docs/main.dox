@@ -315,21 +315,15 @@
  * spaces.
  *
  * @section format_ascii ASCII Format
- * - The file consists of 7-bit ASCII characters, in lines that end with a
- *   carriage return and a line feed.
- * - The first line is the magic. It is followed by a line `Name =
- *   value` for each field of the header, in any order, and the names do not
- *   depend on the case.
- * - The three records end with a line that consists of the character `*`, and
- *   the last such line ends the file.
- * - White space between the values of the data area is ignored, so the lines
- *   of the data area can have any length. The data area holds N times M values.
- * - The decimal point is `.`. The library uses it whatever the locale and reads
- *   any decimal or scientific form of a number.
- * - A value of `float` is written with 7 significant digits and a two-digit
- *   exponent, as in `1.500000e+00`. A value of `double` is written with 15
- *   digits and a three-digit exponent, as in `1.50000000000000e+000`. The
- *   integers are written in decimal digits.
+ * The file consists of 7-bit ASCII characters in lines that end with a carriage
+ * return and a line feed. The first line is the magic, followed by a line
+ * `Name = value` for each field of the header, whose names do not depend on the
+ * case. Each record ends with a line that consists of the character `*`, and
+ * the last such line ends the file. The values of the data area are separated
+ * by white space of any length. A `float` is written with 7 significant digits
+ * and a two-digit exponent, as in `1.500000e+00`, a `double` with 15 digits and
+ * a three-digit exponent, as in `1.50000000000000e+000`, and an integer in
+ * decimal digits. The decimal point is `.`.
  *
  * @code
  * aISO-2.0
