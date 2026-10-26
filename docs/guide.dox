@@ -63,6 +63,7 @@
  *   so the handle refuses further reads or writes.
  * - The library and the program that calls it have to be built with the same
  *   width of `time_t`, see @ref building_time.
+ * - Files of the format BCR-1.0, the predecessor of ISO-1.0, are not supported.
  *
  * @section pages Guide
  * - @ref format describes the file: the three records, the header, the data
