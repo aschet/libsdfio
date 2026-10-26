@@ -326,7 +326,7 @@
  * by white space of any length. A `float` is written with 7 significant digits
  * and a two-digit exponent, as in `1.500000e+00`, a `double` with 15 digits and
  * a three-digit exponent, as in `1.50000000000000e+000`, and an integer in
- * decimal digits. The decimal point is `.`.
+ * decimal digits.
  *
  * @code
  * aISO-2.0
