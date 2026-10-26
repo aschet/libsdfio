@@ -185,7 +185,7 @@
  * <tr><td><code>NumPoints</code></td><td>uint16_t or uint32_t</td><td>Number
  *   of columns M, the points along x.</td></tr>
  * <tr><td><code>NumProfiles</code></td><td>uint16_t or uint32_t</td><td>Number
- *   of rows N, the profiles along y. 1 for a profile.</td></tr>
+ *   of rows N, the points along y. 1 for a profile.</td></tr>
  * <tr><td><code>Xscale</code></td><td>double</td><td>Sampling interval
  *   along x in metres.</td></tr>
  * <tr><td><code>Yscale</code></td><td>double</td><td>Sampling interval
