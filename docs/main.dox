@@ -129,7 +129,7 @@
  */
 
 /**
- * @page format The SDF Format
+ * @page format SDF Format
  *
  * A file consists of three records: the header, the data area
  * and the trailer. The file name extension is `.sdf`. A
@@ -158,7 +158,7 @@
  * Both revisions have a field for a compression and for a checksum of the
  * data. The standard defines only the value 0, for none, so a file has neither.
  *
- * @section format_header The Header
+ * @section format_header Header
  * <table class="doxtable">
  * <tr><th>Field</th><th>ASCII Name</th><th>Binary
  *   Type</th><th>Meaning</th></tr>
@@ -205,7 +205,7 @@
  * machine. A conversion is correct only if the zone is the one in which the file
  * was written.
  *
- * @section format_data The Data Area
+ * @section format_data Data Area
  * The data area holds the matrix W of the coded values with N rows and M
  * columns, row by row in the order of the position along y. The coded value
  * `w(i,j)` of the row i and the column j, counted from 1, belongs to the point
@@ -294,7 +294,7 @@
  * formats. A program whose data uses a marker such as -9999 replaces it with
  * NaN before writing, and NaN with the marker after reading.
  *
- * @section format_trailer The Trailer
+ * @section format_trailer Trailer
  * The trailer holds historical information about the measurement, such as the
  * name of the operator, the measurement conditions or the processing that was
  * applied. It is optional, has a variable length, and extends to the end of the
@@ -306,7 +306,7 @@
  * sdfio_read_trailer() returns, and give the name and the value as offsets
  * into that text. The example @ref reader.c shows both.
  *
- * @section format_binary The Binary Format
+ * @section format_binary Binary Format
  * The header has fixed fields in the order above, and nothing separates the
  * records. The header says how long the data area is, and what follows it is
  * the trailer. All numbers are stored with the least significant byte first, on
@@ -314,7 +314,7 @@
  * byte order, so that the same code runs on little-endian and big-endian
  * processors. A string that is shorter than its field is filled with spaces.
  *
- * @section format_ascii The ASCII Format
+ * @section format_ascii ASCII Format
  * - The file consists of lines that end with a carriage return and a line feed.
  * - The first line is the magic. It is followed by a line `Name =
  *   value` for each field of the header, in any order, and the names do not
