@@ -5,7 +5,7 @@
  */
 
 /* The states of a reader and of a writer: the result of each call in each
- * state, as the guide gives it. */
+ * state, as the documentation of the reader and of the writer gives it. */
 
 #include "check.h"
 
