@@ -177,8 +177,7 @@
  * <table class="doxtable">
  * <tr><th>Field Name</th><th>Binary Type</th><th>Meaning</th></tr>
  * <tr><td><code>ManufacID</code></td><td>char[10]</td><td>Manufacturer-specific
- *   identifier of the source of the data, and possibly of the hardware and the
- *   software.</td></tr>
+ *   identifier.</td></tr>
  * <tr><td><code>CreateDate</code></td><td>char[12]</td><td>When the data was
  *   generated.</td></tr>
  * <tr><td><code>ModDate</code></td><td>char[12]</td><td>When the file was last
