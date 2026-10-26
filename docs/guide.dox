@@ -22,6 +22,7 @@
  * format for topography data.
  *
  * @section features Features
+ * - Implemented according to ISO 25178-71:2026.
  * - The revisions ISO-1.0 and ISO-2.0, each in the ASCII and in the binary
  *   format, and every data type that a revision allows: int8, int16,
  *   int32, binary32 and binary64.
@@ -79,7 +80,6 @@
  *   area, the trailer and the two formats.
  * - @ref building describes how to build, install and use the library, and the
  *   width of `time_t`.
- * - @ref references lists the documents.
  * - The programs under Examples show typical uses. The interface is declared in
  *   `<sdfio/sdfio.h>`, which does not depend on the file functions of the C
  *   library, and in `<sdfio/file.h>`, which adds the functions for files.
@@ -384,17 +384,4 @@
  * .github/ci/run.sh --list
  * .github/ci/run.sh gcc-x86-64-linux
  * @endcode
- */
-
-/**
- * @page references References
- * - ISO 25178-71:2026, Geometrical product specifications (GPS) -- Surface
- *   texture: Areal -- Part 71: Surface data file (SDF) file format.
- *   https://www.iso.org/standard/88787.html
- * - K. J. Stout et al., The Development of Methods for the Characterisation of
- *   Roughness in Three Dimensions, EUR 15178 EN, EC Brussels, 1993. The origin
- *   of the format (BCR-1.0).
- * - The Python package sdfio, https://github.com/aschet/sdfio, which reads and
- *   writes the same files, also in BCR-1.0, and produced the sample files of
- *   the tests.
  */
