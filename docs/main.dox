@@ -241,9 +241,7 @@
  * file is the bottom row of the picture. sdfio_read_data() and
  * sdfio_read_heights() deliver the rows in this order, and the writing
  * functions take them in this order. Image libraries count the rows from the
- * top, so a program that shows a surface unchanged shows it upside down. A
- * negative row stride in the layout of the buffer turns the matrix without a
- * copy.
+ * top, so a program that shows a surface unchanged shows it upside down.
  *
  * @code{.unparsed}
  * seen from above:
