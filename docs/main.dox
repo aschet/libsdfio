@@ -311,7 +311,8 @@
  * @section format_binary Binary Format
  * The records follow each other without a separator. Numbers are stored with
  * the least significant byte first, and the library converts the byte order. A
- * string that is shorter than its field is filled with spaces.
+ * manufacturer-specific identifier of fewer than 10 characters is filled with
+ * spaces.
  *
  * @section format_ascii ASCII Format
  * - The file consists of 7-bit ASCII characters, in lines that end with a
