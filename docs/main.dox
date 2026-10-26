@@ -131,8 +131,7 @@
 
 /**
  * @page format SDF Format
- *
- * A file consists of three records: the header, the data area and the trailer.
+ * @details A file consists of three records: the header, the data area and the trailer.
  * The file name extension is `.sdf`. A file has an ASCII or a binary format.
  * Both hold the same information. A reader or a writer supports a format after
  * it is added with sdfio_reader_add_binary(), sdfio_reader_add_ascii() or one
