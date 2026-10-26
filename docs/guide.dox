@@ -450,8 +450,18 @@
  * </table>
  *
  * @section building_use Using the Library
- * An installed library is used with `find_package(sdfio REQUIRED)` and the
- * target `sdfio::sdfio`, or with pkg-config.
+ * An installed library provides the CMake target `sdfio::sdfio`:
+ * @code{.unparsed}
+ * find_package(sdfio CONFIG REQUIRED)
+ * add_executable(main main.c)
+ * target_link_libraries(main PRIVATE sdfio::sdfio)
+ * @endcode
+ *
+ * The program includes `<sdfio/sdfio.h>`, and `<sdfio/file.h>` for the
+ * functions that open files. Without CMake, pkg-config gives the flags:
+ * @code{.sh}
+ * cc main.c $(pkg-config --cflags --libs sdfio) -o main
+ * @endcode
  *
  * @section building_time Dates and the Width of time_t
  * The dates of the interface are `time_t` values, which the library reads as
