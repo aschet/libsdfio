@@ -62,7 +62,7 @@ struct sdfio_reader_format
      *
      * @param source The source.
      * @param header The header of the file.
-     * @param state What the format keeps for the file, `state_size` bytes.
+     * @param state The state of the format for the file, `state_size` bytes.
      * @param[out] dst Receives the values in the data type of the header.
      * @param count The number of values.
      * @param[out] message Receives the reason of a failure.
@@ -97,7 +97,7 @@ struct sdfio_reader_format
      * The first call comes after the data area.
      *
      * @param source The source.
-     * @param[in,out] state What the format keeps for the file, `state_size`
+     * @param[in,out] state The state of the format for the file, `state_size`
      * bytes.
      * @param[out] buffer Receives the text.
      * @param capacity The size of `buffer`.

@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief What a file adds to a handle: finishing and closing.
+ * @brief Ending and closing of the file that a handle owns.
  */
 
 #ifndef SDFIO_SRC_OWNER_H
@@ -15,8 +15,8 @@
 #include "message.h"
 
 /**
- * What a file adds to a reader or a writer, created by sdfio_open_file() and
- * sdfio_create_file().
+ * The functions that end and close the file that sdfio_open_file() or
+ * sdfio_create_file() opened for a reader or a writer.
  */
 typedef struct sdfio_owner
 {

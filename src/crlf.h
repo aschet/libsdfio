@@ -16,7 +16,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-/** What a text that is written in parts leaves open between two parts. */
+/** State of a text that is written in parts: the line that stays open between
+ * two parts. */
 typedef struct sdfio_crlf_state
 {
     /** Whether the last line has characters and no line end yet. */
@@ -32,7 +33,7 @@ typedef struct sdfio_crlf_state
  * the next part, so a text that is split anywhere is written as the whole text.
  *
  * @param sink The sink.
- * @param[in,out] state What the parts before left open.
+ * @param[in,out] state The state after the parts before.
  * @param text The part.
  * @param size The length of the part.
  * @return False if the stream failed.
@@ -44,7 +45,7 @@ bool sdfio_crlf_write(sdfio_sink *sink, sdfio_crlf_state *state,
  * Ends the line that the parts left open with a CRLF, if there is one.
  *
  * @param sink The sink.
- * @param[in,out] state What the parts left open.
+ * @param[in,out] state The state after the parts.
  * @return False if the stream failed.
  */
 bool sdfio_crlf_end(sdfio_sink *sink, sdfio_crlf_state *state);

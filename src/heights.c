@@ -125,7 +125,7 @@ typedef struct scale_float
 {
     /* The scale as a float. */
     float head;
-    /* What the float lacks of the scale. */
+    /* The remainder of the scale after head. */
     float tail;
     /* The reciprocal of head, which the correction of a quotient needs. */
     float inverse;

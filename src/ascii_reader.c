@@ -346,7 +346,7 @@ static sdfio_status store_field(header_fields *fields, enum field field,
                               "A field of the header has an invalid value");
 }
 
-/* What the reader of this format keeps for a file. */
+/* State of the ASCII reader for a file. */
 struct reading
 {
     /* The decimal point of the locale, measured when the file was opened. */

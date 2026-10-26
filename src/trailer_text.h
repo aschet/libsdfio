@@ -18,8 +18,8 @@
 #include <stddef.h>
 
 /**
- * What a reader keeps between the calls that read the trailer. The zeroed
- * state is the start of the trailer.
+ * State of the reading of the trailer between the calls. The zeroed state is
+ * the start of the trailer.
  */
 typedef struct sdfio_trailer_state
 {

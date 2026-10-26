@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief What a file needs of a writer.
+ * @brief Writer functions for the creation of files.
  */
 
 #ifndef SDFIO_SRC_WRITER_FILE_H

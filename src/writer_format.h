@@ -64,7 +64,7 @@ struct sdfio_writer_format
      *
      * @param sink The sink.
      * @param header The header of the file.
-     * @param[in,out] state What the format keeps for the file, `state_size`
+     * @param[in,out] state The state of the format for the file, `state_size`
      * bytes.
      * @param values The values in the data type of the header.
      * @param count The number of values.

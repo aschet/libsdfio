@@ -27,7 +27,7 @@
 static const char terminator = SDFIO_ASCII_TERMINATOR;
 static const char crlf[] = SDFIO_ASCII_LINE_END;
 
-/* What the writer of this format keeps for a file. */
+/* State of the ASCII writer for a file. */
 struct writing
 {
     /* The decimal point of the locale, measured when the file was created. */

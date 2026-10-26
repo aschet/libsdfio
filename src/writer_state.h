@@ -44,7 +44,7 @@ struct sdfio_writer
     sdfio_header header;
     /** The buffered stream. */
     sdfio_sink sink;
-    /** What the format of the file keeps for it, or null. */
+    /** The state of the format for the file, or null. */
     void *format_state;
     /** The added formats. */
     const sdfio_writer_format *formats[SDFIO_FORMAT_MAX];

@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief What a file needs of a reader.
+ * @brief Reader functions for the opening of files.
  */
 
 #ifndef SDFIO_SRC_READER_FILE_H
