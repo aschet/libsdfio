@@ -112,6 +112,7 @@ void write_heights(const char *path, const sdfio_header *source,
 {
     Header header = copy_header(source);
     sdfio_header_set_data_type(header.get(), SDFIO_TYPE_FLOAT);
+    sdfio_header_set_format(header.get(), SDFIO_BINARY);
     Writer writer = create_writer();
     check(sdfio_create_file(writer.get(), path, header.get()),
           sdfio_writer_error_message(writer.get()));
