@@ -28,7 +28,7 @@ void sdfio_writer_own(sdfio_writer *writer, sdfio_owner owner);
  *
  * @param writer The writer.
  */
-sdfio_message *sdfio_writer_message(sdfio_writer *writer);
+const char **sdfio_writer_message(sdfio_writer *writer);
 
 /**
  * Checks that a writer can create a file, before the file is created.

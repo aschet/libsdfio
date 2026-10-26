@@ -73,6 +73,6 @@ bool sdfio_coded_values(const sdfio_header *header, size_t *values);
  * @retval SDFIO_ERR_ARGUMENT A field of the header is invalid.
  */
 sdfio_status sdfio_header_check(const sdfio_header *header,
-                                sdfio_message *message);
+                                const char **message);
 
 #endif /* SDFIO_SRC_HEADER_H */

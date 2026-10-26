@@ -39,7 +39,7 @@ typedef enum sdfio_writer_phase
 struct sdfio_writer
 {
     /** The text of the last failure. */
-    sdfio_message message;
+    const char *message;
     /** The header of the file. */
     sdfio_header header;
     /** The buffered stream. */

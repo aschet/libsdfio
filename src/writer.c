@@ -138,15 +138,14 @@ void sdfio_writer_own(sdfio_writer *writer, sdfio_owner owner)
     writer->owner = owner;
 }
 
-sdfio_message *sdfio_writer_message(sdfio_writer *writer)
+const char **sdfio_writer_message(sdfio_writer *writer)
 {
     return &writer->message;
 }
 
 const char *sdfio_writer_error_message(const sdfio_writer *writer)
 {
-    return writer != NULL && writer->message.text != NULL ? writer->message.text
-                                                          : "";
+    return writer != NULL && writer->message != NULL ? writer->message : "";
 }
 
 sdfio_status sdfio_writer_fail(sdfio_writer *writer, sdfio_status status)

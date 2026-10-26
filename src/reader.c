@@ -175,7 +175,7 @@ void sdfio_reader_own(sdfio_reader *reader, sdfio_owner owner)
     reader->owner = owner;
 }
 
-sdfio_message *sdfio_reader_message(sdfio_reader *reader)
+const char **sdfio_reader_message(sdfio_reader *reader)
 {
     return &reader->message;
 }
@@ -197,8 +197,7 @@ sdfio_status sdfio_reader_check(sdfio_reader *reader)
 
 const char *sdfio_reader_error_message(const sdfio_reader *reader)
 {
-    return reader != NULL && reader->message.text != NULL ? reader->message.text
-                                                          : "";
+    return reader != NULL && reader->message != NULL ? reader->message : "";
 }
 
 const sdfio_header *sdfio_reader_header(const sdfio_reader *reader)

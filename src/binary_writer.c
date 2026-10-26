@@ -76,7 +76,7 @@ static bool put_double(sdfio_sink *sink, double value)
 
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     (void)state;
     char created[SDFIO_DATETIME_SIZE + 1] = {0};
@@ -118,7 +118,7 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
                                  void *file_chunk, size_t chunk_values,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     (void)state;
     const size_t size = sdfio_data_type_size(header->data_type);
@@ -142,14 +142,14 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-static sdfio_status begin_trailer(sdfio_sink *sink, sdfio_message *message)
+static sdfio_status begin_trailer(sdfio_sink *sink, const char **message)
 {
     (void)sink;
     (void)message;
     return SDFIO_OK;
 }
 
-static sdfio_status end_trailer(sdfio_sink *sink, sdfio_message *message)
+static sdfio_status end_trailer(sdfio_sink *sink, const char **message)
 {
     (void)sink;
     (void)message;

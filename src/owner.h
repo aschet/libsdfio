@@ -22,7 +22,7 @@ typedef struct sdfio_owner
 {
     /** Ends the file of a writer, after which `close` is not called. Null for a
      * reader. */
-    sdfio_status (*finish)(void *user, sdfio_message *message);
+    sdfio_status (*finish)(void *user, const char **message);
     /** Closes the file of a reader, or of a writer that was not ended. */
     void (*close)(void *user);
     /** The state that the functions get. */

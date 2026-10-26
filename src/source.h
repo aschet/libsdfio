@@ -133,7 +133,7 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size);
  * @return The status.
  */
 sdfio_status sdfio_source_failure(const sdfio_source *source,
-                                  sdfio_message *message,
+                                  const char **message,
                                   const char *format_text);
 
 #endif /* SDFIO_SRC_SOURCE_H */

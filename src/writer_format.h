@@ -57,7 +57,7 @@ struct sdfio_writer_format
      */
     sdfio_status (*write_header)(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
-                                 sdfio_message *message);
+                                 const char **message);
 
     /**
      * Writes values of the data area.
@@ -77,7 +77,7 @@ struct sdfio_writer_format
     sdfio_status (*write_values)(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
                                  void *file_chunk, size_t chunk_values,
-                                 sdfio_message *message);
+                                 const char **message);
 
     /**
      * Closes the data area and opens the trailer record. Called before the
@@ -87,7 +87,7 @@ struct sdfio_writer_format
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_IO The stream failed.
      */
-    sdfio_status (*begin_trailer)(sdfio_sink *sink, sdfio_message *message);
+    sdfio_status (*begin_trailer)(sdfio_sink *sink, const char **message);
 
     /**
      * Closes the trailer record and so the file. The lines of the trailer
@@ -97,7 +97,7 @@ struct sdfio_writer_format
      * @param[out] message Receives the reason of a failure.
      * @retval SDFIO_ERR_IO The stream failed.
      */
-    sdfio_status (*end_trailer)(sdfio_sink *sink, sdfio_message *message);
+    sdfio_status (*end_trailer)(sdfio_sink *sink, const char **message);
 };
 
 /**

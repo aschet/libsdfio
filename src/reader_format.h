@@ -55,7 +55,7 @@ struct sdfio_reader_format
      */
     sdfio_status (*read_header)(sdfio_source *source, sdfio_header *header,
                                 void *state, const sdfio_time_zone *zone,
-                                sdfio_message *message);
+                                const char **message);
 
     /**
      * Reads values of the data area.
@@ -71,8 +71,7 @@ struct sdfio_reader_format
      */
     sdfio_status (*read_values)(sdfio_source *source,
                                 const sdfio_header *header, const void *state,
-                                void *dst, size_t count,
-                                sdfio_message *message);
+                                void *dst, size_t count, const char **message);
 
     /**
      * Ends the data area: passes the values that were not read, and what closes
@@ -90,7 +89,7 @@ struct sdfio_reader_format
      */
     sdfio_status (*end_data)(sdfio_source *source, const sdfio_header *header,
                              bool complete, size_t values_left, void *chunk,
-                             size_t chunk_size, sdfio_message *message);
+                             size_t chunk_size, const char **message);
 
     /**
      * Reads the next part of the trailer into a buffer, with LF as line ends.
@@ -108,7 +107,7 @@ struct sdfio_reader_format
      */
     sdfio_status (*read_trailer)(sdfio_source *source, void *state,
                                  char *buffer, size_t capacity, size_t *size,
-                                 sdfio_message *message);
+                                 const char **message);
 };
 
 /**

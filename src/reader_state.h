@@ -36,7 +36,7 @@ typedef struct sdfio_memory_stream
 struct sdfio_reader
 {
     /** The text of the last failure. */
-    sdfio_message message;
+    const char *message;
     /** The header of the open file. */
     sdfio_header header;
     /** The buffered stream. */

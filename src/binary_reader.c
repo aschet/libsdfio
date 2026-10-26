@@ -100,7 +100,7 @@ static void copy_identifier(sdfio_header *header, const unsigned char *field)
 
 static sdfio_status read_trailer(sdfio_source *source, void *state,
                                  char *buffer, size_t capacity, size_t *size,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     return sdfio_trailer_read(source, state, false, buffer, capacity, size,
                               message);
@@ -114,7 +114,7 @@ static bool take(sdfio_source *source, void *out, size_t size)
 
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 void *state, const sdfio_time_zone *zone,
-                                sdfio_message *message)
+                                const char **message)
 {
     (void)state;
     sdfio_revision revision = SDFIO_ISO_2_0;
@@ -201,7 +201,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
 
 static sdfio_status read_values(sdfio_source *source,
                                 const sdfio_header *header, const void *state,
-                                void *dst, size_t count, sdfio_message *message)
+                                void *dst, size_t count, const char **message)
 {
     (void)state;
     const size_t size = sdfio_data_type_size(header->data_type);
@@ -216,7 +216,7 @@ static sdfio_status read_values(sdfio_source *source,
 
 static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
                              bool complete, size_t values_left, void *chunk,
-                             size_t chunk_size, sdfio_message *message)
+                             size_t chunk_size, const char **message)
 {
     if (complete)
     {

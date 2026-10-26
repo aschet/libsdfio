@@ -48,7 +48,7 @@ bool sdfio_options_init(sdfio_options *options,
  * @retval SDFIO_ERR_ARGUMENT The size is 0.
  */
 sdfio_status sdfio_options_set_buffer(sdfio_options *options, size_t size,
-                                      sdfio_message *message);
+                                      const char **message);
 
 /**
  * Sets the number of values converted at a time.
@@ -59,7 +59,7 @@ sdfio_status sdfio_options_set_buffer(sdfio_options *options, size_t size,
  * @retval SDFIO_ERR_ARGUMENT The number is 0 or too large.
  */
 sdfio_status sdfio_options_set_chunk(sdfio_options *options, size_t count,
-                                     sdfio_message *message);
+                                     const char **message);
 
 /**
  * Sets the time zone.

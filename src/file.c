@@ -46,7 +46,7 @@ static void stdio_close(void *user)
 }
 
 /* Flushes and closes the file that a writer wrote. */
-static sdfio_status stdio_finish(void *user, sdfio_message *message)
+static sdfio_status stdio_finish(void *user, const char **message)
 {
     FILE *file = user;
     const bool flushed = fflush(file) == 0;

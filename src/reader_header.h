@@ -30,7 +30,7 @@
  */
 sdfio_status sdfio_select_reader_format(
     sdfio_source *source, const sdfio_reader_format *const *formats,
-    const sdfio_reader_format **format, sdfio_message *message);
+    const sdfio_reader_format **format, const char **message);
 
 /**
  * Reads the header at the start of the source with the given format, and
@@ -49,6 +49,6 @@ sdfio_status sdfio_read_header(sdfio_source *source,
                                const sdfio_reader_format *format,
                                sdfio_header *header, void *state,
                                const sdfio_time_zone *zone,
-                               sdfio_message *message);
+                               const char **message);
 
 #endif /* SDFIO_SRC_READER_HEADER_H */

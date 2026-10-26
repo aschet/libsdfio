@@ -131,7 +131,7 @@ static bool put_scale(sdfio_sink *sink,
  * are formatted first, so that nothing is written if one cannot be. */
 static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const sdfio_time_zone *zone,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     struct writing *writing = state;
     writing->decimal_point = sdfio_decimal_point_now();
@@ -249,7 +249,7 @@ static size_t file_chunk_size(size_t chunk_values)
 static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
                                  void *state, const void *values, size_t count,
                                  void *file_chunk, size_t chunk_values,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     struct writing *writing = state;
     char *text = file_chunk;
@@ -284,7 +284,7 @@ static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
 }
 
 /* The line that closes a record: the data area, and the trailer. */
-static sdfio_status write_terminator(sdfio_sink *sink, sdfio_message *message)
+static sdfio_status write_terminator(sdfio_sink *sink, const char **message)
 {
     if (!sdfio_sink_write(sink, &terminator, 1)
         || !sdfio_sink_write(sink, crlf, sizeof crlf - 1))

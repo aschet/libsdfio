@@ -288,7 +288,7 @@ static bool copy_datetime(char *out, const char *value, size_t size)
 static sdfio_status store_field(header_fields *fields, enum field field,
                                 const char *value, size_t size,
                                 const sdfio_decimal_point *decimal_point,
-                                sdfio_message *message)
+                                const char **message)
 {
     bool valid = true;
     switch (field)
@@ -358,7 +358,7 @@ struct reading
 /* Reads the lines of the header up to the line that terminates the record. */
 static sdfio_status read_fields(sdfio_source *source, fixed_text *line,
                                 const sdfio_decimal_point *decimal_point,
-                                header_fields *fields, sdfio_message *message)
+                                header_fields *fields, const char **message)
 {
     bool ended = false;
     bool done = false;
@@ -434,7 +434,7 @@ static sdfio_status read_fields(sdfio_source *source, fixed_text *line,
 
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 void *state, const sdfio_time_zone *zone,
-                                sdfio_message *message)
+                                const char **message)
 {
     struct reading *reading = state;
     reading->decimal_point = sdfio_decimal_point_now();
@@ -534,7 +534,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
 }
 
 /* The failure of a text that ends before the three records are complete. */
-static sdfio_status ended_early(sdfio_source *source, sdfio_message *message)
+static sdfio_status ended_early(sdfio_source *source, const char **message)
 {
     return sdfio_source_failure(
         source, message, "The file ends before the three records are complete");
@@ -625,7 +625,7 @@ static bool store_real(sdfio_data_type type,
 static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
                                const sdfio_decimal_point *decimal_point,
                                void *dst, size_t index, fixed_text *word,
-                               sdfio_message *message)
+                               const char **message)
 {
     const int got = next_token(source, word);
     if (got == GOT_NONE)
@@ -666,7 +666,7 @@ static sdfio_status read_value(sdfio_source *source, const sdfio_header *header,
     return SDFIO_OK;
 }
 
-static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
+static sdfio_status finish_data(sdfio_source *source, const char **message)
 {
     fixed_text word;
     sdfio_status status = SDFIO_OK;
@@ -687,7 +687,7 @@ static sdfio_status finish_data(sdfio_source *source, sdfio_message *message)
     return status;
 }
 
-static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
+static sdfio_status skip_data(sdfio_source *source, const char **message)
 {
     fixed_text word;
     sdfio_status status = SDFIO_OK;
@@ -709,7 +709,7 @@ static sdfio_status skip_data(sdfio_source *source, sdfio_message *message)
 
 static sdfio_status read_values(sdfio_source *source,
                                 const sdfio_header *header, const void *state,
-                                void *dst, size_t count, sdfio_message *message)
+                                void *dst, size_t count, const char **message)
 {
     const struct reading *reading = state;
     fixed_text word;
@@ -724,7 +724,7 @@ static sdfio_status read_values(sdfio_source *source,
 
 static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
                              bool complete, size_t values_left, void *chunk,
-                             size_t chunk_size, sdfio_message *message)
+                             size_t chunk_size, const char **message)
 {
     (void)header;
     (void)values_left;
@@ -737,7 +737,7 @@ static sdfio_status end_data(sdfio_source *source, const sdfio_header *header,
  * ends with the file. */
 static sdfio_status read_trailer(sdfio_source *source, void *state,
                                  char *buffer, size_t capacity, size_t *size,
-                                 sdfio_message *message)
+                                 const char **message)
 {
     struct reading *reading = state;
     return sdfio_trailer_read(source, &reading->trailer, true, buffer, capacity,

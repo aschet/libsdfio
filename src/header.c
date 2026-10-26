@@ -294,7 +294,7 @@ bool sdfio_coded_values(const sdfio_header *header, size_t *values)
 }
 
 sdfio_status sdfio_header_check(const sdfio_header *header,
-                                sdfio_message *message)
+                                const char **message)
 {
     if (!sdfio_revision_allows(header->revision, header->data_type))
     {

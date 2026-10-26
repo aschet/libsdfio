@@ -128,8 +128,7 @@ size_t sdfio_source_read(sdfio_source *source, void *dst, size_t size)
 }
 
 sdfio_status sdfio_source_failure(const sdfio_source *source,
-                                  sdfio_message *message,
-                                  const char *format_text)
+                                  const char **message, const char *format_text)
 {
     if (source->no_memory)
     {

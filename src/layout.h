@@ -42,7 +42,7 @@ ptrdiff_t sdfio_element_stride(sdfio_layout layout);
  * the matrix is larger than memory.
  */
 sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
-                                size_t columns, sdfio_message *message);
+                                size_t columns, const char **message);
 
 /**
  * Checks the layout of a buffer of heights for the matrix of a header: the
@@ -57,7 +57,7 @@ sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
  */
 sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
                                         const sdfio_header *header,
-                                        sdfio_message *message);
+                                        const char **message);
 
 /**
  * Checks the layout of a buffer for rows of the data area: the type has to be
@@ -74,6 +74,6 @@ sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
  */
 sdfio_status sdfio_layout_check_data(sdfio_layout *layout,
                                      const sdfio_header *header, size_t rows,
-                                     sdfio_message *message);
+                                     const char **message);
 
 #endif /* SDFIO_SRC_LAYOUT_H */

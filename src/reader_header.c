@@ -53,7 +53,7 @@ static void skip_byte_order_mark(sdfio_source *source)
 
 sdfio_status sdfio_select_reader_format(
     sdfio_source *source, const sdfio_reader_format *const *formats,
-    const sdfio_reader_format **format, sdfio_message *message)
+    const sdfio_reader_format **format, const char **message)
 {
     skip_byte_order_mark(source);
     if (sdfio_source_fill(source, 1) < 1)
@@ -83,7 +83,7 @@ sdfio_status sdfio_read_header(sdfio_source *source,
                                const sdfio_reader_format *format,
                                sdfio_header *header, void *state,
                                const sdfio_time_zone *zone,
-                               sdfio_message *message)
+                               const char **message)
 {
     const sdfio_status status =
         format->read_header(source, header, state, zone, message);

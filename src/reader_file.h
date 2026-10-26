@@ -28,7 +28,7 @@ void sdfio_reader_own(sdfio_reader *reader, sdfio_owner owner);
  *
  * @param reader The reader.
  */
-sdfio_message *sdfio_reader_message(sdfio_reader *reader);
+const char **sdfio_reader_message(sdfio_reader *reader);
 
 /**
  * Tells whether a file is open in a reader.

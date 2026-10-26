@@ -80,7 +80,7 @@ bool sdfio_sink_write(sdfio_sink *sink, const void *data, size_t size)
     return true;
 }
 
-sdfio_status sdfio_sink_failure(sdfio_message *message)
+sdfio_status sdfio_sink_failure(const char **message)
 {
     return sdfio_fail(message, SDFIO_ERR_IO, "The stream could not be written");
 }

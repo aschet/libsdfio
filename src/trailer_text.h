@@ -58,6 +58,6 @@ typedef struct sdfio_trailer_state
 sdfio_status sdfio_trailer_read(sdfio_source *source,
                                 sdfio_trailer_state *state, bool record,
                                 char *buffer, size_t capacity, size_t *size,
-                                sdfio_message *message);
+                                const char **message);
 
 #endif /* SDFIO_SRC_TRAILER_TEXT_H */

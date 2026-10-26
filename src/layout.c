@@ -61,7 +61,7 @@ static size_t extent_of(size_t count, size_t stride, size_t size)
 }
 
 sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
-                                size_t columns, sdfio_message *message)
+                                size_t columns, const char **message)
 {
     if (!sdfio_data_type_valid(layout->type))
     {
@@ -109,7 +109,7 @@ sdfio_status sdfio_layout_check(sdfio_layout *layout, size_t rows,
 
 sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
                                         const sdfio_header *header,
-                                        sdfio_message *message)
+                                        const char **message)
 {
     if (!sdfio_heights_type_valid(layout->type))
     {
@@ -122,7 +122,7 @@ sdfio_status sdfio_layout_check_heights(sdfio_layout *layout,
 
 sdfio_status sdfio_layout_check_data(sdfio_layout *layout,
                                      const sdfio_header *header, size_t rows,
-                                     sdfio_message *message)
+                                     const char **message)
 {
     if (layout->type != header->data_type)
     {

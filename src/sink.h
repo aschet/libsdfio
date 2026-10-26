@@ -82,6 +82,6 @@ bool sdfio_sink_flush(sdfio_sink *sink);
  * @param[out] message Receives the reason.
  * @return SDFIO_ERR_IO.
  */
-sdfio_status sdfio_sink_failure(sdfio_message *message);
+sdfio_status sdfio_sink_failure(const char **message);
 
 #endif /* SDFIO_SRC_SINK_H */

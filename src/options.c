@@ -23,7 +23,7 @@ bool sdfio_options_init(sdfio_options *options,
 }
 
 sdfio_status sdfio_options_set_buffer(sdfio_options *options, size_t size,
-                                      sdfio_message *message)
+                                      const char **message)
 {
     if (size == 0)
     {
@@ -36,7 +36,7 @@ sdfio_status sdfio_options_set_buffer(sdfio_options *options, size_t size,
 }
 
 sdfio_status sdfio_options_set_chunk(sdfio_options *options, size_t count,
-                                     sdfio_message *message)
+                                     const char **message)
 {
     if (!sdfio_chunk_valid(count))
     {
