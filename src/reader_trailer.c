@@ -33,7 +33,7 @@ sdfio_status sdfio_read_trailer(sdfio_reader *reader, char *buffer,
         reader->trailer_begun = true;
     }
     /* Tolerated deviation: the text of a trailer is not checked for the tagged
-     * format that ISO-2.0 asks for. */
+     * format that ISO-2.0 asks for, nor for the 7-bit ASCII encoding. */
     status =
         reader->format->read_trailer(&reader->source, reader->format_state,
                                      buffer, capacity, size, &reader->message);
