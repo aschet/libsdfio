@@ -17,13 +17,15 @@ static void generate_heights(void)
 {
     for (size_t row = 0; row < ROWS; ++row)
     {
+        const bool in_region = row > 100 && row < 110;
+        const double row_factor = 2e-6 * sin(0.1 * (double)row);
+        float *line = heights + row * COLUMNS;
         for (size_t column = 0; column < COLUMNS; ++column)
         {
-            const bool not_measured = row > 100 && row < 110 && column < 40;
-            heights[row * COLUMNS + column] =
-                not_measured ? NAN
-                             : (float)(2e-6 * sin(0.1 * (double)row)
-                                       * cos(0.07 * (double)column));
+            line[column] =
+                in_region && column < 40
+                    ? NAN
+                    : (float)(row_factor * cos(0.07 * (double)column));
         }
     }
 }

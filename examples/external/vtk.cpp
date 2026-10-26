@@ -102,7 +102,8 @@ vtkSmartPointer<vtkPolyData> height_field(vtkImageData *image, double factor)
     vtkNew<vtkImageData> patched;
     patched->DeepCopy(image);
     float *heights = heights_of(patched);
-    for (vtkIdType i = 0; i < patched->GetNumberOfPoints(); ++i)
+    const vtkIdType count = patched->GetNumberOfPoints();
+    for (vtkIdType i = 0; i < count; ++i)
     {
         heights[i] = std::isnan(heights[i]) ? 0.0F : heights[i];
     }

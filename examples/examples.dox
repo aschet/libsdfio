@@ -71,9 +71,10 @@
 
 /**
  * @example opencv.cpp
- * Reads the SDF file given as the argument into an OpenCV image, smooths it and
- * writes it to a file, and reads the file into a region of a larger image. A
- * negative row stride turns the surface into an image without a copy.
+ * Reads the SDF file given as the first argument into an OpenCV image, smooths
+ * it and writes it to the file given as the second, and reads the first file
+ * into a region of a larger image. A negative row stride turns the surface into
+ * an image without a copy.
  */
 
 /**

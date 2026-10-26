@@ -94,14 +94,16 @@ Plane fit_plane(const Eigen::MatrixXd &heights)
     Eigen::MatrixXd design(count, 3);
     Eigen::VectorXd z(count);
     Eigen::Index row = 0;
-    for (Eigen::Index x = 0; x < heights.cols(); ++x)
+    const Eigen::Index columns = heights.cols();
+    const Eigen::Index rows = heights.rows();
+    for (Eigen::Index x = 0; x < columns; ++x)
     {
-        for (Eigen::Index y = 0; y < heights.rows(); ++y)
+        const double point_x = static_cast<double>(x);
+        for (Eigen::Index y = 0; y < rows; ++y)
         {
             if (!std::isnan(heights(y, x)))
             {
-                design.row(row) << 1.0, static_cast<double>(x),
-                    static_cast<double>(y);
+                design.row(row) << 1.0, point_x, static_cast<double>(y);
                 z(row++) = heights(y, x);
             }
         }
@@ -112,13 +114,16 @@ Plane fit_plane(const Eigen::MatrixXd &heights)
 
 void remove_plane(Eigen::MatrixXd &heights, const Plane &plane)
 {
-    for (Eigen::Index x = 0; x < heights.cols(); ++x)
+    const Eigen::Index columns = heights.cols();
+    const Eigen::Index rows = heights.rows();
+    for (Eigen::Index x = 0; x < columns; ++x)
     {
-        for (Eigen::Index y = 0; y < heights.rows(); ++y)
+        const double column_offset =
+            plane.offset + plane.slope_x * static_cast<double>(x);
+        for (Eigen::Index y = 0; y < rows; ++y)
         {
-            heights(y, x) -= plane.offset
-                             + plane.slope_x * static_cast<double>(x)
-                             + plane.slope_y * static_cast<double>(y);
+            heights(y, x) -=
+                column_offset + plane.slope_y * static_cast<double>(y);
         }
     }
 }

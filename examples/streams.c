@@ -58,7 +58,8 @@ int main(void)
         *sdfio_layout_packed(sdfio_header_data_type(header));
     const sdfio_layout heights_layout = *sdfio_layout_packed(SDFIO_TYPE_DOUBLE);
     const size_t columns = sdfio_header_columns(header);
-    for (size_t row = 0; row < sdfio_header_rows(header); ++row)
+    const size_t rows = sdfio_header_rows(header);
+    for (size_t row = 0; row < rows; ++row)
     {
         status = sdfio_read_data(reader, &coded_layout, coded, 1);
         if (status != SDFIO_OK)

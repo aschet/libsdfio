@@ -76,11 +76,6 @@ static void describe(sdfio_header *header)
     sdfio_header_set_z_scale(header, 1.0e-9);
 }
 
-static int16_t value_at(size_t row, size_t column)
-{
-    return (int16_t)(row * COLUMNS + column);
-}
-
 /* The writer and the header take their memory from the pool, with a small
  * buffer and a small chunk, so that the pool stays small. The pool is the one
  * resource that can run out, so the calls that allocate are checked. */
@@ -107,9 +102,10 @@ static sdfio_status write_file(void)
     const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
     for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
     {
+        const size_t first = row * COLUMNS;
         for (size_t column = 0; column < COLUMNS; ++column)
         {
-            coded[column] = value_at(row, column);
+            coded[column] = (int16_t)(first + column);
         }
         status = sdfio_write_data(writer, &layout, coded, 1);
     }

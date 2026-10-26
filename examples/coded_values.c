@@ -14,6 +14,7 @@
  * measured at intervals of DROPOUT_EVERY points. */
 static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
 {
+    const size_t row_offset = y * 31;
     for (size_t column = 0; column < COLUMNS; ++column)
     {
         if ((column + y) % DROPOUT_EVERY == 0)
@@ -22,7 +23,7 @@ static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
         }
         else
         {
-            row[column] = (int16_t)(((y * 31 + column * 7) % 4000) - 2000);
+            row[column] = (int16_t)(((row_offset + column * 7) % 4000) - 2000);
         }
     }
 }
@@ -110,7 +111,8 @@ static int read_coded_values(const char *path)
     double sum = 0.0;
     const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
     const size_t columns = sdfio_header_columns(header);
-    for (size_t y = 0; y < sdfio_header_rows(header); ++y)
+    const size_t rows = sdfio_header_rows(header);
+    for (size_t y = 0; y < rows; ++y)
     {
         status = sdfio_read_data(reader, &layout, row, 1);
         if (status != SDFIO_OK)
@@ -145,9 +147,8 @@ static int read_coded_values(const char *path)
                "%g m, %zu rows out of place\n",
                sdfio_header_revision(header) == SDFIO_ISO_1_0 ? "ISO-1.0"
                                                               : "ISO-2.0",
-               (unsigned long)columns, (unsigned long)sdfio_header_rows(header),
-               not_measured, mean, mean * sdfio_header_z_scale(header),
-               out_of_place);
+               (unsigned long)columns, (unsigned long)rows, not_measured, mean,
+               mean * sdfio_header_z_scale(header), out_of_place);
     }
     free(row);
     free(expected);
