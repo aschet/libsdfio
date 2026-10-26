@@ -54,14 +54,11 @@ sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
     return SDFIO_OK;
 }
 
-/* Whether the buffers were created, which the first attempt to open a file
- * does: the options are fixed from then on. */
 static bool buffers_created(const sdfio_reader *reader)
 {
     return reader->chunk != NULL || reader->source.buffer != NULL;
 }
 
-/* The precondition of every setter: a reader and no attempt to open a file. */
 static sdfio_status require_new(sdfio_reader *reader)
 {
     if (reader == NULL)
@@ -186,6 +183,16 @@ sdfio_message *sdfio_reader_message(sdfio_reader *reader)
 bool sdfio_reader_is_open(const sdfio_reader *reader)
 {
     return reader->opened;
+}
+
+sdfio_status sdfio_reader_check(sdfio_reader *reader)
+{
+    if (sdfio_reader_is_open(reader))
+    {
+        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_STATE,
+                          "The reader has opened a file already");
+    }
+    return SDFIO_OK;
 }
 
 const char *sdfio_reader_error_message(const sdfio_reader *reader)

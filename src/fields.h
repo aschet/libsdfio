@@ -14,7 +14,6 @@
 
 #include <sdfio/sdfio.h>
 
-/** The fields of the file. */
 /** The size of a date field, DDMMYYYYhhmm. */
 #define SDFIO_DATETIME_SIZE 12
 /** The code of "no compression" and "no checksum". */

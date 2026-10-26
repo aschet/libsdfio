@@ -14,7 +14,6 @@
 
 #include <sdfio/sdfio.h>
 
-/** The sizes and the digits of numbers. */
 /** The size of the longest number of an ASCII data area. */
 #define SDFIO_NUMBER_CAPACITY 64
 /** The size of the text of a decimal point. */

@@ -59,16 +59,6 @@ static sdfio_status stdio_finish(void *user, sdfio_message *message)
     return SDFIO_OK;
 }
 
-sdfio_status sdfio_reader_check(sdfio_reader *reader)
-{
-    if (sdfio_reader_is_open(reader))
-    {
-        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_STATE,
-                          "The reader has opened a file already");
-    }
-    return SDFIO_OK;
-}
-
 sdfio_status sdfio_file_adopt_reader(sdfio_reader *reader, FILE *file)
 {
     if (file == NULL)

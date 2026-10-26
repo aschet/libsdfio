@@ -12,13 +12,12 @@
 #ifndef SDFIO_SRC_DEFAULTS_H
 #define SDFIO_SRC_DEFAULTS_H
 
+#include "ascii.h"
 #include "data_type.h"
-#include "writer_format.h"
 #include <sdfio/sdfio.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-/** The defaults of the options, and the limits of the lists. */
 /** The number of values a reader or a writer converts at a time. */
 #define SDFIO_DEFAULT_CHUNK 1024
 /** The size of the buffer of a reader or a writer. */

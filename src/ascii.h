@@ -21,6 +21,9 @@
 /** String that labels a non-measured or spurious point in the data area of the
  * ASCII format. */
 #define SDFIO_ASCII_BAD "BAD"
+/** The room for the text of one value in the data area of the ASCII format,
+ * with its separator. */
+#define SDFIO_TEXT_PER_VALUE 32
 
 /** ASCII field name of the manufacturer's ID. */
 #define SDFIO_ASCII_MANUFACTURER_ID "ManufacID"
