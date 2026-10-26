@@ -331,20 +331,20 @@
  * @code
  * aISO-2.0
  * ManufacID = libsdfio
- * CreateDate = 040120220853
- * ModDate = 050320231353
+ * CreateDate = 150620261030
+ * ModDate = 150620261045
  * NumPoints = 3
  * NumProfiles = 2
- * Xscale = 1.00000000000000e-006
- * Yscale = 1.00000000000000e-006
- * Zscale = 1.00000000000000e-006
- * Zresolution = 1.00000000000000e-009
+ * Xscale = 2.50000000000000e-006
+ * Yscale = 2.50000000000000e-006
+ * Zscale = 1.00000000000000e+000
+ * Zresolution = 5.00000000000000e-010
  * Compression = 0
  * DataType = 3
  * CheckType = 0
  * *
- * -1.000000e+00 6.948286e-01 3.170994e-01
- * 4.897644e-01 BAD 6.463130e-01
+ * -1.250000e-06 3.400000e-07 8.100000e-07
+ * 2.200000e-07 BAD 1.050000e-06
  * *
  * OperatorName = Jane Doe
  * *
