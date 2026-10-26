@@ -471,7 +471,8 @@
  * <td><code>_TIME_BITS=64</code> selects 64 bits.</td></tr>
  * <tr><td>glibc, 32-bit</td><td>32 bits, unless the toolchain defaults to 64
  * bits</td><td><code>_TIME_BITS=64</code> and
- * <code>_FILE_OFFSET_BITS=64</code> select 64 bits.</td></tr>
+ * <code>_FILE_OFFSET_BITS=64</code> select 64 bits. glibc rejects
+ * <code>_TIME_BITS=64</code> without <code>_FILE_OFFSET_BITS=64</code>.</td></tr>
  * </table>
  *
  * The flags go to the compiler of the program and to the compiler of the
