@@ -12,11 +12,10 @@
 
 /**
  * @example writer.c
- * Writes a surface as `float` values and as 16-bit integer values in ISO-2.0,
- * and a third file in ISO-1.0, each with the data type of the header set
- * explicitly. The writer has the time zone of the machine, which an ISO-1.0
- * file needs for its dates. The trailer is written with
- * sdfio_write_trailer_field().
+ * Writes a surface as `float` values in ISO-2.0 and as 16-bit integer values in
+ * ISO-1.0, each with the data type of the header set explicitly. The writer has
+ * the time zone of the machine, which an ISO-1.0 file needs for its dates. The
+ * trailer is written with sdfio_write_trailer_field().
  */
 
 /**

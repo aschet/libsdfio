@@ -121,11 +121,7 @@ int main(void)
     const int floats =
         write_surface("float.sdf", SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT);
     const int integers =
-        write_surface("integer.sdf", SDFIO_ISO_2_0, SDFIO_TYPE_INT16);
-    const int legacy =
-        write_surface("iso1.sdf", SDFIO_ISO_1_0, SDFIO_TYPE_INT16);
-    return floats == EXIT_SUCCESS && integers == EXIT_SUCCESS
-                   && legacy == EXIT_SUCCESS
-               ? EXIT_SUCCESS
-               : EXIT_FAILURE;
+        write_surface("integer.sdf", SDFIO_ISO_1_0, SDFIO_TYPE_INT16);
+    return floats == EXIT_SUCCESS && integers == EXIT_SUCCESS ? EXIT_SUCCESS
+                                                              : EXIT_FAILURE;
 }
