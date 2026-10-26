@@ -40,9 +40,9 @@
  * - Memory only when a handle or a file is created, through an allocator that
  *   the program can replace, so that a pool can be sized in advance. Reading
  *   and writing allocate nothing.
- * - Formats are added to a handle explicitly, so that a program contains the
- *   code of the added formats only. A program that writes binary files
- *   contains no code for ASCII or for reading.
+ * - Formats are added to a handle explicitly. A program that links the library
+ *   statically contains the code of the added formats only: a program that
+ *   writes binary files contains no code for ASCII or for reading.
  * - Handles without shared state, so that threads use their own handles at
  *   once. Standard C11, little-endian and big-endian processors, 32-bit and
  *   64-bit.
@@ -137,30 +137,25 @@
  * file has an ASCII or a binary format. Both hold the same
  * information. A reader or a writer supports a format after it is added with
  * sdfio_reader_add_binary(), sdfio_reader_add_ascii() or one of the two
- * functions of the writer. Only the code of the added formats is linked into
- * the program.
+ * functions of the writer.
  *
  * @section format_magic Magic
  * The file starts with a magic of 8 characters, which the standard calls the
  * version number. Its first character is `a` for the ASCII and `b` for the
  * binary format, and the rest names the version: `aISO-1.0`, `aISO-2.0`,
- * `bISO-1.0` and `bISO-2.0`. The library calls the version a revision,
- * ISO-1.0 and ISO-2.0, because "version" names the library.
- *
- * <table class="doxtable">
- * <tr><th>Revision</th><th>Differences</th></tr>
- * <tr><td>ISO-1.0</td><td>The data types int16_t, int32_t and double. A binary
- *   file stores the numbers of columns and rows as uint16_t. The dates have
- *   no time zone.</td></tr>
- * <tr><td>ISO-2.0</td><td>Adds the data types int8_t and float. A binary file
- *   stores the numbers of columns and rows as uint32_t. The dates are UTC,
- *   and the trailer has the form of the header.</td></tr>
- * </table>
- *
- * Both revisions have a field for a compression and for a checksum of the
- * data. The standard defines only the value 0, for none, so a file has neither.
+ * `bISO-1.0` and `bISO-2.0`. The library calls the version a revision, ISO-1.0
+ * and ISO-2.0. ISO-1.0 allows the data types int16_t, int32_t and double for
+ * the data area, stores the numbers of columns and rows of a binary file as
+ * uint16_t and has dates without a time zone. ISO-2.0 adds int8_t and float
+ * for the data area, stores the numbers as uint32_t, has dates in UTC and a
+ * trailer in the form of the header. Both revisions have a field for a
+ * compression and for a checksum of the data. The standard defines only the
+ * value 0, for none, so a file has neither.
  *
  * @section format_types Data Types
+ * The values of the data area have one of these data types, which the header
+ * selects with its code.
+ *
  * <table class="doxtable">
  * <tr><th>Data
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
@@ -206,7 +201,8 @@
  *   is unknown.</td></tr>
  * <tr><td>Compression</td><td><code>Compression</code></td><td>uint8_t</td><td>0, no compression.</td></tr>
  * <tr><td>Data type</td><td><code>DataType</code></td><td>uint8_t</td><td>The
- *   code of the type of the values, see Data Types.</td></tr>
+ *   code of the data type of the values in the data area, see Data
+ *   Types.</td></tr>
  * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>uint8_t</td><td>0, no checksum.</td></tr>
  * </table>
  *
@@ -315,7 +311,8 @@
  * processors. A string that is shorter than its field is filled with spaces.
  *
  * @section format_ascii ASCII Format
- * - The file consists of lines that end with a carriage return and a line feed.
+ * - The file consists of 7-bit ASCII characters, in lines that end with a
+ *   carriage return and a line feed.
  * - The first line is the magic. It is followed by a line `Name =
  *   value` for each field of the header, in any order, and the names do not
  *   depend on the case.
