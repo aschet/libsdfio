@@ -13,7 +13,6 @@
  * order of the host.
  */
 
-#include "binary.h"
 #include "byte_order.h"
 #include "data_type.h"
 #include "datetime.h"
@@ -29,26 +28,6 @@
 #include <math.h>
 #include <sdfio/sdfio.h>
 #include <string.h>
-
-/* The unsigned integer of `size` bytes in little-endian order. */
-static uint64_t get_le(const unsigned char *bytes, size_t size)
-{
-    uint64_t value = 0;
-    for (size_t i = size; i > 0; --i)
-    {
-        value = (value << CHAR_BIT) | bytes[i - 1];
-    }
-    return value;
-}
-
-/* The binary64 number in little-endian order. */
-static double get_double(const unsigned char *bytes)
-{
-    const uint64_t bits = get_le(bytes, sizeof(double));
-    double value = 0.0;
-    memcpy(&value, &bits, sizeof value);
-    return value;
-}
 
 static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
@@ -112,6 +91,34 @@ static bool take(sdfio_source *source, void *out, size_t size)
     return sdfio_source_read(source, out, size) == size;
 }
 
+/* Takes an unsigned integer of `size` bytes in little-endian order. */
+static bool take_le(sdfio_source *source, size_t size, uint64_t *value)
+{
+    unsigned char bytes[sizeof(uint64_t)];
+    if (size > sizeof bytes || !take(source, bytes, size))
+    {
+        return false;
+    }
+    *value = 0;
+    for (size_t i = size; i > 0; --i)
+    {
+        *value = (*value << CHAR_BIT) | bytes[i - 1];
+    }
+    return true;
+}
+
+/* Takes a binary64 number in little-endian order. */
+static bool take_double(sdfio_source *source, double *value)
+{
+    uint64_t bits = 0;
+    if (!take_le(source, sizeof bits, &bits))
+    {
+        return false;
+    }
+    memcpy(value, &bits, sizeof *value);
+    return true;
+}
+
 static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                                 void *state, const sdfio_time_zone *zone,
                                 const char **message)
@@ -127,20 +134,27 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
     unsigned char identifier[SDFIO_MANUFACTURER_ID_MAX];
     unsigned char created_text[SDFIO_DATETIME_SIZE];
     unsigned char modified_text[SDFIO_DATETIME_SIZE];
-    unsigned char columns_field[sizeof(uint32_t)];
-    unsigned char rows_field[sizeof(uint32_t)];
-    unsigned char scales[SDFIO_BINARY_REAL_FIELDS][sizeof(double)];
-    unsigned char codes[SDFIO_BINARY_CODE_FIELDS];
-    bool complete = take(source, identifier, sizeof identifier)
-                    && take(source, created_text, sizeof created_text)
-                    && take(source, modified_text, sizeof modified_text)
-                    && take(source, columns_field, columns_rows_size)
-                    && take(source, rows_field, columns_rows_size);
-    for (size_t i = 0; complete && i < SDFIO_BINARY_REAL_FIELDS; ++i)
-    {
-        complete = take(source, scales[i], sizeof scales[i]);
-    }
-    if (!complete || !take(source, codes, sizeof codes))
+    uint64_t columns = 0;
+    uint64_t rows = 0;
+    double x_scale = 0.0;
+    double y_scale = 0.0;
+    double z_scale = 0.0;
+    double resolution = 0.0;
+    uint64_t compression = 0;
+    uint64_t code = 0;
+    uint64_t check_type = 0;
+    const bool complete =
+        take(source, identifier, sizeof identifier)
+        && take(source, created_text, sizeof created_text)
+        && take(source, modified_text, sizeof modified_text)
+        && take_le(source, columns_rows_size, &columns)
+        && take_le(source, columns_rows_size, &rows)
+        && take_double(source, &x_scale) && take_double(source, &y_scale)
+        && take_double(source, &z_scale) && take_double(source, &resolution)
+        && take_le(source, SDFIO_CODE_SIZE, &compression)
+        && take_le(source, SDFIO_CODE_SIZE, &code)
+        && take_le(source, SDFIO_CODE_SIZE, &check_type);
+    if (!complete)
     {
         return sdfio_source_failure(
             source, message, "The file ends before the header is complete");
@@ -157,15 +171,11 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
         (const char *)created_text, SDFIO_DATETIME_SIZE, revision, zone);
     const time_t modified = sdfio_datetime_parse(
         (const char *)modified_text, SDFIO_DATETIME_SIZE, revision, zone);
-    header->columns = (uint32_t)get_le(columns_field, columns_rows_size);
-    header->rows = (uint32_t)get_le(rows_field, columns_rows_size);
-    header->x_scale = get_double(scales[0]);
-    header->y_scale = get_double(scales[1]);
-    header->z_scale = get_double(scales[2]);
-    const double resolution = get_double(scales[3]);
-    const unsigned compression = codes[SDFIO_BINARY_CODE_COMPRESSION];
-    const unsigned code = codes[SDFIO_BINARY_CODE_DATA_TYPE];
-    const unsigned check_type = codes[SDFIO_BINARY_CODE_CHECKSUM];
+    header->columns = (uint32_t)columns;
+    header->rows = (uint32_t)rows;
+    header->x_scale = x_scale;
+    header->y_scale = y_scale;
+    header->z_scale = z_scale;
     if (compression != SDFIO_NONE)
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
@@ -177,7 +187,7 @@ static sdfio_status read_header(sdfio_source *source, sdfio_header *header,
                           "The checksum type of the file has to be 0");
     }
     sdfio_data_type type = SDFIO_TYPE_FLOAT;
-    if (!sdfio_data_type_from_code(code, &type))
+    if (!sdfio_data_type_from_code((long long)code, &type))
     {
         return sdfio_fail(message, SDFIO_ERR_FORMAT,
                           "The data type code of the header is unknown");

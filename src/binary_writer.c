@@ -13,7 +13,6 @@
  * order of the host.
  */
 
-#include "binary.h"
 #include "byte_order.h"
 #include "chunk.h"
 #include "data_type.h"
@@ -96,10 +95,6 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
     const char *magic = magics[header->revision];
     const size_t columns_rows_size =
         sdfio_revision_columns_rows_size(header->revision);
-    const unsigned char codes[SDFIO_BINARY_CODE_FIELDS] = {
-        [SDFIO_BINARY_CODE_COMPRESSION] = SDFIO_NONE,
-        [SDFIO_BINARY_CODE_DATA_TYPE] = (unsigned char)header->data_type,
-        [SDFIO_BINARY_CODE_CHECKSUM] = SDFIO_NONE};
     const bool written =
         sdfio_sink_write(sink, magic, strlen(magic))
         && put_text(sink, header->manufacturer_id, SDFIO_MANUFACTURER_ID_MAX)
@@ -111,7 +106,9 @@ static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
         && put_double(sink, header->y_scale)
         && put_double(sink, header->z_scale)
         && put_double(sink, header->z_resolution)
-        && sdfio_sink_write(sink, codes, sizeof codes);
+        && put_le(sink, SDFIO_CODE_SIZE, SDFIO_NONE)
+        && put_le(sink, SDFIO_CODE_SIZE, (uint64_t)header->data_type)
+        && put_le(sink, SDFIO_CODE_SIZE, SDFIO_NONE);
     return written ? SDFIO_OK : sdfio_sink_failure(message);
 }
 

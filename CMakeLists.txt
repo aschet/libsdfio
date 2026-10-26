@@ -42,7 +42,6 @@ set(SDFIO_SOURCES
     src/ascii.h
     src/ascii_reader.c
     src/ascii_writer.c
-    src/binary.h
     src/binary_reader.c
     src/binary_writer.c
     src/byte_order.c
