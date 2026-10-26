@@ -16,7 +16,6 @@
 #include "reader_state.h"
 #include <string.h>
 
-/* The next `count` values of the data area, as the file stores them. */
 sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
                                       size_t count)
 {
@@ -30,7 +29,6 @@ sdfio_status sdfio_reader_take_values(sdfio_reader *reader, void *dst,
     return status;
 }
 
-/* Reads or skips to the end of the data area. */
 sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
 {
     if (reader->data_done)
@@ -51,8 +49,6 @@ sdfio_status sdfio_reader_finish_data(sdfio_reader *reader)
     return SDFIO_OK;
 }
 
-/* Reads the values of a row into a buffer whose elements are `element` bytes
- * apart, each of them `size` bytes. */
 static sdfio_status read_row(sdfio_reader *reader, unsigned char *row,
                              ptrdiff_t element, size_t size)
 {

@@ -255,6 +255,13 @@ static void check_damage(const char *path)
     free(data);
 }
 
+/* The positions of the first date and of the z-scale in a binary header of
+ * ISO-2.0. */
+#define DATES_AT (sizeof "bISO-2.0" - 1 + SDFIO_MANUFACTURER_ID_MAX)
+#define Z_SCALE_AT                                                             \
+    (DATES_AT + 2 * SDFIO_DATETIME_SIZE + 2 * sizeof(uint32_t)                 \
+     + 2 * sizeof(double))
+
 static void check_header_errors(void)
 {
     size_t size = 0;
@@ -290,14 +297,6 @@ static void check_header_errors(void)
         reader = new_reader(all_formats());
         CHECK_STATUS(SDFIO_ERR_FORMAT, sdfio_open_memory(reader, copy, size));
         sdfio_reader_free(reader);
-        /* The date, the z-scale and the first character of the magic.
-         */
-        enum
-        {
-            DATES_AT = sizeof "bISO-2.0" - 1 + SDFIO_MANUFACTURER_ID_MAX,
-            Z_SCALE_AT = DATES_AT + 2 * SDFIO_DATETIME_SIZE
-                         + 2 * sizeof(uint32_t) + 2 * sizeof(double)
-        };
         memcpy(copy, data, size);
         memset(copy + DATES_AT, '9', SDFIO_DATETIME_SIZE);
         reader = new_reader(all_formats());

@@ -65,12 +65,9 @@ static inline bool near_relative(double a, double b, double relative)
  * magic of 8 bytes, the identifier of 10, two datetimes of 12, the
  * numbers of columns and of rows of 4 each, four binary64 numbers, and 3 bytes
  * of codes. */
-enum
-{
-    ISO_2_0_BINARY_HEADER_SIZE = 8 + 10 + 2 * 12 + 2 * 4 + 4 * 8 + 3,
-    /** Where the number of columns and the number of rows start. */
-    ISO_2_0_COLUMNS_AT = 8 + 10 + 2 * 12
-};
+#define ISO_2_0_BINARY_HEADER_SIZE (8 + 10 + 2 * 12 + 2 * 4 + 4 * 8 + 3)
+/** Where the number of columns and the number of rows start. */
+#define ISO_2_0_COLUMNS_AT (8 + 10 + 2 * 12)
 
 typedef struct membuf
 {
@@ -134,11 +131,8 @@ static inline sdfio_writer *new_writer(const test_options *options)
     return writer;
 }
 
-enum
-{
-    /* The room for the headers that a test creates. */
-    HEADER_ROOM = 256
-};
+/* The room for the headers that a test creates. */
+#define HEADER_ROOM 256
 
 static sdfio_header *created_headers[HEADER_ROOM];
 static size_t created_header_count = 0;
@@ -187,11 +181,8 @@ static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
     return reader;
 }
 
-enum
-{
-    /* The room for the trailers of the tests. */
-    TRAILER_ROOM = 65536
-};
+/* The room for the trailers of the tests. */
+#define TRAILER_ROOM 65536
 
 /* The text that a reader returns for a text written to the trailer: CRLF reads
  * as LF, and in an ASCII file the line that is open at the end of the text is

@@ -4,15 +4,12 @@
 #include <stdlib.h>
 #include <time.h>
 
-enum
-{
-    COLUMNS = 16,
-    ROWS = 8,
-    POOL_SIZE = 4096,
-    FILE_SIZE = 2048,
-    BUFFER_SIZE = 128,
-    CHUNK_VALUES = 16
-};
+#define COLUMNS 16
+#define ROWS 8
+#define POOL_SIZE 4096
+#define FILE_SIZE 2048
+#define BUFFER_SIZE 128
+#define CHUNK_VALUES 16
 
 /* The memory of a scanner without a heap: a pool that hands out pieces in
  * order and takes none back. The cell gives every piece the alignment of any

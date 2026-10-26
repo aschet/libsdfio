@@ -82,9 +82,9 @@ static bool take_revision(sdfio_source *source, sdfio_revision *revision)
 /* Tolerated deviation: the identifier ends at its first 0 byte.
  *
  * The identifier up to the first 0, without the white space at its end. The
- * standard fills a string that is shorter than its field with spaces; the
- * writer of MountainsMap ends it in a 0 instead, and the bytes after that are
- * whatever was in memory. */
+ * standard fills a string that is shorter than its field with spaces; some
+ * writers end it in a 0 instead, and the bytes after that are whatever was in
+ * memory. */
 static void copy_identifier(sdfio_header *header, const unsigned char *field)
 {
     const unsigned char *end = memchr(field, '\0', SDFIO_MANUFACTURER_ID_MAX);

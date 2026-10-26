@@ -17,12 +17,9 @@
 #include "datetime.h"
 #include "fields.h"
 
-enum
-{
-    FIELD_COUNT = 17,
-    LINE_CAPACITY = 4096,
-    MARKED_CAPACITY = 65536
-};
+#define FIELD_COUNT 17
+#define LINE_CAPACITY 4096
+#define MARKED_CAPACITY 65536
 
 typedef struct expectation
 {
@@ -291,13 +288,11 @@ static void check_unrecorded(const unsigned char *bytes, size_t size)
 /* The date fields of a binary file hold the character 0 or the byte 0 only,
  * and those of an ASCII file the character 0 only, as some exporters write
  * them for a date that they do not record. */
+#define CREATION_AT 18
+#define BINARY_DATES (2 * 12)
+
 static void check_dates_set_to_zero(void)
 {
-    enum
-    {
-        CREATION_AT = 18,
-        BINARY_DATES = 2 * 12
-    };
     static const char *const binary[] = {"interop/mm11_iso1_binary_int32.sdf",
                                          "interop/mm11_iso2_binary_int32.sdf"};
     for (size_t i = 0; i < sizeof binary / sizeof binary[0]; ++i)

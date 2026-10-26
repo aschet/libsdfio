@@ -16,13 +16,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-enum
-{
-    SECONDS_PER_HOUR = 3600,
-    SECONDS_PER_DAY = 86400,
-    /* Where the fields of the dates are in a binary file. */
-    DATE_AT = 18
-};
+#define SECONDS_PER_HOUR 3600
+#define SECONDS_PER_DAY 86400
+/* Where the fields of the dates are in a binary file. */
+#define DATE_AT 18
 
 static void format(time_t time, sdfio_revision revision,
                    const sdfio_time_zone *zone,

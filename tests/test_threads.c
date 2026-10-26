@@ -17,13 +17,10 @@
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
 
-enum
-{
-    THREADS = 8,
-    ROUNDS = 25,
-    ROWS = 9,
-    COLUMNS = 13
-};
+#define THREADS 8
+#define ROUNDS 25
+#define ROWS 9
+#define COLUMNS 13
 
 static const char *const files[] = {
     SAMPLES "iso1_surface_binary.sdf",

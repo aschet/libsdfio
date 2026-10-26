@@ -9,11 +9,8 @@
 
 #include "check.h"
 
-enum
-{
-    COLUMNS = 2,
-    ROWS = 2
-};
+#define COLUMNS 2
+#define ROWS 2
 
 #define OK SDFIO_OK
 #define STATE SDFIO_ERR_STATE

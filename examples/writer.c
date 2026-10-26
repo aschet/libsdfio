@@ -5,11 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum
-{
-    COLUMNS = 256,
-    ROWS = 192
-};
+#define COLUMNS 256
+#define ROWS 192
 
 static float heights[ROWS * COLUMNS];
 

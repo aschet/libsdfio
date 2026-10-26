@@ -16,12 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum
-{
-    COLUMNS = 37,
-    ROWS = 5,
-    ARENA_SIZE = 1U << 16
-};
+#define COLUMNS 37
+#define ROWS 5
+#define ARENA_SIZE (1U << 16)
 
 typedef struct counting
 {

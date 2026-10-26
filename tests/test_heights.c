@@ -272,11 +272,8 @@ static uint32_t next_random(uint32_t *state)
     return *state;
 }
 
-enum
-{
-    ALL_VALUES = 1U << 16,
-    RANDOM_HEIGHTS = 20000
-};
+#define ALL_VALUES (1U << 16)
+#define RANDOM_HEIGHTS 20000
 
 /* The stored values of a data type: every one of the 8-bit and of the 16-bit
  * integers, and random numbers of the others. */

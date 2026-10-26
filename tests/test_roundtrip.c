@@ -17,11 +17,8 @@
 
 #include <stdlib.h>
 
-enum
-{
-    ROWS = 7,
-    COLUMNS = 11
-};
+#define ROWS 7
+#define COLUMNS 11
 
 static const char tagged_trailer[] = "OperatorName = Tester\nPartName = Sample";
 
@@ -1038,12 +1035,10 @@ static void check_read_line_ends(void)
 
 /* An attempt to open a file in a reader that is open leaves the open file as it
  * is, also when the file is larger than the buffer. */
+#define VALUES 4000
+
 static void check_second_open(void)
 {
-    enum
-    {
-        VALUES = 4000
-    };
     membuf files[2] = {{0}, {0}};
     float values[VALUES];
     for (size_t f = 0; f < 2; ++f)

@@ -5,12 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum
-{
-    COLUMNS = 512,
-    ROWS = 64,
-    DROPOUT_EVERY = 97
-};
+#define COLUMNS 512
+#define ROWS 64
+#define DROPOUT_EVERY 97
 
 /* Generates the coded values of the row y: a pattern in which a point is not
  * measured at intervals of DROPOUT_EVERY points. */
