@@ -164,8 +164,6 @@
  * <table class="doxtable">
  * <tr><th>Field</th><th>ASCII Name</th><th>Binary
  *   Type</th><th>Meaning</th></tr>
- * <tr><td>Magic</td><td>none</td><td>8 characters</td><td>See
- *   above.</td></tr>
  * <tr><td>Manufacturer's identifier</td><td><code>ManufacID</code></td><td>10
  *   characters</td><td>The source of the data, and possibly hardware and
  *   software.</td></tr>
@@ -196,9 +194,10 @@
  *
  * The names `NumPoints` and `NumProfiles` come from the first versions of the
  * format, which were meant for tactile instruments that measure profiles. A
- * binary header has the fields in this order and has 81 bytes in ISO-1.0 and 85
- * bytes in ISO-2.0. In sdfio_header the identifier is a string, the dates are
- * a `time_t`, and the columns and rows are a `uint32_t`, the type of ISO-2.0.
+ * binary header is the magic followed by the fields in this order, and has 81
+ * bytes in ISO-1.0 and 85 bytes in ISO-2.0. In sdfio_header the identifier is a
+ * string, the dates are a `time_t`, and the columns and rows are a `uint32_t`,
+ * the type of ISO-2.0.
  *
  * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
  * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
