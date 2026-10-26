@@ -62,7 +62,8 @@ struct sdfio_writer
     size_t next_row;
     /** The options of the writer. */
     sdfio_options options;
-    /** What a file adds to the writer. */
+    /** How to end and close the file that sdfio_create_file() opened. Empty
+     * for a stream of the program. */
     sdfio_owner owner;
     /** The room for a chunk of values in the data type of the file, created
      * when the file is created. */

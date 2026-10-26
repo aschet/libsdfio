@@ -49,7 +49,8 @@ struct sdfio_reader
     const sdfio_reader_format *format;
     /** The options of the reader. */
     sdfio_options options;
-    /** What a file adds to the reader. */
+    /** How to close the file that sdfio_open_file() opened. Empty for memory
+     * and for a stream of the program. */
     sdfio_owner owner;
     /** The stream over memory, if the file is in memory. */
     sdfio_memory_stream memory;
