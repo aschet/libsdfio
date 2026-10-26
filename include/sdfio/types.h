@@ -293,6 +293,10 @@ SDFIO_API sdfio_status sdfio_date_from_time(time_t utc, sdfio_date *date);
  * UTC and are not affected. A callback that is null performs no conversion, and
  * the clock reading is used as if it were UTC.
  *
+ * A program on a system where the C library knows the zone uses
+ * sdfio_system_time_zone() and not its own conversion. Own callbacks are for a
+ * zone that the C library does not know, such as the fixed clock of a device.
+ *
  * The conversion of a reading that occurs twice, or not at all, when the clocks
  * change is the decision of the callback. The result is correct only if the
  * zone of the callbacks is the zone in which the file was written, which the

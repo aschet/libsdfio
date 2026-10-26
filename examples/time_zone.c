@@ -5,8 +5,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-/* A time zone with a fixed offset from UTC. A zone with daylight saving time
- * would look up the offset for the time that it receives. */
+/* A time zone with a fixed offset from UTC, for a device whose clock has no
+ * daylight saving time. A program on a system where the C library knows the
+ * zone uses sdfio_system_time_zone() and not its own conversion. */
 typedef struct zone
 {
     time_t offset;
