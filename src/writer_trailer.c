@@ -9,6 +9,7 @@
  * @brief Writing of the trailer and the end of the file.
  */
 
+#include "crlf.h"
 #include "tagged.h"
 #include "writer_state.h"
 #include <string.h>

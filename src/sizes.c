@@ -12,8 +12,6 @@
 #include "data_type.h"
 #include "header.h"
 
-/* The bytes of `rows` rows of `columns` elements, or false if the size does
- * not fit in size_t. */
 static sdfio_status size_of(size_t columns, size_t rows, size_t element_size,
                             size_t *bytes)
 {
@@ -43,7 +41,6 @@ static sdfio_status data_bytes(const sdfio_header *header, size_t rows,
                    sdfio_data_type_size(header->data_type), bytes);
 }
 
-/* The size in bytes of `rows` rows of heights of a type. */
 static sdfio_status heights_bytes(const sdfio_header *header,
                                   sdfio_data_type type, size_t rows,
                                   size_t *bytes)

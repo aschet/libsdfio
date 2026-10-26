@@ -10,6 +10,7 @@
  */
 
 #include "tagged.h"
+#include <sdfio/trailer.h>
 #include <string.h>
 
 bool sdfio_trailer_next_field(const char *text, size_t size, size_t *position,

@@ -92,6 +92,8 @@ set(SDFIO_SOURCES
     src/source.h
     src/status.c
     src/version.c
+    src/crlf.c
+    src/crlf.h
     src/tagged.c
     src/tagged.h
     src/trailer_text.c

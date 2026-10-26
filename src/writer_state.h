@@ -12,13 +12,13 @@
 #ifndef SDFIO_SRC_WRITER_STATE_H
 #define SDFIO_SRC_WRITER_STATE_H
 
+#include "crlf.h"
 #include "defaults.h"
 #include "header.h"
 #include "message.h"
 #include "options.h"
 #include "owner.h"
 #include "sink.h"
-#include "tagged.h"
 #include "writer_format.h"
 #include <sdfio/sdfio.h>
 
