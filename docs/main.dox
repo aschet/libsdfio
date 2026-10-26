@@ -269,18 +269,18 @@
  *
  * <table class="doxtable">
  * <tr><th>Data
- *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
+ *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>C Type</th><th>Enumerator</th><th>Value
  *   of a Point That Is Not Measured</th></tr>
  * <tr><td>binary32</td><td>3</td><td>4
- *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT, -3.402823466e38</td></tr>
+ *   bytes</td><td>no</td><td>yes</td><td>float</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT, -3.402823466e38</td></tr>
  * <tr><td>int8</td><td>4</td><td>1
- *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8, -128</td></tr>
+ *   byte</td><td>no</td><td>yes</td><td>int8_t</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8, -128</td></tr>
  * <tr><td>int16</td><td>5</td><td>2
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16, -32768</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>int16_t</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16, -32768</td></tr>
  * <tr><td>int32</td><td>6</td><td>4
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32, -2147483648</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>int32_t</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32, -2147483648</td></tr>
  * <tr><td>binary64</td><td>7</td><td>8
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE, -1.797693134862316e308</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>double</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE, -1.797693134862316e308</td></tr>
  * </table>
  *
  * A point that is not measured, or is spurious, is labelled with the minimum
