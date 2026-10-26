@@ -242,23 +242,45 @@ sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
     return SDFIO_OK;
 }
 
+/* A date of the header: not recorded, or rounded down to the minute, the
+ * resolution of a file, in the years that a file holds. */
+static bool date_normalize(time_t date, time_t *normalized)
+{
+    *normalized = date == SDFIO_NO_TIME ? date : sdfio_datetime_round(date);
+    return date_valid(*normalized);
+}
+
 sdfio_status sdfio_header_set_created(sdfio_header *header, time_t created)
 {
-    if (header == NULL || !date_valid(created))
+    time_t normalized = 0;
+    if (header == NULL || !date_normalize(created, &normalized))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->creation_date = created;
+    header->creation_date = normalized;
     return SDFIO_OK;
 }
 
 sdfio_status sdfio_header_set_modified(sdfio_header *header, time_t modified)
 {
-    if (header == NULL || !date_valid(modified))
+    time_t normalized = 0;
+    if (header == NULL || !date_normalize(modified, &normalized))
     {
         return SDFIO_ERR_ARGUMENT;
     }
-    header->modification_date = modified;
+    header->modification_date = normalized;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_header_set_dates(sdfio_header *header, time_t date)
+{
+    time_t normalized = 0;
+    if (header == NULL || !date_normalize(date, &normalized))
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    header->creation_date = normalized;
+    header->modification_date = normalized;
     return SDFIO_OK;
 }
 

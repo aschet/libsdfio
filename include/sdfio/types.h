@@ -16,6 +16,7 @@
 #include <sdfio/sdfio_export.h>
 
 #include <float.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
@@ -235,16 +236,69 @@ typedef struct sdfio_stream
 SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
 
 /**
+ * Calendar fields of a date and the time of day, with a resolution of one
+ * minute.
+ *
+ * The year is 1 to 9999, the month 1 to 12, the day 1 to the days of the month,
+ * the hour 0 to 23 and the minute 0 to 59. The fields of a file are in UTC for
+ * ISO-2.0 and are a clock reading in a zone that the file does not record for
+ * ISO-1.0.
+ *
+ * The structure is frozen for the major version: it has these five fields and
+ * a new property of a date is a new function.
+ */
+typedef struct sdfio_date
+{
+    /** The year, 1 to 9999. */
+    int year;
+    /** The month, 1 to 12. */
+    int month;
+    /** The day of the month, 1 to 31. */
+    int day;
+    /** The hour, 0 to 23. */
+    int hour;
+    /** The minute, 0 to 59. */
+    int minute;
+} sdfio_date;
+
+/**
+ * Converts the fields of a date to a time, as if they were UTC. The function
+ * replaces timegm(), which is not part of the C standard, and uses no function
+ * of the C library that has a time zone or a shared result.
+ *
+ * @param[in] date The fields.
+ * @param[out] utc Receives the time, with the seconds 0.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or a field is out of its range.
+ * @retval SDFIO_ERR_RANGE The time does not fit a time_t.
+ */
+SDFIO_API sdfio_status sdfio_date_to_time(const sdfio_date *date, time_t *utc);
+
+/**
+ * Converts a time to the fields of its UTC date. The function replaces
+ * gmtime_r(), and the seconds are dropped, so the result is the minute at or
+ * before the time.
+ *
+ * @param utc The time.
+ * @param[out] date Receives the fields.
+ * @retval SDFIO_ERR_ARGUMENT `date` is null.
+ * @retval SDFIO_ERR_RANGE The year of the time is not 1 to 9999.
+ */
+SDFIO_API sdfio_status sdfio_date_from_time(time_t utc, sdfio_date *date);
+
+/**
  * Conversion of the dates of ISO-1.0 files between the local clock of the
  * writer and UTC.
  *
- * These files store the clock reading without a time zone. The callbacks
- * receive and return times in the form of a time_t, with a resolution of one
- * minute. A clock reading is expressed as if it were UTC. A callback returns
- * SDFIO_NO_TIME if it cannot convert the time. A callback that is null performs
- * no conversion. ISO-2.0 files store UTC and are not affected. The callbacks
- * are called by the thread that uses the handle. A program that does not use an
- * initializer calls sdfio_time_zone_init() before it assigns fields.
+ * These files store a clock reading without a time zone. ISO-2.0 files store
+ * UTC and are not affected. A callback that is null performs no conversion, and
+ * the clock reading is used as if it were UTC.
+ *
+ * The conversion of a reading that occurs twice, or not at all, when the clocks
+ * change is the decision of the callback. The result is correct only if the
+ * zone of the callbacks is the zone in which the file was written, which the
+ * file does not record. The callbacks are called by the thread that uses the
+ * handle. A program that does not use an initializer calls
+ * sdfio_time_zone_init() before it assigns fields.
  *
  * The structure is frozen for the major version: it has these three fields and
  * a new property of a time zone is a new function.
@@ -255,16 +309,16 @@ typedef struct sdfio_time_zone
     void *user;
     /**
      * Converts the clock reading `local` of a file to the UTC time. Called when
-     * a reader parses a date. If it returns SDFIO_NO_TIME, the date reads as
-     * not recorded.
+     * a reader parses a date. Returns SDFIO_NO_TIME if it cannot convert the
+     * reading, and the date then reads as not recorded.
      */
-    time_t (*local_to_utc)(void *user, time_t local);
+    time_t (*local_to_utc)(void *user, const sdfio_date *local);
     /**
-     * Converts the UTC time `utc` to the clock reading to store. Called when a
-     * writer formats a date. If it returns SDFIO_NO_TIME, the file cannot be
-     * created.
+     * Converts the UTC time `utc` to the clock reading to store, and returns
+     * it in `local`. Called when a writer formats a date. Returns false if it
+     * cannot convert the time, and the file cannot be created.
      */
-    time_t (*utc_to_local)(void *user, time_t utc);
+    bool (*utc_to_local)(void *user, time_t utc, sdfio_date *local);
 } sdfio_time_zone;
 
 /**
@@ -274,6 +328,17 @@ typedef struct sdfio_time_zone
  * @param[out] time_zone The time zone to initialize.
  */
 SDFIO_API void sdfio_time_zone_init(sdfio_time_zone *time_zone);
+
+/**
+ * Returns the time zone of the machine, as its C library knows it. The
+ * conversion uses mktime() and localtime_r(), or localtime_s() on Windows, so a
+ * reading that occurs twice or not at all is resolved as mktime() resolves it.
+ * The zone is the one of the process: a program that changes it while threads
+ * convert dates has a race.
+ *
+ * @return A pointer to a constant time zone, valid for the life of the program.
+ */
+SDFIO_API const sdfio_time_zone *sdfio_system_time_zone(void);
 
 #ifdef __cplusplus
 }

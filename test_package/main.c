@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 enum
 {
@@ -44,7 +45,7 @@ int main(void)
         sdfio_header_create(sdfio_default_allocator(), &header);
     if (described == SDFIO_OK)
     {
-        described = sdfio_header_set_now(header);
+        described = sdfio_header_set_dates(header, time(NULL));
     }
     if (described == SDFIO_OK)
     {

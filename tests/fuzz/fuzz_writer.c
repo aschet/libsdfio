@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 enum
 {
@@ -64,7 +65,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     {
         return 0;
     }
-    (void)sdfio_header_set_now(header);
+    (void)sdfio_header_set_dates(header, time(NULL));
     /* A setter refuses a value that is not valid, and the header keeps the
      * default: the input makes valid and invalid values alike. */
     const uint32_t columns = 1 + (uint32_t)(data[3] % DIMENSION_LIMIT);

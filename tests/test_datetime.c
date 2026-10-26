@@ -7,6 +7,10 @@
 /* The date field: UTC in ISO-2.0, the local clock of the writer in the other
  * revisions, which the time zone of the caller converts. */
 
+#ifndef _WIN32
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "check.h"
 #include <string.h>
 
@@ -144,27 +148,106 @@ static time_t offset_at(time_t utc)
                                                      : SECONDS_PER_HOUR;
 }
 
-static time_t central_europe_to_local(void *user, time_t utc)
+static bool central_europe_to_local(void *user, time_t utc, sdfio_date *local)
 {
     (void)user;
-    return utc + offset_at(utc);
+    return sdfio_date_from_time(utc + offset_at(utc), local) == SDFIO_OK;
 }
 
 /* In the hour that a change of the clock repeats, the first reading is taken;
  * an hour that it skips is read as the hour after. */
-static time_t central_europe_to_utc(void *user, time_t local)
+static time_t central_europe_to_utc(void *user, const sdfio_date *local)
 {
     (void)user;
-    const time_t summer = local - 2 * SECONDS_PER_HOUR;
+    time_t clock = 0;
+    if (sdfio_date_to_time(local, &clock) != SDFIO_OK)
+    {
+        return SDFIO_NO_TIME;
+    }
+    const time_t summer = clock - 2 * SECONDS_PER_HOUR;
     return offset_at(summer) == 2 * SECONDS_PER_HOUR ? summer
-                                                     : local - SECONDS_PER_HOUR;
+                                                     : clock - SECONDS_PER_HOUR;
 }
 
-static time_t refuse(void *user, time_t time)
+static time_t refuse_local(void *user, const sdfio_date *local)
 {
     (void)user;
-    (void)time;
+    (void)local;
     return SDFIO_NO_TIME;
+}
+
+static bool refuse_utc(void *user, time_t utc, sdfio_date *local)
+{
+    (void)user;
+    (void)utc;
+    (void)local;
+    return false;
+}
+
+/* The fields of a date and the UTC time convert both ways without a zone. */
+static void check_date_conversion(void)
+{
+    sdfio_date date;
+    CHECK_OK(sdfio_date_from_time(1772600760, &date));
+    CHECK(date.year == 2026 && date.month == 3 && date.day == 4
+          && date.hour == 5 && date.minute == 6);
+    time_t utc = 0;
+    CHECK_OK(sdfio_date_to_time(&date, &utc));
+    CHECK(utc == 1772600760);
+    /* The seconds are dropped. */
+    CHECK_OK(sdfio_date_from_time(1772600819, &date));
+    CHECK(date.minute == 6);
+    /* Before 1970 and the first and the last minute of the range. */
+    CHECK_OK(sdfio_date_from_time(-60, &date));
+    CHECK(date.year == 1969 && date.month == 12 && date.day == 31
+          && date.hour == 23 && date.minute == 59);
+    const sdfio_date last = {9999, 12, 31, 23, 59};
+    if (sizeof(time_t) >= 8)
+    {
+        CHECK_OK(sdfio_date_to_time(&last, &utc));
+        CHECK_OK(sdfio_date_from_time(utc, &date));
+        CHECK(date.year == 9999 && date.minute == 59);
+        CHECK_STATUS(SDFIO_ERR_RANGE, sdfio_date_from_time(utc + 60, &date));
+    }
+    const sdfio_date not_a_day = {2026, 2, 29, 0, 0};
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_to_time(&not_a_day, &utc));
+    const sdfio_date zero = {0, 0, 0, 0, 0};
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_to_time(&zero, &utc));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_to_time(NULL, &utc));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_to_time(&last, NULL));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_from_time(0, NULL));
+}
+
+/* The time zone of the machine: whatever the zone is, a time converts to a
+ * clock reading and back to the same time, and the reading is the one that
+ * the C library gives. The times avoid the hours when the clocks change. */
+static void check_system_time_zone(void)
+{
+    const sdfio_time_zone *zone = sdfio_system_time_zone();
+    CHECK(zone != NULL && zone->local_to_utc != NULL
+          && zone->utc_to_local != NULL);
+    if (zone == NULL || zone->local_to_utc == NULL
+        || zone->utc_to_local == NULL)
+    {
+        return;
+    }
+    const time_t times[] = {1768478400, 1768521600, 1784203200, 1784246400};
+    for (size_t i = 0; i < sizeof times / sizeof times[0]; ++i)
+    {
+        sdfio_date local;
+        CHECK(zone->utc_to_local(zone->user, times[i], &local));
+        CHECK(zone->local_to_utc(zone->user, &local) == times[i]);
+        struct tm expected;
+#ifdef _WIN32
+        CHECK(localtime_s(&expected, &times[i]) == 0);
+#else
+        CHECK(localtime_r(&times[i], &expected) != NULL);
+#endif
+        CHECK(local.year == expected.tm_year + 1900
+              && local.month == expected.tm_mon + 1
+              && local.day == expected.tm_mday && local.hour == expected.tm_hour
+              && local.minute == expected.tm_min);
+    }
 }
 
 static void check_time_zone(void)
@@ -215,7 +298,7 @@ static void check_time_zone(void)
 
     /* A callback that cannot convert: a date reads as not recorded, and a
      * date cannot be written. */
-    const sdfio_time_zone refusing = {NULL, refuse, refuse};
+    const sdfio_time_zone refusing = {NULL, refuse_local, refuse_utc};
     CHECK(sdfio_datetime_parse("010720261200", SDFIO_DATETIME_SIZE,
                                SDFIO_ISO_1_0, &refusing)
           == SDFIO_NO_TIME);
@@ -265,7 +348,7 @@ static void check_file(void)
     sdfio_reader_free(reader);
 
     /* A writer whose time zone refuses the date creates no file. */
-    const sdfio_time_zone refusing = {NULL, refuse, refuse};
+    const sdfio_time_zone refusing = {NULL, refuse_local, refuse_utc};
     const test_options refusing_config = {.time_zone = &refusing, ALL_FORMATS};
     membuf refused = {0};
     const sdfio_stream refused_stream = membuf_stream(&refused);
@@ -283,6 +366,8 @@ int main(void)
 {
     check_utc();
     check_without_zone();
+    check_date_conversion();
+    check_system_time_zone();
     check_time_zone();
     check_file();
     return finish_tests();

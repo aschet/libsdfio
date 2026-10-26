@@ -141,8 +141,10 @@
  *
  * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
  * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
- * an ISO-1.0 file are the clock of the writer, whose time zone is not recorded,
- * and sdfio_time_zone converts them.
+ * an ISO-1.0 file are the clock of the writer, whose time zone is not recorded.
+ * sdfio_time_zone converts them, and sdfio_system_time_zone() is the zone of the
+ * machine. A conversion is correct only if the zone is the one in which the file
+ * was written.
  *
  * @section format_data The Data Area
  * The data area holds the matrix W of the coded values with N rows and M
@@ -374,9 +376,9 @@
  * The options are set by functions, and a sdfio_header is opaque.
  *
  * A header is a separate object. sdfio_header_create() creates one with
- * defaults and without dates, which a file needs: the setters or
- * sdfio_header_set_now(), the one function that reads the clock, set
- * them. The setters fill it, and sdfio_header_copy() copies one header
+ * defaults and without dates, which a file needs: sdfio_header_set_created(),
+ * sdfio_header_set_modified() or sdfio_header_set_dates() set them. The setters
+ * fill it, and sdfio_header_copy() copies one header
  * into another, for example the header of a file that was read into a header
  * for a file to write. sdfio_header_free() releases it. A handle allocates
  * memory only when it is created, and when a file is opened or created. The
@@ -651,10 +653,11 @@
  * target `sdfio::sdfio`, or with pkg-config.
  *
  * @section building_time Dates and the Width of time_t
- * The dates of the interface are `time_t` values, so the library and the
- * program that calls it have to be built with the same width of `time_t`. The
- * build of the library does not select it. A date that a 32-bit `time_t`
- * cannot hold reads as SDFIO_NO_TIME.
+ * The dates of the interface are `time_t` values, which the library reads as
+ * integer seconds since 1970-01-01 00:00:00 UTC, as POSIX defines them. The
+ * library and the program that calls it have to be built with the same width
+ * of `time_t`. The build of the library does not select it. A date that a
+ * 32-bit `time_t` cannot hold reads as SDFIO_NO_TIME.
  *
  * <table class="doxtable">
  * <tr><th>Target</th><th>Width of <code>time_t</code></th><th>Selection</th></tr>

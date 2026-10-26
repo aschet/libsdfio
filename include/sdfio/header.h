@@ -77,18 +77,6 @@ SDFIO_API sdfio_status sdfio_header_copy(sdfio_header *dst,
                                          const sdfio_header *src);
 
 /**
- * Sets the creation date and the modification date to the time now, rounded
- * down to the minute. The function is the only one of the library that reads
- * the clock.
- *
- * @param[in,out] header The header.
- * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year of the clock is out
- * of the range of the SDF files.
- * @retval SDFIO_ERR_UNSUPPORTED The clock is not available.
- */
-SDFIO_API sdfio_status sdfio_header_set_now(sdfio_header *header);
-
-/**
  * Releases a header that sdfio_header_create() created. A null pointer is
  * ignored. The header that sdfio_reader_header() returns is not released.
  *
@@ -265,22 +253,23 @@ SDFIO_API sdfio_status sdfio_header_set_z_resolution(sdfio_header *header,
                                                      double z_resolution);
 
 /**
- * Returns the original creation date and time, with a resolution of one
- * minute.
+ * Returns the original creation date and time as a time_t, which is read as
+ * integer seconds since 1970-01-01 00:00:00 UTC, as POSIX defines it, with a
+ * resolution of one minute.
  *
  * A file that is read can have none (SDFIO_NO_TIME). ISO-2.0 files store UTC.
  * ISO-1.0 files store the local clock of the writer, without a time zone. The
- * library does not know the zone, so it keeps such a clock reading as it is,
- * as if it were UTC, unless the program sets an sdfio_time_zone.
+ * reader converts it with the sdfio_time_zone that the program sets, and
+ * without one the header holds the clock reading as if it were UTC.
  *
  * @param[in] header The header.
  */
 SDFIO_API time_t sdfio_header_created(const sdfio_header *header);
 
 /**
- * Sets the original creation date and time. A file that is written requires
- * one, so sdfio_create_file() and sdfio_create_stream() reject
- * SDFIO_NO_TIME.
+ * Sets the original creation date and time, rounded down to the minute. A file
+ * that is written requires one, so sdfio_create_file() and
+ * sdfio_create_stream() reject SDFIO_NO_TIME.
  *
  * @param[in,out] header The header.
  * @param created The date, or SDFIO_NO_TIME.
@@ -309,6 +298,18 @@ SDFIO_API time_t sdfio_header_modified(const sdfio_header *header);
  */
 SDFIO_API sdfio_status sdfio_header_set_modified(sdfio_header *header,
                                                  time_t modified);
+
+/**
+ * Sets the creation date and the modification date to the same time, rounded
+ * down to the minute. Neither date changes if the call fails.
+ *
+ * @param[in,out] header The header.
+ * @param date The date, or SDFIO_NO_TIME.
+ * @retval SDFIO_ERR_ARGUMENT `header` is null, or the year is out of the range
+ * of the SDF files.
+ */
+SDFIO_API sdfio_status sdfio_header_set_dates(sdfio_header *header,
+                                              time_t date);
 
 /**
  * Returns the manufacturer's identifier: at most SDFIO_MANUFACTURER_ID_MAX

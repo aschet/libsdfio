@@ -14,6 +14,7 @@
 #include <sdfio/file.h>
 
 #include <pthread.h>
+#include <time.h>
 
 #define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
 
@@ -108,7 +109,7 @@ static void *write_and_read(void *argument)
     {
         sdfio_header *header = NULL;
         if (sdfio_header_create(sdfio_default_allocator(), &header) != SDFIO_OK
-            || sdfio_header_set_now(header) != SDFIO_OK
+            || sdfio_header_set_dates(header, time(NULL)) != SDFIO_OK
             || sdfio_header_set_revision(
                    header, revisions[(self->id + (size_t)round) % 2])
                    != SDFIO_OK

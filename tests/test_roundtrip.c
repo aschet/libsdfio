@@ -1078,11 +1078,12 @@ static void check_second_open(void)
     free(files[1].data);
 }
 
-static time_t refuse_time(void *user, time_t time)
+static bool refuse_time(void *user, time_t utc, sdfio_date *local)
 {
     (void)user;
-    (void)time;
-    return SDFIO_NO_TIME;
+    (void)utc;
+    (void)local;
+    return false;
 }
 
 /* A header that cannot be written fails the writer, also if it is the end of

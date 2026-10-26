@@ -61,7 +61,6 @@ set(SDFIO_SOURCES
     src/file.c
     src/header.c
     src/header.h
-    src/header_now.c
     src/init.c
     src/heights.c
     src/layout.c
@@ -98,6 +97,7 @@ set(SDFIO_SOURCES
     src/trailer_text.c
     src/trailer_text.h
     src/text.c
+    src/time_zone_system.c
     src/text.h
     src/writer.c
     src/writer_data.c

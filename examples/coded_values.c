@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #define COLUMNS 512
 #define ROWS 64
@@ -30,7 +31,7 @@ static sdfio_status describe_coded_values(sdfio_header *header)
 {
     const double z_scale =
         sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
-    sdfio_status status = sdfio_header_set_now(header);
+    sdfio_status status = sdfio_header_set_dates(header, time(NULL));
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);

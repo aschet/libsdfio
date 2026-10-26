@@ -175,14 +175,63 @@ time_t sdfio_datetime_round(time_t time)
     return (time_t)(minutes_of(time) * SECONDS_PER_MINUTE);
 }
 
-bool sdfio_datetime_representable(time_t time)
+/* Whether the fields have the ranges of the standard: the year 1 to 9999, a
+ * month, a day that the month has, an hour and a minute. */
+static bool date_valid(const sdfio_date *date)
 {
+    return date->year >= FIRST_YEAR && date->year <= LAST_YEAR
+           && date->month >= 1 && date->month <= MONTHS_PER_YEAR
+           && date->day >= 1
+           && (unsigned)date->day
+                  <= days_in_month(date->year, (unsigned)date->month)
+           && date->hour >= 0 && date->hour < HOURS_PER_DAY && date->minute >= 0
+           && date->minute < MINUTES_PER_HOUR;
+}
+
+sdfio_status sdfio_date_to_time(const sdfio_date *date, time_t *utc)
+{
+    if (date == NULL || utc == NULL || !date_valid(date))
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    const int64_t days =
+        days_from_civil(date->year, (unsigned)date->month, (unsigned)date->day);
+    const int64_t clock = days * MINUTES_PER_DAY
+                          + (int64_t)date->hour * MINUTES_PER_HOUR
+                          + date->minute;
+    return seconds_to_time(clock * SECONDS_PER_MINUTE, utc) ? SDFIO_OK
+                                                            : SDFIO_ERR_RANGE;
+}
+
+sdfio_status sdfio_date_from_time(time_t utc, sdfio_date *date)
+{
+    if (date == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    const int64_t clock = minutes_of(utc);
+    const int64_t days = floor_div(clock, MINUTES_PER_DAY);
+    const int64_t minute_of_day = clock - days * MINUTES_PER_DAY;
     int64_t year = 0;
     unsigned month = 0;
     unsigned day = 0;
-    civil_from_days(floor_div(minutes_of(time), MINUTES_PER_DAY), &year, &month,
-                    &day);
-    return year >= FIRST_YEAR && year <= LAST_YEAR;
+    civil_from_days(days, &year, &month, &day);
+    if (year < FIRST_YEAR || year > LAST_YEAR)
+    {
+        return SDFIO_ERR_RANGE;
+    }
+    date->year = (int)year;
+    date->month = (int)month;
+    date->day = (int)day;
+    date->hour = (int)(minute_of_day / MINUTES_PER_HOUR);
+    date->minute = (int)(minute_of_day % MINUTES_PER_HOUR);
+    return SDFIO_OK;
+}
+
+bool sdfio_datetime_representable(time_t time)
+{
+    sdfio_date date;
+    return sdfio_date_from_time(time, &date) == SDFIO_OK;
 }
 
 bool sdfio_datetime_format(time_t time, sdfio_revision revision,
@@ -194,50 +243,30 @@ bool sdfio_datetime_format(time_t time, sdfio_revision revision,
         memset(out, '0', SDFIO_DATETIME_SIZE);
         return true;
     }
+    sdfio_date date;
     if (!sdfio_requires_utc(revision) && zone != NULL
         && zone->utc_to_local != NULL)
     {
-        time = zone->utc_to_local(zone->user, time);
-        if (time == SDFIO_NO_TIME || !sdfio_datetime_representable(time))
+        if (!zone->utc_to_local(zone->user, time, &date) || !date_valid(&date))
         {
             return false;
         }
     }
-    const int64_t clock = minutes_of(time);
-    const int64_t days = floor_div(clock, MINUTES_PER_DAY);
-    const int64_t minute_of_day = clock - days * MINUTES_PER_DAY;
-    int64_t year = 0;
-    unsigned month = 0;
-    unsigned day = 0;
-    civil_from_days(days, &year, &month, &day);
-    put_digits(out + DAY_AT, day, DAY_WIDTH);
-    put_digits(out + MONTH_AT, month, MONTH_WIDTH);
-    put_digits(out + YEAR_AT, (unsigned)year, YEAR_WIDTH);
-    put_digits(out + HOUR_AT, (unsigned)(minute_of_day / MINUTES_PER_HOUR),
-               HOUR_WIDTH);
-    put_digits(out + MINUTE_AT, (unsigned)(minute_of_day % MINUTES_PER_HOUR),
-               MINUTE_WIDTH);
+    else if (sdfio_date_from_time(time, &date) != SDFIO_OK)
+    {
+        return false;
+    }
+    put_digits(out + DAY_AT, (unsigned)date.day, DAY_WIDTH);
+    put_digits(out + MONTH_AT, (unsigned)date.month, MONTH_WIDTH);
+    put_digits(out + YEAR_AT, (unsigned)date.year, YEAR_WIDTH);
+    put_digits(out + HOUR_AT, (unsigned)date.hour, HOUR_WIDTH);
+    put_digits(out + MINUTE_AT, (unsigned)date.minute, MINUTE_WIDTH);
     return true;
 }
 
-/* The fields of a date in the text DDMMYYYYhhmm. */
-typedef struct date_fields
-{
-    /* The year, 1 to 9999. */
-    int year;
-    /* The month, 1 to 12. */
-    int month;
-    /* The day of the month. */
-    int day;
-    /* The hour, 0 to 23. */
-    int hour;
-    /* The minute, 0 to 59. */
-    int minute;
-} date_fields;
-
-/* The fields of a date, if the text has the ranges of the standard and a day
- * that the month has. */
-static bool read_date(const char *text, size_t size, date_fields *fields)
+/* The fields of a date in the text DDMMYYYYhhmm, if the text has the ranges of
+ * the standard and a day that the month has. */
+static bool read_date(const char *text, size_t size, sdfio_date *date)
 {
     sdfio_trim(&text, &size);
     if (size != SDFIO_DATETIME_SIZE)
@@ -251,16 +280,12 @@ static bool read_date(const char *text, size_t size, date_fields *fields)
             return false;
         }
     }
-    fields->day = get_digits(text + DAY_AT, DAY_WIDTH);
-    fields->month = get_digits(text + MONTH_AT, MONTH_WIDTH);
-    fields->year = get_digits(text + YEAR_AT, YEAR_WIDTH);
-    fields->hour = get_digits(text + HOUR_AT, HOUR_WIDTH);
-    fields->minute = get_digits(text + MINUTE_AT, MINUTE_WIDTH);
-    return fields->year >= FIRST_YEAR && fields->month >= 1
-           && fields->month <= MONTHS_PER_YEAR && fields->day >= 1
-           && (unsigned)fields->day
-                  <= days_in_month(fields->year, (unsigned)fields->month)
-           && fields->hour < HOURS_PER_DAY && fields->minute < MINUTES_PER_HOUR;
+    date->day = get_digits(text + DAY_AT, DAY_WIDTH);
+    date->month = get_digits(text + MONTH_AT, MONTH_WIDTH);
+    date->year = get_digits(text + YEAR_AT, YEAR_WIDTH);
+    date->hour = get_digits(text + HOUR_AT, HOUR_WIDTH);
+    date->minute = get_digits(text + MINUTE_AT, MINUTE_WIDTH);
+    return date_valid(date);
 }
 
 /* Tolerated deviation: a date of the character 0 only, or of the byte 0 only,
@@ -285,33 +310,24 @@ static bool is_not_recorded(const char *text, size_t size)
 
 bool sdfio_datetime_valid(const char *text, size_t size)
 {
-    date_fields fields;
-    return is_not_recorded(text, size) || read_date(text, size, &fields);
+    sdfio_date date;
+    return is_not_recorded(text, size) || read_date(text, size, &date);
 }
 
 time_t sdfio_datetime_parse(const char *text, size_t size,
                             sdfio_revision revision,
                             const sdfio_time_zone *zone)
 {
-    date_fields fields;
-    if (!read_date(text, size, &fields))
-    {
-        return SDFIO_NO_TIME;
-    }
-    const int64_t days = days_from_civil(fields.year, (unsigned)fields.month,
-                                         (unsigned)fields.day);
-    const int64_t clock = days * MINUTES_PER_DAY
-                          + (int64_t)fields.hour * MINUTES_PER_HOUR
-                          + fields.minute;
-    time_t date = 0;
-    if (!seconds_to_time(clock * SECONDS_PER_MINUTE, &date))
+    sdfio_date date;
+    if (!read_date(text, size, &date))
     {
         return SDFIO_NO_TIME;
     }
     if (!sdfio_requires_utc(revision) && zone != NULL
         && zone->local_to_utc != NULL)
     {
-        date = zone->local_to_utc(zone->user, date);
+        return zone->local_to_utc(zone->user, &date);
     }
-    return date;
+    time_t utc = 0;
+    return sdfio_date_to_time(&date, &utc) == SDFIO_OK ? utc : SDFIO_NO_TIME;
 }

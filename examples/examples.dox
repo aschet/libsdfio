@@ -60,9 +60,10 @@
 
 /**
  * @example time_zone.c
- * Writes and reads an ISO-1.0 file with an sdfio_time_zone. The file holds the
- * clock of the writer, and the callbacks convert the creation date between the
- * clock and UTC. The program prints the date as written, as read with the time
+ * Writes and reads an ISO-1.0 file with an sdfio_time_zone of a fixed offset.
+ * The file holds the clock of the writer, and the callbacks convert the creation
+ * date between the clock and UTC with sdfio_date_to_time() and
+ * sdfio_date_from_time(). sdfio_system_time_zone() is the zone of the machine. The program prints the date as written, as read with the time
  * zone, and as read without it, where the clock reading of the file is the
  * date.
  */

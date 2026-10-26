@@ -12,14 +12,18 @@ typedef struct zone
     time_t offset;
 } zone;
 
-static time_t local_to_utc(void *user, time_t local)
+static time_t local_to_utc(void *user, const sdfio_date *local)
 {
-    return local - ((const zone *)user)->offset;
+    time_t clock = 0;
+    return sdfio_date_to_time(local, &clock) == SDFIO_OK
+               ? clock - ((const zone *)user)->offset
+               : SDFIO_NO_TIME;
 }
 
-static time_t utc_to_local(void *user, time_t utc)
+static bool utc_to_local(void *user, time_t utc, sdfio_date *local)
 {
-    return utc + ((const zone *)user)->offset;
+    return sdfio_date_from_time(utc + ((const zone *)user)->offset, local)
+           == SDFIO_OK;
 }
 
 static void print_date(const char *label, time_t date)

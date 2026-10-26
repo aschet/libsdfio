@@ -84,6 +84,7 @@ static void check_init(void)
     CHECK(zone.user == NULL);
     CHECK(zone.local_to_utc == NULL);
     CHECK(zone.utc_to_local == NULL);
+    CHECK(sdfio_system_time_zone() != NULL);
 }
 
 /* The constants have the values and the types that the documentation gives. */

@@ -57,17 +57,36 @@ static void check_defaults(void)
     sdfio_header_free(header);
 }
 
-/* The dates of the clock are one time, rounded down to the minute. */
-static void check_dates_now(void)
+/* The setters round down to the minute, and set_dates sets both dates or
+ * neither. */
+static void check_dates(void)
 {
     sdfio_header *header = NULL;
     CHECK_OK(sdfio_header_create(sdfio_default_allocator(), &header));
-    CHECK_OK(sdfio_header_set_now(header));
-    const time_t created = sdfio_header_created(header);
-    CHECK(created != SDFIO_NO_TIME);
-    CHECK(created == sdfio_header_modified(header));
-    CHECK(created % 60 == 0);
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_now(NULL));
+    /* 2026-03-04 05:06:59 UTC */
+    CHECK_OK(sdfio_header_set_created(header, 1772600819));
+    CHECK(sdfio_header_created(header) == 1772600760);
+    CHECK_OK(sdfio_header_set_modified(header, 1772600790));
+    CHECK(sdfio_header_modified(header) == 1772600760);
+    /* A time before 1970 is rounded down as well. */
+    CHECK_OK(sdfio_header_set_created(header, -61));
+    CHECK(sdfio_header_created(header) == -120);
+    CHECK_OK(sdfio_header_set_dates(header, 1772600819));
+    CHECK(sdfio_header_created(header) == 1772600760);
+    CHECK(sdfio_header_modified(header) == 1772600760);
+    CHECK_OK(sdfio_header_set_dates(header, SDFIO_NO_TIME));
+    CHECK(sdfio_header_created(header) == SDFIO_NO_TIME);
+    CHECK(sdfio_header_modified(header) == SDFIO_NO_TIME);
+    CHECK_OK(sdfio_header_set_dates(header, 1772600760));
+    if (sizeof(time_t) >= 8)
+    {
+        const time_t far_away = (time_t)(INT64_C(1) << 40);
+        CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                     sdfio_header_set_dates(header, far_away));
+        CHECK(sdfio_header_created(header) == 1772600760);
+        CHECK(sdfio_header_modified(header) == 1772600760);
+    }
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_dates(NULL, 0));
     sdfio_header_free(header);
 }
 
@@ -325,7 +344,7 @@ static void check_copy_of_a_read_header(void)
 int main(void)
 {
     check_defaults();
-    check_dates_now();
+    check_dates();
     check_setters();
     check_refusals();
     check_cross_field_checks();
