@@ -330,7 +330,7 @@
  *
  * @code
  * aISO-2.0
- * ManufacID = ISOTC213
+ * ManufacID = libsdfio
  * CreateDate = 040120220853
  * ModDate = 050320231353
  * NumPoints = 3
