@@ -15,7 +15,6 @@
 #include "crlf.h"
 #include "defaults.h"
 #include "header.h"
-#include "message.h"
 #include "options.h"
 #include "owner.h"
 #include "sink.h"

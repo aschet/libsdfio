@@ -13,6 +13,7 @@
 #include "data_type.h"
 #include "defaults.h"
 #include "header.h"
+#include "message.h"
 #include "writer_file.h"
 #include "writer_state.h"
 #include <string.h>

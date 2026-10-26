@@ -9,6 +9,7 @@
  * @brief Copy of the trailer from a reader to a writer, in parts.
  */
 
+#include "message.h"
 #include "reader_state.h"
 #include "writer_state.h"
 

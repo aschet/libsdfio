@@ -16,7 +16,6 @@
 #include "data_type.h"
 #include "header.h"
 #include "layout.h"
-#include "message.h"
 #include <float.h>
 #include <math.h>
 #include <sdfio/sdfio.h>

@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_TRAILER_TEXT_H
 #define SDFIO_SRC_TRAILER_TEXT_H
 
-#include "message.h"
 #include "source.h"
 #include <stdbool.h>
 #include <stddef.h>

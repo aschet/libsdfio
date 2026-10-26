@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_SOURCE_H
 #define SDFIO_SRC_SOURCE_H
 
-#include "message.h"
 #include <sdfio/sdfio.h>
 
 /**

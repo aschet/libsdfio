@@ -13,6 +13,7 @@
 #include "options.h"
 #include "allocator.h"
 #include "defaults.h"
+#include "message.h"
 
 bool sdfio_options_init(sdfio_options *options,
                         const sdfio_allocator *allocator)

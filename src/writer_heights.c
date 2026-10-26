@@ -13,6 +13,7 @@
 #include "data_type.h"
 #include "header.h"
 #include "layout.h"
+#include "message.h"
 #include "writer_state.h"
 
 sdfio_status sdfio_write_heights(sdfio_writer *writer,

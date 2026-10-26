@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_LAYOUT_H
 #define SDFIO_SRC_LAYOUT_H
 
-#include "message.h"
 #include <sdfio/sdfio.h>
 
 /**

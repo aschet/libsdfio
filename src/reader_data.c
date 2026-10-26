@@ -13,6 +13,7 @@
 #include "data_type.h"
 #include "header.h"
 #include "layout.h"
+#include "message.h"
 #include "reader_state.h"
 #include <string.h>
 

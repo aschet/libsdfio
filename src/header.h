@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_HEADER_H
 #define SDFIO_SRC_HEADER_H
 
-#include "message.h"
 #include <sdfio/sdfio.h>
 
 /** The header of a file. */

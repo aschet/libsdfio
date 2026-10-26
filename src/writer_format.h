@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_WRITER_FORMAT_H
 #define SDFIO_SRC_WRITER_FORMAT_H
 
-#include "message.h"
 #include "sink.h"
 
 typedef struct sdfio_writer_format sdfio_writer_format;

@@ -12,7 +12,6 @@
 #ifndef SDFIO_SRC_READER_FORMAT_H
 #define SDFIO_SRC_READER_FORMAT_H
 
-#include "message.h"
 #include "source.h"
 
 typedef struct sdfio_reader_format sdfio_reader_format;

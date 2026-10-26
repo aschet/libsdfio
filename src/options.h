@@ -13,7 +13,6 @@
 #ifndef SDFIO_SRC_OPTIONS_H
 #define SDFIO_SRC_OPTIONS_H
 
-#include "message.h"
 #include <sdfio/sdfio.h>
 
 /** The options of a handle, which are fixed by the first file. */

@@ -10,6 +10,7 @@
  */
 
 #include "crlf.h"
+#include "message.h"
 #include "tagged.h"
 #include "writer_state.h"
 #include <string.h>
