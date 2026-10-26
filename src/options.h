@@ -15,7 +15,7 @@
 
 #include <sdfio/sdfio.h>
 
-/** The options of a handle, which are fixed by the first file. */
+/** Options of a handle, which are fixed by the first file. */
 typedef struct sdfio_options
 {
     /** The allocator of the handle. */

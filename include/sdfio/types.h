@@ -86,7 +86,7 @@ typedef enum sdfio_format
 } sdfio_format;
 
 /**
- * The type of the coded values of the data area of a file, and of the elements
+ * Type of the coded values of the data area of a file, and of the elements
  * of a buffer of heights.
  *
  * Each enumerator is named after the C type of the values. The enumerator
@@ -123,7 +123,7 @@ typedef enum sdfio_data_type
 } sdfio_data_type;
 
 /**
- * The bad value of each data type, the number that labels a point that is not
+ * Bad value of each data type, the number that labels a point that is not
  * measured or spurious: the minimum of an integer type, which the standard
  * excludes for a valid height, and the lowest finite value of a floating-point
  * type.

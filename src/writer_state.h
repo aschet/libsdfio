@@ -34,7 +34,7 @@ typedef enum sdfio_writer_phase
     SDFIO_WRITER_FAILED
 } sdfio_writer_phase;
 
-/** The state of a writer. */
+/** State of a writer. */
 struct sdfio_writer
 {
     /** The text of the last failure. */

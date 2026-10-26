@@ -31,7 +31,7 @@ typedef struct sdfio_memory_stream
     size_t position;
 } sdfio_memory_stream;
 
-/** The state of a reader. */
+/** State of a reader. */
 struct sdfio_reader
 {
     /** The text of the last failure. */

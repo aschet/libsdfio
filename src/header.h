@@ -14,7 +14,7 @@
 
 #include <sdfio/sdfio.h>
 
-/** The header of a file. */
+/** Header of a file. */
 struct sdfio_header
 {
     /** Revision of the format. */

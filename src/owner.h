@@ -13,7 +13,7 @@
 #define SDFIO_SRC_OWNER_H
 
 /**
- * The functions that end and close the file that sdfio_open_file() or
+ * Functions that end and close the file that sdfio_open_file() or
  * sdfio_create_file() opened for a reader or a writer.
  */
 typedef struct sdfio_owner

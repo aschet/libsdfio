@@ -15,7 +15,7 @@
 #include <float.h>
 #include <sdfio/sdfio.h>
 
-/** The size in bytes of the largest coded value of the data area, which is a
+/** Size in bytes of the largest coded value of the data area, which is a
  * binary64 number. */
 #define SDFIO_LARGEST_CODED_VALUE 8
 
@@ -32,7 +32,7 @@
 #define SDFIO_SCALARS(X) SDFIO_INTEGER_SCALARS(X) SDFIO_REAL_SCALARS(X)
 
 /**
- * The integer data types of SDFIO_SCALARS(), for code that has no use for the
+ * Integer data types of SDFIO_SCALARS(), for code that has no use for the
  * bounds of the floating-point types, which an integer cannot hold.
  *
  * @param X The macro that is called for each type.
@@ -43,7 +43,7 @@
     X(SDFIO_TYPE_INT32, int32_t, INT32_MIN, INT32_MAX, false)
 
 /**
- * The floating-point data types of SDFIO_SCALARS().
+ * Floating-point data types of SDFIO_SCALARS().
  *
  * @param X The macro that is called for each type.
  */
