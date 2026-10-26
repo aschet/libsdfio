@@ -132,25 +132,21 @@
 /**
  * @page format SDF Format
  *
- * A file consists of three records: the header, the data area
- * and the trailer. The file name extension is `.sdf`. A
- * file has an ASCII or a binary format. Both hold the same
- * information. A reader or a writer supports a format after it is added with
- * sdfio_reader_add_binary(), sdfio_reader_add_ascii() or one of the two
- * functions of the writer.
- *
- * @section format_magic Magic
- * The file starts with a magic of 8 characters, which the standard calls the
- * version number. Its first character is `a` for the ASCII and `b` for the
- * binary format, and the rest names the version: `aISO-1.0`, `aISO-2.0`,
- * `bISO-1.0` and `bISO-2.0`. The library calls the version a revision, ISO-1.0
- * and ISO-2.0. ISO-1.0 allows the data types int16_t, int32_t and double for
- * the data area, stores the numbers of columns and rows of a binary file as
- * uint16_t and has dates without a time zone. ISO-2.0 adds int8_t and float
- * for the data area, stores the numbers as uint32_t, has dates in UTC and a
- * trailer in the form of the header. Both revisions have a field for a
- * compression and for a checksum of the data. The standard defines only the
- * value 0, for none, so a file has neither.
+ * A file consists of three records: the header, the data area and the trailer.
+ * The file name extension is `.sdf`. A file has an ASCII or a binary format.
+ * Both hold the same information. A reader or a writer supports a format after
+ * it is added with sdfio_reader_add_binary(), sdfio_reader_add_ascii() or one
+ * of the two functions of the writer. The file starts with a magic of 8
+ * characters, which the standard calls the version number. Its first character
+ * is `a` for the ASCII and `b` for the binary format, and the rest names the
+ * version: `aISO-1.0`, `aISO-2.0`, `bISO-1.0` and `bISO-2.0`. The library calls
+ * the version a revision, ISO-1.0 and ISO-2.0. ISO-1.0 allows the data types
+ * int16_t, int32_t and double for the data area, stores the numbers of columns
+ * and rows of a binary file as uint16_t and has dates without a time zone.
+ * ISO-2.0 adds int8_t and float for the data area, stores the numbers as
+ * uint32_t, has dates in UTC and a trailer in the form of the header. Both
+ * revisions have a field for a compression and for a checksum of the data. The
+ * standard defines only the value 0, for none, so a file has neither.
  *
  * @section format_types Data Types
  * The values of the data area have one of these data types, which the header
