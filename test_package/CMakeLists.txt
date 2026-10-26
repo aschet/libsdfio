@@ -2,8 +2,6 @@
 #
 # SPDX-License-Identifier: MIT
 
-# A program outside the project that uses the installed library, as a user's
-# project does: find_package, the target sdfio::sdfio, the headers.
 cmake_minimum_required(VERSION 3.28)
 project(sdfio_test_package LANGUAGES C)
 

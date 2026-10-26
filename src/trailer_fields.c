@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @brief Fields of a trailer text.
+ * @brief Parsing of the fields of a trailer text.
  */
 
 #include "tagged.h"
