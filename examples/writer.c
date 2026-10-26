@@ -28,9 +28,15 @@ static void generate_heights(void)
     }
 }
 
-static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
+static sdfio_status describe_surface(sdfio_header *header,
+                                     sdfio_revision revision,
+                                     sdfio_data_type type)
 {
     sdfio_status status = sdfio_header_set_dates(header, time(NULL));
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_set_revision(header, revision);
+    }
     if (status == SDFIO_OK)
     {
         status = sdfio_header_set_data_type(header, type);
@@ -54,14 +60,17 @@ static sdfio_status describe_surface(sdfio_header *header, sdfio_data_type type)
     return status;
 }
 
-static int write_surface(const char *path, sdfio_data_type type)
+/* An ISO-1.0 file holds the clock of the writer, so the writer gets the time
+ * zone of the machine. An ISO-2.0 file holds UTC and does not use it. */
+static int write_surface(const char *path, sdfio_revision revision,
+                         sdfio_data_type type)
 {
     sdfio_header *header = NULL;
     sdfio_status status =
         sdfio_header_create(sdfio_default_allocator(), &header);
     if (status == SDFIO_OK)
     {
-        status = describe_surface(header, type);
+        status = describe_surface(header, revision, type);
     }
     sdfio_writer *writer = NULL;
     if (status == SDFIO_OK)
@@ -71,6 +80,10 @@ static int write_surface(const char *path, sdfio_data_type type)
     if (status == SDFIO_OK)
     {
         status = sdfio_writer_add_binary(writer);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_writer_set_time_zone(writer, sdfio_system_time_zone());
     }
     if (status == SDFIO_OK)
     {
@@ -105,7 +118,14 @@ static int write_surface(const char *path, sdfio_data_type type)
 int main(void)
 {
     generate_heights();
-    const int floats = write_surface("float.sdf", SDFIO_TYPE_FLOAT);
-    const int integers = write_surface("integer.sdf", SDFIO_TYPE_INT16);
-    return floats == EXIT_SUCCESS ? integers : floats;
+    const int floats =
+        write_surface("float.sdf", SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT);
+    const int integers =
+        write_surface("integer.sdf", SDFIO_ISO_2_0, SDFIO_TYPE_INT16);
+    const int legacy =
+        write_surface("iso1.sdf", SDFIO_ISO_1_0, SDFIO_TYPE_INT16);
+    return floats == EXIT_SUCCESS && integers == EXIT_SUCCESS
+                   && legacy == EXIT_SUCCESS
+               ? EXIT_SUCCESS
+               : EXIT_FAILURE;
 }
