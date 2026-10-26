@@ -18,7 +18,7 @@ INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/trailer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/writer.h \
                          @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
-                         @PROJECT_SOURCE_DIR@/docs/guide.dox \
+                         @PROJECT_SOURCE_DIR@/docs/main.dox \
                          @PROJECT_SOURCE_DIR@/examples/examples.dox
 EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
                          @PROJECT_SOURCE_DIR@/examples/external
