@@ -309,7 +309,7 @@
  * return and a line feed. sdfio_trailer_find_field() and
  * sdfio_trailer_next_field() find the fields in the text that
  * sdfio_read_trailer() returns, and give the name and the value as offsets into
- * that text. The example @ref reader.c shows both.
+ * that text.
  *
  * @section format_binary Binary Format
  * The records follow each other without a separator. Numbers are stored with
