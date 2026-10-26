@@ -5,8 +5,7 @@
  */
 
 /*
- * The introduction and the guide pages of the API reference. The pages
- * describe the file format and the concepts of the library, which the
+ * The main page of the API reference and the page on the SDF format, which the
  * descriptions of the single functions refer to.
  */
 
@@ -65,14 +64,78 @@
  *   width of `time_t`, see @ref building_time.
  * - Files of the format BCR-1.0, the predecessor of ISO-1.0, are not supported.
  *
- * @section pages Guide
- * - @ref format describes the file: the three records, the header, the data
- *   area, the trailer and the two formats.
- * - @ref building describes how to build, install and use the library, and the
- *   width of `time_t`.
- * - The programs under Examples show typical uses. The interface is declared in
- *   `<sdfio/sdfio.h>`, which does not depend on the file functions of the C
- *   library, and in `<sdfio/file.h>`, which adds the functions for files.
+ * @section building_build Building and Installing
+ * @code{.sh}
+ * cmake -S . -B build
+ * cmake --build build
+ * ctest --test-dir build
+ * cmake --install build --prefix /path/to/prefix
+ * @endcode
+ *
+ * With Visual Studio, configure with `-A x64` (or `Win32`, `ARM64`) and name
+ * the configuration in the other commands: `--config Release`, and
+ * `-C Release` for `ctest`.
+ *
+ * The options of CMake select what is built:
+ *
+ * <table class="doxtable">
+ * <tr><th>Option</th><th>Default</th><th>Builds</th></tr>
+ * <tr><td>SDFIO_BUILD_EXAMPLES</td><td>ON for the top-level project</td>
+ * <td>The examples.</td></tr>
+ * <tr><td>SDFIO_BUILD_EXTERNAL_EXAMPLES</td><td>OFF</td><td>The examples that
+ * use external libraries.</td></tr>
+ * <tr><td>SDFIO_BUILD_DOCS</td><td>OFF</td><td>This API reference, with
+ * Doxygen, as the target `docs`.</td></tr>
+ * </table>
+ *
+ * @section building_use Using the Library
+ * An installed library provides the CMake target `sdfio::sdfio`:
+ * @code{.unparsed}
+ * find_package(sdfio CONFIG REQUIRED)
+ * add_executable(main main.c)
+ * target_link_libraries(main PRIVATE sdfio::sdfio)
+ * @endcode
+ *
+ * The program includes `<sdfio/sdfio.h>`, and `<sdfio/file.h>` for the
+ * functions that open files. The programs under Examples show typical uses.
+ * Without CMake, pkg-config gives the flags:
+ * @code{.sh}
+ * cc main.c $(pkg-config --cflags --libs sdfio) -o main
+ * @endcode
+ *
+ * @section building_time Dates and the Width of time_t
+ * The dates of the interface are `time_t` values, which the library reads as
+ * integer seconds since 1970-01-01 00:00:00 UTC, as POSIX defines them. The
+ * library and the program that calls it have to be built with the same width
+ * of `time_t`. The build of the library does not select it. A date that a
+ * 32-bit `time_t` cannot hold reads as SDFIO_NO_TIME.
+ *
+ * Where `time_t` is already 64 bits, as on 64-bit targets and with the UCRT,
+ * nothing is needed. A 32-bit host selects a 64-bit `time_t` as follows:
+ *
+ * <table class="doxtable">
+ * <tr><th>Target</th><th>Selection</th></tr>
+ * <tr><td>glibc, 32-bit</td><td><code>_TIME_BITS=64</code> and
+ * <code>_FILE_OFFSET_BITS=64</code>. glibc rejects <code>_TIME_BITS=64</code>
+ * without <code>_FILE_OFFSET_BITS=64</code>.</td></tr>
+ * <tr><td>MinGW-w64, 32-bit, with the msvcrt runtime</td>
+ * <td><code>_TIME_BITS=64</code></td></tr>
+ * </table>
+ *
+ * The flags go to the compiler of the program and to the compiler of the
+ * library, for example when the library is built from source:
+ * @code{.sh}
+ * cmake -S . -B build -DCMAKE_C_FLAGS="-D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
+ * @endcode
+ *
+ * @section building_checks Running the Checks
+ * The continuous integration runs its jobs with `.github/ci/run.sh`, which
+ * runs them on a developer machine in the same way. The first command lists
+ * the jobs and the second runs one of them:
+ * @code{.sh}
+ * .github/ci/run.sh --list
+ * .github/ci/run.sh gcc-x86-64-linux
+ * @endcode
  */
 
 /**
@@ -297,81 +360,5 @@
  * *
  * OperatorName = Jane Doe
  * *
- * @endcode
- */
-
-/**
- * @page building Building and Using the Library
- *
- * @section building_build Building and Installing
- * @code{.sh}
- * cmake -S . -B build
- * cmake --build build
- * ctest --test-dir build
- * cmake --install build --prefix /path/to/prefix
- * @endcode
- *
- * With Visual Studio, configure with `-A x64` (or `Win32`, `ARM64`) and name
- * the configuration in the other commands: `--config Release`, and
- * `-C Release` for `ctest`.
- *
- * The options of CMake select what is built:
- *
- * <table class="doxtable">
- * <tr><th>Option</th><th>Default</th><th>Builds</th></tr>
- * <tr><td>SDFIO_BUILD_EXAMPLES</td><td>ON for the top-level project</td>
- * <td>The examples.</td></tr>
- * <tr><td>SDFIO_BUILD_EXTERNAL_EXAMPLES</td><td>OFF</td><td>The examples that
- * use external libraries.</td></tr>
- * <tr><td>SDFIO_BUILD_DOCS</td><td>OFF</td><td>This API reference, with
- * Doxygen, as the target `docs`.</td></tr>
- * </table>
- *
- * @section building_use Using the Library
- * An installed library provides the CMake target `sdfio::sdfio`:
- * @code{.unparsed}
- * find_package(sdfio CONFIG REQUIRED)
- * add_executable(main main.c)
- * target_link_libraries(main PRIVATE sdfio::sdfio)
- * @endcode
- *
- * The program includes `<sdfio/sdfio.h>`, and `<sdfio/file.h>` for the
- * functions that open files. Without CMake, pkg-config gives the flags:
- * @code{.sh}
- * cc main.c $(pkg-config --cflags --libs sdfio) -o main
- * @endcode
- *
- * @section building_time Dates and the Width of time_t
- * The dates of the interface are `time_t` values, which the library reads as
- * integer seconds since 1970-01-01 00:00:00 UTC, as POSIX defines them. The
- * library and the program that calls it have to be built with the same width
- * of `time_t`. The build of the library does not select it. A date that a
- * 32-bit `time_t` cannot hold reads as SDFIO_NO_TIME.
- *
- * Where `time_t` is already 64 bits, as on 64-bit targets and with the UCRT,
- * nothing is needed. A 32-bit host selects a 64-bit `time_t` as follows:
- *
- * <table class="doxtable">
- * <tr><th>Target</th><th>Selection</th></tr>
- * <tr><td>glibc, 32-bit</td><td><code>_TIME_BITS=64</code> and
- * <code>_FILE_OFFSET_BITS=64</code>. glibc rejects <code>_TIME_BITS=64</code>
- * without <code>_FILE_OFFSET_BITS=64</code>.</td></tr>
- * <tr><td>MinGW-w64, 32-bit, with the msvcrt runtime</td>
- * <td><code>_TIME_BITS=64</code></td></tr>
- * </table>
- *
- * The flags go to the compiler of the program and to the compiler of the
- * library, for example when the library is built from source:
- * @code{.sh}
- * cmake -S . -B build -DCMAKE_C_FLAGS="-D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
- * @endcode
- *
- * @section building_checks Running the Checks
- * The continuous integration runs its jobs with `.github/ci/run.sh`, which
- * runs them on a developer machine in the same way. The first command lists
- * the jobs and the second runs one of them:
- * @code{.sh}
- * .github/ci/run.sh --list
- * .github/ci/run.sh gcc-x86-64-linux
  * @endcode
  */

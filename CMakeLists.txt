@@ -210,7 +210,7 @@ if(SDFIO_BUILD_DOCS)
         message(FATAL_ERROR "The layout of Doxygen has no tab for the pages")
     endif()
     string(REPLACE "${pages_tab}"
-        "<tab type=\"pages\" visible=\"yes\" title=\"Guide\" intro=\"\"/>"
+        "<tab type=\"user\" url=\"@ref format\" title=\"SDF Format\" intro=\"\"/>"
         layout "${layout}")
     file(WRITE "${SDFIO_DOXYGEN_LAYOUT}" "${layout}")
     configure_file(cmake/Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
