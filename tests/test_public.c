@@ -87,7 +87,7 @@ static void check_init(void)
     CHECK(sdfio_system_time_zone() != NULL);
 }
 
-/* The constants have the values and the types that the documentation gives. */
+/* The values and the types of the constants. */
 static void check_constants(void)
 {
     CHECK(SDFIO_BAD_INT8 == INT8_MIN && SDFIO_BAD_INT16 == INT16_MIN
