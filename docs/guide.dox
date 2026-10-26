@@ -91,7 +91,9 @@
  * A file consists of three records: the header, the data area
  * and the trailer. The file name extension is `.sdf`. A
  * file has an ASCII or a binary format. Both hold the same
- * information.
+ * information. A program names the formats that it uses with
+ * sdfio_reader_add_binary(), sdfio_reader_add_ascii() and the two functions of
+ * the writer, and contains the code of those formats only.
  *
  * @section format_magic Magic
  * The file starts with a magic of 8 characters, which the standard calls the
@@ -172,7 +174,12 @@
  * in a right-handed coordinate system: x grows with the column, y with the row,
  * and z points to the viewer who looks from above. The first row has y = 0.
  * Seen from above with x to the right, y grows upward, so the first row of the
- * file is the bottom row of the picture.
+ * file is the bottom row of the picture. sdfio_read_data() and
+ * sdfio_read_heights() deliver the rows in this order, and the writing
+ * functions take them in this order. Image libraries count the rows from the
+ * top, so a program that shows a surface unchanged shows it upside down. A
+ * negative row stride in the layout of the buffer turns the matrix without a
+ * copy.
  *
  * @code{.unparsed}
  * seen from above:
@@ -195,6 +202,28 @@
  * floating-point type usually holds metres directly, with the z-scale 1, but
  * any z-scale is valid.
  *
+ * The library offers both views, and a program uses the highest one that
+ * suffices. sdfio_read_data() and sdfio_write_data() transfer the coded values
+ * as the file has them, row by row. sdfio_decode_heights() and
+ * sdfio_encode_heights() convert rows between coded values and heights in
+ * metres and need only a header. sdfio_read_heights() and
+ * sdfio_write_heights() transfer the whole matrix as heights in one call.
+ * Encoding rounds an integer to the nearest value. A height that does not fit
+ * the data type with the z-scale is an error (SDFIO_ERR_RANGE), and so is a
+ * height that would be written as the bad value (SDFIO_ERR_BAD_VALUE), because
+ * a reader would take it for a point that is not measured.
+ * sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() find the
+ * smallest z-scale that fits the heights, and sdfio_write_heights() uses it
+ * when the header has SDFIO_AUTO_Z_SCALE.
+ *
+ * A buffer of the program is described by an sdfio_layout: the type of its
+ * elements and two strides. The element at the row y and the column x is at
+ * the byte `y * row_stride + x * element_stride` from the pointer that the
+ * program passes. sdfio_layout_packed() describes a plain array. With strides
+ * the matrix is read or written in place when it is part of something else,
+ * such as a member of a structure, a channel of an interleaved image or a
+ * column-major matrix.
+ *
  * <table class="doxtable">
  * <tr><th>Data
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
@@ -215,6 +244,13 @@
  * data type, the bad value. The lowest value is not permitted for a valid
  * point. An ASCII file writes the string `BAD` instead.
  *
+ * A height in metres has no such value, so it is NaN. The functions that read
+ * or convert heights deliver NaN for a point that is not measured, and the
+ * functions that write or convert heights take NaN and infinity as such a
+ * point. This is also the convention of ISO 25178-72 for the binary float
+ * formats. A program whose data uses a marker such as -9999 replaces it with
+ * NaN before writing, and NaN with the marker after reading.
+ *
  * @section format_trailer The Trailer
  * The trailer holds historical information about the measurement, such as the
  * name of the operator, the measurement conditions or the processing that was
@@ -231,8 +267,9 @@
  * The header has fixed fields in the order above, and nothing separates the
  * records. The header says how long the data area is, and what follows it is
  * the trailer. All numbers are stored with the least significant byte first, on
- * whatever processor the file is written or read. A string that is shorter than
- * its field is filled with spaces.
+ * whatever processor the file is written or read, and the library converts the
+ * byte order, so that the same code runs on little-endian and big-endian
+ * processors. A string that is shorter than its field is filled with spaces.
  *
  * @section format_ascii The ASCII Format
  * - The file consists of lines that end with a carriage return and a line feed.
@@ -243,6 +280,8 @@
  *   the last such line ends the file.
  * - White space between the values of the data area is ignored, so the lines
  *   of the data area can have any length. The data area holds N times M values.
+ * - The decimal point is `.`. The library uses it whatever the locale and reads
+ *   any decimal or scientific form of a number.
  * - A value of binary32 is written with 7 significant digits and a two-digit
  *   exponent, as in `1.500000e+00`. A value of binary64 is written with 15
  *   digits and a three-digit exponent, as in `1.50000000000000e+000`. The
