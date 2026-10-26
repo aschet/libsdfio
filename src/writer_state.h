@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_state.h
+ * @file
  * @brief State of a writer, shared by its source files.
  */
 

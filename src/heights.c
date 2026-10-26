@@ -5,7 +5,7 @@
  */
 
 /**
- * @file heights.c
+ * @file
  * @brief Conversion between coded values and heights.
  *
  * These functions need no handle: they take the description of a file and

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file byte_order.c
+ * @file
  * @brief Conversion between the little-endian byte order of files and that of
  * the host.
  */

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_format.h
+ * @file
  * @brief Interface of the formats that a writer writes.
  */
 

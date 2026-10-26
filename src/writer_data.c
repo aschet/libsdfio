@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_data.c
+ * @file
  * @brief Writing of rows as coded values.
  */
 
@@ -16,7 +16,6 @@
 #include "writer_state.h"
 #include <string.h>
 
-/* The header goes out with the first values, when the z-scale is known. */
 sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
 {
     if (writer->header_written)
@@ -51,7 +50,6 @@ sdfio_status sdfio_writer_start_data(sdfio_writer *writer)
     return SDFIO_OK;
 }
 
-/* Writes coded values through the format of the file. */
 sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
                                      size_t count)
 {
@@ -61,8 +59,6 @@ sdfio_status sdfio_writer_put_values(sdfio_writer *writer, const void *values,
     return status == SDFIO_OK ? status : sdfio_writer_fail(writer, status);
 }
 
-/* Writes the values of a row from a buffer whose elements are `element` bytes
- * apart, each of them `size` bytes. */
 static sdfio_status write_row(sdfio_writer *writer, const unsigned char *row,
                               ptrdiff_t element, size_t size)
 {

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_heights.c
+ * @file
  * @brief Reading of the data area as heights.
  */
 

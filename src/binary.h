@@ -5,7 +5,7 @@
  */
 
 /**
- * @file binary.h
+ * @file
  * @brief Layout of the binary header.
  */
 

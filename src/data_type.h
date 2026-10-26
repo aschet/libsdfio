@@ -5,7 +5,7 @@
  */
 
 /**
- * @file data_type.h
+ * @file
  * @brief Data types of the data area: sizes, C types and the check of a code.
  */
 

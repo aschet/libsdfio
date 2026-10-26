@@ -5,7 +5,7 @@
  */
 
 /**
- * @file message.h
+ * @file
  * @brief Text of the last failure of a handle.
  */
 

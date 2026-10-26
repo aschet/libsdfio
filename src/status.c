@@ -5,7 +5,7 @@
  */
 
 /**
- * @file status.c
+ * @file
  * @brief Texts of the status codes.
  */
 

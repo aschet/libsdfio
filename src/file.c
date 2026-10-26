@@ -5,7 +5,7 @@
  */
 
 /**
- * @file file.c
+ * @file
  * @brief Opening and creating of files, and the stream over a C file.
  */
 

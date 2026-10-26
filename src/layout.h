@@ -5,7 +5,7 @@
  */
 
 /**
- * @file layout.h
+ * @file
  * @brief Layout of a buffer in memory.
  */
 

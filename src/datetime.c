@@ -5,7 +5,7 @@
  */
 
 /**
- * @file datetime.c
+ * @file
  * @brief Conversion between the date field DDMMYYYYhhmm and time_t.
  *
  * ISO-2.0 holds UTC and the other revisions the local clock of the writer,

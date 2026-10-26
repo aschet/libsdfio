@@ -5,7 +5,7 @@
  */
 
 /**
- * @file heights_real.h
+ * @file
  * @brief Height conversion for one floating-point type.
  *
  * This file is included twice by heights.c, once for `float` and once for

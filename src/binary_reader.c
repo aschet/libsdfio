@@ -5,7 +5,7 @@
  */
 
 /**
- * @file binary_reader.c
+ * @file
  * @brief Reading of the binary format: header fields, values of the data type,
  * trailer to the end of the file.
  *

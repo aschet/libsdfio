@@ -5,7 +5,7 @@
  */
 
 /**
- * @file allocator.h
+ * @file
  * @brief Allocation and release of memory through the allocator of the program.
  */
 

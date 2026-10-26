@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader.c
+ * @file
  * @brief Life of a reader: creation, options, opening, release.
  */
 

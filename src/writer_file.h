@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_file.h
+ * @file
  * @brief What a file needs of a writer.
  */
 

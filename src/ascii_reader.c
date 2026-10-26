@@ -5,7 +5,7 @@
  */
 
 /**
- * @file ascii_reader.c
+ * @file
  * @brief Reading of the ASCII format: header lines, numbers in text, trailer up
  * to the closing `*`.
  */

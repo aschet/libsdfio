@@ -5,7 +5,7 @@
  */
 
 /**
- * @file ascii.h
+ * @file
  * @brief Names and characters of the ASCII format.
  */
 

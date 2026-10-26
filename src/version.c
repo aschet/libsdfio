@@ -5,7 +5,7 @@
  */
 
 /**
- * @file version.c
+ * @file
  * @brief Version of the library.
  */
 

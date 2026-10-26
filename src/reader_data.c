@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_data.c
+ * @file
  * @brief Reading of rows as coded values.
  */
 

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file owner.h
+ * @file
  * @brief What a file adds to a handle: finishing and closing.
  */
 

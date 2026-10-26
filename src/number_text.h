@@ -5,7 +5,7 @@
  */
 
 /**
- * @file number_text.h
+ * @file
  * @brief Locale-independent number conversion.
  */
 

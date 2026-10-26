@@ -5,7 +5,7 @@
  */
 
 /**
- * @file sink.c
+ * @file
  * @brief Buffer in front of the stream of a writer.
  */
 

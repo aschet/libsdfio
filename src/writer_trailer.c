@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_trailer.c
+ * @file
  * @brief Writing of the trailer and the end of the file.
  */
 

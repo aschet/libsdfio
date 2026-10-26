@@ -5,7 +5,7 @@
  */
 
 /**
- * @file chunk.h
+ * @file
  * @brief Division of values into chunks.
  */
 

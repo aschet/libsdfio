@@ -5,7 +5,7 @@
  */
 
 /**
- * @file init.c
+ * @file
  * @brief Initial values of the stream and the time zone.
  */
 

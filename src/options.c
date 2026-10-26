@@ -5,7 +5,7 @@
  */
 
 /**
- * @file options.c
+ * @file
  * @brief Options that readers and writers share: allocator, time zone, buffer
  * size and chunk size.
  */

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file trailer_text.c
+ * @file
  * @brief Reading of the trailer text in parts, with LF line ends.
  */
 
@@ -44,10 +44,9 @@ static bool at_star_line(sdfio_source *source)
     {
         return at[i] == '\r' || at[i] == '\n';
     }
-    return buffered < STAR_WINDOW; /* the file ends after the star */
+    return buffered < STAR_WINDOW;
 }
 
-/* Takes a character of the source into the state. */
 static void take_character(sdfio_trailer_state *state, int c)
 {
     if (state->pending_cr)
@@ -81,7 +80,6 @@ static void take_character(sdfio_trailer_state *state, int c)
     }
 }
 
-/* Ends the text: a CR whose LF did not follow is a character of it. */
 static void end_text(sdfio_trailer_state *state)
 {
     if (state->pending_cr)

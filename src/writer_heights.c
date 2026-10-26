@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer_heights.c
+ * @file
  * @brief Writing of the data area from heights.
  */
 

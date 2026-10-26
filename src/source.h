@@ -5,7 +5,7 @@
  */
 
 /**
- * @file source.h
+ * @file
  * @brief Buffer in front of the stream of a reader.
  */
 

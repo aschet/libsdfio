@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_format.h
+ * @file
  * @brief Interface of the formats that a reader reads.
  */
 

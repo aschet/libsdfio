@@ -5,7 +5,7 @@
  */
 
 /**
- * @file fields.h
+ * @file
  * @brief Sizes and codes of the header fields.
  */
 

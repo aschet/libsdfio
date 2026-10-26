@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_header.h
+ * @file
  * @brief Choosing of the format from the first bytes, and reading of the
  * header.
  */

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file file_win32.c
+ * @file
  * @brief Opening and creating of files by wide-character path on Windows.
  *
  * The functions correspond to those of file.c and open files with the functions

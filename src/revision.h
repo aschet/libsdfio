@@ -5,7 +5,7 @@
  */
 
 /**
- * @file revision.h
+ * @file
  * @brief Revisions and their differences: data types, field sizes of columns
  * and rows, dates.
  */

@@ -5,7 +5,7 @@
  */
 
 /**
- * @file trailer_fields.c
+ * @file
  * @brief Fields of a trailer text.
  */
 

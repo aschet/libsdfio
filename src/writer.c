@@ -5,7 +5,7 @@
  */
 
 /**
- * @file writer.c
+ * @file
  * @brief Life of a writer: creation, options, file start, release.
  */
 

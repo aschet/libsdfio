@@ -5,7 +5,7 @@
  */
 
 /**
- * @file sizes.c
+ * @file
  * @brief Buffer sizes for the data area and for heights.
  */
 

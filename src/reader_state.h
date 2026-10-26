@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_state.h
+ * @file
  * @brief State of a reader, shared by its source files.
  */
 

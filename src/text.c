@@ -5,7 +5,7 @@
  */
 
 /**
- * @file text.c
+ * @file
  * @brief Locale-independent tests and conversions of ASCII characters.
  */
 

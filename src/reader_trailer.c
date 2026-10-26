@@ -5,7 +5,7 @@
  */
 
 /**
- * @file reader_trailer.c
+ * @file
  * @brief Reading of the trailer in parts.
  */
 

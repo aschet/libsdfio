@@ -5,7 +5,7 @@
  */
 
 /**
- * @file ascii_writer.c
+ * @file
  * @brief Writing of the ASCII format: header lines, numbers in text, closing
  * `*` lines.
  */

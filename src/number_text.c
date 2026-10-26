@@ -5,7 +5,7 @@
  */
 
 /**
- * @file number_text.c
+ * @file
  * @brief Locale-independent number conversion.
  *
  * The functions of the C library that print and parse numbers use the decimal

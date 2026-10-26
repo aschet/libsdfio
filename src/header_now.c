@@ -5,7 +5,7 @@
  */
 
 /**
- * @file header_now.c
+ * @file
  * @brief Dates of a header from the clock; the only code that reads it.
  */
 

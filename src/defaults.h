@@ -5,7 +5,7 @@
  */
 
 /**
- * @file defaults.h
+ * @file
  * @brief Defaults and limits of the options.
  */
 

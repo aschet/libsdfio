@@ -5,7 +5,7 @@
  */
 
 /**
- * @file allocator_default.c
+ * @file
  * @brief Default allocator on malloc() and free().
  */
 

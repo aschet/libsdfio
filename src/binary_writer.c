@@ -5,7 +5,7 @@
  */
 
 /**
- * @file binary_writer.c
+ * @file
  * @brief Writing of the binary format: header fields, values of the data type,
  * trailer at the end of the file.
  *

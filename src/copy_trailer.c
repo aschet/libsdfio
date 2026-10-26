@@ -5,7 +5,7 @@
  */
 
 /**
- * @file copy_trailer.c
+ * @file
  * @brief Copy of the trailer from a reader to a writer, in parts.
  */
 

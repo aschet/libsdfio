@@ -5,7 +5,7 @@
  */
 
 /**
- * @file header.h
+ * @file
  * @brief Header of a file.
  */
 
