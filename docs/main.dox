@@ -280,14 +280,6 @@
  * smallest z-scale that fits the heights, and sdfio_write_heights() uses it
  * when the header has SDFIO_AUTO_Z_SCALE.
  *
- * A buffer of the program is described by an sdfio_layout: the type of its
- * elements and two strides. The element at the row y and the column x is at
- * the byte `y * row_stride + x * element_stride` from the pointer that the
- * program passes. sdfio_layout_packed() describes a plain array. With strides
- * the matrix is read or written in place when it is part of something else,
- * such as a member of a structure, a channel of an interleaved image or a
- * column-major matrix.
- *
  * A point that is not measured has the bad value of the data type as a coded
  * value. A height in metres has no such value, so it is NaN. The functions that read
  * or convert heights deliver NaN for a point that is not measured, and the
