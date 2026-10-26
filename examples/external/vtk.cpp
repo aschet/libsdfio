@@ -83,15 +83,15 @@ void hide_points_not_measured(vtkImageData *image)
 {
     const vtkIdType count = image->GetNumberOfPoints();
     const float *heights = heights_of(image);
-    vtkNew<vtkUnsignedCharArray> ghosts;
-    ghosts->SetName(vtkDataSetAttributes::GhostArrayName());
-    ghosts->SetNumberOfValues(count);
+    vtkNew<vtkUnsignedCharArray> hidden;
+    hidden->SetName(vtkDataSetAttributes::GhostArrayName());
+    hidden->SetNumberOfValues(count);
     for (vtkIdType i = 0; i < count; ++i)
     {
-        ghosts->SetValue(
+        hidden->SetValue(
             i, std::isnan(heights[i]) ? vtkDataSetAttributes::HIDDENPOINT : 0);
     }
-    image->GetPointData()->AddArray(ghosts);
+    image->GetPointData()->AddArray(hidden);
 }
 
 // The height field: the polygons of the image, warped by the scalars times a
