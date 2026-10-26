@@ -40,8 +40,9 @@
  * - Memory only when a handle or a file is created, through an allocator that
  *   the program can replace, so that a pool can be sized in advance. Reading
  *   and writing allocate nothing.
- * - Code for the formats that a program names. A program that writes binary
- *   files contains no code for ASCII or for reading.
+ * - Formats are added to a handle explicitly, so that a program contains the
+ *   code of the added formats only. A program that writes binary files
+ *   contains no code for ASCII or for reading.
  * - Handles without shared state, so that threads use their own handles at
  *   once. Standard C11, little-endian and big-endian processors, 32-bit and
  *   64-bit.
@@ -134,9 +135,10 @@
  * A file consists of three records: the header, the data area
  * and the trailer. The file name extension is `.sdf`. A
  * file has an ASCII or a binary format. Both hold the same
- * information. A program names the formats that it uses with
- * sdfio_reader_add_binary(), sdfio_reader_add_ascii() and the two functions of
- * the writer, and contains the code of those formats only.
+ * information. A reader or a writer supports a format after it is added with
+ * sdfio_reader_add_binary(), sdfio_reader_add_ascii() or one of the two
+ * functions of the writer. Only the code of the added formats is linked into
+ * the program.
  *
  * @section format_magic Magic
  * The file starts with a magic of 8 characters, which the standard calls the
