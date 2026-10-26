@@ -160,6 +160,29 @@
  * Both revisions have a field for a compression and for a checksum of the
  * data. The standard defines only the value 0, for none, so a file has neither.
  *
+ * @section format_types Data Types
+ * <table class="doxtable">
+ * <tr><th>Data
+ *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
+ *   of a Point That Is Not Measured</th></tr>
+ * <tr><td>binary32 / float</td><td>3</td><td>4
+ *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT</td></tr>
+ * <tr><td>int8 / int8_t</td><td>4</td><td>1
+ *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8</td></tr>
+ * <tr><td>int16 / int16_t</td><td>5</td><td>2
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16</td></tr>
+ * <tr><td>int32 / int32_t</td><td>6</td><td>4
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32</td></tr>
+ * <tr><td>binary64 / double</td><td>7</td><td>8
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE</td></tr>
+ * </table>
+ *
+ * A point that is not measured, or is spurious, is labelled with the minimum
+ * value of the data type, which the standard does not permit for any valid
+ * coded value. An ASCII file writes the string `BAD` instead. The library
+ * defines the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
+ * `SDFIO_BAD_INT32`, `SDFIO_BAD_FLOAT` and `SDFIO_BAD_DOUBLE`.
+ *
  * @section format_header Header
  * <table class="doxtable">
  * <tr><th>Field</th><th>ASCII Name</th><th>Binary
@@ -171,10 +194,10 @@
  *   characters</td><td>When the data was generated.</td></tr>
  * <tr><td>Modification date</td><td><code>ModDate</code></td><td>12
  *   characters</td><td>When the file was last modified.</td></tr>
- * <tr><td>Columns M</td><td><code>NumPoints</code></td><td>2 or 4
- *   bytes</td><td>The points along x.</td></tr>
- * <tr><td>Rows N</td><td><code>NumProfiles</code></td><td>2 or 4
- *   bytes</td><td>The profiles along y. 1 for a profile.</td></tr>
+ * <tr><td>Columns M</td><td><code>NumPoints</code></td><td>uint16 / uint16_t
+ *   or uint32 / uint32_t</td><td>The points along x.</td></tr>
+ * <tr><td>Rows N</td><td><code>NumProfiles</code></td><td>uint16 / uint16_t
+ *   or uint32 / uint32_t</td><td>The profiles along y. 1 for a profile.</td></tr>
  * <tr><td>X-scale</td><td><code>Xscale</code></td><td>binary64</td><td>The
  *   sampling interval along x in metres.</td></tr>
  * <tr><td>Y-scale</td><td><code>Yscale</code></td><td>binary64</td><td>The
@@ -187,7 +210,7 @@
  * <tr><td>Compression</td><td><code>Compression</code></td><td>1
  *   byte</td><td>0, no compression.</td></tr>
  * <tr><td>Data type</td><td><code>DataType</code></td><td>1 byte</td><td>The
- *   code of the type of the values, below.</td></tr>
+ *   code of the type of the values, see Data Types.</td></tr>
  * <tr><td>Checksum type</td><td><code>CheckType</code></td><td>1
  *   byte</td><td>0, no checksum.</td></tr>
  * </table>
@@ -268,29 +291,8 @@
  * such as a member of a structure, a channel of an interleaved image or a
  * column-major matrix.
  *
- * <table class="doxtable">
- * <tr><th>Data
- *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
- *   of a Point That Is Not Measured</th></tr>
- * <tr><td>binary32 / float</td><td>3</td><td>4
- *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT</td></tr>
- * <tr><td>int8 / int8_t</td><td>4</td><td>1
- *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8</td></tr>
- * <tr><td>int16 / int16_t</td><td>5</td><td>2
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16</td></tr>
- * <tr><td>int32 / int32_t</td><td>6</td><td>4
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32</td></tr>
- * <tr><td>binary64 / double</td><td>7</td><td>8
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE</td></tr>
- * </table>
- *
- * A point that is not measured, or is spurious, is labelled with the minimum
- * value of the data type, which the standard does not permit for any valid
- * coded value. An ASCII file writes the string `BAD` instead. The library
- * defines the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
- * `SDFIO_BAD_INT32`, `SDFIO_BAD_FLOAT` and `SDFIO_BAD_DOUBLE`.
- *
- * A height in metres has no such value, so it is NaN. The functions that read
+ * A point that is not measured has the bad value of the data type as a coded
+ * value. A height in metres has no such value, so it is NaN. The functions that read
  * or convert heights deliver NaN for a point that is not measured, and the
  * functions that write or convert heights take NaN and infinity as such a
  * point. This is also the convention of ISO 25178-72 for the binary float
