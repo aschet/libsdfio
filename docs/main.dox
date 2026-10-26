@@ -140,7 +140,10 @@
  * number. Its first character is `a` for the ASCII and `b` for the binary
  * format, and the rest names the version: `aISO-1.0`, `aISO-2.0`, `bISO-1.0`
  * and `bISO-2.0`. The library calls the version a revision, ISO-1.0 and
- * ISO-2.0. ISO-1.0 allows the data types int16_t, int32_t and double for the
+ * ISO-2.0. ISO-1.0 is the standardized form of BCR-1.0, the format that
+ * preceded the standard, described by K. J. Stout et al., The Development of
+ * Methods for the Characterisation of Roughness in Three Dimensions, EUR 15178
+ * EN, 1993. ISO-1.0 allows the data types int16_t, int32_t and double for the
  * data area, stores the numbers of columns and rows of a binary file as
  * uint16_t and has dates without a time zone. ISO-2.0 adds int8_t and float for
  * the data area, stores the numbers as uint32_t, has dates in UTC and a trailer
@@ -208,10 +211,12 @@
  *
  * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
  * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
- * an ISO-1.0 file are the clock of the writer, whose time zone is not recorded.
- * sdfio_time_zone converts them, and sdfio_system_time_zone() is the zone of the
- * machine. A conversion is correct only if the zone is the one in which the file
- * was written.
+ * an ISO-1.0 file are the local clock reading of the writer, and the file does
+ * not record the time zone. A reader that needs the UTC time converts the
+ * reading with the zone in which the file was written: the program passes the
+ * conversion to the library as an sdfio_time_zone, and sdfio_system_time_zone()
+ * is the conversion for the zone of the machine that runs the program. The
+ * result is correct only if that zone is the zone of the writer.
  *
  * @section format_data Data Area
  * The data area holds the matrix W of the coded values with N rows and M
