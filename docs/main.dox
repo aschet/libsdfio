@@ -272,20 +272,22 @@
  *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Enumerator</th><th>Value
  *   of a Point That Is Not Measured</th></tr>
  * <tr><td>binary32</td><td>3</td><td>4
- *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>-3.402823466e38</td></tr>
+ *   bytes</td><td>no</td><td>yes</td><td>SDFIO_TYPE_FLOAT</td><td>SDFIO_BAD_FLOAT, -3.402823466e38</td></tr>
  * <tr><td>int8</td><td>4</td><td>1
- *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>-128</td></tr>
+ *   byte</td><td>no</td><td>yes</td><td>SDFIO_TYPE_INT8</td><td>SDFIO_BAD_INT8, -128</td></tr>
  * <tr><td>int16</td><td>5</td><td>2
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>-32768</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT16</td><td>SDFIO_BAD_INT16, -32768</td></tr>
  * <tr><td>int32</td><td>6</td><td>4
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>-2147483648</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_INT32</td><td>SDFIO_BAD_INT32, -2147483648</td></tr>
  * <tr><td>binary64</td><td>7</td><td>8
- *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>-1.797693134862316e308</td></tr>
+ *   bytes</td><td>yes</td><td>yes</td><td>SDFIO_TYPE_DOUBLE</td><td>SDFIO_BAD_DOUBLE, -1.797693134862316e308</td></tr>
  * </table>
  *
- * A point that is not measured, or is spurious, has the lowest value of the
- * data type, the bad value. The lowest value is not permitted for a valid
- * point. An ASCII file writes the string `BAD` instead.
+ * A point that is not measured, or is spurious, is labelled with the minimum
+ * value of the data type, which the standard does not permit for any valid
+ * coded value. An ASCII file writes the string `BAD` instead. The library
+ * defines the values of the table as `SDFIO_BAD_INT8`, `SDFIO_BAD_INT16`,
+ * `SDFIO_BAD_INT32`, `SDFIO_BAD_FLOAT` and `SDFIO_BAD_DOUBLE`.
  *
  * A height in metres has no such value, so it is NaN. The functions that read
  * or convert heights deliver NaN for a point that is not measured, and the
