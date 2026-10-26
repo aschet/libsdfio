@@ -31,7 +31,6 @@ void check(sdfio_status status, const char *message)
     }
 }
 
-// A header that the program can change: the copy of the header of a file.
 Header copy_header(const sdfio_header *source)
 {
     sdfio_header *header = nullptr;

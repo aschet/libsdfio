@@ -79,10 +79,10 @@
 
 /**
  * @example eigen.cpp
- * Reads the SDF file given as the argument into an Eigen matrix, removes the
- * plane that fits its heights best, and writes the matrix to a file. The
- * strides of the layout are those of the matrix, so the heights are read into
- * it in place.
+ * Reads the SDF file given as the first argument into an Eigen matrix, removes
+ * the plane that fits its heights best, and writes the matrix to the file given
+ * as the second. The strides of the layout are those of the matrix, so the
+ * heights are read into it in place.
  */
 
 /**

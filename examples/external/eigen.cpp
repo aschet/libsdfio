@@ -1,5 +1,6 @@
 // Eigen: reads a surface into a matrix, removes the plane that fits its heights
-// best, and writes the matrix back. The argument is the SDF file to read.
+// best, and writes the matrix back. The arguments are the SDF file to read and
+// the SDF file to write.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
@@ -28,7 +29,6 @@ void check(sdfio_status status, const char *message)
     }
 }
 
-// A header that the program can change: the copy of the header of a file.
 Header copy_header(const sdfio_header *source)
 {
     sdfio_header *header = nullptr;
@@ -148,21 +148,21 @@ void write_matrix(const char *path, const sdfio_header *source,
 
 int main(int argc, char **argv)
 {
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::cerr << "usage: " << argv[0] << " file.sdf\n";
+        std::cerr << "usage: " << argv[0] << " input.sdf output.sdf\n";
         return 1;
     }
-    const char *path = argv[1];
+    const char *input = argv[1];
+    const char *output = argv[2];
     try
     {
         Reader reader = create_reader();
-        check(sdfio_open_file(reader.get(), path),
+        check(sdfio_open_file(reader.get(), input),
               sdfio_reader_error_message(reader.get()));
         Eigen::MatrixXd heights = read_matrix(reader.get());
         remove_plane(heights, fit_plane(heights));
-        write_matrix("levelled.sdf", sdfio_reader_header(reader.get()),
-                     heights);
+        write_matrix(output, sdfio_reader_header(reader.get()), heights);
     }
     catch (const std::exception &error)
     {
