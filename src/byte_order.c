@@ -69,6 +69,8 @@ void sdfio_convert_byte_order(void *values, size_t count, size_t value_size)
     {
         return;
     }
+    /* The size alone decides, whatever the type of the values: 2 bytes are
+     * int16, 4 bytes are int32 and float, and 8 bytes are double. */
     switch (value_size)
     {
     case sizeof(uint16_t):
