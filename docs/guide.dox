@@ -460,19 +460,16 @@
  * of `time_t`. The build of the library does not select it. A date that a
  * 32-bit `time_t` cannot hold reads as SDFIO_NO_TIME.
  *
+ * Where `time_t` is already 64 bits, as on 64-bit targets and with the UCRT,
+ * nothing is needed. A 32-bit host selects a 64-bit `time_t` as follows:
+ *
  * <table class="doxtable">
- * <tr><th>Target</th><th>Width of <code>time_t</code></th><th>Selection</th></tr>
- * <tr><td>64-bit targets</td><td>64 bits</td><td>None needed.</td></tr>
- * <tr><td>Visual C++, 32-bit and 64-bit</td><td>64 bits</td>
- * <td><code>_USE_32BIT_TIME_T</code> selects 32 bits.</td></tr>
- * <tr><td>MinGW-w64 with the UCRT</td><td>64 bits</td>
- * <td><code>_USE_32BIT_TIME_T</code> selects 32 bits.</td></tr>
- * <tr><td>MinGW-w64, 32-bit, with the msvcrt runtime</td><td>32 bits</td>
- * <td><code>_TIME_BITS=64</code> selects 64 bits.</td></tr>
- * <tr><td>glibc, 32-bit</td><td>32 bits, unless the toolchain defaults to 64
- * bits</td><td><code>_TIME_BITS=64</code> and
- * <code>_FILE_OFFSET_BITS=64</code> select 64 bits. glibc rejects
- * <code>_TIME_BITS=64</code> without <code>_FILE_OFFSET_BITS=64</code>.</td></tr>
+ * <tr><th>Target</th><th>Selection</th></tr>
+ * <tr><td>glibc, 32-bit</td><td><code>_TIME_BITS=64</code> and
+ * <code>_FILE_OFFSET_BITS=64</code>. glibc rejects <code>_TIME_BITS=64</code>
+ * without <code>_FILE_OFFSET_BITS=64</code>.</td></tr>
+ * <tr><td>MinGW-w64, 32-bit, with the msvcrt runtime</td>
+ * <td><code>_TIME_BITS=64</code></td></tr>
  * </table>
  *
  * The flags go to the compiler of the program and to the compiler of the
