@@ -65,7 +65,7 @@ static size_t store(void *user, const void *data, size_t size)
 
 /* The scanner has no clock library: it takes the time of the scan from its own
  * hardware clock, here a constant. */
-static void describe(sdfio_header *header)
+static void init_header(sdfio_header *header)
 {
     const time_t scan_time = 1700000000;
     sdfio_header_set_created(header, scan_time);
@@ -95,7 +95,7 @@ static sdfio_status write_file(void)
         sdfio_writer_add_binary(writer);
         sdfio_writer_set_buffer(writer, BUFFER_SIZE);
         sdfio_writer_set_chunk(writer, CHUNK_VALUES);
-        describe(header);
+        init_header(header);
         status = sdfio_create_stream(writer, &stream, header);
     }
     int16_t coded[COLUMNS];

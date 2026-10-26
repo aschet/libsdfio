@@ -8,8 +8,8 @@
 /* The header of the excerpt: the header of the file with the size of the
  * window, double heights that every revision permits, the binary
  * format and the time of the change. */
-static void describe_excerpt(sdfio_header *header, const sdfio_header *source,
-                             uint32_t columns, uint32_t rows)
+static void init_header(sdfio_header *header, const sdfio_header *source,
+                        uint32_t columns, uint32_t rows)
 {
     sdfio_header_copy(header, source);
     sdfio_header_set_columns(header, columns);
@@ -37,7 +37,7 @@ static sdfio_status write_excerpt(sdfio_writer *writer, sdfio_reader *reader,
     const size_t first_row = sdfio_header_rows(source) / 4;
     sdfio_header *header = NULL;
     sdfio_header_create(sdfio_default_allocator(), &header);
-    describe_excerpt(header, source, columns, rows);
+    init_header(header, source, columns, rows);
     sdfio_status status = sdfio_create_file(writer, path, header);
     sdfio_header_free(header);
 

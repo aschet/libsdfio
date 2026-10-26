@@ -30,8 +30,8 @@ static void generate_heights(void)
     }
 }
 
-static void describe_surface(sdfio_header *header, sdfio_revision revision,
-                             sdfio_data_type type)
+static void init_header(sdfio_header *header, sdfio_revision revision,
+                        sdfio_data_type type)
 {
     sdfio_header_set_dates(header, time(NULL));
     sdfio_header_set_revision(header, revision);
@@ -49,7 +49,7 @@ static int write_surface(const char *path, sdfio_revision revision,
 {
     sdfio_header *header = NULL;
     sdfio_header_create(sdfio_default_allocator(), &header);
-    describe_surface(header, revision, type);
+    init_header(header, revision, type);
 
     sdfio_writer *writer = NULL;
     sdfio_writer_create(sdfio_default_allocator(), &writer);

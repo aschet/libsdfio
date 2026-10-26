@@ -77,8 +77,6 @@ vtkSmartPointer<vtkImageData> read_image(sdfio_reader *reader)
     return image;
 }
 
-// A point that is not measured is NaN. VTK is told which points they are by the
-// ghost array, so that the cells that touch one are left out.
 void hide_points_not_measured(vtkImageData *image)
 {
     const vtkIdType count = image->GetNumberOfPoints();

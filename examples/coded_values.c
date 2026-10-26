@@ -28,7 +28,7 @@ static void generate_coded_row(int16_t *row, size_t y, int16_t bad_value)
     }
 }
 
-static void describe_coded_values(sdfio_header *header)
+static void init_header(sdfio_header *header)
 {
     const double z_scale =
         sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, -80e-6, 80e-6);
@@ -46,7 +46,7 @@ static int write_coded_values(const char *path)
 {
     sdfio_header *header = NULL;
     sdfio_header_create(sdfio_default_allocator(), &header);
-    describe_coded_values(header);
+    init_header(header);
     sdfio_writer *writer = NULL;
     sdfio_writer_create(sdfio_default_allocator(), &writer);
     sdfio_writer_add_binary(writer);
