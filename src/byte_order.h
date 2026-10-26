@@ -21,16 +21,13 @@ bool sdfio_host_is_little_endian(void);
 /**
  * Converts values between the byte order of the host and the file order
  * (little endian), in place. The conversion is the same in both directions.
- *
- * The values can be of any data type of the data area, integers and
- * floating-point numbers alike: the function reverses the bytes of each value
- * and does not look at what the bytes mean.
+ * The function reverses the bytes of each value, whether it is an integer or a
+ * floating-point number. A value of one byte is left as it is.
  *
  * @param[in,out] values The values.
  * @param count The number of values.
- * @param value_size The size of a value in bytes: 1, 2, 4 or 8. A value of one
- * byte is left as it is.
+ * @param type The data type of the values.
  */
-void sdfio_convert_byte_order(void *values, size_t count, size_t value_size);
+void sdfio_convert_byte_order(void *values, size_t count, sdfio_data_type type);
 
 #endif /* SDFIO_SRC_BYTE_ORDER_H */

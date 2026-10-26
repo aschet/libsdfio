@@ -210,7 +210,7 @@ static sdfio_status read_values(sdfio_source *source,
         return sdfio_source_failure(
             source, message, "The file ends before the data area is complete");
     }
-    sdfio_convert_byte_order(dst, count, size);
+    sdfio_convert_byte_order(dst, count, header->data_type);
     return SDFIO_OK;
 }
 

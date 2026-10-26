@@ -63,26 +63,25 @@ SWAP_VALUES(64)
 
 #undef SWAP_VALUES
 
-void sdfio_convert_byte_order(void *values, size_t count, size_t value_size)
+void sdfio_convert_byte_order(void *values, size_t count, sdfio_data_type type)
 {
     if (sdfio_host_is_little_endian())
     {
         return;
     }
-    /* The size alone decides, whatever the type of the values: 2 bytes are
-     * int16, 4 bytes are int32 and float, and 8 bytes are double. */
-    switch (value_size)
+    switch (type)
     {
-    case sizeof(uint16_t):
+    case SDFIO_TYPE_INT16:
         swap_values16(values, count);
         break;
-    case sizeof(uint32_t):
+    case SDFIO_TYPE_INT32:
+    case SDFIO_TYPE_FLOAT:
         swap_values32(values, count);
         break;
-    case sizeof(uint64_t):
+    case SDFIO_TYPE_DOUBLE:
         swap_values64(values, count);
         break;
-    default:
+    case SDFIO_TYPE_INT8:
         break;
     }
 }
