@@ -71,7 +71,7 @@ describe() {
     # diagnostic that -pedantic-errors reports treated as an error.
     gcc-x86-64-linux)
       kind=build generator=Ninja arch=x86_64
-      configure="-DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors"
+      configure="-DCMAKE_C_STANDARD=11 -DCMAKE_C_STANDARD_REQUIRED=ON -DCMAKE_C_FLAGS=-pedantic-errors -DSDFIO_BUILD_EXTERNAL_EXAMPLES=ON"
       ;;
     gcc-x86-linux)
       kind=build generator=Ninja
@@ -166,6 +166,16 @@ run_build() {
   GENERATOR=$generator TOOLCHAIN_OPTIONS=$toolchain \
     CONFIGURE_OPTIONS=$configure EMULATOR=$emulator WORKDIR="$dir" \
     "$here/install-and-use.sh"
+  # CMake skips an example whose library it does not find, so the job checks
+  # that the examples with external libraries exist.
+  if [[ "$configure" == *SDFIO_BUILD_EXTERNAL_EXAMPLES=ON* ]]; then
+    for example in opencv eigen vtk; do
+      if [ ! -x "$dir/build-ON/examples/external/example_$example" ]; then
+        echo "The example $example was not built." >&2
+        exit 1
+      fi
+    done
+  fi
 }
 
 # Builds the library as a static library and links the firmware image of the

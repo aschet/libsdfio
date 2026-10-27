@@ -81,8 +81,7 @@
  *
  * <table class="doxtable">
  * <tr><th>Option</th><th>Default</th><th>Builds</th></tr>
- * <tr><td>SDFIO_BUILD_EXAMPLES</td><td>ON for the top-level project</td>
- * <td>The examples.</td></tr>
+ * <tr><td>SDFIO_BUILD_EXAMPLES</td><td>OFF</td><td>The examples.</td></tr>
  * <tr><td>SDFIO_BUILD_EXTERNAL_EXAMPLES</td><td>OFF</td><td>The examples that
  * use external libraries.</td></tr>
  * <tr><td>SDFIO_BUILD_DOCS</td><td>OFF</td><td>This API reference, with

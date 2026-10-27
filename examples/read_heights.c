@@ -7,12 +7,16 @@
 
 int main(int argc, char **argv)
 {
-    const char *path = argc > 1 ? argv[1] : "integer.sdf";
+    if (argc < 2)
+    {
+        fprintf(stderr, "usage: %s input.sdf\n", argv[0]);
+        return EXIT_FAILURE;
+    }
     sdfio_reader *reader = NULL;
     sdfio_reader_create(sdfio_default_allocator(), &reader);
     sdfio_reader_add_binary(reader);
     sdfio_reader_add_ascii(reader);
-    sdfio_status status = sdfio_open_file(reader, path);
+    sdfio_status status = sdfio_open_file(reader, argv[1]);
     if (status != SDFIO_OK)
     {
         fprintf(stderr, "%s: %s\n", sdfio_status_string(status),

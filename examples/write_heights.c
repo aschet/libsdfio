@@ -77,13 +77,17 @@ static int write_surface(const char *path, sdfio_revision revision,
     return status == SDFIO_OK ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    if (argc < 3)
+    {
+        fprintf(stderr, "usage: %s iso2.sdf iso1.sdf\n", argv[0]);
+        return EXIT_FAILURE;
+    }
     generate_heights();
-    const int floats =
-        write_surface("float.sdf", SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT);
+    const int floats = write_surface(argv[1], SDFIO_ISO_2_0, SDFIO_TYPE_FLOAT);
     const int integers =
-        write_surface("integer.sdf", SDFIO_ISO_1_0, SDFIO_TYPE_INT16);
+        write_surface(argv[2], SDFIO_ISO_1_0, SDFIO_TYPE_INT16);
     return floats == EXIT_SUCCESS && integers == EXIT_SUCCESS ? EXIT_SUCCESS
                                                               : EXIT_FAILURE;
 }

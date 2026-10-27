@@ -21,7 +21,7 @@ include(CTest)
 include(GenerateExportHeader)
 include(GNUInstallDirs)
 
-option(SDFIO_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(SDFIO_BUILD_EXAMPLES "Build the examples" OFF)
 option(SDFIO_BUILD_EXTERNAL_EXAMPLES "Build the examples that use external libraries" OFF)
 option(SDFIO_BUILD_DOCS "Build the API reference with Doxygen" OFF)
 

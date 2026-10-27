@@ -3,10 +3,10 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Builds the library, runs the tests and installs the library, then builds and
-# runs a consumer project against the installation. This is done for the shared
-# library and for the static library. The script reads these environment
-# variables:
+# Builds the library with the examples, runs the tests and installs the library,
+# then builds and runs a consumer project against the installation. This is done
+# for the shared library and for the static library. The script reads these
+# environment variables:
 #   GENERATOR          the CMake generator; a single-configuration generator
 #                      builds the Release configuration
 #   TOOLCHAIN_OPTIONS  CMake options shared by the library and the consumer
@@ -33,7 +33,7 @@ for linkage in ON OFF; do
   stage="$workdir/stage-$linkage"
   # shellcheck disable=SC2086
   cmake -S . -B "$build" "${generator[@]}" $TOOLCHAIN_OPTIONS $CONFIGURE_OPTIONS \
-    -DBUILD_SHARED_LIBS=$linkage \
+    -DBUILD_SHARED_LIBS=$linkage -DSDFIO_BUILD_EXAMPLES=ON \
     -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
     -DCMAKE_INSTALL_PREFIX="$stage"
   cmake --build "$build" --config Release

@@ -53,9 +53,14 @@ static time_t read_creation_date(const sdfio_time_zone *time_zone,
 /* The files of ISO-1.0 hold the clock of the writer, whose time
  * zone they do not record. With a time zone the library converts the dates, and
  * without one the clock reading is the date. */
-int main(void)
+int main(int argc, char **argv)
 {
-    const char *path = "time_zone.sdf";
+    if (argc < 2)
+    {
+        fprintf(stderr, "usage: %s output.sdf\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+    const char *path = argv[1];
     zone central_europe = {3600};
     const sdfio_time_zone time_zone = {&central_europe, local_to_utc,
                                        utc_to_local};

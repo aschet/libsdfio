@@ -11,15 +11,16 @@
  */
 
 /**
- * @example writer.c
- * Writes a surface as `float` values in ISO-2.0 and as 16-bit integer values in
- * ISO-1.0, each with the data type of the header set explicitly. The writer has
- * the time zone of the machine, which an ISO-1.0 file needs for its dates. The
- * trailer is written with sdfio_write_trailer_field().
+ * @example write_heights.c
+ * Writes a surface as `float` values in ISO-2.0 to the first file given and as
+ * 16-bit integer values in ISO-1.0 to the second, each with the data type of
+ * the header set explicitly. The writer has the time zone of the machine, which
+ * an ISO-1.0 file needs for its dates. The trailer is written with
+ * sdfio_write_trailer_field().
  */
 
 /**
- * @example reader.c
+ * @example read_heights.c
  * Reads a file as heights in metres of type float, prints the revision, the
  * size and the mean height, and prints the trailer and then its fields one
  * after the other with sdfio_trailer_next_field(). It looks up the operator by
@@ -27,7 +28,7 @@
  */
 
 /**
- * @example streams.c
+ * @example read_stream.c
  * Reads a file from a stream, here standard input, one row at a time with
  * sdfio_read_data() and sdfio_decode_heights(), and prints the lowest and the
  * highest height. The program holds one row in memory, not the matrix.
@@ -43,20 +44,18 @@
  */
 
 /**
- * @example excerpt.c
- * Saves the central part of a file as a new file. The header of the file is
- * copied with sdfio_header_copy() and gets the size of the part, and the
- * trailer is copied with sdfio_copy_trailer(), followed by a field of the
- * program. A layout with the row stride of the whole matrix writes the part in
- * place, without a copy of its heights.
+ * @example write_coded.c
+ * Writes the heights as coded 16-bit values, one row at a time, with
+ * sdfio_write_data(). The points that are not measured carry the bad value
+ * SDFIO_BAD_INT16.
  */
 
 /**
- * @example coded_values.c
- * Writes and reads the coded height information of a scanner as 16-bit values,
- * row by row, with sdfio_write_data() and sdfio_read_data(). The points that
- * are not measured carry the bad value SDFIO_BAD_INT16, which is recognized
- * when reading.
+ * @example read_coded.c
+ * Reads the coded 16-bit values of a file one row at a time with
+ * sdfio_read_data(), counts the points that carry the bad value
+ * SDFIO_BAD_INT16, and prints the mean of the others as a coded value and in
+ * metres.
  */
 
 /**
@@ -64,9 +63,9 @@
  * Writes and reads an ISO-1.0 file with an sdfio_time_zone of a fixed offset.
  * The file holds the clock of the writer, and the callbacks convert the creation
  * date between the clock and UTC with sdfio_date_to_time() and
- * sdfio_date_from_time(). sdfio_system_time_zone() is the zone of the machine. The program prints the date as written, as read with the time
- * zone, and as read without it, where the clock reading of the file is the
- * date.
+ * sdfio_date_from_time(). sdfio_system_time_zone() is the zone of the machine.
+ * The program prints the date as written, as read with the time zone, and as
+ * read without it, where the clock reading of the file is the date.
  */
 
 /**
