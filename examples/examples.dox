@@ -11,7 +11,33 @@
  */
 
 /**
+ * @page samples Examples
+ * @details The programs show typical uses of the library, each with its source
+ * and links to the functions it calls. The programs that use another library
+ * are built with `SDFIO_BUILD_EXTERNAL_EXAMPLES` when that library is found.
+ *
+ * @section samples_c Examples in C
+ * | Program | Shows |
+ * | --- | --- |
+ * | @ref writer.c | Writing a surface as ISO-2.0 with `float` heights and as ISO-1.0 with 16-bit integer heights, with a trailer. |
+ * | @ref reader.c | Reading a file as `float` heights, printing the mean height and the trailer, and looking up a trailer field. |
+ * | @ref streams.c | Reading a file from standard input one row at a time, without holding the matrix. |
+ * | @ref excerpt.c | Saving the central part of a file as a new file with the header and the trailer of the file. |
+ * | @ref coded_values.c | Writing and reading the 16-bit coded values of a scanner, including the points that are not measured. |
+ * | @ref time_zone.c | Writing and reading the dates of an ISO-1.0 file through a time zone. |
+ * | @ref allocators.c | Writing a file into RAM with all memory of the library from a static pool, for a device without a heap. |
+ *
+ * @section samples_external Examples With Other Libraries
+ * | Program | Shows |
+ * | --- | --- |
+ * | @ref opencv.cpp | Reading a surface into an OpenCV image in place, smoothing it and writing it. |
+ * | @ref eigen.cpp | Reading a surface into an Eigen matrix in place, removing the plane that fits it best and writing it. |
+ * | @ref vtk.cpp | Reading a surface into VTK image data in place and showing it as a height field. |
+ */
+
+/**
  * @example writer.c
+ * @details
  * Writes a surface as `float` values in ISO-2.0 and as 16-bit integer values in
  * ISO-1.0, each with the data type of the header set explicitly. The writer has
  * the time zone of the machine, which an ISO-1.0 file needs for its dates. The
@@ -20,6 +46,7 @@
 
 /**
  * @example reader.c
+ * @details
  * Reads a file as heights in metres of type float, prints the revision, the
  * size and the mean height, and prints the trailer and then its fields one
  * after the other with sdfio_trailer_next_field(). It looks up the operator by
@@ -28,6 +55,7 @@
 
 /**
  * @example streams.c
+ * @details
  * Reads a file from a stream, here standard input, one row at a time with
  * sdfio_read_data() and sdfio_decode_heights(), and prints the lowest and the
  * highest height. The program holds one row in memory, not the matrix.
@@ -35,6 +63,7 @@
 
 /**
  * @example allocators.c
+ * @details
  * Writes a file into RAM, with all memory of the library from a static pool of
  * the program through an sdfio_allocator, as a scanner without a heap needs it.
  * The program sets a small buffer and a small chunk with
@@ -44,6 +73,7 @@
 
 /**
  * @example excerpt.c
+ * @details
  * Saves the central part of a file as a new file. The header of the file is
  * copied with sdfio_header_copy() and gets the size of the part, and the
  * trailer is copied with sdfio_copy_trailer(), followed by a field of the
@@ -53,6 +83,7 @@
 
 /**
  * @example coded_values.c
+ * @details
  * Writes and reads the coded height information of a scanner as 16-bit values,
  * row by row, with sdfio_write_data() and sdfio_read_data(). The points that
  * are not measured carry the bad value SDFIO_BAD_INT16, which is recognized
@@ -61,6 +92,7 @@
 
 /**
  * @example time_zone.c
+ * @details
  * Writes and reads an ISO-1.0 file with an sdfio_time_zone of a fixed offset.
  * The file holds the clock of the writer, and the callbacks convert the creation
  * date between the clock and UTC with sdfio_date_to_time() and
@@ -71,6 +103,7 @@
 
 /**
  * @example opencv.cpp
+ * @details
  * Reads the SDF file given as the first argument into an OpenCV image, smooths
  * it and writes it to the file given as the second, and reads the first file
  * into a region of a larger image. A negative row stride turns the surface into
@@ -79,6 +112,7 @@
 
 /**
  * @example eigen.cpp
+ * @details
  * Reads the SDF file given as the first argument into an Eigen matrix, removes
  * the plane that fits its heights best, and writes the matrix to the file given
  * as the second. The strides of the layout are those of the matrix, so the
@@ -87,6 +121,7 @@
 
 /**
  * @example vtk.cpp
+ * @details
  * Shows the SDF file given as the argument as VTK image data: the heights are
  * read in place into the array of the image, points that are not measured are
  * hidden, and the surface is displayed as a height field in a window.
