@@ -212,14 +212,6 @@ if(SDFIO_BUILD_DOCS)
     string(REPLACE "${pages_tab}"
         "<tab type=\"user\" url=\"@ref format\" title=\"SDF Format\" intro=\"\"/>"
         layout "${layout}")
-    set(examples_tab "<tab type=\"examples\" visible=\"yes\" title=\"\" intro=\"\"/>")
-    string(FIND "${layout}" "${examples_tab}" examples_tab_at)
-    if(examples_tab_at EQUAL -1)
-        message(FATAL_ERROR "The layout of Doxygen has no tab for the examples")
-    endif()
-    string(REPLACE "${examples_tab}"
-        "<tab type=\"user\" url=\"@ref samples\" title=\"Examples\" intro=\"\"/>"
-        layout "${layout}")
     file(WRITE "${SDFIO_DOXYGEN_LAYOUT}" "${layout}")
     configure_file(cmake/Doxyfile.in "${PROJECT_BINARY_DIR}/Doxyfile" @ONLY)
     add_custom_target(docs
