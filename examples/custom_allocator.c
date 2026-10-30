@@ -1,146 +1,77 @@
+#include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
-#define COLUMNS 16
-#define ROWS 8
-#define POOL_SIZE 4096
-#define FILE_SIZE 2048
-#define BUFFER_SIZE 128
-#define CHUNK_VALUES 16
-
-/* The unit of the memory pool. The union has the alignment of its most
- * strictly aligned member, so a block that starts at a multiple of its size is
- * aligned for any type. */
-typedef union pool_cell
+typedef struct usage
 {
-    long long integer;
-    double real;
-    void *pointer;
-} pool_cell;
+    size_t current;
+    size_t peak;
+    size_t blocks;
+} usage;
 
-static pool_cell pool[POOL_SIZE / sizeof(pool_cell)];
-static size_t pool_used;
-
-/* Allocates the next free cells of the pool, or returns NULL if the pool is
- * exhausted. */
-static void *take(void *user, size_t size)
+/* A block starts with its size, because release() is not given one. The union
+ * keeps the memory after it aligned for any type. */
+typedef union block_header
 {
-    (void)user;
-    const size_t rounded =
-        (size + sizeof(pool_cell) - 1) / sizeof(pool_cell) * sizeof(pool_cell);
-    if (rounded > sizeof pool - pool_used)
+    size_t size;
+    max_align_t alignment;
+} block_header;
+
+static void *counting_allocate(void *user, size_t size)
+{
+    usage *memory = user;
+    block_header *block = malloc(sizeof *block + size);
+    if (block == NULL)
     {
         return NULL;
     }
-    void *memory = (unsigned char *)pool + pool_used;
-    pool_used += rounded;
-    return memory;
+    block->size = size;
+    memory->current += size;
+    memory->peak =
+        memory->current > memory->peak ? memory->current : memory->peak;
+    ++memory->blocks;
+    return block + 1;
 }
 
-/* Memory is not returned to the pool, so there is nothing to release. */
-static void give(void *user, void *memory)
+static void counting_release(void *user, void *data)
 {
-    (void)user;
-    (void)memory;
+    usage *memory = user;
+    block_header *block = (block_header *)data - 1;
+    memory->current -= block->size;
+    free(block);
 }
 
-/* The file lives in RAM: a stream writes into an array. */
-static unsigned char file[FILE_SIZE];
-static size_t file_size;
-
-static size_t store(void *user, const void *data, size_t size)
+int main(int argc, char **argv)
 {
-    (void)user;
-    if (size > sizeof file - file_size)
+    if (argc < 2)
     {
-        return 0;
-    }
-    for (size_t i = 0; i < size; ++i)
-    {
-        file[file_size + i] = ((const unsigned char *)data)[i];
-    }
-    file_size += size;
-    return size;
-}
-
-/* The dates are a constant, so that the program does not read the clock. */
-static void init_header(sdfio_header *header)
-{
-    const time_t date = 1700000000;
-    sdfio_header_set_created(header, date);
-    sdfio_header_set_modified(header, date);
-    sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
-    sdfio_header_set_columns(header, COLUMNS);
-    sdfio_header_set_rows(header, ROWS);
-    sdfio_header_set_z_scale(header, 1.0e-9);
-}
-
-/* The writer and the header take their memory from the pool, with a small
- * buffer and a small chunk, so that the pool stays small. The pool is the one
- * resource that can run out, so the calls that allocate are checked. */
-static sdfio_status write_file(void)
-{
-    const sdfio_allocator allocator = {NULL, take, give};
-    sdfio_writer *writer = NULL;
-    sdfio_header *header = NULL;
-    const sdfio_stream stream = {NULL, NULL, store};
-    sdfio_status status = sdfio_writer_create(&allocator, &writer);
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_header_create(&allocator, &header);
-    }
-    if (status == SDFIO_OK)
-    {
-        sdfio_writer_add_binary(writer);
-        sdfio_writer_set_buffer(writer, BUFFER_SIZE);
-        sdfio_writer_set_chunk(writer, CHUNK_VALUES);
-        init_header(header);
-        status = sdfio_create_stream(writer, &stream, header);
-    }
-    int16_t coded[COLUMNS];
-    const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
-    for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
-    {
-        const size_t first = row * COLUMNS;
-        for (size_t column = 0; column < COLUMNS; ++column)
-        {
-            coded[column] = (int16_t)(first + column);
-        }
-        status = sdfio_write_data(writer, &layout, coded, 1);
-    }
-    if (status == SDFIO_OK)
-    {
-        status = sdfio_end_file(writer);
-    }
-    sdfio_writer_free(writer);
-    sdfio_header_free(header);
-    return status;
-}
-
-/* Writes a file into RAM with every byte of library memory from a pool of the
- * program. The function prints nothing and is not static: the firmware job of
- * the continuous integration links this file with it as the entry point, so
- * that the image holds neither the output functions of the C library nor its
- * heap. */
-sdfio_status custom_allocator(void);
-
-sdfio_status custom_allocator(void)
-{
-    return write_file();
-}
-
-int main(void)
-{
-    const sdfio_status status = custom_allocator();
-    if (status != SDFIO_OK)
-    {
-        fprintf(stderr, "%s\n", sdfio_status_string(status));
+        fprintf(stderr, "usage: %s input.sdf\n", argv[0]);
         return EXIT_FAILURE;
     }
-    printf("%zu bytes of file; %zu of the %d bytes of the pool used\n",
-           file_size, pool_used, POOL_SIZE);
-    return EXIT_SUCCESS;
+    usage memory = {0, 0, 0};
+    const sdfio_allocator allocator = {&memory, counting_allocate,
+                                       counting_release};
+    sdfio_reader *reader = NULL;
+    sdfio_reader_create(&allocator, &reader);
+    sdfio_reader_add_binary(reader);
+    sdfio_reader_add_ascii(reader);
+    const sdfio_status status = sdfio_open_file(reader, argv[1]);
+    if (status != SDFIO_OK)
+    {
+        fprintf(stderr, "%s: %s\n", sdfio_status_string(status),
+                sdfio_reader_error_message(reader));
+        sdfio_reader_free(reader);
+        return EXIT_FAILURE;
+    }
+    const sdfio_header *header = sdfio_reader_header(reader);
+    printf("%lu x %lu points, %zu blocks of the library, %zu bytes at most\n",
+           (unsigned long)sdfio_header_columns(header),
+           (unsigned long)sdfio_header_rows(header), memory.blocks,
+           memory.peak);
+    sdfio_reader_free(reader);
+    printf("%zu bytes left after the reader is freed\n", memory.current);
+    return memory.current == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

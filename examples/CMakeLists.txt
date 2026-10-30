@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 foreach(example write_heights read_heights write_coded read_coded read_stream
-        custom_allocator custom_tz)
+        write_memory custom_allocator custom_tz)
     add_executable(${example} ${example}.c)
     target_link_libraries(${example} PRIVATE sdfio)
     target_compile_options(${example} PRIVATE ${SDFIO_WARNINGS})

@@ -1,0 +1,140 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/* The program of the firmware jobs of run.sh: it writes a binary file into an
+ * array with every byte of library memory from a static pool, so that the image
+ * can be searched for code that it must not contain. */
+
+#include <sdfio/sdfio.h>
+
+#include <stddef.h>
+#include <time.h>
+
+#define COLUMNS 16
+#define ROWS 8
+#define POOL_SIZE 4096
+#define FILE_SIZE 2048
+#define BUFFER_SIZE 128
+#define CHUNK_VALUES 16
+
+/* The unit of the memory pool. The union has the alignment of its most
+ * strictly aligned member, so a block that starts at a multiple of its size is
+ * aligned for any type. */
+typedef union pool_cell
+{
+    long long integer;
+    double real;
+    void *pointer;
+} pool_cell;
+
+static pool_cell pool[POOL_SIZE / sizeof(pool_cell)];
+static size_t pool_used;
+
+/* Allocates the next free cells of the pool, or returns NULL if the pool is
+ * exhausted. */
+static void *take(void *user, size_t size)
+{
+    (void)user;
+    const size_t rounded =
+        (size + sizeof(pool_cell) - 1) / sizeof(pool_cell) * sizeof(pool_cell);
+    if (rounded > sizeof pool - pool_used)
+    {
+        return NULL;
+    }
+    void *memory = (unsigned char *)pool + pool_used;
+    pool_used += rounded;
+    return memory;
+}
+
+/* Memory is not returned to the pool, so there is nothing to release. */
+static void give(void *user, void *memory)
+{
+    (void)user;
+    (void)memory;
+}
+
+/* The file is written into an array by a stream. */
+static unsigned char file[FILE_SIZE];
+static size_t file_size;
+
+static size_t store(void *user, const void *data, size_t size)
+{
+    (void)user;
+    if (size > sizeof file - file_size)
+    {
+        return 0;
+    }
+    for (size_t i = 0; i < size; ++i)
+    {
+        file[file_size + i] = ((const unsigned char *)data)[i];
+    }
+    file_size += size;
+    return size;
+}
+
+/* The dates are a constant, so that the program does not read the clock. */
+static void init_header(sdfio_header *header)
+{
+    const time_t date = 1700000000;
+    sdfio_header_set_created(header, date);
+    sdfio_header_set_modified(header, date);
+    sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
+    sdfio_header_set_columns(header, COLUMNS);
+    sdfio_header_set_rows(header, ROWS);
+    sdfio_header_set_z_scale(header, 1.0e-9);
+}
+
+/* The writer and the header take their memory from the pool, with a small
+ * buffer and a small chunk, so that the pool stays small. The pool is the one
+ * resource that can run out, so the calls that allocate are checked. */
+static sdfio_status write_file(void)
+{
+    const sdfio_allocator allocator = {NULL, take, give};
+    sdfio_writer *writer = NULL;
+    sdfio_header *header = NULL;
+    const sdfio_stream stream = {NULL, NULL, store};
+    sdfio_status status = sdfio_writer_create(&allocator, &writer);
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_header_create(&allocator, &header);
+    }
+    if (status == SDFIO_OK)
+    {
+        sdfio_writer_add_binary(writer);
+        sdfio_writer_set_buffer(writer, BUFFER_SIZE);
+        sdfio_writer_set_chunk(writer, CHUNK_VALUES);
+        init_header(header);
+        status = sdfio_create_stream(writer, &stream, header);
+    }
+    int16_t coded[COLUMNS];
+    const sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_INT16);
+    for (size_t row = 0; row < ROWS && status == SDFIO_OK; ++row)
+    {
+        const size_t first = row * COLUMNS;
+        for (size_t column = 0; column < COLUMNS; ++column)
+        {
+            coded[column] = (int16_t)(first + column);
+        }
+        status = sdfio_write_data(writer, &layout, coded, 1);
+    }
+    if (status == SDFIO_OK)
+    {
+        status = sdfio_end_file(writer);
+    }
+    sdfio_writer_free(writer);
+    sdfio_header_free(header);
+    return status;
+}
+
+/* The entry point of the image. It is not static, and the program has no main
+ * and prints nothing, so that the image holds neither the output functions of
+ * the C library nor its heap. */
+sdfio_status firmware(void);
+
+sdfio_status firmware(void)
+{
+    return write_file();
+}

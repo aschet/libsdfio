@@ -34,8 +34,13 @@
  */
 
 /**
+ * @example write_memory.c
+ * @details Write an SDF file to a growing memory buffer.
+ */
+
+/**
  * @example custom_allocator.c
- * @details Write an SDF file to memory with a custom allocator.
+ * @details Read an SDF file with an allocator that counts the memory of the library.
  */
 
 /**

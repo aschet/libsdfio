@@ -179,7 +179,7 @@ run_build() {
 }
 
 # Builds the library as a static library and links the firmware image of the
-# custom_allocator example, which writes a file to memory. The image must contain
+# program firmware.c, which writes a file to memory. The image must contain
 # neither code that reads files, nor code that handles the ASCII format,
 # nor the heap and the clock of the C library. The job verifies this by
 # searching the symbols of the image.
@@ -193,8 +193,8 @@ run_firmware() {
   cmake --build "$dir"
   # shellcheck disable=SC2086
   "$prefix-gcc" -std=c11 $flags -Os -Wl,--gc-sections -nostartfiles \
-    -Wl,--entry=custom_allocator -Iinclude -I"$dir/generated/include" \
-    -DSDFIO_STATIC_DEFINE examples/custom_allocator.c \
+    -Wl,--entry=firmware -Iinclude -I"$dir/generated/include" \
+    -DSDFIO_STATIC_DEFINE .github/ci/firmware.c \
     "$dir/libsdfio.a" \
     -o "$dir/firmware"
   "$prefix-size" "$dir/firmware"
@@ -232,7 +232,7 @@ run_static_analysis() {
 
 run_format() {
   clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
-    tests/*.c tests/fuzz/*.c test_package/*.c \
+    tests/*.c tests/fuzz/*.c test_package/*.c .github/ci/firmware.c \
     examples/*.c examples/external/*.cpp
 }
 
