@@ -21,35 +21,13 @@
  * format for topography data.
  *
  * @section features Features
- * - Implemented according to ISO 25178-71:2026.
- * - The revisions ISO-1.0 and ISO-2.0, each in the ASCII and in the binary
- *   format, and every data type that a revision allows: int8, int16,
- *   int32, binary32 and binary64.
- * - Two ways to the data. The coded values of the data area, as the file has
- *   them, and heights in metres as `float` or `double`, where a point that is
- *   not measured is NaN. Buffers can lie in memory in any order, described by a
- *   layout of strides and read or written in place, without a copy: for
- *   example as a member of a structure, a channel of an image, a column-major
- *   matrix, or upside down.
- * - The dates of ISO-1.0 files, which hold the local clock of the writer, are
- *   converted to UTC and back through a time zone, for example the one of the
- *   machine.
- * - Files, blocks of memory and callbacks as sources and sinks. A reader needs
- *   no seek, so it also reads a pipe. It holds one buffer and never the whole
+ * - Implemented according to ISO 25178-71:2026, with the revisions ISO-1.0 and
+ *   ISO-2.0.
+ * - Access to the data as heights in metres or as the coded values of the
  *   file.
- * - Memory only when a handle or a file is created, through an allocator that
- *   the program can replace, so that a pool can be sized in advance. Reading
- *   and writing allocate nothing.
- * - Formats are added to a handle explicitly. A program that links the library
- *   statically contains the code of the added formats only: a program that
- *   writes binary files contains no code for ASCII or for reading.
- * - Handles without shared state, so that threads use their own handles at
- *   once. Standard C11, little-endian and big-endian processors, 32-bit and
- *   64-bit.
- * - Conformance to the standard. A writer writes what the standard defines; the
- *   text of a trailer is the program's own. A reader checks what the standard
- *   defines and tolerates the deviations of files in the field, which are
- *   listed in the description of sdfio.h.
+ * - Strided buffers of the program, read and written in place.
+ * - Custom allocators.
+ * - Files, blocks of memory and streams, including pipes, as sources and sinks.
  *
  * @section limitations Limitations
  * - A handle is not shared between threads. Different handles can be used by
