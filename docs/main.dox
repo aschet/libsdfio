@@ -36,9 +36,7 @@
  * @section limitations Limitations
  * - A handle is not shared between threads. Different handles can be used by
  *   different threads at the same time, and the handles hold no global state.
- * - Numbers in ASCII files use the decimal point `.`, independent of
- *   `LC_NUMERIC`. The program must not change the locale while a call is in
- *   progress.
+ * - The locale must not be changed while a call is in progress.
  * - A reader needs no seek, so it reads a file once and in order. Rows can be
  *   read only in the order of the file.
  * - A failure in the middle of the data area loses the position in the stream,
