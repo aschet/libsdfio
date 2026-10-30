@@ -5,26 +5,56 @@
  */
 
 /*
- * The example programs for the API reference. The first line of each source is
- * its description, which the reference shows with the source.
+ * The example programs for the API reference. The description of each is the
+ * first line of its source.
  */
 
-/** @example write_heights.c */
+/**
+ * @example write_heights.c
+ * @details Write SDF files of both revisions with the heights API.
+ */
 
-/** @example read_heights.c */
+/**
+ * @example read_heights.c
+ * @details Read an SDF file with the heights API.
+ */
 
-/** @example write_coded.c */
+/**
+ * @example write_coded.c
+ * @details Write an SDF file with the coded values API.
+ */
 
-/** @example read_coded.c */
+/**
+ * @example read_coded.c
+ * @details Read an SDF file with the coded values API.
+ */
 
-/** @example read_stream.c */
+/**
+ * @example read_stream.c
+ * @details Read an SDF file from a stream row by row.
+ */
 
-/** @example custom_allocator.c */
+/**
+ * @example custom_allocator.c
+ * @details Write an SDF file to memory with a custom allocator.
+ */
 
-/** @example custom_tz.c */
+/**
+ * @example custom_tz.c
+ * @details Convert the dates of an ISO-1.0 file with a fixed-offset time zone.
+ */
 
-/** @example opencv.cpp */
+/**
+ * @example opencv.cpp
+ * @details Smooth an SDF file with OpenCV.
+ */
 
-/** @example eigen.cpp */
+/**
+ * @example eigen.cpp
+ * @details Remove the best-fit plane of an SDF file with Eigen.
+ */
 
-/** @example vtk.cpp */
+/**
+ * @example vtk.cpp
+ * @details Display an SDF file with VTK.
+ */
