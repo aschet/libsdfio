@@ -73,7 +73,7 @@ jobs:
           - name: GCC ARM bare metal
             runner: ubuntu-latest
             job: gcc-arm-bare-metal
-            packages: ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi
+            packages: ninja-build gcc-arm-none-eabi picolibc-arm-none-eabi
           - name: GCC RISC-V bare metal
             runner: ubuntu-latest
             job: gcc-risc-v-bare-metal

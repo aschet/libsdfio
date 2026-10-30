@@ -108,7 +108,7 @@ describe() {
     # Arm Cortex-M4 with a single-precision floating-point unit.
     gcc-arm-bare-metal)
       kind=firmware prefix=arm-none-eabi processor=arm
-      flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=nano.specs --specs=nosys.specs"
+      flags="-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -ffunction-sections -fdata-sections --specs=picolibc.specs"
       ;;
     # RV32IMAC: 32-bit RISC-V with the integer, multiplication, atomic and
     # compressed instruction extensions.
