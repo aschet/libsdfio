@@ -79,8 +79,9 @@
  * target_link_libraries(main PRIVATE sdfio::sdfio)
  * @endcode
  *
- * The program includes `<sdfio/sdfio.h>`, and `<sdfio/file.h>` for the
- * functions that open files. The programs under Examples show typical uses.
+ * Source files that use the library include `<sdfio/sdfio.h>`, and
+ * `<sdfio/file.h>` for the functions that open files. See Examples for typical
+ * uses.
  * Without CMake, pkg-config gives the flags:
  * @code{.sh}
  * cc main.c $(pkg-config --cflags --libs sdfio) -o main
@@ -180,13 +181,12 @@
  * take and return a `time_t` in UTC. A date of an ISO-2.0 file needs no
  * conversion. A date of an ISO-1.0 file is converted by a time zone, which
  * turns the clock reading into UTC when a reader opens the file, and the UTC
- * time back into a clock reading when a writer writes the header. The program
- * sets the time zone with sdfio_reader_set_time_zone() or
- * sdfio_writer_set_time_zone(). sdfio_system_time_zone() is the time zone of
- * the machine that runs the program, and a program passes its own conversion
- * as an sdfio_time_zone. Without a time zone the library takes the clock
- * reading as UTC. The UTC time is correct only if the time zone is the one in
- * which the file was written.
+ * time back into a clock reading when a writer writes the header. The time zone
+ * is set with sdfio_reader_set_time_zone() or sdfio_writer_set_time_zone().
+ * sdfio_system_time_zone() is the time zone of the machine, and an own
+ * conversion is passed as an sdfio_time_zone. Without a time zone the library
+ * takes the clock reading as UTC. The UTC time is correct only if the time zone
+ * is the one in which the file was written.
  *
  * @section format_data Data Area
  * The data area holds the matrix W of the coded values with N rows and M
