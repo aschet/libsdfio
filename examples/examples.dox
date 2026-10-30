@@ -13,15 +13,15 @@
 
 /** @example read_heights.c */
 
-/** @example read_stream.c */
-
 /** @example write_coded.c */
 
 /** @example read_coded.c */
 
-/** @example allocators.c */
+/** @example read_stream.c */
 
-/** @example time_zone.c */
+/** @example custom_allocator.c */
+
+/** @example custom_tz.c */
 
 /** @example opencv.cpp */
 

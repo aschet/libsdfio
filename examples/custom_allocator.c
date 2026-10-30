@@ -125,16 +125,16 @@ static sdfio_status write_file(void)
  * the continuous integration links this file with it as the entry point, so
  * that the image holds neither the output functions of the C library nor its
  * heap. */
-sdfio_status allocators(void);
+sdfio_status custom_allocator(void);
 
-sdfio_status allocators(void)
+sdfio_status custom_allocator(void)
 {
     return write_file();
 }
 
 int main(void)
 {
-    const sdfio_status status = allocators();
+    const sdfio_status status = custom_allocator();
     if (status != SDFIO_OK)
     {
         fprintf(stderr, "%s\n", sdfio_status_string(status));
