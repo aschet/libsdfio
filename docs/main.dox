@@ -12,13 +12,12 @@
 /**
  * @mainpage libsdfio
  *
- * libsdfio is a portable, embedded-friendly and standard-conformant C library
- * without dependencies that reads and writes the SDF surface data files of
- * ISO 25178-71. An SDF file holds the heights of a profile or of an areal
- * surface measurement on a rectangular grid. It is used as a software
- * measurement standard, a set of reference data with which the software of
- * surface texture measuring instruments is verified, and as an interchange
- * format for topography data.
+ * libsdfio is a portable C library without dependencies that reads and writes
+ * the SDF surface data files of ISO 25178-71. An SDF file holds the heights of
+ * a profile or of an areal surface measurement on a rectangular grid. It is
+ * used as a software measurement standard, a set of reference data with which
+ * the software of surface texture measuring instruments is verified, and as an
+ * interchange format for topography data.
  *
  * @section features Features
  * - Implemented according to ISO 25178-71:2026, with the revisions ISO-1.0 and
