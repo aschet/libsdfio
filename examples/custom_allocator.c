@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* The memory that the library has taken: now, at most at once, and the number
+ * of blocks. */
 typedef struct usage
 {
     size_t current;
@@ -14,8 +16,9 @@ typedef struct usage
     size_t blocks;
 } usage;
 
-/* A block starts with its size, because release() is not given one. The union
- * keeps the memory after it aligned for any type. */
+/* Stored in front of every block, with the size of the block: the function that
+ * releases a block is not told the size, and subtracts it from the memory in
+ * use. The union keeps the block itself aligned for any type. */
 typedef union block_header
 {
     size_t size;
