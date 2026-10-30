@@ -189,52 +189,48 @@
  * is the one in which the file was written.
  *
  * @section format_data Data Area
- * The data area holds the matrix W of the coded values with N rows and M
- * columns, row by row in the order of the position along y. The coded value
- * `w(i,j)` of the row i and the column j, counted from 1, belongs to the point
+ * The data area holds the matrix W of coded values with N rows and M columns,
+ * stored row by row in the order of y. The coded value `w(i,j)` of the row i
+ * and the column j, counted from 1, belongs to the point
  *
  * @code
  * x = (j - 1) * Xscale     y = (i - 1) * Yscale     z = w(i,j) * Zscale
  * @endcode
  *
  * in a right-handed coordinate system: x grows with the column, y with the row,
- * and z points to the viewer who looks from above. The first row has y = 0.
- * Seen from above with x to the right, y grows upward, so the first row of the
- * file is the bottom row of the picture. sdfio_read_data() and
- * sdfio_read_heights() deliver the rows in this order, and the writing
- * functions take them in this order. Image libraries count the rows from the
- * top, so a program that shows a surface unchanged shows it upside down.
+ * and z points to a viewer who looks from above. The first row has y = 0, so it
+ * is the bottom row of a picture with x to the right. sdfio_read_data(),
+ * sdfio_read_heights() and the writing functions use this order of rows. Image
+ * libraries count the rows from the top and show the surface upside down if it
+ * is not flipped.
  *
- * A coded value is not a length. It becomes the height of the point in metres
- * when it is multiplied by the z-scale. A file of an integer type spends the
- * range of the type on the heights of the measurement, and the z-scale decides
- * what one step of the integer is worth, so it trades the range against the
- * resolution. The z-scale of a file that holds heights between -80 and +80
- * micrometres in int16_t values is about 2.4e-9 metres. A file of a
- * floating-point type usually holds metres directly, with the z-scale 1, but
- * any z-scale is valid.
+ * A coded value is not a length. Multiplied by the z-scale it is the height of
+ * the point in metres. For an integer type the z-scale sets the value of one
+ * step and so trades range against resolution: heights between -80 and +80
+ * micrometres in int16_t values need a z-scale of about 2.4e-9 metres. A
+ * floating-point type usually holds metres directly with the z-scale 1, but any
+ * z-scale is valid.
  *
- * The library offers both views, and a program uses the highest one that
- * suffices. sdfio_read_data() and sdfio_write_data() transfer the coded values
- * as the file has them, row by row. sdfio_decode_heights() and
- * sdfio_encode_heights() convert rows between coded values and heights in
- * metres and need only a header. sdfio_read_heights() and
- * sdfio_write_heights() transfer the whole matrix as heights in one call.
- * Encoding rounds an integer to the nearest value. A height that does not fit
- * the data type with the z-scale is an error (SDFIO_ERR_RANGE), and so is a
- * height that would be written as the bad value (SDFIO_ERR_BAD_VALUE), because
- * a reader would take it for a point that is not measured.
+ * The library offers three levels of access, and a program uses the highest one
+ * that suffices. sdfio_read_data() and sdfio_write_data() transfer the coded
+ * values row by row. sdfio_decode_heights() and sdfio_encode_heights() convert
+ * rows between coded values and heights in metres and need only a header.
+ * sdfio_read_heights() and sdfio_write_heights() transfer the whole matrix as
+ * heights. Encoding rounds an integer to the nearest value. A height that does
+ * not fit the data type with the z-scale is an error (SDFIO_ERR_RANGE), and so
+ * is a height that would be written as the bad value (SDFIO_ERR_BAD_VALUE),
+ * which a reader would take for a point that is not measured.
  * sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() find the
  * smallest z-scale that fits the heights, and sdfio_write_heights() uses it
  * when the header has SDFIO_AUTO_Z_SCALE.
  *
- * A point that is not measured has the bad value of the data type as a coded
- * value. A height in metres has no such value, so it is NaN. The functions that read
- * or convert heights deliver NaN for a point that is not measured, and the
- * functions that write or convert heights take NaN and infinity as such a
- * point. This is also the convention of ISO 25178-72 for the binary float
- * formats. A program whose data uses a marker such as -9999 replaces it with
- * NaN before writing, and NaN with the marker after reading.
+ * A point that is not measured has the bad value of the data type as coded
+ * value and NaN as height, which is also the convention of ISO 25178-72 for the
+ * binary float formats. The functions that read or convert heights deliver NaN
+ * for such a point, and the functions that write or convert heights take NaN
+ * and infinity as such a point. Data that marks these points with a value such
+ * as -9999 has to be replaced with NaN before writing, and NaN with the marker
+ * after reading.
  *
  * @section format_trailer Trailer
  * The trailer holds historical information about the measurement, such as the
