@@ -25,9 +25,7 @@
  *   ISO-2.0.
  * - Access to the data as heights in metres or as the coded values of the
  *   file.
- * - Application-side buffers with arbitrary strides, so that the data is read
- *   and written in place in the buffer of an image, a matrix or a structure
- *   without a copy.
+ * - Application-side buffers with arbitrary strides.
  * - Custom allocators.
  * - Files, blocks of memory and streams, including pipes, as sources and sinks.
  * - Thread support: the library holds no global state, so threads use handles
