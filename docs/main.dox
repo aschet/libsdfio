@@ -225,8 +225,8 @@
  * when the header has SDFIO_AUTO_Z_SCALE.
  *
  * A point that is not measured has the bad value of its data type as coded
- * value, which the standard defines. In heights the library represents such a
- * point as NaN, a convention of the library that the standard does not define.
+ * value. In heights the library represents such a point as NaN, a convention of
+ * the library that the standard does not define.
  * The functions that read or convert heights deliver NaN for such a point, and
  * the functions that write or convert heights take NaN and infinity as such a
  * point. Data that marks these points with a value such as -9999 has to be
