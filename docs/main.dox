@@ -224,13 +224,13 @@
  * smallest z-scale that fits the heights, and sdfio_write_heights() uses it
  * when the header has SDFIO_AUTO_Z_SCALE.
  *
- * A point that is not measured has the bad value of the data type as coded
- * value and NaN as height, which is also the convention of ISO 25178-72 for the
- * binary float formats. The functions that read or convert heights deliver NaN
- * for such a point, and the functions that write or convert heights take NaN
- * and infinity as such a point. Data that marks these points with a value such
- * as -9999 has to be replaced with NaN before writing, and NaN with the marker
- * after reading.
+ * A point that is not measured has the bad value of its data type as coded
+ * value, which the standard defines. In heights the library represents such a
+ * point as NaN, a convention of the library that the standard does not define.
+ * The functions that read or convert heights deliver NaN for such a point, and
+ * the functions that write or convert heights take NaN and infinity as such a
+ * point. Data that marks these points with a value such as -9999 has to be
+ * replaced with NaN before writing, and NaN with the marker after reading.
  *
  * @section format_trailer Trailer
  * The trailer holds historical information about the measurement, such as the
