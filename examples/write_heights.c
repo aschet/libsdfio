@@ -1,3 +1,5 @@
+/* Write SDF files of both revisions with the heights API. */
+
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

@@ -1,3 +1,5 @@
+/* Convert the dates of an ISO-1.0 file with a time zone. */
+
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

@@ -1,6 +1,4 @@
-// OpenCV: reads a surface into an image, smooths it, writes it back, and reads
-// a surface into a region of an image. The arguments are the SDF file to read
-// and the SDF file to write.
+// Smooth an SDF file with OpenCV.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>

@@ -1,5 +1,4 @@
-// VTK: reads a surface into image data and shows it as a height field in a
-// window. The argument is the SDF file to show.
+// Display an SDF file with VTK.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>

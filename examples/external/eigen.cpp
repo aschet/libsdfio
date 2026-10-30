@@ -1,6 +1,4 @@
-// Eigen: reads a surface into a matrix, removes the plane that fits its heights
-// best, and writes the matrix back. The arguments are the SDF file to read and
-// the SDF file to write.
+// Remove the best-fit plane of an SDF file with Eigen.
 
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
