@@ -11,8 +11,9 @@
 #define BUFFER_SIZE 128
 #define CHUNK_VALUES 16
 
-/* A pool that hands out pieces in order and takes none back. The cell gives
- * every piece the alignment of any object. */
+/* The unit of the memory pool. The union has the alignment of its most
+ * strictly aligned member, so a block that starts at a multiple of its size is
+ * aligned for any type. */
 typedef union pool_cell
 {
     long long integer;
@@ -23,6 +24,8 @@ typedef union pool_cell
 static pool_cell pool[POOL_SIZE / sizeof(pool_cell)];
 static size_t pool_used;
 
+/* Allocates the next free cells of the pool, or returns NULL if the pool is
+ * exhausted. */
 static void *take(void *user, size_t size)
 {
     (void)user;
@@ -37,6 +40,7 @@ static void *take(void *user, size_t size)
     return memory;
 }
 
+/* Memory is not returned to the pool, so there is nothing to release. */
 static void give(void *user, void *memory)
 {
     (void)user;
