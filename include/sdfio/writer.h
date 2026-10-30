@@ -23,7 +23,8 @@
  * -# sdfio_write_trailer_field(), sdfio_write_trailer_text() and
  *    sdfio_copy_trailer() write the trailer, which is optional.
  * -# sdfio_end_file() ends the file, also if it has no trailer.
- * -# sdfio_writer_free() releases the writer.
+ * -# sdfio_writer_free() releases the writer. sdfio_writer_reset() instead
+ *    makes it ready for the next file, which is created as before.
  *
  * @par States
  * A writer is in one of five states. It is new until a file is created, then
@@ -34,7 +35,8 @@
  * of closing the file, and a height in sdfio_write_heights() that cannot be
  * written.
  * - Formats and options can be set in the state new only. The first creation
- *   that passes the checks of the header fixes them.
+ *   that passes the checks of the header fixes them, also after
+ *   sdfio_writer_reset().
  * - The header is checked and copied when the file is created, so later changes
  *   of it have no effect. It is written with the first rows, because
  *   sdfio_write_heights() can still determine the z-scale.
@@ -149,6 +151,17 @@ SDFIO_API sdfio_status sdfio_writer_set_chunk(sdfio_writer *writer,
  */
 SDFIO_API sdfio_status sdfio_writer_set_time_zone(
     sdfio_writer *writer, const sdfio_time_zone *time_zone);
+
+/**
+ * Makes a writer ready for the next file. A file that sdfio_create_file()
+ * created and sdfio_end_file() did not end is closed in its incomplete state.
+ * The formats, the options and the buffers stay for the next file. The function
+ * works in every state, also after an error.
+ *
+ * @param[in,out] writer The writer.
+ * @retval SDFIO_ERR_ARGUMENT The writer is null.
+ */
+SDFIO_API sdfio_status sdfio_writer_reset(sdfio_writer *writer);
 
 /**
  * Releases a writer. A file that sdfio_create_file() created and

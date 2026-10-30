@@ -134,6 +134,27 @@ void sdfio_writer_free(sdfio_writer *writer)
     sdfio_release(&allocator, writer);
 }
 
+sdfio_status sdfio_writer_reset(sdfio_writer *writer)
+{
+    if (writer == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (writer->owner.close != NULL)
+    {
+        writer->owner.close(writer->owner.user);
+    }
+    writer->owner = (sdfio_owner){0};
+    writer->message = NULL;
+    writer->format = NULL;
+    writer->state = SDFIO_WRITER_NEW;
+    writer->header_written = false;
+    writer->trailer_open = false;
+    writer->trailer_text = (sdfio_crlf_state){0};
+    writer->next_row = 0;
+    return SDFIO_OK;
+}
+
 void sdfio_writer_own(sdfio_writer *writer, sdfio_owner owner)
 {
     writer->owner = owner;
@@ -230,14 +251,22 @@ static sdfio_status start_stream(sdfio_writer *writer,
         writer->file_chunk =
             sdfio_allocate(&writer->options.allocator, file_chunk_bytes);
     }
-    if (writer->format_state == NULL && format->state_size > 0)
+    if (writer->format_state_size < format->state_size)
     {
-        writer->format_state =
-            sdfio_allocate(&writer->options.allocator, format->state_size);
+        sdfio_release(&writer->options.allocator, writer->format_state);
+        writer->format_state = NULL;
+        writer->format_state_size = 0;
+        if (format->state_size > 0)
+        {
+            writer->format_state =
+                sdfio_allocate(&writer->options.allocator, format->state_size);
+            writer->format_state_size =
+                writer->format_state != NULL ? format->state_size : 0;
+        }
     }
     if (writer->coded == NULL
         || (writer->file_chunk == NULL && file_chunk_bytes > 0)
-        || (writer->format_state == NULL && format->state_size > 0)
+        || writer->format_state_size < format->state_size
         || (writer->sink.buffer == NULL
             && !sdfio_sink_create(&writer->sink, writer->options.buffer_size,
                                   &writer->options.allocator)))

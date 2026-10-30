@@ -42,6 +42,8 @@ struct sdfio_reader
     sdfio_source source;
     /** The state of the format for the file, or null. */
     void *format_state;
+    /** The size of the state of the format. */
+    size_t format_state_size;
     /** The added formats. */
     const sdfio_reader_format *formats[SDFIO_FORMAT_MAX];
     /** The format of the open file. */

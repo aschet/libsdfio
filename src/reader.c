@@ -171,6 +171,30 @@ void sdfio_reader_free(sdfio_reader *reader)
     sdfio_release(&allocator, reader);
 }
 
+sdfio_status sdfio_reader_reset(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (reader->owner.close != NULL)
+    {
+        reader->owner.close(reader->owner.user);
+    }
+    reader->owner = (sdfio_owner){0};
+    reader->message = NULL;
+    reader->format = NULL;
+    reader->memory = (sdfio_memory_stream){0};
+    reader->opened = false;
+    reader->value_count = 0;
+    reader->next_row = 0;
+    reader->next_value = 0;
+    reader->data_done = false;
+    reader->failed = false;
+    reader->trailer_begun = false;
+    return SDFIO_OK;
+}
+
 void sdfio_reader_own(sdfio_reader *reader, sdfio_owner owner)
 {
     reader->owner = owner;
@@ -254,17 +278,25 @@ static sdfio_status open_source(sdfio_reader *reader,
     {
         return status;
     }
-    sdfio_release(&reader->options.allocator, reader->format_state);
-    reader->format_state = NULL;
+    if (reader->format_state_size < reader->format->state_size)
+    {
+        sdfio_release(&reader->options.allocator, reader->format_state);
+        reader->format_state = NULL;
+        reader->format_state_size = 0;
+        if (reader->format->state_size > 0)
+        {
+            reader->format_state = sdfio_allocate(&reader->options.allocator,
+                                                  reader->format->state_size);
+            if (reader->format_state == NULL)
+            {
+                return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
+                                  "Out of memory");
+            }
+            reader->format_state_size = reader->format->state_size;
+        }
+    }
     if (reader->format->state_size > 0)
     {
-        reader->format_state = sdfio_allocate(&reader->options.allocator,
-                                              reader->format->state_size);
-        if (reader->format_state == NULL)
-        {
-            return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
-                              "Out of memory");
-        }
         memset(reader->format_state, 0, reader->format->state_size);
     }
     status = sdfio_read_header(&reader->source, reader->format, &reader->header,

@@ -21,7 +21,8 @@
  *    it in parts of one row or more, in the order of the file.
  * -# sdfio_read_trailer() reads the trailer, in parts, until it returns 0
  *    bytes.
- * -# sdfio_reader_free() releases the reader.
+ * -# sdfio_reader_free() releases the reader. sdfio_reader_reset() instead
+ *    makes it ready for the next file, which is opened as before.
  *
  * @par States
  * A reader is in one of four states. It is new until a file is opened, then in
@@ -31,7 +32,7 @@
  * or SDFIO_ERR_RANGE in a call that reads. The header stays available in every
  * state after the opening.
  * - Formats and options can be set in the state new only. The first attempt to
- *   open a file fixes them.
+ *   open a file fixes them, also after sdfio_reader_reset().
  * - A call that the state does not allow returns SDFIO_ERR_STATE, and an
  *   invalid argument returns SDFIO_ERR_ARGUMENT. Neither changes the state or
  *   the position in the file.
@@ -163,6 +164,17 @@ SDFIO_API size_t sdfio_reader_magic_count(const sdfio_reader *reader);
  */
 SDFIO_API const char *sdfio_reader_magic(const sdfio_reader *reader,
                                          size_t index);
+
+/**
+ * Makes a reader ready for the next file. A file that sdfio_open_file() opened
+ * is closed, and the header and the position in the file are dropped. The
+ * formats, the options and the buffers stay for the next file. The function
+ * works in every state, also after an error.
+ *
+ * @param[in,out] reader The reader.
+ * @retval SDFIO_ERR_ARGUMENT The reader is null.
+ */
+SDFIO_API sdfio_status sdfio_reader_reset(sdfio_reader *reader);
 
 /**
  * Releases a reader and closes the file that sdfio_open_file() opened, if any.
