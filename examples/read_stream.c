@@ -1,5 +1,3 @@
-/* Read an SDF file from a stream row by row. */
-
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

@@ -1,5 +1,3 @@
-/* Write an SDF file to memory with a custom allocator. */
-
 #include <sdfio/sdfio.h>
 
 #include <stdio.h>

@@ -1,5 +1,3 @@
-/* Read an SDF file with the heights API. */
-
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

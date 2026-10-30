@@ -1,5 +1,3 @@
-// Remove the best-fit plane of an SDF file with Eigen.
-
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

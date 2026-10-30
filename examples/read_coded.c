@@ -1,5 +1,3 @@
-/* Read an SDF file with the coded values API. */
-
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
