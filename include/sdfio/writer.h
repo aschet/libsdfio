@@ -16,7 +16,7 @@
  *    sdfio_writer_set_chunk() and sdfio_writer_set_time_zone() set the
  *    options.
  * -# sdfio_create_file() or sdfio_create_stream() starts the file from a
- *    header.
+ *    header. sdfio_writer_estimate_size() estimates the size of the file.
  * -# sdfio_write_heights() writes the whole data area, or sdfio_write_data()
  *    writes it in parts of one row or more, in the order of the file, until
  *    all rows of the header are written.
@@ -158,6 +158,27 @@ SDFIO_API sdfio_status sdfio_writer_set_time_zone(
  * @param[in,out] writer The writer.
  */
 SDFIO_API void sdfio_writer_free(sdfio_writer *writer);
+
+/**
+ * Estimates the size in bytes of the file that a header describes, without the
+ * trailer. For the binary format the result is the size of the file; for the
+ * ASCII format it is not smaller, as it takes the longest text of every value.
+ * The program adds the size of its trailer.
+ *
+ * The header has to be one that sdfio_create_stream() accepts.
+ *
+ * @param[in] writer The writer.
+ * @param[in] header The description of the file.
+ * @param[out] size Receives the size.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or the header cannot be
+ * written.
+ * @retval SDFIO_ERR_RANGE The size does not fit in size_t.
+ * @retval SDFIO_ERR_UNSUPPORTED The format of the header has not been added to
+ * the writer.
+ */
+SDFIO_API sdfio_status sdfio_writer_estimate_size(const sdfio_writer *writer,
+                                                  const sdfio_header *header,
+                                                  size_t *size);
 
 /**
  * Starts a file that the header describes, including the numbers of columns

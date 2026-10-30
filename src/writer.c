@@ -169,6 +169,21 @@ writer_format_for(const sdfio_writer_format *const *formats,
     return NULL;
 }
 
+sdfio_status sdfio_writer_estimate_size(const sdfio_writer *writer,
+                                        const sdfio_header *header,
+                                        size_t *size)
+{
+    if (writer == NULL || header == NULL || size == NULL
+        || sdfio_header_check(header, NULL) != SDFIO_OK)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    const sdfio_writer_format *format =
+        writer_format_for(writer->formats, header->format);
+    return format != NULL ? format->estimate_size(header, size)
+                          : SDFIO_ERR_UNSUPPORTED;
+}
+
 sdfio_status sdfio_writer_check(sdfio_writer *writer,
                                 const sdfio_header *header)
 {

@@ -43,6 +43,16 @@ struct sdfio_writer_format
     size_t (*file_chunk_size)(size_t chunk_values);
 
     /**
+     * Returns the size in bytes of a file without the trailer: exactly if the
+     * format allows it, otherwise at least the size of the file.
+     *
+     * @param header The header, which is valid.
+     * @param[out] size Receives the size.
+     * @retval SDFIO_ERR_RANGE The size does not fit in size_t.
+     */
+    sdfio_status (*estimate_size)(const sdfio_header *header, size_t *size);
+
+    /**
      * Writes the header.
      *
      * @param sink The sink.

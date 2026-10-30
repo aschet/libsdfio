@@ -35,7 +35,7 @@
 
 /**
  * @example write_memory.c
- * @details Write an SDF file to a growing memory buffer.
+ * @details Write an SDF file to a memory buffer of the estimated size.
  */
 
 /**

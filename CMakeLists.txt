@@ -85,6 +85,7 @@ set(SDFIO_SOURCES
     src/revision.h
     src/sink.c
     src/sink.h
+    src/size_math.h
     src/sizes.c
     src/source.c
     src/source.h

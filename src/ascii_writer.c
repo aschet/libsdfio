@@ -19,6 +19,7 @@
 #include "message.h"
 #include "number_text.h"
 #include "sink.h"
+#include "size_math.h"
 #include "writer_format.h"
 #include <sdfio/sdfio.h>
 #include <stdio.h>
@@ -110,7 +111,7 @@ static bool put_text(sdfio_sink *sink, const char *text)
 /* Appends the header line `name = value`. */
 static bool put_field(sdfio_sink *sink, const char *name, const char *value)
 {
-    return put_text(sink, name) && put_text(sink, " = ")
+    return put_text(sink, name) && put_text(sink, SDFIO_ASCII_ASSIGNMENT)
            && put_text(sink, value) && put_text(sink, crlf);
 }
 
@@ -294,11 +295,96 @@ static sdfio_status write_terminator(sdfio_sink *sink, const char **message)
     return SDFIO_OK;
 }
 
+/* The digits of the largest number of columns or rows, a uint32_t. */
+#define COUNT_DIGITS 10
+/* The digits of the code of the compression, the data type and the checksum. */
+#define CODE_DIGITS 1
+
+/* The length of the line `name = value` for a value of at most `value_size`
+ * characters. */
+static size_t field_size(const char *name, size_t value_size)
+{
+    return strlen(name) + strlen(SDFIO_ASCII_ASSIGNMENT) + value_size
+           + strlen(crlf);
+}
+
+/* The length of a number in the form of sdfio_format_scientific(): the sign,
+ * a digit, the decimal point, the digits, the `e`, the sign of the exponent and
+ * the digits of the exponent. */
+static size_t scientific_size(size_t digits, size_t exponent_digits)
+{
+    return 1 + 1 + 1 + digits + 1 + 1 + exponent_digits;
+}
+
+/* The length of the longest text of a value of a data type. The text of the
+ * bad value is shorter. */
+static size_t value_size(sdfio_data_type type)
+{
+    switch (type)
+    {
+    case SDFIO_TYPE_INT8:
+        return sizeof "-128" - 1;
+    case SDFIO_TYPE_INT16:
+        return sizeof "-32768" - 1;
+    case SDFIO_TYPE_INT32:
+        return sizeof "-2147483648" - 1;
+    case SDFIO_TYPE_FLOAT:
+        return scientific_size(SDFIO_FLOAT_DIGITS, SDFIO_FLOAT_EXPONENT);
+    case SDFIO_TYPE_DOUBLE:
+        return scientific_size(SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
+    }
+    return 0;
+}
+
+/* The longest header that write_header() writes: every field has its longest
+ * text, and the dates and the identifier are fields of a fixed width. */
+static size_t header_size(sdfio_revision revision)
+{
+    const size_t scale =
+        scientific_size(SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
+    return strlen(magics[revision]) + strlen(crlf)
+           + field_size(SDFIO_ASCII_MANUFACTURER_ID, SDFIO_MANUFACTURER_ID_MAX)
+           + field_size(SDFIO_ASCII_CREATE_DATE, SDFIO_DATETIME_SIZE)
+           + field_size(SDFIO_ASCII_MODIFICATION_DATE, SDFIO_DATETIME_SIZE)
+           + field_size(SDFIO_ASCII_POINTS, COUNT_DIGITS)
+           + field_size(SDFIO_ASCII_PROFILES, COUNT_DIGITS)
+           + field_size(SDFIO_ASCII_X_SCALE, scale)
+           + field_size(SDFIO_ASCII_Y_SCALE, scale)
+           + field_size(SDFIO_ASCII_Z_SCALE, scale)
+           + field_size(SDFIO_ASCII_Z_RESOLUTION, scale)
+           + field_size(SDFIO_ASCII_COMPRESSION, CODE_DIGITS)
+           + field_size(SDFIO_ASCII_DATA_TYPE, CODE_DIGITS)
+           + field_size(SDFIO_ASCII_CHECK_TYPE, CODE_DIGITS) + 1 + strlen(crlf);
+}
+
+/* The size of a file without the trailer: the header, the data area with a
+ * separator or a line end after every value, and the two lines that close the
+ * data area and the trailer. */
+static sdfio_status estimate_size(const sdfio_header *header, size_t *size)
+{
+    size_t values = 0;
+    size_t text = 0;
+    size_t line_ends = 0;
+    if (!sdfio_size_multiply(header->columns, header->rows, &values)
+        || !sdfio_size_multiply(values, value_size(header->data_type) + 1,
+                                &text)
+        || !sdfio_size_multiply(header->rows, strlen(crlf), &line_ends))
+    {
+        return SDFIO_ERR_RANGE;
+    }
+    *size = header_size(header->revision);
+    return sdfio_size_add(size, text) && sdfio_size_add(size, line_ends)
+                   && sdfio_size_add(size, 2 * (1 + strlen(crlf)))
+               ? SDFIO_OK
+               : SDFIO_ERR_RANGE;
+}
+
 static const sdfio_writer_format ascii_format = {
     .state_size = sizeof(struct writing),
     .writes = SDFIO_ASCII,
     .trailer_ends_line = true,
     .file_chunk_size = file_chunk_size,
+    .estimate_size = estimate_size,
     .write_header = write_header,
     .write_values = write_values,
     .begin_trailer = write_terminator,

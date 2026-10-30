@@ -22,6 +22,7 @@
 #include "message.h"
 #include "revision.h"
 #include "sink.h"
+#include "size_math.h"
 #include "writer_format.h"
 #include <limits.h>
 #include <sdfio/sdfio.h>
@@ -39,6 +40,33 @@ static size_t file_chunk_size(size_t chunk_values)
 
 static const char *const magics[] = {
     [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
+
+/* The number of the dates, of the numbers of columns and rows, of the scales
+ * and of the codes in the header. */
+#define DATE_FIELDS ((size_t)2)
+#define COUNT_FIELDS ((size_t)2)
+#define SCALE_FIELDS ((size_t)4)
+#define CODE_FIELDS ((size_t)3)
+
+/* The size of the header of a file: the fields of write_header(). */
+static size_t header_size(sdfio_revision revision)
+{
+    return strlen(magics[revision]) + SDFIO_MANUFACTURER_ID_MAX
+           + DATE_FIELDS * SDFIO_DATETIME_SIZE
+           + COUNT_FIELDS * sdfio_revision_columns_rows_size(revision)
+           + SCALE_FIELDS * sizeof(double) + CODE_FIELDS * SDFIO_CODE_SIZE;
+}
+
+static sdfio_status estimate_size(const sdfio_header *header, size_t *size)
+{
+    size_t data = 0;
+    if (sdfio_data_size(header, &data) != SDFIO_OK)
+    {
+        return SDFIO_ERR_RANGE;
+    }
+    *size = header_size(header->revision);
+    return sdfio_size_add(size, data) ? SDFIO_OK : SDFIO_ERR_RANGE;
+}
 
 /* Writes a text in a field of a width: a text that is too long is cut, and one
  * that is too short is filled with spaces. */
@@ -156,6 +184,7 @@ static sdfio_status end_trailer(sdfio_sink *sink, const char **message)
 static const sdfio_writer_format binary_format = {
     .writes = SDFIO_BINARY,
     .file_chunk_size = file_chunk_size,
+    .estimate_size = estimate_size,
     .write_header = write_header,
     .write_values = write_values,
     .begin_trailer = begin_trailer,

@@ -21,6 +21,8 @@
 /** String that labels a non-measured or spurious point in the data area of the
  * ASCII format. */
 #define SDFIO_ASCII_BAD "BAD"
+/** Separator of the name and the value of a field in the ASCII format. */
+#define SDFIO_ASCII_ASSIGNMENT " = "
 /** The room for the text of one value in the data area of the ASCII format,
  * with its separator. */
 #define SDFIO_TEXT_PER_VALUE 32

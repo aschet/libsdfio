@@ -8,7 +8,6 @@
 
 #define COLUMNS 64
 #define ROWS 48
-#define FIRST_CAPACITY 1024
 
 typedef struct buffer
 {
@@ -17,25 +16,13 @@ typedef struct buffer
     size_t capacity;
 } buffer;
 
-/* Appends to the buffer, which doubles its capacity when the data does not fit
- * any more. */
+/* Appends to the buffer, which does not grow. */
 static size_t append(void *user, const void *data, size_t size)
 {
     buffer *file = user;
     if (size > file->capacity - file->size)
     {
-        size_t capacity = file->capacity > 0 ? file->capacity : FIRST_CAPACITY;
-        while (size > capacity - file->size)
-        {
-            capacity *= 2;
-        }
-        unsigned char *grown = realloc(file->data, capacity);
-        if (grown == NULL)
-        {
-            return 0;
-        }
-        file->data = grown;
-        file->capacity = capacity;
+        return 0;
     }
     memcpy(file->data + file->size, data, size);
     file->size += size;
@@ -69,7 +56,19 @@ int main(void)
     sdfio_writer_create(sdfio_default_allocator(), &writer);
     sdfio_writer_add_binary(writer);
 
-    buffer file = {NULL, 0, 0};
+    size_t capacity = 0;
+    buffer file = {sdfio_writer_estimate_size(writer, header, &capacity)
+                           == SDFIO_OK
+                       ? malloc(capacity)
+                       : NULL,
+                   0, capacity};
+    if (file.data == NULL)
+    {
+        fprintf(stderr, "the file does not fit in memory\n");
+        sdfio_writer_free(writer);
+        sdfio_header_free(header);
+        return EXIT_FAILURE;
+    }
     const sdfio_stream stream = {&file, NULL, append};
     sdfio_status status = sdfio_create_stream(writer, &stream, header);
     if (status == SDFIO_OK)
