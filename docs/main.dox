@@ -205,18 +205,6 @@
  * functions take them in this order. Image libraries count the rows from the
  * top, so a program that shows a surface unchanged shows it upside down.
  *
- * @code{.unparsed}
- * seen from above:
- *
- *    y (along the rows)
- *    ^
- *    |
- *    |
- *    (o)------> x (along the columns)
- *
- *    z comes out of the page, to the viewer
- * @endcode
- *
  * A coded value is not a length. It becomes the height of the point in metres
  * when it is multiplied by the z-scale. A file of an integer type spends the
  * range of the type on the heights of the measurement, and the z-scale decides
