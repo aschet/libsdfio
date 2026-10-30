@@ -82,7 +82,7 @@
  * Source files that use the library include `<sdfio/sdfio.h>`, and
  * `<sdfio/file.h>` for the functions that open files. See Examples for typical
  * uses.
- * Without CMake, pkg-config gives the flags:
+ * Without CMake, compile and link with the flags that pkg-config reports:
  * @code{.sh}
  * cc main.c $(pkg-config --cflags --libs sdfio) -o main
  * @endcode
