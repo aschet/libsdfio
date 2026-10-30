@@ -1,3 +1,5 @@
+/* Read an SDF file with an allocator that counts the memory of the library. */
+
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

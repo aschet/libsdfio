@@ -1,3 +1,5 @@
+// Display an SDF file with VTK.
+
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 

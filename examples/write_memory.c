@@ -1,3 +1,5 @@
+/* Write an SDF file to a memory buffer of the estimated size. */
+
 #include <sdfio/sdfio.h>
 
 #include <math.h>

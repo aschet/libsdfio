@@ -1,3 +1,5 @@
+// Smooth an SDF file with OpenCV.
+
 #include <sdfio/file.h>
 #include <sdfio/sdfio.h>
 
