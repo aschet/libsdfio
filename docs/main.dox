@@ -52,7 +52,7 @@
  * the configuration in the other commands: `--config Release`, and
  * `-C Release` for `ctest`.
  *
- * The options of CMake select what is built:
+ * These CMake options control which components are built:
  *
  * <table class="doxtable">
  * <tr><th>Option</th><th>Default</th><th>Builds</th></tr>
