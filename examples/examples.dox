@@ -44,7 +44,7 @@
  */
 
 /**
- * @example custom_tz.c
+ * @example custom_timezone.c
  * @details Convert the dates of an ISO-1.0 file with a fixed-offset time zone.
  */
 
