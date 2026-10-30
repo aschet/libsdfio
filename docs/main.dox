@@ -40,7 +40,7 @@
  *   width of `time_t`, see @ref building_build.
  * - Files of the format BCR-1.0, the predecessor of ISO-1.0, are not supported.
  *
- * @section building_build Building and Installing the Library
+ * @section building_build Building and Installing
  * @code{.sh}
  * cmake -S . -B build
  * cmake --build build
@@ -71,7 +71,7 @@
  * cmake -S . -B build -DCMAKE_C_FLAGS="-D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
  * @endcode
  *
- * @section building_use Using the Library
+ * @section building_use Using
  * An installed library provides the CMake target `sdfio::sdfio`:
  * @code{.unparsed}
  * find_package(sdfio CONFIG REQUIRED)
