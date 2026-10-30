@@ -44,8 +44,8 @@ static void init_header(sdfio_header *header, sdfio_revision revision,
     sdfio_header_set_y_scale(header, 1e-6);
 }
 
-/* An ISO-1.0 file holds the clock of the writer, so the writer gets the time
- * zone of the machine. An ISO-2.0 file holds UTC and does not use it. */
+/* The time zone of the machine converts the dates of ISO-1.0 files, which hold
+ * local time. */
 static int write_surface(const char *path, sdfio_revision revision,
                          sdfio_data_type type)
 {
