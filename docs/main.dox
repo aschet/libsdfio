@@ -63,20 +63,14 @@
  * Doxygen, as the target `docs`.</td></tr>
  * </table>
  *
- * The dates of the interface are `time_t` values, which the library reads as
- * integer seconds since 1970-01-01 00:00:00 UTC, as POSIX defines them. The
- * library and the program that calls it have to be built with the same width
- * of `time_t`, and the build of the library does not select it. Where `time_t`
- * is already 64 bits, as on 64-bit targets and with the UCRT, nothing is
- * needed. A 32-bit host selects a 64-bit `time_t` with `-D_TIME_BITS=64` and
- * `-D_FILE_OFFSET_BITS=64` on glibc, which rejects `_TIME_BITS=64` without the
- * second flag, and with `-D_TIME_BITS=64` on MinGW-w64 with the msvcrt runtime.
- * The flags go to the compiler of the program and to the compiler of the
- * library, for example when the library is built from source:
+ * Dates are `time_t` values in seconds since 1970-01-01 00:00:00 UTC. The
+ * library and the program must use the same width of `time_t`. On a 32-bit
+ * host, a 64-bit `time_t` is needed for dates beyond 2038, for example with
+ * glibc:
  * @code{.sh}
  * cmake -S . -B build -DCMAKE_C_FLAGS="-D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
  * @endcode
- * A date that a 32-bit `time_t` cannot hold reads as SDFIO_NO_TIME.
+ * A date that `time_t` cannot hold reads as SDFIO_NO_TIME.
  *
  * @section building_use Using the Library
  * An installed library provides the CMake target `sdfio::sdfio`:
