@@ -1,11 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
 #
 # SPDX-License-Identifier: MIT
-#
-# Examples that use the library together with external libraries, written in
-# C++ over the C interface. They are built with
-# -DSDFIO_BUILD_EXTERNAL_EXAMPLES=ON, each one if its library is found and
-# skipped with a note if not.
 
 function(sdfio_external_example name)
     cmake_parse_arguments(ARG "" "SOURCE" "LIBS" ${ARGN})
@@ -19,7 +14,7 @@ find_package(OpenCV QUIET COMPONENTS core imgproc)
 if(OpenCV_FOUND)
     sdfio_external_example(opencv SOURCE opencv.cpp LIBS opencv_core opencv_imgproc)
 else()
-    message(STATUS "Example with OpenCV: not found, skipped")
+    message(STATUS "The OpenCV example is not built because OpenCV was not found")
 endif()
 
 set(vtk_components CommonCore CommonDataModel FiltersCore FiltersGeneral
@@ -31,12 +26,12 @@ if(VTK_FOUND)
     sdfio_external_example(vtk SOURCE vtk.cpp LIBS ${vtk_modules})
     vtk_module_autoinit(TARGETS example_vtk MODULES ${vtk_modules})
 else()
-    message(STATUS "Example with VTK: not found, skipped")
+    message(STATUS "The VTK example is not built because VTK was not found")
 endif()
 
 find_package(Eigen3 3.3 QUIET NO_MODULE)
 if(Eigen3_FOUND)
     sdfio_external_example(eigen SOURCE eigen.cpp LIBS Eigen3::Eigen)
 else()
-    message(STATUS "Example with Eigen: not found, skipped")
+    message(STATUS "The Eigen example is not built because Eigen was not found")
 endif()
