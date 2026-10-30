@@ -11,9 +11,8 @@
 #define BUFFER_SIZE 128
 #define CHUNK_VALUES 16
 
-/* The memory of a scanner without a heap: a pool that hands out pieces in
- * order and takes none back. The cell gives every piece the alignment of any
- * object. */
+/* A pool that hands out pieces in order and takes none back. The cell gives
+ * every piece the alignment of any object. */
 typedef union pool_cell
 {
     long long integer;
@@ -63,13 +62,12 @@ static size_t store(void *user, const void *data, size_t size)
     return size;
 }
 
-/* The scanner has no clock library: it takes the time of the scan from its own
- * hardware clock, here a constant. */
+/* The dates are a constant, so that the program does not read the clock. */
 static void init_header(sdfio_header *header)
 {
-    const time_t scan_time = 1700000000;
-    sdfio_header_set_created(header, scan_time);
-    sdfio_header_set_modified(header, scan_time);
+    const time_t date = 1700000000;
+    sdfio_header_set_created(header, date);
+    sdfio_header_set_modified(header, date);
     sdfio_header_set_data_type(header, SDFIO_TYPE_INT16);
     sdfio_header_set_columns(header, COLUMNS);
     sdfio_header_set_rows(header, ROWS);
