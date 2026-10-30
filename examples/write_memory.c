@@ -31,21 +31,24 @@ static size_t append(void *user, const void *data, size_t size)
     return size;
 }
 
-int main(void)
+static float heights[ROWS * COLUMNS];
+
+/* Generates a ripple of heights in metres. */
+static void generate_heights(void)
 {
-    static float heights[ROWS * COLUMNS];
     for (size_t row = 0; row < ROWS; ++row)
     {
+        const double row_factor = 1e-6 * sin(0.2 * (double)row);
+        float *line = heights + row * COLUMNS;
         for (size_t column = 0; column < COLUMNS; ++column)
         {
-            heights[row * COLUMNS + column] =
-                (float)(1e-6 * sin(0.2 * (double)row)
-                        * cos(0.2 * (double)column));
+            line[column] = (float)(row_factor * cos(0.2 * (double)column));
         }
     }
+}
 
-    sdfio_header *header = NULL;
-    sdfio_header_create(sdfio_default_allocator(), &header);
+static void init_header(sdfio_header *header)
+{
     sdfio_header_set_dates(header, time(NULL));
     sdfio_header_set_revision(header, SDFIO_ISO_2_0);
     sdfio_header_set_data_type(header, SDFIO_TYPE_FLOAT);
@@ -53,6 +56,14 @@ int main(void)
     sdfio_header_set_rows(header, ROWS);
     sdfio_header_set_x_scale(header, 1e-6);
     sdfio_header_set_y_scale(header, 1e-6);
+}
+
+int main(void)
+{
+    generate_heights();
+    sdfio_header *header = NULL;
+    sdfio_header_create(sdfio_default_allocator(), &header);
+    init_header(header);
 
     sdfio_writer *writer = NULL;
     sdfio_writer_create(sdfio_default_allocator(), &writer);
