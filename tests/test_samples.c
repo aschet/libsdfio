@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The files of tests/data. What the Python package sdfio, an independent
- * implementation, reads from them is in expected.txt, and this library has to
- * read the same. */
-
 #include "check.h"
 #include <stdlib.h>
 #include <string.h>

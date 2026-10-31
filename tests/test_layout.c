@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The strides of a layout. */
-
 #include "check.h"
 #include "layout.h"
 #include <stdint.h>

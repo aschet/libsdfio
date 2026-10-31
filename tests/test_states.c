@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The states of a reader and of a writer: the result of each call in each
- * state. */
-
 #include "check.h"
 
 #define COLUMNS 2

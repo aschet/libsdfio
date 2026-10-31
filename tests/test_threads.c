@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Threads with handles of their own: some read files, some write them, none
- * shares a handle. Built with ThreadSanitizer this shows a race in the
- * library. */
-
 #include "check.h"
 #include <stdlib.h>
 

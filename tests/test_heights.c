@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The step from stored values to heights and back, without a file. */
-
 #include "check.h"
 #include "data_type.h"
 #include "revision.h"

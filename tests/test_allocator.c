@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The memory of the handles: an allocator of the program is used for all of
- * it, and given everything back, also when it fails at any point. A small
- * configuration works. */
-
 #include "check.h"
 #include "reader_format.h"
 #include "reader_state.h"

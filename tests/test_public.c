@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Only what a user of the installed library can call: with a shared library
- * this fails to link if something is not exported. */
-
 #include "check.h"
 #include <float.h>
 #include <math.h>

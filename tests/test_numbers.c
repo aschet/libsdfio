@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Numbers as text, also where the locale writes a decimal comma. */
-
 #include "check.h"
 #include <limits.h>
 #include <math.h>

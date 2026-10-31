@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Streams that give a few bytes at a time, files that are damaged, and the
- * file that a writer leaves. */
-
 #include "check.h"
 #include <stdlib.h>
 #include <string.h>

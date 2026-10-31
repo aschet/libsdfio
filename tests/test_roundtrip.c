@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* What is written is what is read: every revision, format and data
- * type, the order of the rows, the trailer and the dates. */
-
 #include "check.h"
 #include "data_type.h"
 #include "revision.h"

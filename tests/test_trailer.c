@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* Writing a trailer: the fields, what a line may be, and what a file does with
- * the text it is given. */
-
 #include "check.h"
 #include <stdlib.h>
 #include <string.h>

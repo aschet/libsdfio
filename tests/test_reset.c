@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* A reader and a writer that are reset handle one file after the other, in any
- * format, also after an unfinished file or an error, and allocate nothing again
- * for the next file. */
-
 #include "check.h"
 #include <sdfio/file.h>
 #include <stdlib.h>

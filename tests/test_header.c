@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The header: its defaults, the check of each setter, the copy, and the memory
- * that it takes from its allocator. */
-
 #include "check.h"
 #include <stdint.h>
 #include <stdlib.h>

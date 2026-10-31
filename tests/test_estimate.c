@@ -4,10 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The estimate of the size of a file: exact for the binary format, never
- * smaller than the file for the ASCII format, also when every value has its
- * longest text. */
-
 #include "check.h"
 #include <limits.h>
 #include <string.h>

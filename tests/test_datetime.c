@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The date field: UTC in ISO-2.0, the local clock of the writer in the other
- * revisions, which the time zone of the caller converts. */
-
 #ifndef _WIN32
 #define _POSIX_C_SOURCE 200809L
 #endif
