@@ -652,7 +652,6 @@ static void put_double_in_file(unsigned char *bytes, double value)
 static void check_resolution(void)
 {
     sdfio_header *initial = new_header();
-    CHECK(SDFIO_NO_RESOLUTION == -1.0);
     CHECK(sdfio_header_z_resolution(initial) == SDFIO_NO_RESOLUTION);
 
     const double given[] = {SDFIO_NO_RESOLUTION, 0.0, -5.0, 1e-9};

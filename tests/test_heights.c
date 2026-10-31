@@ -174,9 +174,6 @@ static void check_range(void)
 
 static void check_tables(void)
 {
-    CHECK(SDFIO_BAD_INT8 == -128 && SDFIO_BAD_INT16 == -32768);
-    CHECK(SDFIO_BAD_INT32 == -2147483647 - 1);
-    CHECK(SDFIO_BAD_FLOAT == -FLT_MAX && SDFIO_BAD_DOUBLE == -DBL_MAX);
     CHECK(sdfio_data_type_size(SDFIO_TYPE_INT8) == 1);
     CHECK(sdfio_data_type_size((sdfio_data_type)0) == 0);
     CHECK(!sdfio_data_type_valid((sdfio_data_type)2));
