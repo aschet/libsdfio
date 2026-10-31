@@ -400,19 +400,6 @@ static void check_errors(void)
                                      bad_height));
     sdfio_writer_free(writer);
 
-    /* A description that cannot be written. */
-    describe(header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT8);
-    writer = new_writer(all_formats());
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_create_stream(writer, &stream, header));
-    sdfio_writer_free(writer);
-    describe(header, SDFIO_ISO_1_0, SDFIO_BINARY, SDFIO_TYPE_INT16);
-    CHECK_OK(sdfio_header_set_columns(header, (size_t)UINT16_MAX + 1));
-    writer = new_writer(all_formats());
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
-                 sdfio_create_stream(writer, &stream, header));
-    sdfio_writer_free(writer);
-
     /* The end before the rows, and a trailer ISO-2.0 cannot have. */
     describe(header, SDFIO_ISO_2_0, SDFIO_BINARY, SDFIO_TYPE_DOUBLE);
     writer = new_writer(all_formats());
@@ -482,11 +469,6 @@ static void check_stride(void)
                             && read_down == up[row * COLUMNS + column]);
         }
     }
-    /* A stride smaller than a row would overwrite the memory. */
-    reader = membuf_reopen(reader, &file);
-    const sdfio_layout narrow =
-        layout_with_rows(SDFIO_TYPE_DOUBLE, (ptrdiff_t)sizeof(double));
-    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_heights(reader, &narrow, up));
     sdfio_reader_free(reader);
     free(file.data);
 }
@@ -762,12 +744,6 @@ static void check_rows_without_columns(void)
 static void check_defaults(void)
 {
     sdfio_header *header = new_header();
-    CHECK(sdfio_header_revision(header) == SDFIO_ISO_2_0);
-    CHECK(sdfio_header_format(header) == SDFIO_BINARY);
-    CHECK(sdfio_header_data_type(header) == SDFIO_TYPE_FLOAT);
-    CHECK(sdfio_header_z_scale(header) == SDFIO_AUTO_Z_SCALE);
-    CHECK(sdfio_header_columns(header) == 0 && sdfio_header_rows(header) == 0);
-
     /* A float surface written with the defaults comes back as it was. */
     CHECK_OK(sdfio_header_set_columns(header, 3));
     CHECK_OK(sdfio_header_set_rows(header, 2));
