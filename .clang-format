@@ -1,6 +1,3 @@
-# Allman braces and four spaces, as the C++ sibling has them; pointers bind to
-# the name, as C programmers write them.
-
 Language: Cpp
 BasedOnStyle: LLVM
 ColumnLimit: 80

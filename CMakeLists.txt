@@ -249,8 +249,6 @@ install(FILES
 )
 install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/licenses/sdfio")
 
-# For programs that find libraries with pkg-config. A static library needs the
-# macro that tells the headers that it is not a DLL.
 if(UNIX)
     set(SDFIO_PC_CFLAGS "")
     if(NOT BUILD_SHARED_LIBS)
