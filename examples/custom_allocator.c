@@ -22,7 +22,9 @@ typedef struct usage
 typedef union block_header
 {
     size_t size;
-    max_align_t alignment;
+    long long integer;
+    long double real;
+    void *pointer;
 } block_header;
 
 static void *counting_allocate(void *user, size_t size)
