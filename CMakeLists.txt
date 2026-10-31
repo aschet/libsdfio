@@ -29,7 +29,7 @@ set(SDFIO_WARNINGS
 
 # Windows has no rpath: an executable loads a DLL from its own directory or from
 # PATH. Place the DLL and the executables that link it in one runtime output
-# directory, which multi-configuration generators extend by the configuration.
+# directory.
 if(WIN32 AND NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 endif()
@@ -123,8 +123,6 @@ target_include_directories(sdfio_objects
 )
 target_compile_features(sdfio_objects PUBLIC c_std_11)
 target_compile_options(sdfio_objects PRIVATE ${SDFIO_WARNINGS})
-# The library is standard C11, with no feature macros. fopen is a function of
-# the standard, and the file functions of Windows use it.
 target_compile_definitions(sdfio_objects PRIVATE
     $<$<PLATFORM_ID:Windows>:_CRT_SECURE_NO_WARNINGS>
 )
@@ -146,7 +144,6 @@ configure_file(include/sdfio/version.h.in
     "${SDFIO_GENERATED_INCLUDE_DIR}/sdfio/version.h" @ONLY
 )
 
-# The objects are compiled for the library, so they export what it exports.
 target_compile_definitions(sdfio_objects PRIVATE sdfio_EXPORTS)
 if(NOT BUILD_SHARED_LIBS)
     target_compile_definitions(sdfio_objects PUBLIC SDFIO_STATIC_DEFINE)
@@ -179,7 +176,6 @@ set_target_properties(sdfio PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
     EXPORT_NAME sdfio
-    C_EXTENSIONS OFF
     C_VISIBILITY_PRESET hidden
     POSITION_INDEPENDENT_CODE ON
 )
