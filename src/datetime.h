@@ -1,0 +1,75 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * @brief Conversion between the date field DDMMYYYYhhmm and time_t.
+ */
+
+#ifndef SDFIO_SRC_DATETIME_H
+#define SDFIO_SRC_DATETIME_H
+
+#include "fields.h"
+#include <sdfio/sdfio.h>
+
+/**
+ * Rounds a time down to a whole minute, the resolution of a date.
+ *
+ * @param time The time.
+ */
+time_t sdfio_datetime_round(time_t time);
+
+/**
+ * Formats the field of a date.
+ *
+ * A file of ISO-1.0 stores the local clock of the writer: the time
+ * zone of the caller converts it, and without one the clock reading is the
+ * date.
+ *
+ * @param time The time in UTC.
+ * @param revision The revision of the file.
+ * @param zone The time zone of the caller. May be null.
+ * @param[out] out Receives the field, without a terminator.
+ * @return False if the time zone cannot convert the date, or the date is not
+ * one that the field can represent.
+ */
+bool sdfio_datetime_format(time_t time, sdfio_revision revision,
+                           const sdfio_time_zone *zone,
+                           char out[SDFIO_DATETIME_SIZE]);
+
+/**
+ * Tells whether the year of a time is one that the field can represent.
+ *
+ * @param time The time.
+ */
+bool sdfio_datetime_representable(time_t time);
+
+/**
+ * Tells whether a text is a date as the standard has it: DDMMYYYYhhmm with the
+ * ranges of the fields, and a day that the month has. A date that is not
+ * recorded is valid too, written as the character 0 or the byte 0 only, which
+ * parsing reads as SDFIO_NO_TIME.
+ *
+ * @param text The field.
+ * @param size The length of the field.
+ */
+bool sdfio_datetime_valid(const char *text, size_t size);
+
+/**
+ * Parses the field of a date.
+ *
+ * @param text The field.
+ * @param size The length of the field.
+ * @param revision The revision of the file.
+ * @param zone The time zone of the caller. May be null.
+ * @return The time in UTC, or SDFIO_NO_TIME if the field is not a valid date
+ * (see sdfio_datetime_valid()) or the time zone cannot convert it.
+ */
+time_t sdfio_datetime_parse(const char *text, size_t size,
+                            sdfio_revision revision,
+                            const sdfio_time_zone *zone);
+
+#endif /* SDFIO_SRC_DATETIME_H */

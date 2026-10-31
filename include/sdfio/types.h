@@ -1,0 +1,351 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * Status codes, enumerations, constants, and the structures for allocator,
+ * stream and time zone.
+ */
+
+#ifndef SDFIO_TYPES_H
+#define SDFIO_TYPES_H
+
+#include <sdfio/sdfio_export.h>
+
+#include <float.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <time.h>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+/** Result of a function call. The values are part of the interface. */
+typedef enum sdfio_status
+{
+    /** The call succeeded. */
+    SDFIO_OK = 0,
+    /**
+     * An argument is invalid, for example a null pointer or a row count that
+     * exceeds the rows remaining.
+     */
+    SDFIO_ERR_ARGUMENT = 1,
+    /**
+     * The call is not valid in the current state of the handle, for example
+     * opening a reader a second time.
+     */
+    SDFIO_ERR_STATE = 2,
+    /** The stream failed, or a file could not be opened. */
+    SDFIO_ERR_IO = 3,
+    /** The data is not an SDF file, is damaged or is truncated. */
+    SDFIO_ERR_FORMAT = 4,
+    /**
+     * The file needs a format that has not been added to the handle.
+     */
+    SDFIO_ERR_UNSUPPORTED = 5,
+    /** A number does not fit the type that has to store it. */
+    SDFIO_ERR_RANGE = 6,
+    /**
+     * A height equals the bad value of the data type, so it would be read as a
+     * point that is not measured.
+     */
+    SDFIO_ERR_BAD_VALUE = 7,
+    /** An allocation failed. */
+    SDFIO_ERR_MEMORY = 8
+} sdfio_status;
+
+/**
+ * Returns a constant description of a status. The result is never null.
+ *
+ * @param status The status to describe.
+ */
+SDFIO_API const char *sdfio_status_string(sdfio_status status);
+
+/** Revision of the SDF format that a file follows. */
+typedef enum sdfio_revision
+{
+    /** Revision ISO-1.0. */
+    SDFIO_ISO_1_0 = 0,
+    /** Revision ISO-2.0. */
+    SDFIO_ISO_2_0 = 1
+} sdfio_revision;
+
+/** Format of a file. */
+typedef enum sdfio_format
+{
+    /** Binary format. */
+    SDFIO_BINARY = 0,
+    /** ASCII format. */
+    SDFIO_ASCII = 1
+} sdfio_format;
+
+/**
+ * Type of the coded values of the data area of a file, and of the elements
+ * of a buffer of heights.
+ *
+ * Each enumerator is named after the C type of the values. The enumerator
+ * values are the data type codes of the standard, which calls SDFIO_TYPE_FLOAT
+ * "binary32" and SDFIO_TYPE_DOUBLE "binary64".
+ *
+ * | Enumerator         | C type    | Revisions | A buffer of heights |
+ * | ------------------ | --------- | --------- | ------------------- |
+ * | SDFIO_TYPE_FLOAT   | `float`   | ISO-2.0   | yes                 |
+ * | SDFIO_TYPE_DOUBLE  | `double`  | both      | yes                 |
+ * | SDFIO_TYPE_INT8    | `int8_t`  | ISO-2.0   | no                  |
+ * | SDFIO_TYPE_INT16   | `int16_t` | both      | no                  |
+ * | SDFIO_TYPE_INT32   | `int32_t` | both      | no                  |
+ *
+ * A file of floating point values contains the heights in metres and has the
+ * z-scale 1. A file of integers contains the coded height information, which
+ * the z-scale multiplies to the heights in metres. sdfio_read_data() and
+ * sdfio_write_data() transfer the values as they are in the file, in the C type
+ * of the header's data type. sdfio_read_heights() and sdfio_write_heights()
+ * transfer heights, in a buffer of `float` or `double`.
+ */
+typedef enum sdfio_data_type
+{
+    /** `float`: IEEE 754 binary32. */
+    SDFIO_TYPE_FLOAT = 3,
+    /** `int8_t`. */
+    SDFIO_TYPE_INT8 = 4,
+    /** `int16_t`. */
+    SDFIO_TYPE_INT16 = 5,
+    /** `int32_t`. */
+    SDFIO_TYPE_INT32 = 6,
+    /** `double`: IEEE 754 binary64. */
+    SDFIO_TYPE_DOUBLE = 7
+} sdfio_data_type;
+
+/**
+ * Bad value of each data type, the number that labels a point that is not
+ * measured or spurious: the minimum of an integer type, which the standard
+ * excludes for a valid height, and the lowest finite value of a floating-point
+ * type.
+ *
+ * @{
+ */
+/** The bad value of SDFIO_TYPE_INT8. */
+#define SDFIO_BAD_INT8 INT8_MIN
+/** The bad value of SDFIO_TYPE_INT16. */
+#define SDFIO_BAD_INT16 INT16_MIN
+/** The bad value of SDFIO_TYPE_INT32. */
+#define SDFIO_BAD_INT32 INT32_MIN
+/** The bad value of SDFIO_TYPE_FLOAT, a float: -FLT_MAX. */
+#define SDFIO_BAD_FLOAT (-FLT_MAX)
+/** The bad value of SDFIO_TYPE_DOUBLE, a double: -DBL_MAX. */
+#define SDFIO_BAD_DOUBLE (-DBL_MAX)
+/** @} */
+
+/** Value of a date that is not recorded: a time_t of -1. */
+#define SDFIO_NO_TIME ((time_t)-1)
+
+/**
+ * Value of the z-scale of a header that requests the writer to select the
+ * z-scale.
+ */
+#define SDFIO_AUTO_Z_SCALE 0.0
+
+/**
+ * Value of the z-resolution of a header for an unknown resolution. The standard
+ * represents it as a negative number, -1 by default. A reader reports it for
+ * every resolution that is not positive. A writer treats every value that is
+ * not positive as unknown and writes -1.
+ */
+#define SDFIO_NO_RESOLUTION (-1.0)
+
+/**
+ * Length in bytes of the longest manufacturer's identifier, the size of its
+ * field in both formats.
+ */
+#define SDFIO_MANUFACTURER_ID_MAX 10
+
+/**
+ * Memory management callbacks that replace malloc() and free(), for example
+ * with a pool or a bump allocator.
+ *
+ * A header calls them when it is created. A handle calls them for all of its
+ * memory, and only when it is created and when a file is created or opened.
+ * Reading and writing allocate nothing, so a pool can be sized in advance.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of an allocator is a new function.
+ */
+typedef struct sdfio_allocator
+{
+    /** Opaque pointer passed as the first argument of both callbacks. */
+    void *user;
+    /**
+     * Returns a block of at least `size` bytes, aligned for any object type,
+     * or null on failure.
+     */
+    void *(*allocate)(void *user, size_t size);
+    /** Releases a block returned by `allocate`. Never called with null. */
+    void (*release)(void *user, void *memory);
+} sdfio_allocator;
+
+/**
+ * Returns the allocator that uses malloc() and free().
+ *
+ * @return A pointer to a constant allocator, valid for the life of the program.
+ */
+SDFIO_API const sdfio_allocator *sdfio_default_allocator(void);
+
+/** Return value of a read callback that failed: the largest size_t. */
+#define SDFIO_STREAM_ERROR ((size_t)-1)
+
+/**
+ * Callbacks that provide or accept the bytes of a file.
+ *
+ * A reader uses `read`. A writer uses `write`. The bytes are processed once and
+ * in order, as for a pipe. Without an initializer, call sdfio_stream_init()
+ * before assigning fields.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of a stream is a new function.
+ */
+typedef struct sdfio_stream
+{
+    /** Opaque pointer passed as the first argument of every callback. */
+    void *user;
+    /**
+     * Reads up to `size` bytes into `data`. Returns the number of bytes read,
+     * or SDFIO_STREAM_ERROR on failure. The count can be smaller than `size`
+     * at any call, as for a pipe or a socket, and the reader calls again for
+     * the rest. Only 0 means the end of the data.
+     */
+    size_t (*read)(void *user, void *data, size_t size);
+    /**
+     * Writes `size` bytes from `data`. Returns the number of bytes written; a
+     * count smaller than `size` indicates a failure.
+     */
+    size_t (*write)(void *user, const void *data, size_t size);
+} sdfio_stream;
+
+/**
+ * Initializes a stream: every field is null, so the stream has no callback.
+ * The caller sets `user` and the callback that its handle uses.
+ *
+ * @param[out] stream The stream to initialize.
+ */
+SDFIO_API void sdfio_stream_init(sdfio_stream *stream);
+
+/**
+ * Calendar fields of a date and the time of day, with a resolution of one
+ * minute.
+ *
+ * The year is 1 to 9999, the month 1 to 12, the day 1 to the days of the month,
+ * the hour 0 to 23 and the minute 0 to 59. The fields of a file are in UTC for
+ * ISO-2.0 and are a clock reading in a zone that the file does not record for
+ * ISO-1.0.
+ *
+ * The structure is frozen for the major version: it has these five fields and
+ * a new property of a date is a new function.
+ */
+typedef struct sdfio_date
+{
+    /** The year, 1 to 9999. */
+    int year;
+    /** The month, 1 to 12. */
+    int month;
+    /** The day of the month, 1 to 31. */
+    int day;
+    /** The hour, 0 to 23. */
+    int hour;
+    /** The minute, 0 to 59. */
+    int minute;
+} sdfio_date;
+
+/**
+ * Converts the fields of a date to a time, as if they were UTC. The function
+ * replaces timegm(), which is not part of the C standard, and uses no function
+ * of the C library that has a time zone or a shared result.
+ *
+ * @param[in] date The fields.
+ * @param[out] utc Receives the time, with the seconds 0.
+ * @retval SDFIO_ERR_ARGUMENT A pointer is null, or a field is out of its range.
+ * @retval SDFIO_ERR_RANGE The time does not fit a time_t.
+ */
+SDFIO_API sdfio_status sdfio_date_to_time(const sdfio_date *date, time_t *utc);
+
+/**
+ * Converts a time to the fields of its UTC date. The function replaces
+ * gmtime_r(), and the seconds are dropped, so the result is the minute at or
+ * before the time.
+ *
+ * @param utc The time.
+ * @param[out] date Receives the fields.
+ * @retval SDFIO_ERR_ARGUMENT `date` is null.
+ * @retval SDFIO_ERR_RANGE The year of the time is not 1 to 9999.
+ */
+SDFIO_API sdfio_status sdfio_date_from_time(time_t utc, sdfio_date *date);
+
+/**
+ * Conversion of the dates of ISO-1.0 files between the local clock of the
+ * writer and UTC.
+ *
+ * These files store a clock reading without a time zone. ISO-2.0 files store
+ * UTC and are not affected. A callback that is null performs no conversion, and
+ * the clock reading is used as if it were UTC.
+ *
+ * On a system where the C library knows the zone, use
+ * sdfio_system_time_zone() and not an own conversion. Own callbacks are for a
+ * zone that the C library does not know, such as the fixed clock of a device.
+ *
+ * The conversion of a reading that occurs twice, or not at all, when the clocks
+ * change is the decision of the callback. The result is correct only if the
+ * zone of the callbacks is the zone in which the file was written, which the
+ * file does not record. The callbacks are called by the thread that uses the
+ * handle. Without an initializer, call sdfio_time_zone_init() before
+ * assigning fields.
+ *
+ * The structure is frozen for the major version: it has these three fields and
+ * a new property of a time zone is a new function.
+ */
+typedef struct sdfio_time_zone
+{
+    /** Opaque pointer passed as the first argument of both callbacks. */
+    void *user;
+    /**
+     * Converts the clock reading `local` of a file to the UTC time. Called when
+     * a reader parses a date. Returns SDFIO_NO_TIME if it cannot convert the
+     * reading, and the date then reads as not recorded.
+     */
+    time_t (*local_to_utc)(void *user, const sdfio_date *local);
+    /**
+     * Converts the UTC time `utc` to the clock reading to store, and returns
+     * it in `local`. Called when a writer formats a date. Returns false if it
+     * cannot convert the time, and the file cannot be created.
+     */
+    bool (*utc_to_local)(void *user, time_t utc, sdfio_date *local);
+} sdfio_time_zone;
+
+/**
+ * Initializes a time zone: every field is null, so it performs no conversion.
+ * The caller sets `user` and the callbacks.
+ *
+ * @param[out] time_zone The time zone to initialize.
+ */
+SDFIO_API void sdfio_time_zone_init(sdfio_time_zone *time_zone);
+
+/**
+ * Returns the time zone of the machine, as its C library knows it. The
+ * conversion uses mktime() and localtime_r(), or localtime_s() on Windows, so a
+ * reading that occurs twice or not at all is resolved as mktime() resolves it.
+ * The zone is the one of the process: changing it while threads convert dates
+ * is a data race.
+ *
+ * @return A pointer to a constant time zone, valid for the life of the program.
+ */
+SDFIO_API const sdfio_time_zone *sdfio_system_time_zone(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SDFIO_TYPES_H */

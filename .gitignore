@@ -1,0 +1,11 @@
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+.cache/
+compile_commands.json
+*.sdftmp
+build-*/
+stage-*/
+*.ctu-info
+*.dump

@@ -1,0 +1,27 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/** @example write_heights.c */
+
+/** @example read_heights.c */
+
+/** @example write_coded.c */
+
+/** @example read_coded.c */
+
+/** @example read_stream.c */
+
+/** @example write_memory.c */
+
+/** @example custom_allocator.c */
+
+/** @example custom_timezone.c */
+
+/** @example opencv.cpp */
+
+/** @example eigen.cpp */
+
+/** @example vtk.cpp */

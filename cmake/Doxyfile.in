@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+# The reference of the public headers and of the internal source: configured by
+# CMake, built with the target `docs`.
+PROJECT_NAME           = "libsdfio"
+PROJECT_NUMBER         = @PROJECT_VERSION@
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
+OUTPUT_DIRECTORY       = @PROJECT_BINARY_DIR@/docs
+INPUT                  = @PROJECT_SOURCE_DIR@/include/sdfio/sdfio.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/types.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/header.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/heights.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/layout.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/reader.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/sizes.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/trailer.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/writer.h \
+                         @PROJECT_SOURCE_DIR@/include/sdfio/file.h \
+                         @PROJECT_SOURCE_DIR@/docs/main.dox \
+                         @PROJECT_SOURCE_DIR@/examples/examples.dox
+EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples \
+                         @PROJECT_SOURCE_DIR@/examples/external
+EXAMPLE_PATTERNS       = *.c *.cpp
+LAYOUT_FILE            = @SDFIO_DOXYGEN_LAYOUT@
+OPTIMIZE_OUTPUT_FOR_C  = YES
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+FILE_PATTERNS          = *.c *.h *.dox
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = "SDFIO_API=" \
+                         "_Static_assert(condition,message)=" \
+                         _WIN32
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
+HAVE_DOT               = NO

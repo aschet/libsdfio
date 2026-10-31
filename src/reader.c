@@ -1,0 +1,368 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * @brief Life of a reader: creation, options, opening, release.
+ */
+
+#include "allocator.h"
+#include "data_type.h"
+#include "defaults.h"
+#include "header.h"
+#include "message.h"
+#include "reader_file.h"
+#include "reader_header.h"
+#include "reader_state.h"
+#include <string.h>
+
+static size_t memory_read(void *user, void *data, size_t size)
+{
+    sdfio_memory_stream *memory = user;
+    const size_t left = memory->size - memory->position;
+    const size_t count = size < left ? size : left;
+    if (count > 0)
+    {
+        memcpy(data, memory->data + memory->position, count);
+    }
+    memory->position += count;
+    return count;
+}
+
+sdfio_status sdfio_reader_create(const sdfio_allocator *allocator,
+                                 sdfio_reader **reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    *reader = NULL;
+    sdfio_options options;
+    if (!sdfio_options_init(&options, allocator))
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    sdfio_reader *handle = sdfio_allocate(&options.allocator, sizeof *handle);
+    if (handle == NULL)
+    {
+        return SDFIO_ERR_MEMORY;
+    }
+    *handle = (sdfio_reader){.options = options};
+    *reader = handle;
+    return SDFIO_OK;
+}
+
+static bool buffers_created(const sdfio_reader *reader)
+{
+    return reader->chunk != NULL || reader->source.buffer != NULL;
+}
+
+static sdfio_status require_new(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (buffers_created(reader))
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
+                          "Options can be set only before a file is opened");
+    }
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_reader_install_format(sdfio_reader *reader,
+                                         const sdfio_reader_format *format)
+{
+    const sdfio_status status = require_new(reader);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    for (size_t i = 0; i < SDFIO_FORMAT_MAX; ++i)
+    {
+        if (reader->formats[i] == format)
+        {
+            return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                              "The format has been added already");
+        }
+        if (reader->formats[i] == NULL)
+        {
+            reader->formats[i] = format;
+            return SDFIO_OK;
+        }
+    }
+    return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                      "The list of formats is full");
+}
+
+sdfio_status sdfio_reader_set_buffer(sdfio_reader *reader, size_t size)
+{
+    const sdfio_status status = require_new(reader);
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_buffer(&reader->options, size,
+                                                         &reader->message);
+}
+
+sdfio_status sdfio_reader_set_chunk(sdfio_reader *reader, size_t count)
+{
+    const sdfio_status status = require_new(reader);
+    return status != SDFIO_OK ? status
+                              : sdfio_options_set_chunk(&reader->options, count,
+                                                        &reader->message);
+}
+
+sdfio_status sdfio_reader_set_time_zone(sdfio_reader *reader,
+                                        const sdfio_time_zone *time_zone)
+{
+    const sdfio_status status = require_new(reader);
+    if (status == SDFIO_OK)
+    {
+        sdfio_options_set_zone(&reader->options, time_zone);
+    }
+    return status;
+}
+
+size_t sdfio_reader_magic_count(const sdfio_reader *reader)
+{
+    size_t count = 0;
+    for (size_t i = 0;
+         reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
+         ++i)
+    {
+        count += reader->formats[i]->magic_count;
+    }
+    return count;
+}
+
+const char *sdfio_reader_magic(const sdfio_reader *reader, size_t index)
+{
+    for (size_t i = 0;
+         reader != NULL && i < SDFIO_FORMAT_MAX && reader->formats[i] != NULL;
+         ++i)
+    {
+        const sdfio_reader_format *format = reader->formats[i];
+        if (index < format->magic_count)
+        {
+            return format->magics[index];
+        }
+        index -= format->magic_count;
+    }
+    return NULL;
+}
+
+void sdfio_reader_free(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return;
+    }
+    if (reader->owner.close != NULL)
+    {
+        reader->owner.close(reader->owner.user);
+    }
+    sdfio_source_destroy(&reader->source);
+    const sdfio_allocator allocator = reader->options.allocator;
+    sdfio_release(&allocator, reader->chunk);
+    sdfio_release(&allocator, reader->format_state);
+    sdfio_release(&allocator, reader);
+}
+
+sdfio_status sdfio_reader_reset(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (reader->owner.close != NULL)
+    {
+        reader->owner.close(reader->owner.user);
+    }
+    reader->owner = (sdfio_owner){0};
+    reader->message = NULL;
+    reader->format = NULL;
+    reader->memory = (sdfio_memory_stream){0};
+    reader->opened = false;
+    reader->value_count = 0;
+    reader->next_row = 0;
+    reader->next_value = 0;
+    reader->data_done = false;
+    reader->failed = false;
+    reader->trailer_begun = false;
+    return SDFIO_OK;
+}
+
+void sdfio_reader_own(sdfio_reader *reader, sdfio_owner owner)
+{
+    reader->owner = owner;
+}
+
+const char **sdfio_reader_message(sdfio_reader *reader)
+{
+    return &reader->message;
+}
+
+bool sdfio_reader_is_open(const sdfio_reader *reader)
+{
+    return reader->opened;
+}
+
+sdfio_status sdfio_reader_check(sdfio_reader *reader)
+{
+    if (sdfio_reader_is_open(reader))
+    {
+        return sdfio_fail(sdfio_reader_message(reader), SDFIO_ERR_STATE,
+                          "The reader has opened a file already");
+    }
+    return SDFIO_OK;
+}
+
+const char *sdfio_reader_error_message(const sdfio_reader *reader)
+{
+    return reader != NULL && reader->message != NULL ? reader->message : "";
+}
+
+const sdfio_header *sdfio_reader_header(const sdfio_reader *reader)
+{
+    return reader != NULL && reader->opened ? &reader->header : NULL;
+}
+
+sdfio_status sdfio_reader_fail(sdfio_reader *reader, sdfio_status status)
+{
+    reader->failed = true;
+    return status;
+}
+
+/* The precondition of every opening: no file is open. */
+static sdfio_status require_closed(sdfio_reader *reader)
+{
+    if (reader->opened)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
+                          "The reader has opened a file already");
+    }
+    return SDFIO_OK;
+}
+
+/* Selects the format of the stream by its magic, and reads the
+ * header. */
+static sdfio_status open_source(sdfio_reader *reader,
+                                const sdfio_stream *stream)
+{
+    if (reader->formats[0] == NULL)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_ARGUMENT,
+                          "No format has been added to the reader");
+    }
+    if (reader->chunk == NULL)
+    {
+        reader->chunk = sdfio_allocate(&reader->options.allocator,
+                                       reader->options.chunk_values
+                                           * SDFIO_LARGEST_CODED_VALUE);
+    }
+    if (reader->chunk == NULL
+        || (reader->source.buffer == NULL
+            && !sdfio_source_create(&reader->source,
+                                    reader->options.buffer_size,
+                                    &reader->options.allocator)))
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY, "Out of memory");
+    }
+    sdfio_source_init(&reader->source, stream);
+    sdfio_status status = sdfio_select_reader_format(
+        &reader->source, reader->formats, &reader->format, &reader->message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    if (reader->format_state_size < reader->format->state_size)
+    {
+        sdfio_release(&reader->options.allocator, reader->format_state);
+        reader->format_state = NULL;
+        reader->format_state_size = 0;
+        if (reader->format->state_size > 0)
+        {
+            reader->format_state = sdfio_allocate(&reader->options.allocator,
+                                                  reader->format->state_size);
+            if (reader->format_state == NULL)
+            {
+                return sdfio_fail(&reader->message, SDFIO_ERR_MEMORY,
+                                  "Out of memory");
+            }
+            reader->format_state_size = reader->format->state_size;
+        }
+    }
+    if (reader->format->state_size > 0)
+    {
+        memset(reader->format_state, 0, reader->format->state_size);
+    }
+    status = sdfio_read_header(&reader->source, reader->format, &reader->header,
+                               reader->format_state, &reader->options.zone,
+                               &reader->message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    const sdfio_header *header = &reader->header;
+    const size_t type_size = sdfio_data_type_size(header->data_type);
+    if (!sdfio_coded_values(header, &reader->value_count)
+        || reader->value_count > SIZE_MAX / type_size)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_FORMAT,
+                          "The file has more points than can be counted");
+    }
+    reader->next_row = 0;
+    reader->next_value = 0;
+    reader->data_done = false;
+    reader->failed = false;
+    reader->opened = true;
+    return SDFIO_OK;
+}
+
+sdfio_status sdfio_open_stream(sdfio_reader *reader, const sdfio_stream *stream)
+{
+    if (reader == NULL || stream == NULL || stream->read == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    const sdfio_status ready = require_closed(reader);
+    return ready != SDFIO_OK ? ready : open_source(reader, stream);
+}
+
+sdfio_status sdfio_open_memory(sdfio_reader *reader, const void *data,
+                               size_t size)
+{
+    if (reader == NULL || (data == NULL && size > 0))
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    const sdfio_status ready = require_closed(reader);
+    if (ready != SDFIO_OK)
+    {
+        return ready;
+    }
+    reader->memory = (sdfio_memory_stream){data, size, 0};
+    const sdfio_stream stream = {&reader->memory, memory_read, NULL};
+    return open_source(reader, &stream);
+}
+
+sdfio_status sdfio_reader_require_readable(sdfio_reader *reader)
+{
+    if (reader == NULL)
+    {
+        return SDFIO_ERR_ARGUMENT;
+    }
+    if (!reader->opened)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE, "No file is open");
+    }
+    if (reader->failed)
+    {
+        return sdfio_fail(&reader->message, SDFIO_ERR_STATE,
+                          "An error ended the reading");
+    }
+    return SDFIO_OK;
+}

@@ -1,0 +1,282 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @mainpage libsdfio
+ *
+ * libsdfio is a C11 library without dependencies that reads and writes the SDF
+ * surface data files of ISO 25178-71. An SDF file contains the heights of a
+ * profile or of an areal surface measurement on a rectangular grid. It is used
+ * as a software measurement standard, a set of reference data with which the
+ * software of surface texture measuring instruments is verified, and as an
+ * interchange format for topography data.
+ *
+ * @section features Features
+ * - Implemented according to ISO 25178-71:2026, with the revisions ISO-1.0 and
+ *   ISO-2.0.
+ * - Access to the data as heights in metres or as the coded values of the
+ *   file.
+ * - Application-side buffers with arbitrary strides.
+ * - Custom allocators.
+ * - Files, blocks of memory and streams, including pipes, as sources and sinks.
+ * - Thread support: the library keeps no global state, so threads use handles
+ *   of their own at the same time.
+ *
+ * @section limitations Limitations
+ * - A handle must not be shared between threads.
+ * - The locale must not be changed while a call is in progress.
+ * - Rows can be read only once and in the order of the file.
+ * - A failure in the middle of the data area causes the handle to refuse
+ *   further reads and writes.
+ * - The library and the program that calls it have to be built with the same
+ *   width of `time_t`, see @ref building_build.
+ * - Files of the format BCR-1.0, the predecessor of ISO-1.0, are not supported.
+ *
+ * @section building_build Building and Installing
+ * @code{.sh}
+ * cmake -S . -B build
+ * cmake --build build
+ * ctest --test-dir build
+ * cmake --install build --prefix /path/to/prefix
+ * @endcode
+ *
+ * With Visual Studio, configure with `-A x64` (or `Win32`, `ARM64`) and name
+ * the configuration in the other commands: `--config Release`, and
+ * `-C Release` for `ctest`.
+ *
+ * These CMake options control which components are built:
+ *
+ * <table class="doxtable">
+ * <tr><th>Option</th><th>Default</th><th>Builds</th></tr>
+ * <tr><td>SDFIO_BUILD_EXAMPLES</td><td>OFF</td><td>The examples.</td></tr>
+ * <tr><td>SDFIO_BUILD_EXTERNAL_EXAMPLES</td><td>OFF</td><td>The examples that
+ * use OpenCV, VTK and Eigen, which must be found.</td></tr>
+ * <tr><td>SDFIO_BUILD_DOCS</td><td>OFF</td><td>This API reference, with
+ * Doxygen, as the target `docs`.</td></tr>
+ * </table>
+ *
+ * Dates are `time_t` values in seconds since 1970-01-01 00:00:00 UTC. The
+ * library and the program must use the same width of `time_t`. On a 32-bit
+ * host, a 64-bit `time_t` is needed for dates beyond 2038, for example with
+ * glibc:
+ * @code{.sh}
+ * cmake -S . -B build -DCMAKE_C_FLAGS="-D_TIME_BITS=64 -D_FILE_OFFSET_BITS=64"
+ * @endcode
+ *
+ * @section building_use Using
+ * An installed library provides the CMake target `sdfio::sdfio`:
+ * @code{.unparsed}
+ * find_package(sdfio CONFIG REQUIRED)
+ * add_executable(main main.c)
+ * target_link_libraries(main PRIVATE sdfio::sdfio)
+ * @endcode
+ *
+ * Source files that use the library include `<sdfio/sdfio.h>`, and
+ * `<sdfio/file.h>` for the functions that open files. See Examples for typical
+ * uses.
+ * Without CMake, compile and link with the flags that pkg-config reports:
+ * @code{.sh}
+ * cc main.c $(pkg-config --cflags --libs sdfio) -o main
+ * @endcode
+ */
+
+/**
+ * @page format SDF Format
+ * @details An SDF file contains the heights of a profile or of an areal surface
+ * measurement on a rectangular grid. It is used as a software measurement
+ * standard, a set of reference data with which the software of surface texture
+ * measuring instruments is verified, and as an interchange format for
+ * topography data. A file consists of three records: the header, the data area
+ * and the trailer. The file name extension is `.sdf`. A file has a 7-bit ASCII
+ * or a binary format. Both contain the same information. A reader or a writer
+ * supports a format after it is added with sdfio_reader_add_binary(),
+ * sdfio_reader_add_ascii() or one of the two functions of the writer. The file
+ * starts with a magic of 8 characters, which the standard calls the version
+ * number. Its first character is `a` for the ASCII and `b` for the binary
+ * format, and the rest names the version: `aISO-1.0`, `aISO-2.0`, `bISO-1.0`
+ * and `bISO-2.0`. The library calls the version a revision, ISO-1.0 and
+ * ISO-2.0. ISO-1.0 is the standardized form of BCR-1.0, the format that
+ * preceded the standard, described by K. J. Stout et al., The Development of
+ * Methods for the Characterisation of Roughness in Three Dimensions, EUR 15178
+ * EN, 1993. ISO-1.0 allows the data types int16_t, int32_t and double for the
+ * data area, stores the numbers of columns and rows of a binary file as
+ * uint16_t and has dates without a time zone. ISO-2.0 adds int8_t and float for
+ * the data area, stores the numbers as uint32_t, has dates in UTC and a trailer
+ * in the form of the header.
+ *
+ * @section format_types Data Types
+ * The values of the data area have one of these data types, which the header
+ * selects with its code.
+ *
+ * <table class="doxtable">
+ * <tr><th>Data
+ *   Type</th><th>Code</th><th>Size</th><th>ISO-1.0</th><th>ISO-2.0</th><th>Value
+ *   of a Point That Is Not Measured</th></tr>
+ * <tr><td>float (binary32)</td><td>3</td><td>4
+ *   bytes</td><td>no</td><td>yes</td><td>-FLT_MAX (SDFIO_BAD_FLOAT)</td></tr>
+ * <tr><td>int8_t</td><td>4</td><td>1
+ *   byte</td><td>no</td><td>yes</td><td>INT8_MIN (SDFIO_BAD_INT8)</td></tr>
+ * <tr><td>int16_t</td><td>5</td><td>2
+ *   bytes</td><td>yes</td><td>yes</td><td>INT16_MIN (SDFIO_BAD_INT16)</td></tr>
+ * <tr><td>int32_t</td><td>6</td><td>4
+ *   bytes</td><td>yes</td><td>yes</td><td>INT32_MIN (SDFIO_BAD_INT32)</td></tr>
+ * <tr><td>double (binary64)</td><td>7</td><td>8
+ *   bytes</td><td>yes</td><td>yes</td><td>-DBL_MAX (SDFIO_BAD_DOUBLE)</td></tr>
+ * </table>
+ *
+ * A point that is not measured, or is spurious, is labelled with the minimum
+ * value of the data type, which the standard does not permit for any valid
+ * coded value. An ASCII file writes the string `BAD` instead.
+ *
+ * @section format_header Header
+ * <table class="doxtable">
+ * <tr><th>Field Name</th><th>Binary Type</th><th>Meaning</th></tr>
+ * <tr><td><code>ManufacID</code></td><td>char[10]</td><td>Manufacturer-specific
+ *   identifier.</td></tr>
+ * <tr><td><code>CreateDate</code></td><td>char[12]</td><td>When the data was
+ *   generated.</td></tr>
+ * <tr><td><code>ModDate</code></td><td>char[12]</td><td>When the file was last
+ *   modified.</td></tr>
+ * <tr><td><code>NumPoints</code></td><td>uint16_t or uint32_t</td><td>Number
+ *   of columns M, the points along x.</td></tr>
+ * <tr><td><code>NumProfiles</code></td><td>uint16_t or uint32_t</td><td>Number
+ *   of rows N, the points along y. 1 for a profile.</td></tr>
+ * <tr><td><code>Xscale</code></td><td>double</td><td>Sampling interval
+ *   along x in metres.</td></tr>
+ * <tr><td><code>Yscale</code></td><td>double</td><td>Sampling interval
+ *   along y in metres, meaningless for a profile.</td></tr>
+ * <tr><td><code>Zscale</code></td><td>double</td><td>Positive factor that
+ *   turns a coded value into metres.</td></tr>
+ * <tr><td><code>Zresolution</code></td><td>double</td><td>Quantization
+ *   step of the instrument in metres, or a negative number if it is
+ *   unknown.</td></tr>
+ * <tr><td><code>Compression</code></td><td>uint8_t</td><td>0, no
+ *   compression.</td></tr>
+ * <tr><td><code>DataType</code></td><td>uint8_t</td><td>Code of the data
+ *   type of the values in the data area, see Data Types.</td></tr>
+ * <tr><td><code>CheckType</code></td><td>uint8_t</td><td>0, no
+ *   checksum.</td></tr>
+ * </table>
+ *
+ * The names `NumPoints` and `NumProfiles` stem from tactile instruments that
+ * measure profiles: `NumPoints` is the number of points of a profile and
+ * `NumProfiles` the number of profiles. In a binary file the fields follow the
+ * magic in the order of the table. In an ASCII file the magic is the first
+ * line, and the other fields can appear in any order.
+ *
+ * A date is a string of 12 digits, `DDMMYYYYhhmm`: day, month, year, hour and
+ * minute, with leading zeros. The date of an ISO-2.0 file is UTC. The dates of
+ * an ISO-1.0 file are the local clock reading of the writer, and the file does
+ * not record the time zone.
+ *
+ * The library handles every date as a UTC time: the functions of the header
+ * take and return a `time_t` in UTC. A date of an ISO-2.0 file needs no
+ * conversion. A date of an ISO-1.0 file is converted by a time zone, which
+ * turns the clock reading into UTC when a reader opens the file, and the UTC
+ * time back into a clock reading when a writer writes the header. The time zone
+ * is set with sdfio_reader_set_time_zone() or sdfio_writer_set_time_zone().
+ * sdfio_system_time_zone() is the time zone of the machine, and an own
+ * conversion is passed as an sdfio_time_zone. Without a time zone the library
+ * takes the clock reading as UTC. The UTC time is correct only if the time zone
+ * is the one in which the file was written.
+ *
+ * @section format_data Data Area
+ * The data area contains the matrix W of coded values with N rows and M
+ * columns, stored row by row in the order of y. The coded value `w(i,j)` of the
+ * row i and the column j, counted from 1, belongs to the point
+ *
+ * @code
+ * x = (j - 1) * Xscale     y = (i - 1) * Yscale     z = w(i,j) * Zscale
+ * @endcode
+ *
+ * in a right-handed coordinate system: x grows with the column, y with the row,
+ * and z points to a viewer who looks from above. The first row has y = 0, so it
+ * is the bottom row of a picture with x to the right. sdfio_read_data(),
+ * sdfio_read_heights() and the writing functions use this order of rows. Image
+ * libraries count the rows from the top and show the surface upside down if it
+ * is not flipped.
+ *
+ * A coded value is not a length. Multiplied by the z-scale it is the height of
+ * the point in metres. For an integer type the z-scale sets the value of one
+ * step and so trades range against resolution: heights between -80 and +80
+ * micrometres in int16_t values need a z-scale of about 2.4e-9 metres. A
+ * floating-point type usually stores metres directly with the z-scale 1, but
+ * any z-scale is valid.
+ *
+ * The library offers three levels of access; use the highest one that
+ * suffices. sdfio_read_data() and sdfio_write_data() transfer the coded values
+ * row by row. sdfio_decode_heights() and sdfio_encode_heights() convert rows
+ * between coded values and heights in metres and need only a header.
+ * sdfio_read_heights() and sdfio_write_heights() transfer the whole matrix as
+ * heights. Encoding rounds an integer to the nearest value. A height that does
+ * not fit the data type with the z-scale is an error (SDFIO_ERR_RANGE), and so
+ * is a height that would be written as the bad value (SDFIO_ERR_BAD_VALUE),
+ * which a reader would take for a point that is not measured.
+ * sdfio_suggest_z_scale_for_range() and sdfio_suggest_z_scale() find the
+ * smallest z-scale that fits the heights, and sdfio_write_heights() uses it
+ * when the header has SDFIO_AUTO_Z_SCALE.
+ *
+ * A point that is not measured has the bad value of its data type as coded
+ * value. In heights the library uses NaN for such a point. The functions that
+ * read or convert heights deliver NaN for such a point, and the functions that
+ * write or convert heights take NaN and infinity as such a point. Data that
+ * marks these points with a value such as -9999 has to be replaced with NaN
+ * before writing, and NaN with the marker after reading.
+ *
+ * @section format_trailer Trailer
+ * The trailer contains historical information about the measurement, such as
+ * the name of the operator, the measurement conditions or the processing that
+ * was applied. It is optional, has a variable length, and extends to the end of
+ * the file. ISO-1.0 does not define its content, and the trailer of an ISO-2.0
+ * file has the form of the header, a line `Name = Value` for each field. The
+ * standard asks for text in 7-bit ASCII, which the library does not check: it
+ * reads and writes the bytes as they are. The lines of a trailer end with a
+ * carriage return and a line feed in the file. The library returns every line
+ * end as a line feed, and writes every line end of a trailer as a carriage
+ * return and a line feed. sdfio_trailer_find_field() and
+ * sdfio_trailer_next_field() find the fields in the text that
+ * sdfio_read_trailer() returns, and give the name and the value as offsets into
+ * that text.
+ *
+ * @section format_binary Binary Format
+ * The records follow each other without a separator. Numbers are stored with
+ * the least significant byte first, and the library converts the byte order. A
+ * manufacturer-specific identifier of fewer than 10 characters is filled with
+ * spaces.
+ *
+ * @section format_ascii ASCII Format
+ * The file consists of 7-bit ASCII characters in lines that end with a carriage
+ * return and a line feed. The first line is the magic, followed by a line
+ * `Name = value` for each field of the header, whose names do not depend on the
+ * case. Each record ends with a line that consists of the character `*`, and
+ * the last such line ends the file. The values of the data area are separated
+ * by white space of any length. A `float` is written with 7 significant digits
+ * and a two-digit exponent, as in `1.500000e+00`, a `double` with 15 digits and
+ * a three-digit exponent, as in `1.50000000000000e+000`, and an integer in
+ * decimal digits.
+ *
+ * @code
+ * aISO-2.0
+ * ManufacID = libsdfio
+ * CreateDate = 150620261030
+ * ModDate = 150620261045
+ * NumPoints = 3
+ * NumProfiles = 2
+ * Xscale = 2.50000000000000e-006
+ * Yscale = 2.50000000000000e-006
+ * Zscale = 1.00000000000000e+000
+ * Zresolution = 5.00000000000000e-010
+ * Compression = 0
+ * DataType = 3
+ * CheckType = 0
+ * *
+ * -1.250000e-06 3.400000e-07 8.100000e-07
+ * 2.200000e-07 BAD 1.050000e-06
+ * *
+ * OperatorName = Jane Doe
+ * *
+ * @endcode
+ */

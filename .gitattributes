@@ -1,0 +1,15 @@
+* text=auto
+
+*.c text
+*.h text
+*.in text
+*.cmake text
+*.txt text
+*.json text
+*.py text
+*.yml text
+*.md text
+*.toml text
+
+*.sdf binary
+tests/data/expected.txt -text

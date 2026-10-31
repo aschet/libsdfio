@@ -1,0 +1,229 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/* Parses and formats the numbers of an ASCII file, also in a locale with a
+ * decimal comma. */
+
+#include "check.h"
+#include <limits.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "number_text.h"
+
+#include <locale.h>
+
+static bool parses(const sdfio_decimal_point *decimal_point, const char *text,
+                   double expected)
+{
+    double value = 0.0;
+    return sdfio_parse_number(decimal_point, text, strlen(text), &value)
+           && (value == expected || (isnan(value) && isnan(expected)));
+}
+
+static bool refuses(const sdfio_decimal_point *decimal_point, const char *text)
+{
+    double value = 0.0;
+    return !sdfio_parse_number(decimal_point, text, strlen(text), &value);
+}
+
+static bool formats(const sdfio_decimal_point *decimal_point, double value,
+                    int digits, int exponent, const char *expected)
+{
+    char text[SDFIO_NUMBER_CAPACITY];
+    const size_t length = sdfio_format_scientific(
+        decimal_point, text, sizeof text, value, digits, exponent);
+    return length == strlen(expected) && memcmp(text, expected, length) == 0;
+}
+
+static void check_numbers(const sdfio_decimal_point *decimal_point)
+{
+    CHECK(parses(decimal_point, "1.5", 1.5));
+    CHECK(parses(decimal_point, "-1.5e-3", -1.5e-3));
+    CHECK(parses(decimal_point, "  2 ", 2.0));
+    CHECK(parses(decimal_point, "+1", 1.0));
+    CHECK(parses(decimal_point, ".5", 0.5));
+    CHECK(parses(decimal_point, "5.", 5.0));
+    CHECK(parses(decimal_point, "1E3", 1000.0));
+    CHECK(refuses(decimal_point, "inf"));
+    CHECK(refuses(decimal_point, "NaN"));
+    CHECK(parses(decimal_point, "1e400", INFINITY));
+    CHECK(parses(decimal_point, "1e-400", 0.0));
+    CHECK(refuses(decimal_point, ""));
+    CHECK(refuses(decimal_point, "e5"));
+    CHECK(refuses(decimal_point, "1e"));
+    CHECK(refuses(decimal_point, "1.2.3"));
+    CHECK(refuses(decimal_point, "--1"));
+    CHECK(refuses(decimal_point, "+-1"));
+    CHECK(refuses(decimal_point, "0x10"));
+    CHECK(refuses(decimal_point, "1,5"));
+    CHECK(refuses(decimal_point, "12abc"));
+
+    /* A decimal just above the middle of two floats is rounded up. As a double
+     * it is the middle itself, which rounds to the even float below. */
+    static const char above_middle[] = "1.00000005960464477539062501";
+    float real = 0.0F;
+    CHECK(sdfio_parse_float(decimal_point, above_middle, strlen(above_middle),
+                            &real)
+          && real == nextafterf(1.0F, 2.0F));
+    CHECK(sdfio_parse_float(decimal_point, "-1.5", 4, &real) && real == -1.5F);
+    CHECK(sdfio_parse_float(decimal_point, "1e-50", 5, &real) && real == 0.0F);
+    CHECK(!sdfio_parse_float(decimal_point, "1e50", 4, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "1e400", 5, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "1,5", 3, &real));
+    CHECK(!sdfio_parse_float(decimal_point, "", 0, &real));
+
+    long long integer = 0;
+    CHECK(sdfio_parse_integer("123", 3, &integer) && integer == 123);
+    CHECK(sdfio_parse_integer("-123", 4, &integer) && integer == -123);
+    CHECK(sdfio_parse_integer("+5", 2, &integer) && integer == 5);
+    CHECK(sdfio_parse_integer("9223372036854775807", 19, &integer)
+          && integer == LLONG_MAX);
+    CHECK(sdfio_parse_integer("-9223372036854775808", 20, &integer)
+          && integer == LLONG_MIN);
+    CHECK(!sdfio_parse_integer("9223372036854775808", 19, &integer));
+    CHECK(!sdfio_parse_integer("1.0", 3, &integer));
+    CHECK(!sdfio_parse_integer("", 0, &integer));
+    CHECK(!sdfio_parse_integer("-", 1, &integer));
+
+    int32_t small = 0;
+    CHECK(sdfio_parse_bounded_integer("127", 3, INT8_MIN, INT8_MAX, &small)
+          && small == 127);
+    CHECK(!sdfio_parse_bounded_integer("128", 3, INT8_MIN, INT8_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("-128", 4, INT8_MIN, INT8_MAX, &small)
+          && small == INT8_MIN);
+    CHECK(!sdfio_parse_bounded_integer("-129", 4, INT8_MIN, INT8_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("+5", 2, INT16_MIN, INT16_MAX, &small)
+          && small == 5);
+    CHECK(sdfio_parse_bounded_integer("007", 3, INT16_MIN, INT16_MAX, &small)
+          && small == 7);
+    CHECK(sdfio_parse_bounded_integer("-0", 2, INT16_MIN, INT16_MAX, &small)
+          && small == 0);
+    CHECK(sdfio_parse_bounded_integer("32767", 5, INT16_MIN, INT16_MAX, &small)
+          && small == INT16_MAX);
+    CHECK(
+        !sdfio_parse_bounded_integer("32768", 5, INT16_MIN, INT16_MAX, &small));
+    CHECK(sdfio_parse_bounded_integer("2147483647", 10, INT32_MIN, INT32_MAX,
+                                      &small)
+          && small == INT32_MAX);
+    CHECK(!sdfio_parse_bounded_integer("2147483648", 10, INT32_MIN, INT32_MAX,
+                                       &small));
+    CHECK(sdfio_parse_bounded_integer("-2147483648", 11, INT32_MIN, INT32_MAX,
+                                      &small)
+          && small == INT32_MIN);
+    CHECK(!sdfio_parse_bounded_integer("-2147483649", 11, INT32_MIN, INT32_MAX,
+                                       &small));
+    CHECK(!sdfio_parse_bounded_integer("99999999999999999999", 20, INT32_MIN,
+                                       INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("", 0, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("-", 1, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("1.0", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("12a", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("1 2", 3, INT32_MIN, INT32_MAX, &small));
+    CHECK(!sdfio_parse_bounded_integer("--1", 3, INT32_MIN, INT32_MAX, &small));
+
+    CHECK(formats(decimal_point, 1.5, 14, 3, "1.50000000000000e+000"));
+    CHECK(formats(decimal_point, 1.5, 6, 2, "1.500000e+00"));
+    CHECK(formats(decimal_point, 0.0, 6, 2, "0.000000e+00"));
+    CHECK(formats(decimal_point, -0.0, 6, 2, "0.000000e+00"));
+    CHECK(formats(decimal_point, -2.5e-300, 3, 3, "-2.500e-300"));
+    CHECK(formats(decimal_point, 1e100, 1, 3, "1.0e+100"));
+    CHECK(formats(decimal_point, 12345.0, 2, 2, "1.23e+04"));
+    CHECK(formats(decimal_point, -1.5, 6, 2, "-1.500000e+00"));
+    CHECK(formats(decimal_point, 2.0, 0, 2, "2e+00"));
+    CHECK(formats(decimal_point, -2.0e-5, 0, 3, "-2e-005"));
+    CHECK(formats(decimal_point, INFINITY, 6, 2, "inf"));
+    CHECK(formats(decimal_point, -INFINITY, 6, 2, "-inf"));
+    CHECK(formats(decimal_point, NAN, 6, 2, "nan"));
+
+    /* A text that exceeds the capacity is cut off, and its length is returned.
+     */
+    char cut[4] = "";
+    CHECK(sdfio_format_scientific(decimal_point, cut, sizeof cut, 1.5, 6, 2)
+              == strlen("1.500000e+00")
+          && memcmp(cut, "1.50", sizeof cut) == 0);
+
+    uint32_t state = 12345u;
+    for (int i = 0; i < 2000; ++i)
+    {
+        state = state * 1664525u + 1013904223u;
+        const double value =
+            ((double)state / 4294967296.0 - 0.5)
+            * pow(10.0, (double)((int)(state >> 24) % 40 - 20));
+        char text[SDFIO_NUMBER_CAPACITY];
+        const size_t length =
+            sdfio_format_scientific(decimal_point, text, sizeof text, value,
+                                    SDFIO_DOUBLE_DIGITS, SDFIO_DOUBLE_EXPONENT);
+        double back = 0.0;
+        CHECK(sdfio_parse_number(decimal_point, text, length, &back)
+              && near_relative(back, value, 1e-13));
+    }
+}
+
+static void check_locale(void)
+{
+    const char *names[] = {"de_DE.utf8", "de_AT.utf8", "de_DE", "de_CH.utf8"};
+    const char *chosen = NULL;
+    for (size_t i = 0; i < sizeof names / sizeof names[0] && chosen == NULL;
+         ++i)
+    {
+        chosen = setlocale(LC_NUMERIC, names[i]);
+    }
+    if (chosen == NULL)
+    {
+        printf("no locale with a decimal comma: skipped\n");
+        return;
+    }
+    char probe[16];
+    snprintf(probe, sizeof probe, "%.1f", 1.5);
+    CHECK(strchr(probe, ',') != NULL);
+
+    const sdfio_decimal_point decimal_point = sdfio_decimal_point_now();
+    CHECK(strcmp(decimal_point.text, ",") == 0);
+    check_numbers(&decimal_point);
+
+    /* A file written and read in such a locale has the dots of the format. */
+    sdfio_header *header = new_header();
+    SETUP(sdfio_header_set_format(header, SDFIO_ASCII));
+    SETUP(sdfio_header_set_data_type(header, SDFIO_TYPE_DOUBLE));
+    SETUP(sdfio_header_set_columns(header, 3));
+    SETUP(sdfio_header_set_rows(header, 1));
+    SETUP(sdfio_header_set_x_scale(header, 1.5e-6));
+    SETUP(sdfio_header_set_y_scale(header, 1.5e-6));
+    const double heights[3] = {1.25e-6, NAN, -3.5e-7};
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = new_writer(all_formats());
+    SETUP(sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                 heights));
+    SETUP(sdfio_end_file(writer));
+    sdfio_writer_free(writer);
+    CHECK(memchr(file.data, ',', file.size) == NULL);
+
+    sdfio_reader *reader = open_memory_file(&file);
+    double back[3];
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE),
+                                back));
+    CHECK(near_relative(back[0], 1.25e-6, 1e-12) && isnan(back[1])
+          && near_relative(back[2], -3.5e-7, 1e-12));
+    /* A variable has the precision of its type, a constant may have more. */
+    const double x_scale = 1.5e-6;
+    CHECK(sdfio_header_x_scale(sdfio_reader_header(reader)) == x_scale);
+    sdfio_reader_free(reader);
+    free(file.data);
+    setlocale(LC_NUMERIC, "C");
+}
+
+int main(void)
+{
+    const sdfio_decimal_point decimal_point = sdfio_decimal_point_now();
+    CHECK(strcmp(decimal_point.text, ".") == 0);
+    check_numbers(&decimal_point);
+    check_locale();
+    return finish_tests();
+}

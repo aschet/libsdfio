@@ -1,0 +1,191 @@
+/*
+ * SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/**
+ * @file
+ * @brief Writing of the binary format: header fields, values of the data type,
+ * trailer at the end of the file.
+ *
+ * Files store values in little-endian byte order, regardless of the byte
+ * order of the host.
+ */
+
+#include "byte_order.h"
+#include "chunk.h"
+#include "data_type.h"
+#include "datetime.h"
+#include "fields.h"
+#include "header.h"
+#include "message.h"
+#include "revision.h"
+#include "sink.h"
+#include "size_math.h"
+#include "writer_format.h"
+#include <limits.h>
+#include <sdfio/sdfio.h>
+#include <string.h>
+
+_Static_assert((size_t)SDFIO_MANUFACTURER_ID_MAX <= (size_t)SDFIO_DATETIME_SIZE,
+               "a text field of the header fits the buffer of put_text");
+
+static size_t file_chunk_size(size_t chunk_values)
+{
+    return sdfio_host_is_little_endian()
+               ? 0
+               : chunk_values * SDFIO_LARGEST_CODED_VALUE;
+}
+
+static const char *const magics[] = {
+    [SDFIO_ISO_1_0] = "bISO-1.0", [SDFIO_ISO_2_0] = "bISO-2.0"};
+
+/* The number of the dates, of the numbers of columns and rows, of the scales
+ * and of the codes in the header. */
+#define DATE_FIELDS ((size_t)2)
+#define COUNT_FIELDS ((size_t)2)
+#define SCALE_FIELDS ((size_t)4)
+#define CODE_FIELDS ((size_t)3)
+
+/* The size of the header of a file: the fields of write_header(). */
+static size_t header_size(sdfio_revision revision)
+{
+    return strlen(magics[revision]) + SDFIO_MANUFACTURER_ID_MAX
+           + DATE_FIELDS * SDFIO_DATETIME_SIZE
+           + COUNT_FIELDS * sdfio_revision_columns_rows_size(revision)
+           + SCALE_FIELDS * sizeof(double) + CODE_FIELDS * SDFIO_CODE_SIZE;
+}
+
+static sdfio_status estimate_size(const sdfio_header *header, size_t *size)
+{
+    size_t data = 0;
+    if (sdfio_data_size(header, &data) != SDFIO_OK)
+    {
+        return SDFIO_ERR_RANGE;
+    }
+    *size = header_size(header->revision);
+    return sdfio_size_add(size, data) ? SDFIO_OK : SDFIO_ERR_RANGE;
+}
+
+/* Writes a text in a field of a width: a text that is too long is cut, and one
+ * that is too short is filled with spaces. */
+static bool put_text(sdfio_sink *sink, const char *text, size_t width)
+{
+    unsigned char field[SDFIO_DATETIME_SIZE];
+    const size_t size = strlen(text);
+    for (size_t i = 0; i < width; ++i)
+    {
+        field[i] = (unsigned char)(i < size ? text[i] : ' ');
+    }
+    return sdfio_sink_write(sink, field, width);
+}
+
+/* Writes an unsigned integer of `size` bytes in little-endian order. */
+static bool put_le(sdfio_sink *sink, size_t size, uint64_t value)
+{
+    unsigned char bytes[sizeof(uint64_t)];
+    for (size_t i = 0; i < size; ++i)
+    {
+        bytes[i] = (unsigned char)(value & UCHAR_MAX);
+        value >>= CHAR_BIT;
+    }
+    return sdfio_sink_write(sink, bytes, size);
+}
+
+/* Writes a binary64 number in little-endian order. */
+static bool put_double(sdfio_sink *sink, double value)
+{
+    uint64_t bits = 0;
+    memcpy(&bits, &value, sizeof bits);
+    return put_le(sink, sizeof bits, bits);
+}
+
+static sdfio_status write_header(sdfio_sink *sink, const sdfio_header *header,
+                                 void *state, const sdfio_time_zone *zone,
+                                 const char **message)
+{
+    (void)state;
+    char created[SDFIO_DATETIME_SIZE + 1] = {0};
+    char modified[SDFIO_DATETIME_SIZE + 1] = {0};
+    const sdfio_status status =
+        sdfio_header_format_dates(header, zone, created, modified, message);
+    if (status != SDFIO_OK)
+    {
+        return status;
+    }
+    const char *magic = magics[header->revision];
+    const size_t columns_rows_size =
+        sdfio_revision_columns_rows_size(header->revision);
+    const bool written =
+        sdfio_sink_write(sink, magic, strlen(magic))
+        && put_text(sink, header->manufacturer_id, SDFIO_MANUFACTURER_ID_MAX)
+        && put_text(sink, created, SDFIO_DATETIME_SIZE)
+        && put_text(sink, modified, SDFIO_DATETIME_SIZE)
+        && put_le(sink, columns_rows_size, header->columns)
+        && put_le(sink, columns_rows_size, header->rows)
+        && put_double(sink, header->x_scale)
+        && put_double(sink, header->y_scale)
+        && put_double(sink, header->z_scale)
+        && put_double(sink, header->z_resolution)
+        && put_le(sink, SDFIO_CODE_SIZE, SDFIO_NONE)
+        && put_le(sink, SDFIO_CODE_SIZE, (uint64_t)header->data_type)
+        && put_le(sink, SDFIO_CODE_SIZE, SDFIO_NONE);
+    return written ? SDFIO_OK : sdfio_sink_failure(message);
+}
+
+static sdfio_status write_values(sdfio_sink *sink, const sdfio_header *header,
+                                 void *state, const void *values, size_t count,
+                                 void *file_chunk, size_t chunk_values,
+                                 const char **message)
+{
+    (void)state;
+    const size_t size = sdfio_data_type_size(header->data_type);
+    if (sdfio_host_is_little_endian())
+    {
+        return sdfio_sink_write(sink, values, count * size)
+                   ? SDFIO_OK
+                   : sdfio_sink_failure(message);
+    }
+    for (size_t first = 0; first < count; first += chunk_values)
+    {
+        const size_t n = sdfio_chunk_count(count, first, chunk_values);
+        memcpy(file_chunk, (const unsigned char *)values + first * size,
+               n * size);
+        sdfio_convert_byte_order(file_chunk, n, header->data_type);
+        if (!sdfio_sink_write(sink, file_chunk, n * size))
+        {
+            return sdfio_sink_failure(message);
+        }
+    }
+    return SDFIO_OK;
+}
+
+static sdfio_status begin_trailer(sdfio_sink *sink, const char **message)
+{
+    (void)sink;
+    (void)message;
+    return SDFIO_OK;
+}
+
+static sdfio_status end_trailer(sdfio_sink *sink, const char **message)
+{
+    (void)sink;
+    (void)message;
+    return SDFIO_OK;
+}
+
+static const sdfio_writer_format binary_format = {
+    .writes = SDFIO_BINARY,
+    .file_chunk_size = file_chunk_size,
+    .estimate_size = estimate_size,
+    .write_header = write_header,
+    .write_values = write_values,
+    .begin_trailer = begin_trailer,
+    .end_trailer = end_trailer,
+};
+
+sdfio_status sdfio_writer_add_binary(sdfio_writer *writer)
+{
+    return sdfio_writer_install_format(writer, &binary_format);
+}

@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Thomas Ascher <thomas.ascher@gmx.at>
+#
+# SPDX-License-Identifier: MIT
+
+InheritParentConfig: true
+Checks: >
+  -bugprone-implicit-widening-of-multiplication-result,
+  -readability-avoid-nested-conditional-operator,
+  -clang-analyzer-core.NullDereference,
+  -clang-analyzer-optin.portability.UnixAPI,
+  -clang-analyzer-unix.Malloc,
+  -clang-analyzer-security.ArrayBound,
+  -clang-analyzer-optin.taint.TaintedAlloc
