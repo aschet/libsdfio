@@ -9,26 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct counting
-{
-    long allocated;
-    long released;
-} counting;
-
-static void *counting_allocate(void *user, size_t size)
-{
-    counting *state = user;
-    ++state->allocated;
-    return malloc(size);
-}
-
-static void counting_release(void *user, void *memory)
-{
-    counting *state = user;
-    ++state->released;
-    free(memory);
-}
-
 static void *failing_allocate(void *user, size_t size)
 {
     (void)user;
@@ -211,8 +191,8 @@ static void check_cross_field_checks(void)
 
 static void check_copy(void)
 {
-    counting first = {0, 0};
-    counting second = {0, 0};
+    counting first = COUNTING_UNLIMITED;
+    counting second = COUNTING_UNLIMITED;
     const sdfio_allocator first_allocator = {&first, counting_allocate,
                                              counting_release};
     const sdfio_allocator second_allocator = {&second, counting_allocate,
@@ -250,8 +230,8 @@ static void check_copy(void)
     sdfio_header_free(source);
     sdfio_header_free(target);
     sdfio_header_free(NULL);
-    CHECK(first.allocated == 1 && first.released == 1);
-    CHECK(second.allocated == 1 && second.released == 1);
+    CHECK(first.calls == 1 && first.released == 1);
+    CHECK(second.calls == 1 && second.released == 1);
 }
 
 static void check_creation(void)
@@ -269,11 +249,12 @@ static void check_creation(void)
     CHECK(header == NULL);
 }
 
-/* The identifier is not checked for encoding: its bytes round-trip unchanged
- * in both formats. */
+/* An identifier of the full width, and one with arbitrary bytes, round-trips
+ * unchanged in both formats. */
 static void check_bytes_of_the_identifier(void)
 {
-    const char *const identifiers[] = {"caf\xC3\xA9", "\x7F\t\x1F", "\xE9\xFF"};
+    const char *const identifiers[] = {"0123456789", "caf\xC3\xA9",
+                                       "\x7F\t\x1F", "\xE9\xFF"};
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t i = 0; i < sizeof identifiers / sizeof identifiers[0]; ++i)
     {

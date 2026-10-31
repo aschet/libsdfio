@@ -60,6 +60,46 @@ static inline bool near_relative(double a, double b, double relative)
     return fabs(a - b) <= relative * scale || fabs(a - b) <= 1e-18;
 }
 
+/* An allocator of the program that counts its calls and fails when an
+ * allocation count is exceeded. */
+typedef struct counting
+{
+    /* Allocations to allow before one fails; negative for no failure. */
+    long allow;
+    /* The calls of the allocation function, also the failed ones. */
+    long calls;
+    /* The calls of the release function. */
+    long released;
+    /* The blocks that are allocated and not released. */
+    long live;
+} counting;
+
+#define COUNTING_UNLIMITED {-1, 0, 0, 0}
+
+static inline void *counting_allocate(void *user, size_t size)
+{
+    counting *state = user;
+    ++state->calls;
+    if (state->allow >= 0 && state->calls > state->allow)
+    {
+        return NULL;
+    }
+    void *memory = malloc(size);
+    if (memory != NULL)
+    {
+        ++state->live;
+    }
+    return memory;
+}
+
+static inline void counting_release(void *user, void *memory)
+{
+    counting *state = user;
+    ++state->released;
+    --state->live;
+    free(memory);
+}
+
 /* A file in memory that a writer fills. */
 /** The size of the binary header of ISO-2.0, as the standard lays it out: the
  * magic of 8 bytes, the identifier of 10, two datetimes of 12, the

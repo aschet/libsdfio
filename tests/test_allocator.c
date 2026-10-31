@@ -16,38 +16,6 @@
 #define ROWS 5
 #define ARENA_SIZE (1U << 16)
 
-typedef struct counting
-{
-    /* Allocations to allow before one fails; negative for no failure. */
-    long allow;
-    long calls;
-    long live;
-    size_t most;
-} counting;
-
-static void *counting_allocate(void *user, size_t size)
-{
-    counting *state = user;
-    ++state->calls;
-    if (state->allow >= 0 && state->calls > state->allow)
-    {
-        return NULL;
-    }
-    void *memory = malloc(size);
-    if (memory != NULL)
-    {
-        ++state->live;
-    }
-    return memory;
-}
-
-static void counting_release(void *user, void *memory)
-{
-    counting *state = user;
-    --state->live;
-    free(memory);
-}
-
 static void fill(float *heights)
 {
     for (size_t i = 0; i < (size_t)COLUMNS * ROWS; ++i)
@@ -142,7 +110,7 @@ static void check_counted(void)
     static const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
     for (size_t i = 0; i < sizeof formats / sizeof formats[0]; ++i)
     {
-        counting state = {-1, 0, 0, 0};
+        counting state = COUNTING_UNLIMITED;
         const sdfio_allocator allocator = {&state, counting_allocate,
                                            counting_release};
         const test_options config = {.allocator = &allocator, ALL_FORMATS};
@@ -156,7 +124,8 @@ static void check_counted(void)
         const long total = state.calls;
         for (long allow = 0; allow < total; ++allow)
         {
-            counting failing = {allow, 0, 0, 0};
+            counting failing = COUNTING_UNLIMITED;
+            failing.allow = allow;
             const sdfio_allocator failing_allocator = {
                 &failing, counting_allocate, counting_release};
             const test_options failing_config = {

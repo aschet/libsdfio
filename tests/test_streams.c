@@ -549,8 +549,8 @@ static void check_standard_rules(void)
                             good_z, crlf));
 }
 
-/* A write callback that always fails. */
-static size_t refusing_write(void *user, const void *data, size_t size)
+/* A write callback that writes half of what it is given. */
+static size_t half_write(void *user, const void *data, size_t size)
 {
     (void)user;
     (void)data;
@@ -562,7 +562,7 @@ static void check_failing_sink(void)
     sdfio_header *header = new_header();
     CHECK_OK(sdfio_header_set_columns(header, 4));
     CHECK_OK(sdfio_header_set_rows(header, 4));
-    const sdfio_stream stream = {NULL, NULL, refusing_write};
+    const sdfio_stream stream = {NULL, NULL, half_write};
     sdfio_writer *writer = new_writer(all_formats());
     CHECK_OK(sdfio_create_stream(writer, &stream, header));
     double heights[16] = {0};

@@ -76,8 +76,9 @@ if(Threads_FOUND AND CMAKE_USE_PTHREADS_INIT)
     target_link_libraries(test_threads PRIVATE Threads::Threads)
 endif()
 
-# The public interface only, through the library that is installed.
-add_executable(test_public test_public.c)
-target_link_libraries(test_public PRIVATE sdfio)
-target_compile_options(test_public PRIVATE ${SDFIO_WARNINGS})
-add_test(NAME test_public COMMAND test_public)
+# Links the library as a user does, not its objects: the test fails to link if a
+# public function is not exported.
+add_executable(test_exports test_exports.c)
+target_link_libraries(test_exports PRIVATE sdfio)
+target_compile_options(test_exports PRIVATE ${SDFIO_WARNINGS})
+add_test(NAME test_exports COMMAND test_exports)

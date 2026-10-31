@@ -828,36 +828,6 @@ static void check_integer_text(void)
     free(file.data);
 }
 
-/* An identifier of 10 characters round-trips in both formats. */
-static void check_long_identifier(void)
-{
-    static const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
-    for (size_t i = 0; i < sizeof formats / sizeof formats[0]; ++i)
-    {
-        sdfio_header *header = new_header();
-        CHECK_OK(sdfio_header_set_format(header, formats[i]));
-        CHECK_OK(sdfio_header_set_columns(header, 1));
-        CHECK_OK(sdfio_header_set_rows(header, 1));
-        CHECK_OK(sdfio_header_set_manufacturer(header, "0123456789"));
-        const float height = 1e-6F;
-        membuf file = {0};
-        const sdfio_stream stream = membuf_stream(&file);
-        sdfio_writer *writer = new_writer(all_formats());
-        CHECK_OK(sdfio_create_stream(writer, &stream, header));
-        CHECK_OK(sdfio_write_heights(
-            writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height));
-        CHECK_OK(sdfio_end_file(writer));
-        sdfio_writer_free(writer);
-        sdfio_reader *reader = new_reader(all_formats());
-        CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
-        const sdfio_header *back = sdfio_reader_header(reader);
-        CHECK(back != NULL
-              && strcmp(sdfio_header_manufacturer(back), "0123456789") == 0);
-        sdfio_reader_free(reader);
-        free(file.data);
-    }
-}
-
 /* Every written line end is CRLF, whatever the input holds, and reading
  * returns LF. */
 static bool only_crlf(const unsigned char *bytes, size_t size)
@@ -1172,7 +1142,6 @@ int main(void)
     check_trailer_line_ends();
     check_rows_without_columns();
     check_defaults();
-    check_long_identifier();
     check_integer_text();
     check_resolution();
     check_element_stride();

@@ -13,26 +13,6 @@
 #define ROWS 3
 #define SAMPLE SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
 
-typedef struct counter
-{
-    size_t allocations;
-    size_t releases;
-} counter;
-
-static void *counting_allocate(void *user, size_t size)
-{
-    counter *count = user;
-    ++count->allocations;
-    return malloc(size);
-}
-
-static void counting_release(void *user, void *memory)
-{
-    counter *count = user;
-    ++count->releases;
-    free(memory);
-}
-
 static sdfio_header *new_file_header(sdfio_format format)
 {
     sdfio_header *header = new_header();
@@ -180,7 +160,7 @@ static void check_named_files(void)
 
 static void check_allocations(void)
 {
-    counter count = {0, 0};
+    counting count = COUNTING_UNLIMITED;
     const sdfio_allocator allocator = {&count, counting_allocate,
                                        counting_release};
     const test_options options = {.allocator = &allocator, ALL_FORMATS};
@@ -189,13 +169,13 @@ static void check_allocations(void)
     sdfio_writer *writer = new_writer(&options);
     sdfio_reader *reader = new_reader(&options);
     check_sequence(writer, reader, binary, ascii);
-    const size_t after_first = count.allocations;
+    const long after_first = count.calls;
     check_sequence(writer, reader, binary, ascii);
     check_sequence(writer, reader, ascii, binary);
-    CHECK(count.allocations == after_first);
+    CHECK(count.calls == after_first);
     sdfio_reader_free(reader);
     sdfio_writer_free(writer);
-    CHECK(count.releases == count.allocations);
+    CHECK(count.live == 0);
 }
 
 int main(void)
