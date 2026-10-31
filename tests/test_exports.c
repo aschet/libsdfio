@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Sizes equal the size of the matrix, and a size that overflows is refused. */
 static void check_memory(void)
 {
     sdfio_header *header = new_header();
@@ -45,7 +44,6 @@ static void check_memory(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_data_row_size(header, NULL));
 }
 
-/* Initializers zero every field, whatever the memory held before. */
 static void check_init(void)
 {
     sdfio_stream stream;

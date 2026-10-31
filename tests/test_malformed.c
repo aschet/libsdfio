@@ -226,7 +226,6 @@ static sdfio_status open_ascii(const char *magic, const char *id,
     return read_ascii(magic, id, date, points, z_scale, line_end, NULL);
 }
 
-/* The rules of the standard for a header that the reader enforces. */
 static void check_standard_rules(void)
 {
     const char *const crlf = "\r\n";

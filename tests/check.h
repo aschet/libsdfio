@@ -88,8 +88,6 @@ static inline unsigned char *load_file(const char *path, size_t *size)
     return bytes;
 }
 
-/* An allocator of the program that counts its calls and fails when an
- * allocation count is exceeded. */
 typedef struct counting
 {
     /* Allocations to allow before one fails; negative for no failure. */
@@ -97,7 +95,6 @@ typedef struct counting
     /* The calls of the allocation function, also the failed ones. */
     long calls;
     long released;
-    /* The blocks that are allocated and not released. */
     long live;
 } counting;
 
@@ -132,7 +129,6 @@ static inline void counting_release(void *user, void *memory)
  * numbers of columns and of rows of 4 each, four binary64 numbers, and 3 bytes
  * of codes. */
 #define ISO_2_0_BINARY_HEADER_SIZE (8 + 10 + 2 * 12 + 2 * 4 + 4 * 8 + 3)
-/** Where the number of columns and the number of rows start. */
 #define ISO_2_0_COLUMNS_AT (8 + 10 + 2 * 12)
 
 typedef struct membuf

@@ -177,8 +177,6 @@ static void check_all_types(void)
     }
 }
 
-/* Data area values through a buffer with gaps between the elements, and
- * through one with the rows reversed. */
 static void check_strided_rows(sdfio_revision revision, sdfio_format format)
 {
     typedef struct point
@@ -572,8 +570,6 @@ static void check_element_stride(void)
         }
     }
 
-    /* Strides that make the elements overlap are refused, and nothing is
-     * written. */
     double untouched[ROWS * COLUMNS] = {0};
     layout = layout_with_rows(SDFIO_TYPE_DOUBLE, sizeof(double));
     reader = membuf_reopen(reader, &from_plain);
@@ -884,7 +880,6 @@ static void check_trailer_line_ends(void)
     }
 }
 
-/* ASCII files with CRLF or LF line ends are read. */
 static membuf with_line_ends(const membuf *file, const char *line_end)
 {
     membuf out = {0};

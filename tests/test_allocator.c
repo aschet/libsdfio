@@ -21,7 +21,6 @@ static void fill(float *heights)
     heights[3] = NAN;
 }
 
-/* Returns the first status that is not SDFIO_OK. */
 static sdfio_status round_trip(const test_options *config, sdfio_format format,
                                sdfio_data_type type, bool *equal)
 {
@@ -202,7 +201,6 @@ static void check_arena(void)
     bool equal = false;
     CHECK_OK(round_trip(&config, SDFIO_BINARY, SDFIO_TYPE_FLOAT, &equal));
     CHECK(equal);
-    /* The writer and the reader stay within a few kilobytes of it. */
     CHECK(state.used < ARENA_SIZE);
 }
 
@@ -333,7 +331,6 @@ static void check_arguments(void)
     free(no_format_sink.data);
 }
 
-/* The magics are those of the added formats, in order. */
 int main(void)
 {
     check_counted();

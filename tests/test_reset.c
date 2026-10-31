@@ -55,7 +55,6 @@ static void write_rows(sdfio_writer *writer, const sdfio_header *header,
     }
 }
 
-/* Compares the rows of the open file with those for `seed`. */
 static void check_rows(sdfio_reader *reader, int seed)
 {
     int16_t expected[ROWS * COLUMNS];
@@ -75,8 +74,6 @@ static void check_file(sdfio_reader *reader, const membuf *file, int seed)
     check_rows(reader, seed);
 }
 
-/* One writer writes three files with the headers `first`, `second` and
- * `first`, and one reader reads them. */
 static void check_sequence(sdfio_writer *writer, sdfio_reader *reader,
                            const sdfio_header *first,
                            const sdfio_header *second)

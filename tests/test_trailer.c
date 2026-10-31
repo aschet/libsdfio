@@ -216,7 +216,6 @@ static void check_the_text_is_written_as_given(void)
     free(file.data);
 }
 
-/* Reads the trailer in parts of at most `part` bytes. */
 static size_t read_in_parts(const membuf *file, size_t part, char *out,
                             size_t out_size)
 {

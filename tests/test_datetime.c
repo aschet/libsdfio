@@ -103,7 +103,6 @@ static void check_utc(void)
         CHECK(sdfio_datetime_parse(bad[i], strlen(bad[i]), SDFIO_ISO_2_0, NULL)
               == SDFIO_NO_TIME);
     }
-    /* The seconds are dropped. */
     format(1772600760 + 59, SDFIO_ISO_2_0, NULL, text);
     CHECK(strcmp(text, "040320260506") == 0);
     /* -1 is SDFIO_NO_TIME: one minute before the epoch is -60. */
@@ -111,7 +110,6 @@ static void check_utc(void)
     CHECK(strcmp(text, "311219692359") == 0);
 }
 
-/* Without a time zone, the clock reading of ISO-1.0 is the date. */
 static void check_without_zone(void)
 {
     char text[SDFIO_DATETIME_SIZE + 1];
@@ -186,7 +184,6 @@ static void check_date_conversion(void)
     time_t utc = 0;
     CHECK_OK(sdfio_date_to_time(&date, &utc));
     CHECK(utc == 1772600760);
-    /* The seconds are dropped. */
     CHECK_OK(sdfio_date_from_time(1772600819, &date));
     CHECK(date.minute == 6);
     CHECK_OK(sdfio_date_from_time(-60, &date));
@@ -268,8 +265,6 @@ static void check_time_zone(void)
                                SDFIO_ISO_2_0, &zone)
           == 1782900000);
 
-    /* Every instant of the year comes back as the same clock reading, also
-     * across both changes of the clock. */
     unsigned checked = 0;
     for (time_t time = 1767225600; time < 1767225600 + 365 * SECONDS_PER_DAY;
          time += 5 * SECONDS_PER_HOUR + 1800)
@@ -286,8 +281,6 @@ static void check_time_zone(void)
     }
     CHECK(checked > 300);
 
-    /* A callback that cannot convert: a date reads as not recorded, and a
-     * date cannot be written. */
     const sdfio_time_zone refusing = {NULL, refuse_local, refuse_utc};
     CHECK(sdfio_datetime_parse("010720261200", SDFIO_DATETIME_SIZE,
                                SDFIO_ISO_1_0, &refusing)
@@ -337,7 +330,6 @@ static void check_file(void)
     CHECK(sdfio_header_created(sdfio_reader_header(reader)) == 1782907200);
     sdfio_reader_free(reader);
 
-    /* A writer whose time zone refuses the date creates no file. */
     const sdfio_time_zone refusing = {NULL, refuse_local, refuse_utc};
     const test_options refusing_config = {.time_zone = &refusing, ALL_FORMATS};
     membuf refused = {0};

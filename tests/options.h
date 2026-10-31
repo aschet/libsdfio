@@ -62,7 +62,7 @@ static inline sdfio_status add_writer_format(sdfio_writer *writer,
     return SDFIO_OK;
 }
 
-/* A reader with the options. The reader is freed if an option fails. */
+/* The reader is freed if an option fails. */
 static inline sdfio_status create_reader(const test_options *options,
                                          sdfio_reader **reader)
 {
@@ -94,7 +94,7 @@ static inline sdfio_status create_reader(const test_options *options,
     return status;
 }
 
-/* A writer with the options. The writer is freed if an option fails. */
+/* The writer is freed if an option fails. */
 static inline sdfio_status create_writer(const test_options *options,
                                          sdfio_writer **writer)
 {

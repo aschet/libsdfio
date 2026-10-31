@@ -117,7 +117,6 @@ static void check_encode(void)
                                       large, 1, floats));
 }
 
-/* Sizes around the chunk size. */
 static void check_chunks(void)
 {
     const sdfio_header *header =
@@ -156,7 +155,6 @@ static void check_range(void)
     const float heights[] = {0.5f, NAN, -2.0f, INFINITY, 3.0f, 1.0f};
     sdfio_layout layout = *sdfio_layout_packed(SDFIO_TYPE_FLOAT);
     double z_scale = 0.0;
-    /* Two rows of three, the second one read bottom up. */
     layout.row_stride = -(ptrdiff_t)(3 * sizeof(float));
     CHECK_OK(sdfio_suggest_z_scale(SDFIO_TYPE_INT16, &layout, heights + 3, 2, 3,
                                    &z_scale));
