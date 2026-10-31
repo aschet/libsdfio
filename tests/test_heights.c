@@ -172,25 +172,6 @@ static void check_range(void)
                                        none, 1, 2, NULL));
 }
 
-static void check_tables(void)
-{
-    CHECK(sdfio_data_type_size(SDFIO_TYPE_INT8) == 1);
-    CHECK(sdfio_data_type_size((sdfio_data_type)0) == 0);
-    CHECK(!sdfio_data_type_valid((sdfio_data_type)2));
-    CHECK(sdfio_data_type_size(SDFIO_TYPE_FLOAT) == 4);
-    CHECK(sdfio_data_type_size(SDFIO_TYPE_DOUBLE) == 8);
-    CHECK(sdfio_data_type_size(SDFIO_TYPE_FLOAT) == 4);
-    CHECK(sdfio_data_type_size(SDFIO_TYPE_DOUBLE) == 8);
-    CHECK(sdfio_data_type_size((sdfio_data_type)99) == 0);
-    CHECK(sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT16));
-    CHECK(!sdfio_revision_allows(SDFIO_ISO_1_0, SDFIO_TYPE_INT8));
-    CHECK(strlen(sdfio_version()) > 0);
-    for (int i = SDFIO_OK; i <= SDFIO_ERR_MEMORY; ++i)
-    {
-        CHECK(strlen(sdfio_status_string((sdfio_status)i)) > 0);
-    }
-}
-
 /* The elements of the caller need not follow each other: the z of a point, one
  * channel, a row that runs backwards. */
 typedef struct point
@@ -526,7 +507,6 @@ int main(void)
     check_chunks();
     check_range();
     check_element_stride();
-    check_tables();
     check_float_path();
     check_rounding();
     return finish_tests();

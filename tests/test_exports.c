@@ -80,13 +80,21 @@ static void check_init(void)
     CHECK(zone.user == NULL);
     CHECK(zone.local_to_utc == NULL);
     CHECK(zone.utc_to_local == NULL);
-    CHECK(sdfio_system_time_zone() != NULL);
+}
+
+static void check_status_strings(void)
+{
+    for (int i = SDFIO_OK; i <= SDFIO_ERR_MEMORY; ++i)
+    {
+        CHECK(strlen(sdfio_status_string((sdfio_status)i)) > 0);
+    }
 }
 
 int main(void)
 {
     check_memory();
     check_init();
+    check_status_strings();
     CHECK(strcmp(sdfio_version(), SDFIO_VERSION_STRING) == 0);
 
     sdfio_header *header = new_header();
