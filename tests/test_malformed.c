@@ -12,7 +12,7 @@
 
 #include "fields.h"
 
-#define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
+#define SAMPLES SDFIO_TEST_DATA_DIR "/samples/"
 
 /* The positions of the first date and of the z-scale in a binary header of
  * ISO-2.0. */

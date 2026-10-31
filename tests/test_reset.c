@@ -11,7 +11,7 @@
 
 #define COLUMNS 4
 #define ROWS 3
-#define SAMPLE SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
+#define SAMPLE SDFIO_TEST_DATA_DIR "/samples/"
 
 static sdfio_header *new_file_header(sdfio_format format)
 {

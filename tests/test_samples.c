@@ -320,9 +320,8 @@ static void check_dates_set_to_zero(void)
 static void check_byte_order_mark(void)
 {
     static const unsigned char mark[] = {0xEF, 0xBB, 0xBF};
-    static const char *const names[] = {
-        "samples/iso25178-71-2026/iso2_surface_ascii.sdf",
-        "samples/iso25178-71-2026/iso2_surface_binary.sdf"};
+    static const char *const names[] = {"samples/iso2_surface_ascii.sdf",
+                                        "samples/iso2_surface_binary.sdf"};
     for (size_t i = 0; i < 2; ++i)
     {
         size_t size = 0;

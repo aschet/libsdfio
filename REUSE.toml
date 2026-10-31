@@ -6,7 +6,7 @@ SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = ["tests/data/samples/**/*.sdf", "tests/data/interop/*.sdf"]
+path = ["tests/data/samples/*.sdf", "tests/data/interop/*.sdf"]
 SPDX-FileCopyrightText = "2026 Thomas Ascher <thomas.ascher@gmx.at>"
 SPDX-License-Identifier = "CC0-1.0"
 

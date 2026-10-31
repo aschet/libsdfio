@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#define SAMPLES SDFIO_TEST_DATA_DIR "/samples/iso25178-71-2026/"
+#define SAMPLES SDFIO_TEST_DATA_DIR "/samples/"
 
 #define THREADS 8
 #define ROUNDS 25
