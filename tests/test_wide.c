@@ -59,10 +59,5 @@ int main(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_create_wfile(writer, NULL, header));
     sdfio_writer_free(writer);
 
-    if (failures != 0)
-    {
-        fprintf(stderr, "%d of %d checks failed\n", failures, checks);
-        return 1;
-    }
-    return 0;
+    return finish_tests();
 }

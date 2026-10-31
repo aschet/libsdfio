@@ -351,10 +351,5 @@ int main(void)
     check_small();
     check_arena();
     check_arguments();
-    if (failures != 0)
-    {
-        fprintf(stderr, "%d of %d checks failed\n", failures, checks);
-        return 1;
-    }
-    return 0;
+    return finish_tests();
 }
