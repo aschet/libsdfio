@@ -60,6 +60,37 @@ static inline bool near_relative(double a, double b, double relative)
     return fabs(a - b) <= relative * scale || fabs(a - b) <= 1e-18;
 }
 
+/* The bytes of a file, followed by a 0 byte that is not counted. A file that
+ * cannot be read fails the check and gives null. */
+static inline unsigned char *load_file(const char *path, size_t *size)
+{
+    *size = 0;
+    FILE *file = fopen(path, "rb");
+    CHECK(file != NULL);
+    if (file == NULL)
+    {
+        return NULL;
+    }
+    fseek(file, 0, SEEK_END);
+    const long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    unsigned char *bytes = length < 0 ? NULL : malloc((size_t)length + 1);
+    CHECK(bytes != NULL);
+    if (bytes != NULL
+        && fread(bytes, 1, (size_t)length, file) == (size_t)length)
+    {
+        bytes[length] = 0;
+        *size = (size_t)length;
+    }
+    else
+    {
+        free(bytes);
+        bytes = NULL;
+    }
+    fclose(file);
+    return bytes;
+}
+
 /* An allocator of the program that counts its calls and fails when an
  * allocation count is exceeded. */
 typedef struct counting

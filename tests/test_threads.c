@@ -224,15 +224,11 @@ int main(void)
         CHECK(!isnan(expected_sums[i]));
         sdfio_reader_free(reader);
     }
-    FILE *file = fopen(files[1], "rb");
-    CHECK(file != NULL);
-    if (file == NULL)
+    shared_bytes = load_file(files[1], &shared_size);
+    if (shared_bytes == NULL)
     {
         return finish_tests();
     }
-    shared_bytes = malloc(1 << 20);
-    shared_size = fread(shared_bytes, 1, 1 << 20, file);
-    fclose(file);
 
     pthread_t threads[THREADS];
     job jobs[THREADS];

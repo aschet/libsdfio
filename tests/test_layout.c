@@ -50,8 +50,47 @@ static void check_layout(void)
                  layout_with(layout, 2, SIZE_MAX / 2, PTRDIFF_MAX));
 }
 
+static void check_missing_layout(void)
+{
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    sdfio_writer *writer = new_writer(all_formats());
+    CHECK_OK(sdfio_create_stream(writer, &stream, header));
+    const float height = 1e-6F;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_data(writer, NULL, &height, 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_write_heights(writer, NULL, &height));
+    CHECK_OK(sdfio_write_heights(writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                 &height));
+    CHECK_OK(sdfio_end_file(writer));
+    sdfio_writer_free(writer);
+
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    float back = 0.0F;
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_data(reader, NULL, &back, 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_read_heights(reader, NULL, &back));
+    CHECK_OK(sdfio_read_heights(reader, sdfio_layout_packed(SDFIO_TYPE_FLOAT),
+                                &back));
+    sdfio_reader_free(reader);
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_decode_heights(header, NULL, &back, 1, &back));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_encode_heights(header, NULL, &back, 1, &back));
+    double z_scale = 0.0;
+    CHECK_STATUS(
+        SDFIO_ERR_ARGUMENT,
+        sdfio_suggest_z_scale(SDFIO_TYPE_INT16, NULL, &back, 1, 1, &z_scale));
+    free(file.data);
+}
+
 int main(void)
 {
     check_layout();
+    check_missing_layout();
     return finish_tests();
 }

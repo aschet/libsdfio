@@ -56,6 +56,7 @@ set_target_properties(sdfio_objects_other PROPERTIES
 sdfio_add_test(test_samples)
 sdfio_add_test(test_roundtrip)
 sdfio_add_test(test_streams)
+sdfio_add_test(test_malformed)
 sdfio_add_test(test_numbers)
 sdfio_add_test(test_heights)
 sdfio_add_test(test_layout)

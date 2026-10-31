@@ -220,32 +220,7 @@ static unsigned char *read_file(const char *name, size_t *size)
 {
     char path[512];
     snprintf(path, sizeof path, "%s/%s", SDFIO_TEST_DATA_DIR, name);
-    FILE *file = fopen(path, "rb");
-    if (file == NULL)
-    {
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    const long length = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    if (length < 0)
-    {
-        fclose(file);
-        return NULL;
-    }
-    *size = (size_t)length;
-    unsigned char *bytes = malloc(*size + 1);
-    if (bytes != NULL && fread(bytes, 1, *size, file) != *size)
-    {
-        free(bytes);
-        bytes = NULL;
-    }
-    if (bytes != NULL)
-    {
-        bytes[*size] = 0; /* the text of an ASCII file ends */
-    }
-    fclose(file);
-    return bytes;
+    return load_file(path, size);
 }
 
 /* Replaces `length` characters at `at` with a text in a 0-terminated buffer

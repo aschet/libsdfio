@@ -402,6 +402,47 @@ static void check_reader_refusals(void)
     free(file.data);
 }
 
+/* Limits across several fields are checked when a file is created. */
+static void check_cross_field_checks(void)
+{
+    sdfio_header *header = new_header();
+    CHECK_OK(sdfio_header_set_revision(header, SDFIO_ISO_1_0));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT8));
+    membuf file = {0};
+    const sdfio_stream stream = membuf_stream(&file);
+    sdfio_writer *writer = new_writer(all_formats());
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_header_set_data_type(header, SDFIO_TYPE_INT16));
+    CHECK_OK(sdfio_header_set_columns(header, (uint32_t)UINT16_MAX + 1));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_create_stream(writer, &stream, header));
+    CHECK_OK(sdfio_header_set_columns(header, 1));
+    CHECK_OK(sdfio_header_set_rows(header, 1));
+    CHECK_OK(sdfio_header_set_created(header, SDFIO_NO_TIME));
+    CHECK_STATUS(SDFIO_ERR_ARGUMENT,
+                 sdfio_create_stream(writer, &stream, header));
+    sdfio_writer_free(writer);
+    free(file.data);
+}
+
+/* A copy of the header of a reader outlives the reader. */
+static void check_copy_of_a_read_header(void)
+{
+    membuf file = {0};
+    write_file(&file);
+    sdfio_reader *reader = new_reader(all_formats());
+    CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+    sdfio_header *kept = new_header();
+    CHECK_OK(sdfio_header_copy(kept, sdfio_reader_header(reader)));
+    sdfio_reader_free(reader);
+    CHECK(sdfio_header_columns(kept) == COLUMNS
+          && sdfio_header_rows(kept) == ROWS);
+    CHECK(sdfio_header_z_scale(kept) == 1.0);
+    CHECK(strcmp(sdfio_header_manufacturer(kept), "libsdfio") == 0);
+    free(file.data);
+}
+
 int main(void)
 {
     check_writer_calls();
@@ -410,5 +451,7 @@ int main(void)
     check_reader_calls();
     check_reader_header();
     check_reader_refusals();
+    check_cross_field_checks();
+    check_copy_of_a_read_header();
     return finish_tests();
 }

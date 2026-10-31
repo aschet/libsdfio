@@ -9,4 +9,5 @@ Checks: >
   -clang-analyzer-core.NullDereference,
   -clang-analyzer-optin.portability.UnixAPI,
   -clang-analyzer-unix.Malloc,
-  -clang-analyzer-security.ArrayBound
+  -clang-analyzer-security.ArrayBound,
+  -clang-analyzer-optin.taint.TaintedAlloc

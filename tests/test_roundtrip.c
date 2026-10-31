@@ -1109,6 +1109,44 @@ static void check_scales_of_files(void)
     free(file.data);
 }
 
+/* An identifier of the full width, and one with arbitrary bytes, round-trips
+ * unchanged in both formats. */
+static void check_identifier_in_files(void)
+{
+    const char *const identifiers[] = {"0123456789", "caf\xC3\xA9",
+                                       "\x7F\t\x1F", "\xE9\xFF"};
+    const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
+    for (size_t i = 0; i < sizeof identifiers / sizeof identifiers[0]; ++i)
+    {
+        for (size_t f = 0; f < 2; ++f)
+        {
+            sdfio_header *header = new_header();
+            CHECK_OK(sdfio_header_set_format(header, formats[f]));
+            CHECK_OK(sdfio_header_set_columns(header, 1));
+            CHECK_OK(sdfio_header_set_rows(header, 1));
+            CHECK_OK(sdfio_header_set_manufacturer(header, identifiers[i]));
+            const float height = 1e-6F;
+            membuf file = {0};
+            const sdfio_stream stream = membuf_stream(&file);
+            sdfio_writer *writer = new_writer(all_formats());
+            CHECK_OK(sdfio_create_stream(writer, &stream, header));
+            CHECK_OK(sdfio_write_heights(
+                writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), &height));
+            CHECK_OK(sdfio_end_file(writer));
+            sdfio_writer_free(writer);
+
+            sdfio_reader *reader = new_reader(all_formats());
+            CHECK_OK(sdfio_open_memory(reader, file.data, file.size));
+            const sdfio_header *read = sdfio_reader_header(reader);
+            CHECK(read != NULL
+                  && strcmp(sdfio_header_manufacturer(read), identifiers[i])
+                         == 0);
+            sdfio_reader_free(reader);
+            free(file.data);
+        }
+    }
+}
+
 int main(void)
 {
     check_second_open();
@@ -1134,5 +1172,6 @@ int main(void)
     check_typed_rows();
     check_profile_scale();
     check_z_scale();
+    check_identifier_in_files();
     return finish_tests();
 }
