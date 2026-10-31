@@ -177,8 +177,8 @@ static void check_all_types(void)
     }
 }
 
-/* The values of the data area move through a buffer that has a gap between
- * the elements, and through one that holds the rows upside down. */
+/* Data area values through a buffer with gaps between the elements, and
+ * through one with the rows reversed. */
 static void check_strided_rows(sdfio_revision revision, sdfio_format format)
 {
     typedef struct point
@@ -226,8 +226,7 @@ static void check_strided_rows(sdfio_revision revision, sdfio_format format)
     free(file.data);
 }
 
-/* The rows API moves the stored values as they are, in the order of the
- * file. */
+/* The rows API transfers coded values unchanged, in the order of the file. */
 static void check_rows(sdfio_revision revision, sdfio_format format)
 {
     sdfio_header *header = new_header();
@@ -287,8 +286,7 @@ static void check_rows(sdfio_revision revision, sdfio_format format)
     free(file.data);
 }
 
-/* The functions of a C type check that the file has the data type of the type,
- * and the compiler checks the pointer. */
+/* The typed functions require the data type of the file to match the C type. */
 static void check_typed_rows(void)
 {
     sdfio_header *header = new_header();
@@ -334,8 +332,7 @@ static void check_typed_rows(void)
     free(file.data);
 }
 
-/* The y-scale of a profile is meaningless: whatever it is, the file is
- * written. */
+/* The y-scale of a profile has no meaning: any value is written. */
 static void check_profile_scale(void)
 {
     static const double scales[] = {0.0, -1.0, 1e-6, 1e300};
@@ -432,7 +429,7 @@ static void check_errors(void)
     free(file.data);
 }
 
-/* The z-scale a writer chooses uses the range of the type. */
+/* The z-scale that a writer chooses uses the range of the type. */
 static void check_z_scale(void)
 {
     const double scale =
@@ -442,8 +439,8 @@ static void check_z_scale(void)
     CHECK(sdfio_suggest_z_scale_for_range(SDFIO_TYPE_INT16, NAN, NAN) == 1.0);
 }
 
-/* A negative row stride, with the pointer at the last row, turns the matrix
- * upside down without a copy, for both directions. */
+/* A negative row stride with the pointer at the last row flips the matrix
+ * without a copy, for reading and writing. */
 static void check_stride(void)
 {
     sdfio_header *header = new_header();
@@ -617,9 +614,8 @@ static void check_element_stride(void)
     free(from_points.data);
 }
 
-/* An unknown z-resolution is -1, as the standard has it: whatever a program
- * gives that is not positive is written as -1, and whatever a file holds that
- * is not positive is read as -1. */
+/* An unknown z-resolution is -1: a value that is not positive is written as
+ * -1, and read as -1. */
 static void write_with_resolution(membuf *file, sdfio_format format,
                                   double resolution)
 {
@@ -650,7 +646,7 @@ static double resolution_read(const membuf *file)
     return resolution;
 }
 
-/* A double as the file holds it: 8 bytes, the least significant first. */
+/* A double as stored in a file: 8 bytes, least significant first. */
 static double double_in_file(const unsigned char *bytes)
 {
     uint64_t bits = 0;
@@ -728,8 +724,8 @@ static void check_resolution(void)
     }
 }
 
-/* Rows without a column hold nothing, and a file that declares billions of
- * them is written and read in an instant. */
+/* Rows without columns hold no data, and a file that declares billions of them
+ * is written and read at once. */
 static void check_rows_without_columns(void)
 {
     sdfio_header *header = new_header();
@@ -762,8 +758,7 @@ static void check_rows_without_columns(void)
     free(file.data);
 }
 
-/* What a header starts as: a binary ISO-2.0 file of single precision floats,
- * which holds a float surface without loss and needs no z-scale. */
+/* Header defaults: binary, ISO-2.0, float data, which needs no z-scale. */
 static void check_defaults(void)
 {
     sdfio_header *header = new_header();
@@ -799,8 +794,8 @@ static void check_defaults(void)
     free(file.data);
 }
 
-/* The digits of the integers of an ASCII data area, up to the extremes of the
- * widest type. The lowest value of a type is the bad value, which is BAD. */
+/* Integer text of an ASCII data area up to the extremes of the widest type.
+ * The lowest value of a type is the bad value, written BAD. */
 static void check_integer_text(void)
 {
     sdfio_header *header = new_header();
@@ -833,8 +828,7 @@ static void check_integer_text(void)
     free(file.data);
 }
 
-/* An identifier of the 10 characters that the field has comes back in both
- * formats. */
+/* An identifier of 10 characters round-trips in both formats. */
 static void check_long_identifier(void)
 {
     static const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
@@ -864,8 +858,8 @@ static void check_long_identifier(void)
     }
 }
 
-/* Every line end that is written is CRLF, as the standard has it, whatever the
- * program put in memory; what is read back has LF. */
+/* Every written line end is CRLF, whatever the input holds, and reading
+ * returns LF. */
 static bool only_crlf(const unsigned char *bytes, size_t size)
 {
     for (size_t i = 0; i < size; ++i)
@@ -947,8 +941,7 @@ static void check_trailer_line_ends(void)
     }
 }
 
-/* A text file is read whatever ends its lines: CR LF as ISO has it, LF of Unix,
- * which the writers of some programs use. */
+/* ASCII files with CRLF or LF line ends are read. */
 static membuf with_line_ends(const membuf *file, const char *line_end)
 {
     membuf out = {0};
@@ -1083,8 +1076,8 @@ static bool refuse_time(void *user, time_t utc, sdfio_date *local)
     return false;
 }
 
-/* A header that cannot be written fails the writer, also if it is the end of
- * the file that writes it, and the file is not ended by a second try. */
+/* A header that cannot be written fails the writer, also when the end of the
+ * file writes it, and a second attempt does not end the file. */
 static void check_failed_header(void)
 {
     sdfio_header *header = new_header();
@@ -1113,7 +1106,7 @@ static void check_failed_header(void)
     }
 }
 
-/* The scales are finite numbers in a file, as they are in a header. */
+/* The scales of a file are finite, as in a header. */
 static void check_scales_of_files(void)
 {
     sdfio_header *header = new_header();

@@ -69,9 +69,8 @@ static sdfio_stream pipe_stream(pipe_source *pipe)
     return stream;
 }
 
-/* A stream may return less than asked at any call, in pieces of one byte,
- * of varying sizes or of the whole file: the reader reads the same heights as
- * from memory, and only 0 ends the data. */
+/* Reads of one byte, of varying sizes or of the whole file give the same
+ * heights as memory, and only 0 ends the data. */
 static void check_pipe(const char *path, size_t piece)
 {
     size_t size = 0;
@@ -181,8 +180,8 @@ static void check_failing_stream(void)
     free(data);
 }
 
-/* Any prefix of a file, and a file with a damaged byte, is refused or read,
- * but never crashes: the sanitizers watch this. */
+/* Every prefix of a file, and a file with one damaged byte, is refused or read
+ * without a crash. */
 static void check_damage(const char *path)
 {
     size_t size = 0;
@@ -351,8 +350,8 @@ static bool file_exists(const char *path)
     return file != NULL;
 }
 
-/* A file is written in place, and a header that cannot be written makes none.
- */
+/* A file is written in place, and a header that cannot be written creates
+ * none. */
 static void check_file(void)
 {
     const char *path = "test_streams_output.sdf";
@@ -396,8 +395,8 @@ static void check_file(void)
     sdfio_writer_free(writer);
 }
 
-/* A header that claims more bytes of data than any stream has: the trailer is
- * looked for by reading through the data area, which ends first. */
+/* A header that claims more data than the stream holds: the search for the
+ * trailer reaches the end of the stream. */
 static void check_huge_matrix(void)
 {
     if (sizeof(size_t) < sizeof(uint64_t))
@@ -442,7 +441,6 @@ static void check_huge_matrix(void)
     free(file.data);
 }
 
-/* Appends a line to a text. */
 static void add_line(char *text, size_t capacity, const char *name,
                      const char *value, const char *line_end)
 {
@@ -495,7 +493,7 @@ static sdfio_status open_ascii(const char *magic, const char *id,
     return read_ascii(magic, id, date, points, z_scale, line_end, NULL);
 }
 
-/* What the standard demands of a header, and the reader holds to. */
+/* The rules of the standard for a header that the reader enforces. */
 static void check_standard_rules(void)
 {
     const char *const crlf = "\r\n";
@@ -551,7 +549,7 @@ static void check_standard_rules(void)
                             good_z, crlf));
 }
 
-/* A sink that fails. */
+/* A write callback that always fails. */
 static size_t refusing_write(void *user, const void *data, size_t size)
 {
     (void)user;
@@ -576,7 +574,7 @@ static void check_failing_sink(void)
     sdfio_writer_free(writer);
 }
 
-/* The stream over a C file reads and writes the file, which stays open. */
+/* The stdio stream reads and writes a C file and leaves it open. */
 static void check_stdio_stream(void)
 {
     FILE *file = tmpfile();
@@ -612,7 +610,6 @@ static void check_stdio_stream(void)
     CHECK(fclose(file) == 0);
 }
 
-/* A call without a layout is refused. */
 static void check_missing_layout(void)
 {
     membuf file = {0};

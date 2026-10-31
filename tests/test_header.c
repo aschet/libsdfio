@@ -54,8 +54,8 @@ static void check_defaults(void)
     sdfio_header_free(header);
 }
 
-/* The setters round down to the minute, and set_dates sets both dates or
- * neither. */
+/* Setters round down to the minute, and set_dates sets both dates or neither.
+ */
 static void check_dates(void)
 {
     sdfio_header *header = NULL;
@@ -129,7 +129,8 @@ static void check_setters(void)
     CHECK(strcmp(sdfio_header_manufacturer(header), "0123456789") == 0);
 }
 
-/* A setter refuses what is wrong in its field alone, and changes nothing. */
+/* A setter refuses only an invalid value of its own field and leaves the
+ * header unchanged. */
 static void check_refusals(void)
 {
     sdfio_header *header = new_header();
@@ -184,8 +185,7 @@ static void check_refusals(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_header_set_manufacturer(NULL, ""));
 }
 
-/* The limits that depend on several fields are checked when a file is
- * created. */
+/* Limits across several fields are checked when a file is created. */
 static void check_cross_field_checks(void)
 {
     sdfio_header *header = new_header();
@@ -269,8 +269,8 @@ static void check_creation(void)
     CHECK(header == NULL);
 }
 
-/* The encoding of the identifier is not checked: the bytes of the program go
- * into a file of either format and come back as they are. */
+/* The identifier is not checked for encoding: its bytes round-trip unchanged
+ * in both formats. */
 static void check_bytes_of_the_identifier(void)
 {
     const char *const identifiers[] = {"caf\xC3\xA9", "\x7F\t\x1F", "\xE9\xFF"};
@@ -308,7 +308,7 @@ static void check_bytes_of_the_identifier(void)
     }
 }
 
-/* The header of a reader is copied to keep it after the reader is freed. */
+/* A copy of the header of a reader outlives the reader. */
 static void check_copy_of_a_read_header(void)
 {
     sdfio_header *header = new_header();

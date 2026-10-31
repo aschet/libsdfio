@@ -114,7 +114,7 @@ static void check_utc(void)
     CHECK(strcmp(text, "311219692359") == 0);
 }
 
-/* The clock reading of ISO-1.0 is kept as it is without a time zone. */
+/* Without a time zone, the clock reading of ISO-1.0 is the date. */
 static void check_without_zone(void)
 {
     char text[SDFIO_DATETIME_SIZE + 1];
@@ -151,8 +151,8 @@ static bool central_europe_to_local(void *user, time_t utc, sdfio_date *local)
     return sdfio_date_from_time(utc + offset_at(utc), local) == SDFIO_OK;
 }
 
-/* In the hour that a change of the clock repeats, the first reading is taken;
- * an hour that it skips is read as the hour after. */
+/* An ambiguous clock reading resolves to its first occurrence, a skipped one
+ * to the hour after. */
 static time_t central_europe_to_utc(void *user, const sdfio_date *local)
 {
     (void)user;
@@ -181,7 +181,6 @@ static bool refuse_utc(void *user, time_t utc, sdfio_date *local)
     return false;
 }
 
-/* The fields of a date and the UTC time convert both ways without a zone. */
 static void check_date_conversion(void)
 {
     sdfio_date date;
@@ -215,9 +214,8 @@ static void check_date_conversion(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_date_from_time(0, NULL));
 }
 
-/* The time zone of the machine: whatever the zone is, a time converts to a
- * clock reading and back to the same time, and the reading is the one that
- * the C library gives. The times avoid the hours when the clocks change. */
+/* For any zone, a time converts to a clock reading and back unchanged, and the
+ * reading equals that of the C library. The times avoid clock changes. */
 static void check_system_time_zone(void)
 {
     const sdfio_time_zone *zone = sdfio_system_time_zone();
@@ -302,8 +300,8 @@ static void check_time_zone(void)
     CHECK(!sdfio_datetime_format(1782900000, SDFIO_ISO_1_0, &refusing, text));
 }
 
-/* The writer stores the clock of the time zone, and the reader gives the UTC
- * time back; without a time zone the clock reading is the date. */
+/* With a time zone, the writer stores the clock reading and the reader
+ * restores the UTC time. Without one, the reading is the date. */
 static void check_file(void)
 {
     const sdfio_time_zone zone = {NULL, central_europe_to_utc,

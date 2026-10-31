@@ -120,7 +120,7 @@ static void check_encode(void)
                                       large, 1, floats));
 }
 
-/* Values go through in chunks, so the sizes around one chunk are tried. */
+/* Sizes around the chunk size. */
 static void check_chunks(void)
 {
     const sdfio_header *header =
@@ -260,8 +260,7 @@ static void check_element_stride(void)
     CHECK_OK(sdfio_decode_heights(header, &layout, coded, 1, mirrored));
 }
 
-/* A generator of numbers that does not depend on the library of the C
- * compiler. */
+/* Pseudo-random numbers independent of the C library. */
 static uint32_t next_random(uint32_t *state)
 {
     *state ^= *state << 13;
@@ -273,8 +272,7 @@ static uint32_t next_random(uint32_t *state)
 #define ALL_VALUES (1U << 16)
 #define RANDOM_HEIGHTS 20000
 
-/* The stored values of a data type: every one of the 8-bit and of the 16-bit
- * integers, and random numbers of the others. */
+/* All values of the 8-bit and 16-bit types, random values of the others. */
 static size_t stored_values(sdfio_data_type type, uint32_t *state,
                             unsigned char *bytes)
 {
@@ -327,7 +325,7 @@ static size_t stored_values(sdfio_data_type type, uint32_t *state,
     return 0;
 }
 
-/* Two floats that are the same, or are a few steps apart. */
+/* Whether two floats are equal or a few representable steps apart. */
 static bool within_steps(float a, float b, int steps)
 {
     if (isnan(a) || isnan(b))
@@ -348,17 +346,15 @@ static bool within_steps(float a, float b, int steps)
     return false;
 }
 
-/* A float calculation gives the heights that the calculation in double gives,
- * to the last digit of a float, and a few digits for the types that a float
- * does not hold. */
+/* Calculating in float matches calculating in double to the last float digit,
+ * or to a few digits for the types that a float cannot hold. */
 static int decode_steps(sdfio_data_type type)
 {
     return type == SDFIO_TYPE_INT32 || type == SDFIO_TYPE_DOUBLE ? 2 : 0;
 }
 
-/* The stored values are the same, or close: a quotient that is half way
- * between two numbers, within the accuracy of the scale, falls to either, and
- * a float has 24 bits for the 32 of an integer. */
+/* Equal or adjacent coded values: a quotient near a tie may round either way,
+ * and a float has 24 bits against 32 of an integer. */
 static bool same_coded(sdfio_data_type type, const unsigned char *a,
                        const unsigned char *b)
 {
@@ -413,8 +409,8 @@ static double top_of(sdfio_data_type type, double scale)
     return 0.0;
 }
 
-/* A height rounds to the nearest count, a tie to the even one, whatever the
- * sign, and also next to the magnitude from which a float has no fraction. */
+/* Heights round to the nearest count and ties to even, for both signs,
+ * including near the magnitude from which a float has no fraction. */
 static void check_rounding(void)
 {
     static const double heights[] = {-2.5,  -1.5,    -0.5,    -0.0,  0.5,
@@ -452,8 +448,8 @@ static void check_rounding(void)
     }
 }
 
-/* The calculation in float gives the heights, and the data, that the
- * calculation in double gives. */
+/* Calculating in float gives the heights and the data that calculating in
+ * double gives. */
 static void check_float_path(void)
 {
     static const sdfio_data_type types[] = {SDFIO_TYPE_INT8, SDFIO_TYPE_INT16,

@@ -57,8 +57,7 @@ static void fill(float *heights)
     heights[3] = NAN;
 }
 
-/* Writes and reads a file through the configuration. Returns the first status
- * that is not OK, SDFIO_OK if all went well. */
+/* Returns the first status that is not SDFIO_OK. */
 static sdfio_status round_trip(const test_options *config, sdfio_format format,
                                sdfio_data_type type, bool *equal)
 {
@@ -170,7 +169,7 @@ static void check_counted(void)
     }
 }
 
-/* A handle that is small: a buffer of a few bytes, a chunk of a few values. */
+/* A buffer of a few bytes and a chunk of a few values. */
 static void check_small(void)
 {
     static const test_options small[] = {
@@ -380,7 +379,7 @@ static void check_arguments(void)
     free(no_format_sink.data);
 }
 
-/* The magics of a reader: those of its formats, in their order. */
+/* The magics are those of the added formats, in order. */
 static void check_magics(void)
 {
     sdfio_reader *all = new_reader(all_formats());
@@ -410,7 +409,7 @@ static void check_magics(void)
     CHECK(sdfio_reader_magic(NULL, 0) == NULL);
 }
 
-/* The list of formats has room for the formats of the library only. */
+/* The list holds only the formats of the library. */
 static void check_format_list(void)
 {
     sdfio_reader_format first_read = {.prefix = 'x'};

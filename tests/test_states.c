@@ -73,8 +73,8 @@ static sdfio_status write_rows(sdfio_writer *writer, size_t rows)
                             values, rows);
 }
 
-/* A writer in a state. The stream is the memory of the file, or refuses every
- * byte for the failed writer. */
+/* Returns a writer in the state. The stream writes to memory, or refuses every
+ * byte for the failed state. */
 static sdfio_writer *writer_in(writer_state state, membuf *file)
 {
     sdfio_writer *writer = NULL;
@@ -176,7 +176,7 @@ static void check_writer_calls(void)
     }
 }
 
-/* A call that is refused for its state or its arguments changes nothing. */
+/* A refused call leaves the writer unchanged. */
 static void check_writer_refusals(void)
 {
     membuf file = {0};
@@ -193,7 +193,7 @@ static void check_writer_refusals(void)
     free(file.data);
 }
 
-/* A create that fails leaves the writer new. */
+/* A failed create leaves the writer new. */
 static void check_writer_retry(void)
 {
     sdfio_writer *writer = new_writer(all_formats());
@@ -242,7 +242,6 @@ static const sdfio_status reader_results[READER_STATES][READER_CALLS] = {
     [READER_TRAILER] = {STATE, STATE, STATE, STATE, STATE, OK, STATE, OK},
     [READER_FAILED] = {STATE, STATE, STATE, STATE, STATE, STATE, STATE, STATE}};
 
-/* A binary file of the header and the rows. */
 static void write_file(membuf *file)
 {
     sdfio_writer *writer = new_writer(all_formats());
@@ -261,7 +260,8 @@ static sdfio_status read_rows(sdfio_reader *reader, size_t rows)
                            rows_read, rows);
 }
 
-/* A reader in a state. The file of the failed reader ends in the data area. */
+/* Returns a reader in the state. For the failed state the file ends in the
+ * data area. */
 static sdfio_reader *reader_in(reader_state state, const membuf *file)
 {
     sdfio_reader *reader = NULL;
@@ -364,7 +364,7 @@ static void check_reader_calls(void)
     free(file.data);
 }
 
-/* The header is available from the open on, also after an error. */
+/* The header is available after opening, also after an error. */
 static void check_reader_header(void)
 {
     membuf file = {0};
@@ -379,8 +379,8 @@ static void check_reader_header(void)
     free(file.data);
 }
 
-/* A call that is refused for its state or its arguments changes nothing, and
- * the end of the trailer repeats. */
+/* A refused call leaves the reader unchanged, and reading at the end of the
+ * trailer returns 0 repeatedly. */
 static void check_reader_refusals(void)
 {
     membuf file = {0};

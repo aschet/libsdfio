@@ -12,9 +12,9 @@
 #define COLUMNS 9
 #define LONGEST_MANUFACTURER "ABCDEFGHIJ"
 
-/* Fills `count` values of the data type with the longest text that the ASCII
- * format writes for it: the smallest integer that is not the bad value, and a
- * negative number with the most digits for a floating-point type. */
+/* Fills `count` values with the longest ASCII text of the type: the smallest
+ * integer other than the bad value, or a negative number with the most digits.
+ */
 static void fill_longest(sdfio_data_type type, unsigned char *values,
                          size_t count)
 {
@@ -135,9 +135,8 @@ static void check_errors(void)
     sdfio_writer_free(binary_only);
 }
 
-/* A grid whose size in bytes does not fit in size_t. A header whose number of
- * values does not fit is invalid already, which is the case where size_t has 32
- * bits. */
+/* A grid whose size in bytes exceeds size_t. Where size_t has 32 bits, the
+ * header is already invalid. */
 static void check_overflow(sdfio_format format)
 {
     sdfio_header *header = new_header();

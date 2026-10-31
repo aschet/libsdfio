@@ -52,8 +52,8 @@ static void fill(int16_t *values, int seed)
     }
 }
 
-/* Writes the first `rows` rows of a file of the values of `seed`, and ends the
- * file if all rows are written. */
+/* Writes the first `rows` rows of the file for `seed`, and ends the file if
+ * all rows are written. */
 static void write_rows(sdfio_writer *writer, const sdfio_header *header,
                        int seed, size_t rows, membuf *file)
 {
@@ -75,7 +75,7 @@ static void write_rows(sdfio_writer *writer, const sdfio_header *header,
     }
 }
 
-/* Reads the open file and compares its rows with the values of `seed`. */
+/* Compares the rows of the open file with those for `seed`. */
 static void check_rows(sdfio_reader *reader, int seed)
 {
     int16_t expected[ROWS * COLUMNS];
@@ -95,8 +95,8 @@ static void check_file(sdfio_reader *reader, const membuf *file, int seed)
     check_rows(reader, seed);
 }
 
-/* One writer writes three files, one after the other, with the headers `first`,
- * `second` and `first`, and one reader reads them. */
+/* One writer writes three files with the headers `first`, `second` and
+ * `first`, and one reader reads them. */
 static void check_sequence(sdfio_writer *writer, sdfio_reader *reader,
                            const sdfio_header *first,
                            const sdfio_header *second)
@@ -165,7 +165,7 @@ static void check_state_after_reset(void)
     sdfio_writer_free(writer);
 }
 
-/* The file that a reader opened by its name is closed by the reset. */
+/* The reset closes a file that the reader opened by name. */
 static void check_named_files(void)
 {
     sdfio_reader *reader = new_reader(all_formats());

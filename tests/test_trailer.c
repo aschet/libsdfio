@@ -37,8 +37,8 @@ static void start_file(small_file *small, sdfio_format format)
         small->writer, sdfio_layout_packed(SDFIO_TYPE_FLOAT), heights));
 }
 
-/* Ends the file and reads its trailer back: the text, or none, which a binary
- * file reports as null and an ASCII file as an empty text. */
+/* Ends the file and reads its trailer back. No trailer is null for a binary
+ * file and an empty text for an ASCII file. */
 static bool read_trailer_of(small_file *small, const char *expected)
 {
     CHECK_OK(sdfio_end_file(small->writer));
@@ -89,8 +89,8 @@ static void check_fields(void)
     }
 }
 
-/* The encoding of a value is not checked: its bytes go into a file of either
- * format and come back as they are. */
+/* The bytes of a value are not checked and round-trip unchanged in both
+ * formats. */
 static void check_bytes_of_a_value(void)
 {
     static const char value[] = "J\xC3\xB6rg \xE9\xFF";
@@ -134,7 +134,7 @@ static void check_what_a_line_may_be(void)
     CHECK(read_trailer_of(&small, "Part_2b = x\n"));
 }
 
-/* A field belongs after the rows, and not after the end. */
+/* A field is accepted after the rows and refused after the end. */
 static void check_the_order(void)
 {
     sdfio_header *header = new_header();
@@ -158,8 +158,7 @@ static void check_the_order(void)
     free(file.data);
 }
 
-/* A file writes the text it is given: nothing about it is checked, so a
- * program that writes its own text is not stopped. */
+/* The text is written as given, without a check. */
 static void check_the_text_is_written_as_given(void)
 {
     const char *const trailers[] = {"free text, not a field",
@@ -217,7 +216,7 @@ static void check_the_text_is_written_as_given(void)
     free(file.data);
 }
 
-/* The trailer of a file, in parts of at most `part` bytes. */
+/* Reads the trailer in parts of at most `part` bytes. */
 static size_t read_in_parts(const membuf *file, size_t part, char *out,
                             size_t out_size)
 {
@@ -233,7 +232,7 @@ static size_t read_in_parts(const membuf *file, size_t part, char *out,
     return size;
 }
 
-/* A file whose trailer is the text, written as given. */
+/* Writes a file with the text as its trailer. */
 static membuf file_with_text(sdfio_format format, const char *text)
 {
     small_file small;
@@ -244,9 +243,8 @@ static membuf file_with_text(sdfio_format format, const char *text)
     return small.file;
 }
 
-/* A trailer comes in parts of any size, and the parts give the text that a
- * single call gives, also where a part ends between the CR and the LF of a
- * line end. */
+/* Parts of any size give the text of a single read, also where a part ends
+ * between CR and LF. */
 static void check_parts(void)
 {
     static const char long_line[] =
@@ -278,8 +276,8 @@ static void check_parts(void)
     }
 }
 
-/* The end of the trailer: a buffer that the text fills exactly gets 0 bytes
- * from the next call, and a file without a trailer gets 0 at once. */
+/* A buffer that the text fills exactly is followed by a read of 0 bytes, and a
+ * file without a trailer returns 0 at once. */
 static void check_the_end(void)
 {
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
@@ -316,8 +314,8 @@ static void check_the_end(void)
     }
 }
 
-/* In an ASCII file the text keeps its white space, and the trailer ends at the
- * line that consists of a star. */
+/* In an ASCII file the text keeps its white space and ends at the line that
+ * consists of `*`. */
 static void check_the_ascii_record(void)
 {
     static const struct
@@ -355,8 +353,8 @@ static void check_the_ascii_record(void)
     }
 }
 
-/* After the trailer was asked for, the rows cannot be read, whichever rows
- * were read before: the position is behind the data area. */
+/* Rows cannot be read after the trailer was requested, whichever rows were
+ * read before. */
 static void check_rows_after_the_trailer(void)
 {
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
@@ -386,8 +384,8 @@ static void check_rows_after_the_trailer(void)
     }
 }
 
-/* The bytes of a file whose trailer text is written in parts of a size, and in
- * a single call for the size 0. */
+/* Returns the bytes of a file with the trailer written in parts of a size, or
+ * in one call for the size 0. */
 static membuf file_with_text_in_parts(sdfio_format format, const char *text,
                                       size_t part)
 {
@@ -406,9 +404,8 @@ static membuf file_with_text_in_parts(sdfio_format format, const char *text,
     return small.file;
 }
 
-/* A text that is written in parts gives the file that a single call gives,
- * wherever a part ends: also between the CR and the LF of a line end, and after
- * a CR that is no line end. */
+/* A text written in parts gives the file of a single call at any split, also
+ * between CR and LF and after a CR that is no line end. */
 static void check_text_in_parts(void)
 {
     const char *const texts[] = {"alpha\nbeta\n", "alpha\r\nbeta\r\n",
@@ -434,7 +431,6 @@ static void check_text_in_parts(void)
     }
 }
 
-/* A field ends the line that a text leaves open. */
 static void check_a_field_ends_an_open_line(void)
 {
     const sdfio_format formats[] = {SDFIO_BINARY, SDFIO_ASCII};
@@ -449,8 +445,8 @@ static void check_a_field_ends_an_open_line(void)
     }
 }
 
-/* The rows of a source go to a destination of any format, and the
- * trailer follows with a field of the program at its end. */
+/* The rows go to a destination of any format, and the trailer follows with a
+ * field added at its end. */
 static void check_copy_trailer(void)
 {
     static const char text[] = "Operator = Ada\nfree text\nsecond line";
@@ -498,8 +494,8 @@ static void check_copy_trailer(void)
     }
 }
 
-/* The copy keeps the text, with its white space also at its start and its end,
- * and the end of its last line: an ASCII file has no trailer without one. */
+/* The copy keeps the text, including the white space at both ends and the last
+ * line end. */
 static void check_copy_keeps_the_text(void)
 {
     static const char *const written[] = {"\n  A = 1\n\n\tB = 2 \n\n",
@@ -554,8 +550,9 @@ static void check_copy_keeps_the_text(void)
     }
 }
 
-/* A file without a trailer copies nothing, and the copy refuses what a reader
- * or a writer refuses, with the text of the failure in the writer. */
+/* A file without a trailer copies nothing, and the copy refuses what the
+ * reader or the writer refuses, with the reason in the message of the writer.
+ */
 static void check_copy_trailer_failures(void)
 {
     small_file small;
@@ -604,8 +601,7 @@ static void check_copy_trailer_failures(void)
     free(file.data);
 }
 
-/* The fields of a text: the lines of the form Name = Value in order, and no
- * other line. */
+/* The fields are the lines of the form `Name = Value`, in order. */
 static void check_next_field(void)
 {
     static const char text[] =
@@ -654,8 +650,8 @@ static void check_next_field(void)
                                     &name_size, &value_at, &value_size));
 }
 
-/* A name is found without regard to case, the first of several fields counts,
- * and a missing field leaves no value. */
+/* A name matches regardless of case, the first of several fields counts, and a
+ * missing field leaves the value unset. */
 static void check_find_field(void)
 {
     static const char text[] =

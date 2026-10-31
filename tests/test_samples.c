@@ -38,8 +38,8 @@ typedef struct expectation
     char trailer[LINE_CAPACITY];
 } expectation;
 
-/* The trailer the way expected.txt writes it: LF as \n, a backslash and a tab
- * escaped, and a CR left out. */
+/* Escapes a trailer as expected.txt does: LF as \n, backslash and tab escaped,
+ * CR omitted. */
 static void escape(const char *trailer, size_t size, char *out)
 {
     size_t used = 0;
@@ -111,7 +111,7 @@ static bool parse_line(char *line, expectation *e)
     return true;
 }
 
-/* The names that the expectations of the files use. */
+/* The revision names of expected.txt. */
 static const char *revision_text(sdfio_revision revision)
 {
     return revision == SDFIO_ISO_1_0 ? "ISO-1.0" : "ISO-2.0";
@@ -215,7 +215,7 @@ static void check_against(const expectation *e)
     sdfio_reader_free(reader);
 }
 
-/* The bytes of a file of tests/data, or null. */
+/* Returns the bytes of a file in tests/data, or null. */
 static unsigned char *read_file(const char *name, size_t *size)
 {
     char path[512];
@@ -248,8 +248,8 @@ static unsigned char *read_file(const char *name, size_t *size)
     return bytes;
 }
 
-/* Replaces `length` characters at `at` with a text, in a buffer that ends with
- * a 0 character and whose size is updated. The text is not longer. */
+/* Replaces `length` characters at `at` with a text in a 0-terminated buffer
+ * and updates its size. The text is not longer. */
 static void replace(char *at, size_t length, const char *text, size_t *size)
 {
     const size_t used = strlen(text);
@@ -261,8 +261,8 @@ static void replace(char *at, size_t length, const char *text, size_t *size)
     *size -= length - used;
 }
 
-/* The file opens, its dates read as not recorded, and its data area and its
- * trailer read as usual. */
+/* The dates read as not recorded, and the data area and the trailer read as
+ * usual. */
 static void check_unrecorded(const unsigned char *bytes, size_t size)
 {
     sdfio_reader *reader = new_reader(all_formats());
@@ -340,9 +340,8 @@ static void check_dates_set_to_zero(void)
     }
 }
 
-/* An editor can put the UTF-8 byte order mark before an ASCII file, in front
- * of the magic. It is no part of a binary file, which a mark would
- * damage. */
+/* An ASCII file may start with a UTF-8 byte order mark before the magic, a
+ * binary file may not. */
 static void check_byte_order_mark(void)
 {
     static const unsigned char mark[] = {0xEF, 0xBB, 0xBF};

@@ -35,7 +35,7 @@ typedef struct job
     int errors;
 } job;
 
-/* The sum of the heights of a file, or NaN if it cannot be read. */
+/* Returns the sum of the heights, or NaN if the file cannot be read. */
 static double read_sum(const char *path, sdfio_reader *reader)
 {
     if (sdfio_open_file(reader, path) != SDFIO_OK)
