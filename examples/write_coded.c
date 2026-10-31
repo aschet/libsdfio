@@ -11,8 +11,6 @@
 #define ROWS 64
 #define DROPOUT_EVERY 97
 
-/* Generates the coded values of the row y: a pattern in which a point is not
- * measured at intervals of DROPOUT_EVERY points. */
 static void generate_coded_row(int16_t *row, size_t y)
 {
     const size_t row_offset = y * 31;

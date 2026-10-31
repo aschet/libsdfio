@@ -12,7 +12,6 @@
 #include <io.h>
 #endif
 
-/* The statistics of a file from a pipe, a row at a time: no matrix is held. */
 int main(void)
 {
 #if defined(_WIN32)

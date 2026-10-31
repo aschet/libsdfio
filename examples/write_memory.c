@@ -18,7 +18,6 @@ typedef struct buffer
     size_t capacity;
 } buffer;
 
-/* Appends to the buffer, which does not grow. */
 static size_t append(void *user, const void *data, size_t size)
 {
     buffer *file = user;
