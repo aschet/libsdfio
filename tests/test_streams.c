@@ -75,7 +75,6 @@ static void check_pipe(const char *path, size_t piece)
                    * sizeof(double));
         CHECK_OK(sdfio_read_heights(
             reader, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), heights));
-        /* The same heights, in the same places, as from memory. */
         sdfio_reader *in_memory = new_reader(all_formats());
         CHECK_OK(sdfio_open_memory(in_memory, data, size));
         double *expected =

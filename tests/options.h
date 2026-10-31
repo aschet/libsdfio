@@ -4,15 +4,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* The options of a reader or a writer in one structure, so that a test lists
- * them where it creates the handle. The library sets them one by one. */
-
 #ifndef SDFIO_TESTS_OPTIONS_H
 #define SDFIO_TESTS_OPTIONS_H
 
 #include <sdfio/sdfio.h>
 
-/* A format that a handle adds, or none. */
 typedef enum test_format
 {
     TEST_NO_FORMAT,
@@ -32,12 +28,10 @@ typedef struct test_options
     test_format writer_formats[2];
 } test_options;
 
-/* The formats of a handle that reads and writes both formats. */
 #define ALL_FORMATS                                                            \
     .reader_formats = {TEST_BINARY, TEST_ASCII},                               \
     .writer_formats = {TEST_BINARY, TEST_ASCII}
 
-/* Adds a format to a reader or a writer. */
 static inline sdfio_status add_reader_format(sdfio_reader *reader,
                                              test_format format)
 {

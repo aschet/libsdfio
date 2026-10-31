@@ -232,7 +232,6 @@ static size_t read_in_parts(const membuf *file, size_t part, char *out,
     return size;
 }
 
-/* Writes a file with the text as its trailer. */
 static membuf file_with_text(sdfio_format format, const char *text)
 {
     small_file small;

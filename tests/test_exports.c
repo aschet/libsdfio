@@ -62,7 +62,6 @@ static void check_init(void)
     CHECK(layout.element_stride == 0);
     CHECK(layout.row_stride == 0);
 
-    /* The packed layouts are constants of the library, one for each type. */
     const sdfio_data_type types[] = {SDFIO_TYPE_FLOAT, SDFIO_TYPE_INT8,
                                      SDFIO_TYPE_INT16, SDFIO_TYPE_INT32,
                                      SDFIO_TYPE_DOUBLE};

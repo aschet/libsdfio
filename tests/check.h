@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-/* A small harness: a failed check is counted and reported, and the test goes
- * on. The program exits with the number of failures. */
-
 #ifndef SDFIO_TESTS_CHECK_H
 #define SDFIO_TESTS_CHECK_H
 
@@ -99,7 +96,6 @@ typedef struct counting
     long allow;
     /* The calls of the allocation function, also the failed ones. */
     long calls;
-    /* The calls of the release function. */
     long released;
     /* The blocks that are allocated and not released. */
     long live;
@@ -131,7 +127,6 @@ static inline void counting_release(void *user, void *memory)
     free(memory);
 }
 
-/* A file in memory that a writer fills. */
 /** The size of the binary header of ISO-2.0, as the standard lays it out: the
  * magic of 8 bytes, the identifier of 10, two datetimes of 12, the
  * numbers of columns and of rows of 4 each, four binary64 numbers, and 3 bytes
@@ -178,7 +173,6 @@ static inline sdfio_stream membuf_stream(membuf *buffer)
     return stream;
 }
 
-/* The layout of an array whose rows are `row_stride` bytes apart. */
 static inline sdfio_layout layout_with_rows(sdfio_data_type type,
                                             ptrdiff_t row_stride)
 {
@@ -187,7 +181,6 @@ static inline sdfio_layout layout_with_rows(sdfio_data_type type,
     return layout;
 }
 
-/* A reader or a writer for options that are valid. */
 static inline sdfio_reader *new_reader(const test_options *options)
 {
     sdfio_reader *reader = NULL;
@@ -202,7 +195,6 @@ static inline sdfio_writer *new_writer(const test_options *options)
     return writer;
 }
 
-/* The room for the headers that a test creates. */
 #define HEADER_ROOM 256
 
 static sdfio_header *created_headers[HEADER_ROOM];
@@ -252,7 +244,6 @@ static inline sdfio_reader *membuf_reopen(sdfio_reader *reader,
     return reader;
 }
 
-/* The room for the trailers of the tests. */
 #define TRAILER_ROOM 65536
 
 /* The text that a reader returns for a text written to the trailer: CRLF reads

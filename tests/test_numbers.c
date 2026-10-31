@@ -144,7 +144,6 @@ static void check_numbers(const sdfio_decimal_point *decimal_point)
               == strlen("1.500000e+00")
           && memcmp(cut, "1.50", sizeof cut) == 0);
 
-    /* What is printed is read back. */
     uint32_t state = 12345u;
     for (int i = 0; i < 2000; ++i)
     {

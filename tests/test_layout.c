@@ -8,7 +8,6 @@
 #include "layout.h"
 #include <stdint.h>
 
-/* Checks a layout with a given row stride. */
 static sdfio_status layout_with(sdfio_layout layout, size_t rows,
                                 size_t columns, ptrdiff_t row_stride)
 {

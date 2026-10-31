@@ -134,7 +134,6 @@ static void check_counted(void)
     }
 }
 
-/* A buffer of a few bytes and a chunk of a few values. */
 static void check_small(void)
 {
     static const test_options small[] = {
@@ -209,7 +208,6 @@ static void check_arena(void)
 
 static void check_arguments(void)
 {
-    /* An allocator is needed, with both of its functions. */
     sdfio_allocator broken = {NULL, counting_allocate, NULL};
     sdfio_reader *reader_none = NULL;
     sdfio_writer *writer_none = NULL;
@@ -232,14 +230,11 @@ static void check_arguments(void)
                  sdfio_writer_create(&broken, &writer_none));
     CHECK(reader_none == NULL && writer_none == NULL);
 
-    /* A place for the handle is needed. */
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_reader_create(sdfio_default_allocator(), NULL));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
                  sdfio_writer_create(sdfio_default_allocator(), NULL));
 
-    /* The options: a chunk that cannot be counted in bytes, a buffer without a
-     * size, a format that is added twice, and more formats than there are. */
     sdfio_reader *reader_created = NULL;
     sdfio_writer *writer_created = NULL;
     CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &reader_created));
@@ -263,7 +258,6 @@ static void check_arguments(void)
     CHECK_STATUS(SDFIO_ERR_ARGUMENT, sdfio_writer_set_time_zone(NULL, NULL));
     CHECK_OK(sdfio_reader_set_time_zone(reader_created, NULL));
 
-    /* The options are set before the first attempt to open a file. */
     static const unsigned char junk[] =
         "not an sdf file at all, but long enough";
     CHECK_STATUS(SDFIO_ERR_FORMAT,
@@ -277,7 +271,6 @@ static void check_arguments(void)
     sdfio_reader_free(reader_created);
     sdfio_writer_free(writer_created);
 
-    /* A date that is not set cannot be written. */
     sdfio_header *header = new_header();
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));
@@ -297,7 +290,6 @@ static void check_arguments(void)
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* Text is written with its format and refused without it. */
     CHECK_OK(sdfio_header_set_format(header, SDFIO_ASCII));
     CHECK_OK(sdfio_header_set_columns(header, 1));
     CHECK_OK(sdfio_header_set_rows(header, 1));
@@ -314,7 +306,6 @@ static void check_arguments(void)
     sdfio_writer_free(writer);
     free(sink.data);
 
-    /* A file is read only if its format is added. */
     static const char ascii_magic[] = "aISO-2.0\r\n";
     sdfio_reader *reader = new_reader(&binary_only);
     CHECK_STATUS(SDFIO_ERR_UNSUPPORTED,
@@ -325,8 +316,6 @@ static void check_arguments(void)
                  sdfio_open_memory(reader, ascii_magic, sizeof ascii_magic));
     sdfio_reader_free(reader);
 
-    /* A handle needs a format of its direction before a file is opened or
-     * created. */
     sdfio_reader *no_format_reader = NULL;
     CHECK_OK(sdfio_reader_create(sdfio_default_allocator(), &no_format_reader));
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,

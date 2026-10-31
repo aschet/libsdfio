@@ -36,13 +36,11 @@ static void check_decode(void)
     CHECK(isnan(heights[2]));
     CHECK(heights[3] == 0.0f);
 
-    /* A point that is not measured is NaN in a double buffer as well. */
     double doubles[4];
     CHECK_OK(sdfio_decode_heights(
         header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), coded, 4, doubles));
     CHECK(isnan(doubles[2]) && doubles[3] == 0.0);
 
-    /* A height that does not fit a float. */
     const sdfio_header *scaled =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT32, 1e300);
     const int32_t large[2] = {1, 2};
@@ -101,7 +99,6 @@ static void check_encode(void)
         header, sdfio_layout_packed(SDFIO_TYPE_DOUBLE), top, 1, coded));
     CHECK(coded[0] == INT16_MAX);
 
-    /* Without a z-scale there is no way to a count. */
     const sdfio_header *unscaled =
         description(SDFIO_ISO_2_0, SDFIO_TYPE_INT16, SDFIO_AUTO_Z_SCALE);
     CHECK_STATUS(SDFIO_ERR_ARGUMENT,
@@ -230,7 +227,6 @@ static void check_element_stride(void)
               && points[i].w == 4.0F);
     }
 
-    /* Encoded from them. */
     int16_t back[4];
     CHECK_OK(sdfio_encode_heights(header, &layout, &points[0].z, 4, back));
     CHECK(back[0] == 1000 && back[1] == INT16_MIN && back[2] == -2000

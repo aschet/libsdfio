@@ -491,7 +491,6 @@ static void check_element_stride(void)
     double plain[ROWS * COLUMNS];
     make_heights(plain);
 
-    /* The same heights in a column-major matrix and in points. */
     double columns_first[ROWS * COLUMNS];
     point points[ROWS * COLUMNS];
     for (size_t y = 0; y < ROWS; ++y)
@@ -536,7 +535,6 @@ static void check_element_stride(void)
     CHECK(from_points.size == from_plain.size
           && memcmp(from_points.data, from_plain.data, from_plain.size) == 0);
 
-    /* Read back into each layout. */
     double read_columns[ROWS * COLUMNS];
     point read_points[ROWS * COLUMNS];
     double mirrored[ROWS * COLUMNS];

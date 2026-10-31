@@ -19,7 +19,6 @@
 
 #define SECONDS_PER_HOUR 3600
 #define SECONDS_PER_DAY 86400
-/* Where the fields of the dates are in a binary file. */
 #define DATE_AT 18
 
 static void format(time_t time, sdfio_revision revision,
@@ -49,7 +48,6 @@ static void check_utc(void)
     CHECK(sdfio_datetime_parse(text, SDFIO_DATETIME_SIZE, SDFIO_ISO_2_0, NULL)
           == SDFIO_NO_TIME);
 
-    /* The leap day, and the first and the last day the field has. */
     CHECK(sdfio_datetime_parse("290220240000", SDFIO_DATETIME_SIZE,
                                SDFIO_ISO_2_0, NULL)
           == 1709164800);
@@ -97,7 +95,6 @@ static void check_utc(void)
     CHECK(!sdfio_datetime_valid("0000000000000", 13));
     CHECK(!sdfio_datetime_valid("0000000000x0", SDFIO_DATETIME_SIZE));
 
-    /* A field that is no date reads as no date. */
     const char *bad[] = {"310220260000",  "320120260000", "011320260000",
                          "010120260060",  "010120262400", "01012026000",
                          "0101202600001", "0101202600x0", "            "};
@@ -127,7 +124,6 @@ static void check_without_zone(void)
         format(1772600760, local_revisions[i], NULL, text);
         CHECK(strcmp(text, "040320260506") == 0);
     }
-    /* A time zone with no callback converts nothing. */
     const sdfio_time_zone none = {NULL, NULL, NULL};
     CHECK(sdfio_datetime_parse("040320260506", SDFIO_DATETIME_SIZE,
                                SDFIO_ISO_1_0, &none)
@@ -193,7 +189,6 @@ static void check_date_conversion(void)
     /* The seconds are dropped. */
     CHECK_OK(sdfio_date_from_time(1772600819, &date));
     CHECK(date.minute == 6);
-    /* Before 1970 and the first and the last minute of the range. */
     CHECK_OK(sdfio_date_from_time(-60, &date));
     CHECK(date.year == 1969 && date.month == 12 && date.day == 31
           && date.hour == 23 && date.minute == 59);
