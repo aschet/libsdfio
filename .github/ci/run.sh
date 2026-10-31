@@ -232,7 +232,7 @@ run_static_analysis() {
 
 run_format() {
   clang-format --dry-run -Werror src/*.c src/*.h include/sdfio/*.h \
-    tests/*.c tests/fuzz/*.c test_package/*.c .github/ci/firmware.c \
+    tests/*.c test_package/*.c .github/ci/firmware.c \
     examples/*.c examples/external/*.cpp
 }
 
