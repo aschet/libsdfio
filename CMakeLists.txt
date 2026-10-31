@@ -11,9 +11,6 @@ project(sdfio
     LANGUAGES C
 )
 
-# Standard C for every target: no extensions of the compiler. The standard
-# itself is the default of the compiler, but at least C11, which the library
-# asks for with a compile feature.
 set(CMAKE_C_EXTENSIONS OFF)
 
 include(CMakePackageConfigHelpers)
@@ -30,8 +27,9 @@ set(SDFIO_WARNINGS
     $<$<NOT:$<C_COMPILER_ID:MSVC>>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wstrict-prototypes;-Wmissing-prototypes;-Wcast-qual;-Wformat=2;-Wundef>
 )
 
-# A Windows program finds the DLL beside itself: the tests, the examples and the
-# library go to one folder.
+# Windows has no rpath: an executable loads a DLL from its own directory or from
+# PATH. Place the DLL and the executables that link it in one runtime output
+# directory, which multi-configuration generators extend by the configuration.
 if(WIN32 AND NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 endif()
